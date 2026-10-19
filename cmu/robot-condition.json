@@ -1,0 +1,39 @@
+{
+  "purpose": "The CMU MicroDuck's current measured condition, as far as the simulation needs it. Copied from the private microduck-sim/CURRENT-STATE.json (the robot's single source of current facts, checked against the newest real run on Shawn's Mac). simcheck/sim_suite.py turns these into brain_sim_check.py flags for its 'real' cases. Never edit by hand on the fork: update CURRENT-STATE.json from a measurement, then copy.",
+  "copied_from": "microduck-sim/CURRENT-STATE.json",
+  "copied_on": "2026-10-19",
+  "facts": {
+    "servo_rail_v": {
+      "value": 7.0,
+      "no_load_v": 7.32,
+      "meaning": "Servo supply while walking (XL4015 #1 from the 20 V bench supply; the 2S battery backpack gives 6.6-8.4 V). The sim holds the supply constant at this value (--volt).",
+      "verified_at": "2026-10-16"
+    },
+    "imu_rate_hz": {
+      "value": 50,
+      "meaning": "IMU samples reaching the 50 Hz policy loop: full rate, every tick fresh (median 51/s on the 2026-10-18 runs). No IMU hold in the real cases (--imu-hz 0).",
+      "verified_at": "2026-10-18"
+    },
+    "imu_added_delay_ms": {
+      "value": 0,
+      "meaning": "No delay beyond the normal pipeline (about 15 ms end to end plus half a 50 Hz period). The 40-60 ms trunk lag seen in logs is plant softness, not the IMU (--sensor-delay 1 tick as trained).",
+      "verified_at": "2026-10-17"
+    },
+    "servo_read_drop_fraction": {
+      "value": 0.04,
+      "meaning": "Fraction of 20 ms walk ticks without a fresh servo sync read while the legs step; the policy skips those ticks and the servos hold the last goals (--drop 0.04).",
+      "verified_at": "2026-10-17"
+    },
+    "walking_policy": {
+      "value": "walk61.onnx (Pollen BEST_alpha_walking) at 0.25 m/s, 3-4 s walks; KP_RL 200 walking, KP 400 in open-loop stand mode",
+      "candidates": ["whole/runtime-overlay/models-ft3-it999 (ft3 iteration 999): better in the sim, lost balance at 2.5-4 s in three of three robot walks at 0.20 m/s on 2026-10-17/18"],
+      "verified_at": "2026-10-18"
+    },
+    "sole": {
+      "value": "wrapped anti-slip sheet over the printed foot (template cmu/model/sole/sole_template.py); the 2026-10-18 runs used sandpaper on 0.5 mm foam tape",
+      "meaning": "Foot friction stays inside Pollen's training range (mu 0.7-1.3, PU sole on the official duck); the stack thickness does not change walking in the sim up to 5 mm (cmu/model/sole/README.md).",
+      "verified_at": "2026-10-19"
+    }
+  },
+  "sim_real_condition": "A 'real' suite case takes --volt from servo_rail_v, --drop from servo_read_drop_fraction, an IMU hold only if imu_rate_hz < 49 and an extra sensor delay only if imu_added_delay_ms > 0. Harsher settings are 'stress' cases: report them, never accept or reject a policy on them."
+}

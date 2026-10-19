@@ -1,0 +1,198 @@
+wired on /dev/cu.usbmodem101, compensation none
+jaw ID15: calibrated, closed tick 2042, open tick 2442
+IMU LOST: no IMU sample for 1.00 s, the policy holds its last goals; hold the robot. Check the Pi: ping, systemctl status duck-imu, ~/duck/pwrlog.txt
+monitor 195.1 Hz loop  5.7 ms misses 0 imu    0/s age 1000.0 ms joint age  4.6 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 49.9 Hz loop  5.8 ms misses 0 imu    0/s age 1000.0 ms joint age  4.7 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.0 Hz loop  5.7 ms misses 0 imu    0/s age 1000.0 ms joint age  4.7 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.0 Hz loop  6.0 ms misses 0 imu    0/s age 1000.0 ms joint age  4.8 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.0 Hz loop  5.9 ms misses 0 imu    0/s age 1000.0 ms joint age  4.8 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.0 Hz loop  5.9 ms misses 0 imu    0/s age 1000.0 ms joint age  4.8 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.1 Hz loop  5.6 ms misses 0 imu    0/s age 1000.0 ms joint age  4.6 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 49.9 Hz loop  5.8 ms misses 0 imu    0/s age 1000.0 ms joint age  4.8 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.1 Hz loop  5.3 ms misses 0 imu    0/s age 1000.0 ms joint age  4.5 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.0 Hz loop  5.3 ms misses 0 imu    0/s age 1000.0 ms joint age  4.6 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.0 Hz loop  5.6 ms misses 0 imu    0/s age 1000.0 ms joint age  4.7 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 49.9 Hz loop  5.8 ms misses 0 imu    0/s age 1000.0 ms joint age  4.8 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.1 Hz loop  5.3 ms misses 0 imu    0/s age 1000.0 ms joint age  4.6 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 49.9 Hz loop  5.6 ms misses 0 imu    0/s age 1000.0 ms joint age  4.6 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.1 Hz loop  5.8 ms misses 0 imu    0/s age 1000.0 ms joint age  4.7 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 49.9 Hz loop  5.7 ms misses 0 imu    0/s age 1000.0 ms joint age  4.7 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.1 Hz loop  5.5 ms misses 0 imu    0/s age 1000.0 ms joint age  4.6 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 49.9 Hz loop  5.3 ms misses 0 imu    0/s age 1000.0 ms joint age  4.5 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.0 Hz loop  5.8 ms misses 0 imu    0/s age 1000.0 ms joint age  4.8 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.0 Hz loop  5.7 ms misses 0 imu    0/s age 1000.0 ms joint age  4.7 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.1 Hz loop  5.7 ms misses 0 imu    0/s age 1000.0 ms joint age  4.7 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 49.9 Hz loop  5.9 ms misses 0 imu    0/s age 1000.0 ms joint age  4.7 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.0 Hz loop  5.3 ms misses 0 imu    0/s age 1000.0 ms joint age  4.5 ms | body g [+0.00 -1.00 +0.00] torque False
+monitor 50.1 Hz loop  5.5 ms misses 0 imu    0/s age 1000.0 ms joint age  4.7 ms | body g [+0.00 -1.00 +0.00] torque False
+IMU back
+monitor 50.0 Hz loop  5.7 ms misses 0 imu   44/s age 17.0 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.7 ms misses 0 imu   50/s age  8.6 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 49.9 Hz loop  5.9 ms misses 0 imu   51/s age 13.1 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.8 ms misses 0 imu   51/s age 11.7 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.1 Hz loop  5.4 ms misses 0 imu   51/s age  5.4 ms joint age  4.6 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 49.9 Hz loop  5.5 ms misses 0 imu   50/s age  9.7 ms joint age  4.6 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  6.2 ms misses 0 imu   51/s age  3.7 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  6.0 ms misses 0 imu   51/s age  8.4 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  6.1 ms misses 0 imu   50/s age  7.0 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  6.1 ms misses 0 imu   50/s age 14.6 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.9 ms misses 0 imu   50/s age  7.9 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  6.1 ms misses 0 imu   51/s age  7.6 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.1 Hz loop  5.5 ms misses 0 imu   51/s age 13.6 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 49.9 Hz loop  5.8 ms misses 0 imu   51/s age  6.5 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.1 Hz loop  5.6 ms misses 0 imu   51/s age  8.6 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.3 ms misses 0 imu   50/s age  5.5 ms joint age  4.6 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.2 ms misses 0 imu   51/s age  4.3 ms joint age  4.5 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.1 Hz loop  6.0 ms misses 0 imu   50/s age 13.3 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 49.9 Hz loop  6.0 ms misses 0 imu   50/s age  5.3 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.9 ms misses 0 imu   50/s age  7.0 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.1 Hz loop  5.8 ms misses 0 imu   50/s age 13.0 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 49.9 Hz loop  7.2 ms misses 0 imu   51/s age  8.4 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  6.2 ms misses 0 imu   51/s age  9.9 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.9 ms misses 0 imu   51/s age  7.2 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.2 Hz loop  5.3 ms misses 0 imu   51/s age 29.6 ms joint age  4.6 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.5 ms misses 0 imu   51/s age  8.1 ms joint age  4.6 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 49.9 Hz loop  6.6 ms misses 0 imu   50/s age 23.9 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.8 ms misses 0 imu   51/s age 14.3 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  6.6 ms misses 0 imu   51/s age 16.2 ms joint age  5.0 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  6.3 ms misses 0 imu   51/s age 14.1 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  7.4 ms misses 0 imu   51/s age 10.1 ms joint age  5.4 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.2 Hz loop  5.7 ms misses 0 imu   51/s age  4.6 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 49.9 Hz loop  5.8 ms misses 0 imu   51/s age 10.9 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.8 ms misses 0 imu   51/s age 14.8 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.0 Hz loop  5.6 ms misses 0 imu   50/s age 12.0 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.1 Hz loop  6.5 ms misses 0 imu   51/s age  6.1 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 49.9 Hz loop  5.5 ms misses 0 imu   51/s age 17.1 ms joint age  4.6 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 50.1 Hz loop  6.3 ms misses 0 imu   51/s age  8.0 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False
+monitor 49.8 Hz loop  5.7 ms misses 1 imu   51/s age 15.1 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.1 Hz loop  6.5 ms misses 1 imu   51/s age  6.1 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  6.5 ms misses 1 imu   51/s age 15.4 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.1 Hz loop  6.6 ms misses 1 imu   51/s age 11.3 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  5.7 ms misses 1 imu   50/s age  5.4 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  6.8 ms misses 1 imu   51/s age 10.8 ms joint age  5.1 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.1 Hz loop  6.1 ms misses 1 imu   51/s age  9.0 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  5.8 ms misses 1 imu   51/s age  7.1 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.1 Hz loop  5.9 ms misses 1 imu   51/s age  8.3 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  6.0 ms misses 1 imu   50/s age 13.1 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.7 ms misses 1 imu   51/s age  4.9 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.9 ms misses 1 imu   51/s age 15.8 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.5 ms misses 1 imu   50/s age 13.5 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.5 ms misses 1 imu   51/s age  4.9 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.6 ms misses 1 imu   50/s age 13.2 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.6 ms misses 1 imu   51/s age 12.6 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  9.6 ms misses 1 imu   51/s age  4.9 ms joint age  6.4 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.1 Hz loop  6.2 ms misses 1 imu   51/s age 11.2 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.5 ms misses 1 imu   51/s age  5.8 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.8 ms misses 1 imu   50/s age  9.8 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.8 ms misses 1 imu   50/s age 12.5 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  6.0 ms misses 1 imu   50/s age 12.1 ms joint age  4.9 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  5.7 ms misses 1 imu   51/s age 37.4 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.1 Hz loop  5.6 ms misses 1 imu   51/s age 12.5 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  7.3 ms misses 1 imu   51/s age 13.7 ms joint age  5.1 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 49.8 Hz loop  5.8 ms misses 1 imu   51/s age  8.4 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.1 Hz loop  5.5 ms misses 1 imu   51/s age  7.6 ms joint age  4.7 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  5.8 ms misses 1 imu   51/s age  4.6 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  7.5 ms misses 1 imu   51/s age  5.6 ms joint age  5.2 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.8 ms misses 1 imu   51/s age  3.5 ms joint age  4.8 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  6.5 ms misses 1 imu   50/s age  9.0 ms joint age  5.0 ms | body g [+0.03 +0.97 +0.24] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.7 ms misses 1 imu   51/s age  5.2 ms joint age  4.8 ms | body g [+0.04 +0.97 +0.22] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.6 ms misses 4 imu   50/s age 26.5 ms joint age  4.7 ms | body g [-0.04 +1.00 -0.07] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 15
+monitor 49.8 Hz loop  6.1 ms misses 5 imu   51/s age 14.0 ms joint age  4.8 ms | body g [-0.35 +0.15 -0.93] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 2, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 15
+monitor 50.1 Hz loop  6.1 ms misses 5 imu   51/s age  7.8 ms joint age  4.8 ms | body g [-0.28 +0.16 -0.94] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 2, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  5.8 ms misses 5 imu   50/s age  9.1 ms joint age  4.8 ms | body g [-0.13 +0.17 -0.98] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 2, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.4 ms misses 5 imu   51/s age  7.6 ms joint age  4.6 ms | body g [-0.19 +0.18 -0.96] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 2, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.5 ms misses 5 imu   51/s age  6.3 ms joint age  4.7 ms | body g [-0.12 +0.15 -0.98] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 2, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 15
+monitor 50.1 Hz loop  5.6 ms misses 5 imu   50/s age  5.0 ms joint age  4.7 ms | body g [-0.14 +0.14 -0.98] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 2, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  6.1 ms misses 5 imu   51/s age  5.6 ms joint age  4.9 ms | body g [-0.14 +0.12 -0.98] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 2, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 15
+monitor 50.0 Hz loop  5.7 ms misses 6 imu   51/s age 12.5 ms joint age  4.7 ms | body g [-0.10 +0.10 -0.99] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 15
+monitor 49.9 Hz loop  5.7 ms misses 6 imu   51/s age 17.6 ms joint age  4.8 ms | body g [-0.14 +0.10 -0.98] torque False | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 15
+seam fix: ID5 raw 40 homing 2048 now 2088
+torque on at present positions
+mode -> stand
+stand   33.3 Hz loop 16.9 ms misses 6 imu   63/s age 10.7 ms joint age  4.5 ms | body g [-0.14 +0.16 -0.98] torque True | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 1, 14: 1} late replies 16
+stand   49.9 Hz loop  6.1 ms misses 7 imu   51/s age  6.4 ms joint age  5.8 ms | body g [-0.13 +0.04 -0.99] torque True | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+stand   50.1 Hz loop  5.9 ms misses 7 imu   50/s age 13.0 ms joint age  6.0 ms | body g [-0.05 +0.01 -1.00] torque True | missed by ID {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+stand   49.8 Hz loop  5.6 ms misses 8 imu   51/s age 12.8 ms joint age  5.8 ms | body g [-0.02 +0.02 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+stand   50.0 Hz loop  5.9 ms misses 8 imu   51/s age 19.6 ms joint age  5.9 ms | body g [-0.07 +0.02 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+stand   50.0 Hz loop  5.8 ms misses 8 imu   51/s age 15.5 ms joint age  5.9 ms | body g [+0.04 +0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+stand   50.1 Hz loop  6.1 ms misses 8 imu   51/s age  6.8 ms joint age  6.0 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+stand   49.9 Hz loop  6.6 ms misses 8 imu   51/s age 10.3 ms joint age  6.4 ms | body g [+0.07 +0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+stand   50.0 Hz loop  5.6 ms misses 8 imu   51/s age 10.6 ms joint age  5.7 ms | body g [+0.12 +0.00 -0.99] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+stand   50.0 Hz loop  5.9 ms misses 8 imu   50/s age 12.1 ms joint age  6.0 ms | body g [+0.11 +0.00 -0.99] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+mode -> walk
+walk    50.1 Hz loop  6.0 ms misses 8 imu   51/s age 16.6 ms joint age  6.0 ms | body g [+0.07 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    49.9 Hz loop  5.7 ms misses 8 imu   50/s age  5.7 ms joint age  5.8 ms | body g [+0.07 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    50.0 Hz loop  5.6 ms misses 8 imu   50/s age  7.8 ms joint age  5.7 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    50.0 Hz loop  5.7 ms misses 8 imu   51/s age  6.8 ms joint age  5.7 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    50.0 Hz loop  5.7 ms misses 8 imu   51/s age 14.5 ms joint age  5.7 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    50.0 Hz loop  5.7 ms misses 8 imu   51/s age 13.1 ms joint age  5.8 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    50.0 Hz loop  5.8 ms misses 8 imu   50/s age  8.1 ms joint age  5.8 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    50.0 Hz loop  5.6 ms misses 8 imu   51/s age  7.9 ms joint age  5.7 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    50.0 Hz loop  5.6 ms misses 8 imu   51/s age 14.9 ms joint age  5.7 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    50.1 Hz loop  5.6 ms misses 8 imu   50/s age 12.6 ms joint age  5.7 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    49.9 Hz loop  5.9 ms misses 8 imu   50/s age 18.3 ms joint age  5.8 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    50.0 Hz loop  5.5 ms misses 8 imu   51/s age 17.9 ms joint age  5.6 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    49.9 Hz loop  5.7 ms misses 8 imu   51/s age 16.4 ms joint age  5.8 ms | body g [+0.06 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    50.0 Hz loop  5.7 ms misses 8 imu   51/s age 12.8 ms joint age  5.8 ms | body g [+0.07 -0.01 -1.00] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 4, 13: 2, 14: 1} late replies 16
+walk    49.9 Hz loop  5.6 ms misses 9 imu   51/s age 19.9 ms joint age  5.7 ms | body g [-0.06 +0.16 -0.99] torque True | missed by ID {1: 2, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 1, 12: 5, 13: 2, 14: 1} late replies 16
+walk    50.0 Hz loop  5.6 ms misses 11 imu   51/s age 16.7 ms joint age  6.1 ms | body g [+0.06 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 2, 12: 5, 13: 2, 14: 1} late replies 16
+walk    50.1 Hz loop  5.8 ms misses 12 imu   51/s age  6.6 ms joint age  5.8 ms | body g [+0.02 -0.10 -0.99] torque True | missed by ID {1: 3, 2: 1, 3: 2, 4: 1, 5: 1, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 2, 12: 5, 13: 2, 14: 1} late replies 16
+STOP -> zero command: walk for_s 4 elapsed
+walk    49.2 Hz loop 18.5 ms misses 16 imu   50/s age 27.2 ms joint age 12.1 ms | body g [+0.08 -0.05 -1.00] torque True | missed by ID {1: 3, 2: 1, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 2, 14: 2} late replies 16
+STOP -> stand: policy action over 3.0 rad in 3 of the last 10 ticks (last 4.12)
+mode -> stand
+stand   50.6 Hz loop  5.8 ms misses 16 imu   52/s age  6.8 ms joint age  6.0 ms | body g [+0.23 +0.28 -0.93] torque True | missed by ID {1: 3, 2: 1, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 2, 14: 2} late replies 16
+stand   50.0 Hz loop  6.0 ms misses 16 imu   51/s age  9.2 ms joint age  6.1 ms | body g [+0.74 +0.60 -0.31] torque True | missed by ID {1: 3, 2: 1, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 2, 14: 2} late replies 16
+stand   49.9 Hz loop  5.5 ms misses 17 imu   51/s age 13.8 ms joint age  5.6 ms | body g [+0.96 +0.04 -0.26] torque True | missed by ID {1: 3, 2: 1, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 3, 14: 2} late replies 16
+stand   50.0 Hz loop  5.6 ms misses 17 imu   51/s age  6.7 ms joint age  5.6 ms | body g [+0.96 +0.03 -0.26] torque True | missed by ID {1: 3, 2: 1, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 3, 14: 2} late replies 16
+stand   49.4 Hz loop 18.7 ms misses 18 imu   50/s age 18.0 ms joint age 12.2 ms | body g [+0.97 +0.03 -0.26] torque True | missed by ID {1: 3, 2: 1, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 4, 14: 2} late replies 16
+stand   50.6 Hz loop  6.1 ms misses 19 imu   52/s age  5.9 ms joint age  6.0 ms | body g [+0.97 +0.03 -0.25] torque True | missed by ID {1: 3, 2: 1, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 5, 14: 2} late replies 16
+stand   49.8 Hz loop  6.0 ms misses 20 imu   51/s age  5.4 ms joint age  6.3 ms | body g [-0.12 +0.18 -0.98] torque True | missed by ID {1: 3, 2: 1, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  6.2 ms misses 20 imu   51/s age  9.9 ms joint age  6.1 ms | body g [-0.17 +0.07 -0.98] torque True | missed by ID {1: 3, 2: 1, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  6.0 ms misses 21 imu   51/s age 12.1 ms joint age  6.2 ms | body g [-0.02 +0.03 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.6 ms misses 21 imu   51/s age  6.8 ms joint age  5.7 ms | body g [-0.01 +0.03 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   49.9 Hz loop  5.6 ms misses 21 imu   51/s age  5.1 ms joint age  5.7 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.5 ms misses 21 imu   51/s age 16.0 ms joint age  5.7 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.5 ms misses 21 imu   51/s age  7.9 ms joint age  5.6 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  6.1 ms misses 21 imu   51/s age 15.1 ms joint age  6.1 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  6.2 ms misses 21 imu   51/s age  5.4 ms joint age  6.3 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   49.9 Hz loop  5.9 ms misses 21 imu   51/s age  5.4 ms joint age  6.0 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.7 ms misses 21 imu   51/s age  8.0 ms joint age  5.8 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.7 ms misses 21 imu   50/s age  5.6 ms joint age  5.8 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.6 ms misses 21 imu   51/s age 14.6 ms joint age  5.8 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.8 ms misses 21 imu   51/s age 14.4 ms joint age  5.9 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.1 Hz loop  5.7 ms misses 21 imu   51/s age 14.7 ms joint age  5.7 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  6.1 ms misses 21 imu   51/s age 14.2 ms joint age  6.2 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.5 ms misses 21 imu   51/s age 14.0 ms joint age  5.6 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.5 ms misses 21 imu   51/s age 14.5 ms joint age  5.6 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.9 ms misses 21 imu   51/s age  6.7 ms joint age  6.1 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  6.5 ms misses 21 imu   51/s age  8.7 ms joint age  6.5 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   49.9 Hz loop  6.3 ms misses 21 imu   51/s age 15.0 ms joint age  6.3 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  6.1 ms misses 21 imu   51/s age 16.1 ms joint age  6.0 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.9 ms misses 21 imu   51/s age 10.7 ms joint age  6.0 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.1 Hz loop  6.0 ms misses 21 imu   51/s age  7.3 ms joint age  6.3 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.5 ms misses 21 imu   51/s age 13.2 ms joint age  5.5 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   49.9 Hz loop  5.7 ms misses 21 imu   51/s age 13.7 ms joint age  5.8 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.6 ms misses 21 imu   51/s age  8.5 ms joint age  5.8 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.5 ms misses 21 imu   51/s age  6.1 ms joint age  5.6 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.6 ms misses 21 imu   51/s age 15.5 ms joint age  5.6 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  6.7 ms misses 21 imu   51/s age  9.4 ms joint age  6.4 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.1 Hz loop  5.5 ms misses 21 imu   51/s age  5.0 ms joint age  5.6 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.5 ms misses 21 imu   51/s age  8.9 ms joint age  5.6 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.6 ms misses 21 imu   51/s age 16.7 ms joint age  5.8 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.1 Hz loop  5.8 ms misses 21 imu   51/s age  7.9 ms joint age  5.7 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  6.3 ms misses 21 imu   50/s age 16.9 ms joint age  6.6 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   49.9 Hz loop  6.0 ms misses 21 imu   51/s age 18.4 ms joint age  6.2 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  6.2 ms misses 21 imu   51/s age 16.0 ms joint age  6.4 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.4 ms misses 21 imu   50/s age 14.3 ms joint age  5.5 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.5 ms misses 21 imu   51/s age  8.2 ms joint age  5.6 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.1 Hz loop  5.6 ms misses 21 imu   51/s age 14.9 ms joint age  5.7 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   49.9 Hz loop  6.1 ms misses 21 imu   50/s age 16.7 ms joint age  6.1 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.1 Hz loop  6.2 ms misses 21 imu   50/s age 12.5 ms joint age  6.3 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   49.9 Hz loop  5.8 ms misses 21 imu   51/s age 31.0 ms joint age  5.9 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop  5.9 ms misses 21 imu   51/s age  6.9 ms joint age  6.0 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.1 Hz loop  6.1 ms misses 21 imu   51/s age 15.6 ms joint age  6.4 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   49.9 Hz loop  6.1 ms misses 21 imu   51/s age  9.9 ms joint age  6.3 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop 11.6 ms misses 21 imu   52/s age  7.7 ms joint age  6.1 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop 11.8 ms misses 21 imu   51/s age 15.0 ms joint age  6.1 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16
+stand   50.0 Hz loop 10.7 ms misses 21 imu   50/s age  6.0 ms joint age  5.6 ms | body g [-0.01 +0.02 -1.00] torque True | missed by ID {1: 3, 2: 2, 3: 2, 4: 1, 5: 2, 6: 1, 7: 1, 8: 2, 9: 2, 10: 1, 11: 4, 12: 5, 13: 6, 14: 2} late replies 16

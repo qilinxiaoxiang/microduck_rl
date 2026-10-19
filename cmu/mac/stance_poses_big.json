@@ -1,0 +1,93 @@
+{
+ "kp": 400,
+ "hold_s": 1.5,
+ "ramp_s": 0,
+ "poses": [
+  {
+   "name": "STAND",
+   "joints": {
+    "right_hip_yaw": 0.0,
+    "right_hip_roll": 0.0873,
+    "right_hip_pitch": 0.4579,
+    "right_knee": 0.0049,
+    "right_ankle": -0.453,
+    "left_hip_yaw": 0.0,
+    "left_hip_roll": -0.0873,
+    "left_hip_pitch": -0.4579,
+    "left_knee": -0.0049,
+    "left_ankle": 0.453,
+    "neck_pitch": 0.3491,
+    "head_pitch": 0.3491,
+    "head_yaw": 0.0,
+    "head_roll": 0.0
+   }
+  },
+  {
+   "name": "hip08",
+   "joints": {
+    "right_hip_yaw": 0.0,
+    "right_hip_roll": 0.0873,
+    "right_hip_pitch": 0.37789999999999996,
+    "right_knee": 0.0049,
+    "right_ankle": -0.453,
+    "left_hip_yaw": 0.0,
+    "left_hip_roll": -0.0873,
+    "left_hip_pitch": -0.37789999999999996,
+    "left_knee": -0.0049,
+    "left_ankle": 0.453,
+    "neck_pitch": 0.3491,
+    "head_pitch": 0.3491,
+    "head_yaw": 0.0,
+    "head_roll": 0.0
+   }
+  },
+  {
+   "name": "hip12",
+   "joints": {
+    "right_hip_yaw": 0.0,
+    "right_hip_roll": 0.0873,
+    "right_hip_pitch": 0.3379,
+    "right_knee": 0.0049,
+    "right_ankle": -0.453,
+    "left_hip_yaw": 0.0,
+    "left_hip_roll": -0.0873,
+    "left_hip_pitch": -0.3379,
+    "left_knee": -0.0049,
+    "left_ankle": 0.453,
+    "neck_pitch": 0.3491,
+    "head_pitch": 0.3491,
+    "head_yaw": 0.0,
+    "head_roll": 0.0
+   }
+  },
+  {
+   "name": "ankle06",
+   "joints": {
+    "right_hip_yaw": 0.0,
+    "right_hip_roll": 0.0873,
+    "right_hip_pitch": 0.4579,
+    "right_knee": 0.0049,
+    "right_ankle": -0.513,
+    "left_hip_yaw": 0.0,
+    "left_hip_roll": -0.0873,
+    "left_hip_pitch": -0.4579,
+    "left_knee": -0.0049,
+    "left_ankle": 0.513,
+    "neck_pitch": 0.3491,
+    "head_pitch": 0.3491,
+    "head_yaw": 0.0,
+    "head_roll": 0.0
+   }
+  }
+ ],
+ "sequence": [
+  "STAND",
+  "hip08",
+  "STAND",
+  "hip12",
+  "STAND",
+  "ankle06",
+  "STAND"
+ ],
+ "note": "2026-10-15 deadband search: the real loaded joints ignored 0.03-0.05 rad steps (KP 400, no I gain), so hip steps grow 0.08/0.12/0.16 rad backward, ankle 0.06 last. Sim: hip08 holds (max tilt 5.6 deg), hip12 and ankle06 fall in the sim, but the real deadband (~0.03-0.04 rad) makes the real hip12 about the sim hip08; TILT_ABORT_DEG guard in the script."
+}

@@ -1,0 +1,47 @@
+{
+  "variant": "plugged",
+  "describes": "the robot on the bench supply, 2026-10-19: as built 2026-10-15 (bench box without lid, two XL4015 + 5991) with the Pi Zero W replaced by the Radxa Cubie A7Z and the AC019 antenna in the head cap; Camera Module 3 entry kept (the fitted Radxa Camera 13M 214 is of the same order, not weighed)",
+  "base": "../../whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json",
+  "remove_ids": [
+    "add-pi"
+  ],
+  "add": [
+    {
+      "id": "add-a7z",
+      "body": "jaw_soft",
+      "mass_kg": 0.018,
+      "position_m": [
+        0.013898458364897247,
+        -7.9141346850318e-08,
+        -0.050467040423555716
+      ],
+      "dimensions_m": [
+        0.065,
+        0.03,
+        0.004
+      ],
+      "basis": "estimate",
+      "source": "Radxa publishes no mass for the Cubie A7Z (product brief, docs, ameridroid read 2026-10-19); bounded 15-20 g in cmu/model/sole/README.md; replace by the weighed value. Position: the former Pi Zero W position (add-pi)",
+      "label": "estimate"
+    },
+    {
+      "id": "add-antenna-ac019",
+      "body": "jaw_soft",
+      "mass_kg": 0.0015,
+      "position_m": [
+        0.021811560175060214,
+        -0.00048172145760626067,
+        -0.026562719762204687
+      ],
+      "position_from_id": "add-head_cap_v19",
+      "dimensions_m": [
+        0.04,
+        0.01,
+        0.001
+      ],
+      "basis": "estimate",
+      "source": "Radxa AC019 antenna stuck inside the front of the cap roof (D-011); placed at the head cap's COM (add-head_cap_v19 in the base manifest)",
+      "label": "estimate"
+    }
+  ]
+}

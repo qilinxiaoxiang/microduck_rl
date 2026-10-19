@@ -1,0 +1,107 @@
+{
+ "com7.5-hiptrim-4": {
+  "fell_at": 0.78,
+  "max_tilt": 46.0,
+  "dist_x": null
+ },
+ "com7.5-hiptrim-6": {
+  "fell_at": 0.98,
+  "max_tilt": 54.2,
+  "dist_x": null
+ },
+ "com7.5-hiptrim-8": {
+  "fell_at": 0.96,
+  "max_tilt": 54.5,
+  "dist_x": null
+ },
+ "com7.5-hiptrim-10": {
+  "fell_at": 0.86,
+  "max_tilt": 47.2,
+  "dist_x": null
+ },
+ "com7.5-anktrim-2": {
+  "fell_at": 1.14,
+  "max_tilt": 47.5,
+  "dist_x": null
+ },
+ "com7.5-anktrim-4": {
+  "fell_at": null,
+  "max_tilt": 8.9,
+  "dist_x": 0.13
+ },
+ "com7.5-anktrim-6": {
+  "fell_at": null,
+  "max_tilt": 10.9,
+  "dist_x": 0.36
+ },
+ "com10-hiptrim-4": {
+  "fell_at": 0.64,
+  "max_tilt": 50.6,
+  "dist_x": null
+ },
+ "com10-hiptrim-6": {
+  "fell_at": 0.72,
+  "max_tilt": 47.0,
+  "dist_x": null
+ },
+ "com10-hiptrim-8": {
+  "fell_at": 0.7,
+  "max_tilt": 49.1,
+  "dist_x": null
+ },
+ "com10-hiptrim-10": {
+  "fell_at": 0.66,
+  "max_tilt": 51.2,
+  "dist_x": null
+ },
+ "com10-anktrim-2": {
+  "fell_at": 0.7,
+  "max_tilt": 45.1,
+  "dist_x": null
+ },
+ "com10-anktrim-4": {
+  "fell_at": 1.18,
+  "max_tilt": 47.3,
+  "dist_x": null
+ },
+ "com10-anktrim-6": {
+  "fell_at": 6.68,
+  "max_tilt": 45.5,
+  "dist_x": 0.395
+ },
+ "com12.5-hiptrim-4": {
+  "fell_at": 0.56,
+  "max_tilt": 46.7,
+  "dist_x": null
+ },
+ "com12.5-hiptrim-6": {
+  "fell_at": 0.58,
+  "max_tilt": 49.7,
+  "dist_x": null
+ },
+ "com12.5-hiptrim-8": {
+  "fell_at": 0.58,
+  "max_tilt": 49.2,
+  "dist_x": null
+ },
+ "com12.5-hiptrim-10": {
+  "fell_at": 0.58,
+  "max_tilt": 53.0,
+  "dist_x": null
+ },
+ "com12.5-anktrim-2": {
+  "fell_at": 0.6,
+  "max_tilt": 49.9,
+  "dist_x": null
+ },
+ "com12.5-anktrim-4": {
+  "fell_at": 0.7,
+  "max_tilt": 45.3,
+  "dist_x": null
+ },
+ "com12.5-anktrim-6": {
+  "fell_at": 1.04,
+  "max_tilt": 49.5,
+  "dist_x": null
+ }
+}

@@ -1,0 +1,128 @@
+{
+ "schedule": "feet-flat STAND start; stand61 until 4 s, walk61 vx 0.3 for 10 s, stand61 3 s; sensor and action delay one tick; KP 200",
+ "cases": {
+  "5V_no_ramp": {
+   "volt": 5.0,
+   "walk_ramp": 0.0,
+   "com_x_mm": 0.0,
+   "zero": {},
+   "imu_pitch": 0.0,
+   "compensation": false,
+   "first_policy_tick_s": 0.0,
+   "fell_at": null,
+   "max_tilt": 8.4,
+   "dist_x": 1.39
+  },
+  "5V_legacy_ramp_1.5s": {
+   "volt": 5.0,
+   "walk_ramp": 1.5,
+   "com_x_mm": 0.0,
+   "zero": {},
+   "imu_pitch": 0.0,
+   "compensation": false,
+   "first_policy_tick_s": null,
+   "fell_at": 0.58,
+   "max_tilt": 45.1,
+   "dist_x": null
+  },
+  "5V_com+5": {
+   "volt": 5.0,
+   "walk_ramp": 0.0,
+   "com_x_mm": 5.0,
+   "zero": {},
+   "imu_pitch": 0.0,
+   "compensation": false,
+   "first_policy_tick_s": 0.0,
+   "fell_at": 0.94,
+   "max_tilt": 53.4,
+   "dist_x": null
+  },
+  "6.8V_no_ramp": {
+   "volt": 6.8,
+   "walk_ramp": 0.0,
+   "com_x_mm": 0.0,
+   "zero": {},
+   "imu_pitch": 0.0,
+   "compensation": false,
+   "first_policy_tick_s": 0.0,
+   "fell_at": null,
+   "max_tilt": 6.9,
+   "dist_x": 1.613
+  },
+  "6.8V_com+5": {
+   "volt": 6.8,
+   "walk_ramp": 0.0,
+   "com_x_mm": 5.0,
+   "zero": {},
+   "imu_pitch": 0.0,
+   "compensation": false,
+   "first_policy_tick_s": 0.0,
+   "fell_at": null,
+   "max_tilt": 9.3,
+   "dist_x": 2.251
+  },
+  "6.8V_com+10": {
+   "volt": 6.8,
+   "walk_ramp": 0.0,
+   "com_x_mm": 10.0,
+   "zero": {},
+   "imu_pitch": 0.0,
+   "compensation": false,
+   "first_policy_tick_s": 0.0,
+   "fell_at": 0.86,
+   "max_tilt": 46.1,
+   "dist_x": null
+  },
+  "6.8V_hip+8": {
+   "volt": 6.8,
+   "walk_ramp": 0.0,
+   "com_x_mm": 0.0,
+   "zero": {
+    "left_hip_pitch": -8.0,
+    "right_hip_pitch": 8.0
+   },
+   "imu_pitch": 0.0,
+   "compensation": false,
+   "first_policy_tick_s": 0.0,
+   "fell_at": null,
+   "max_tilt": 9.4,
+   "dist_x": 1.587
+  },
+  "6.8V_imu-6": {
+   "volt": 6.8,
+   "walk_ramp": 0.0,
+   "com_x_mm": 0.0,
+   "zero": {},
+   "imu_pitch": -6.0,
+   "compensation": false,
+   "first_policy_tick_s": 0.0,
+   "fell_at": null,
+   "max_tilt": 12.6,
+   "dist_x": 2.313
+  },
+  "6.8V_com+5_stand1s_first": {
+   "volt": 6.8,
+   "walk_ramp": 0.0,
+   "com_x_mm": 5.0,
+   "zero": {},
+   "imu_pitch": 0.0,
+   "compensation": false,
+   "first_policy_tick_s": 1.0,
+   "fell_at": null,
+   "max_tilt": 15.2,
+   "dist_x": 2.466
+  },
+  "6.8V_com+10_stand1s_first": {
+   "volt": 6.8,
+   "walk_ramp": 0.0,
+   "com_x_mm": 10.0,
+   "zero": {},
+   "imu_pitch": 0.0,
+   "compensation": false,
+   "first_policy_tick_s": 1.0,
+   "fell_at": 14.8,
+   "max_tilt": 49.7,
+   "dist_x": 2.602
+  }
+ }
+}

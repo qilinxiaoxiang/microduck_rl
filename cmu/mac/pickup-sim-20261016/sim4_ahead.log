@@ -1,0 +1,86 @@
+mode -> stand
+  waiting for stand61 with torque on
+mode -> walk
+[1.2] start -> look
+[1.4] look -> search
+  object at x 0.341 y -0.017 m, bearing -3 deg, 10390 px
+[1.8] search -> approach
+  object x 0.348 y -0.029 (dx +0.279), bearing -5 deg
+  burst vx +0.25 vtheta -0.07 for 2.0 s (walk)
+  object x 0.257 y -0.003 (dx +0.188), bearing -1 deg
+  burst vx +0.25 vtheta -0.01 for 2.0 s (walk)
+  object x 0.260 y 0.081 (dx +0.191), bearing 17 deg
+  head pose {'head_pitch': 1.0} for 0.27 m
+  object x 0.169 y 0.030 (dx +0.100), bearing 10 deg
+  burst vx +0.25 vtheta +0.21 for 1.4 s (walk)
+  object x 0.101 y 0.119 (dx +0.032), bearing 50 deg
+  head pose {'head_pitch': 1.0} for 0.16 m
+  object x 0.140 y 0.077 (dx +0.071), bearing 29 deg (at most: blob cut by the frame bottom)
+  burst vx +0.25 vtheta +0.73 for 1.2 s (walk)
+  burst vx +0.25 vtheta +1.00 for 2.0 s (lost close by, arc away)
+[23.1] approach -> search: object lost close by
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 1)
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 2)
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 3)
+  object at x 0.345 y -0.300 m, bearing -41 deg, 580 px
+[54.0] search -> approach
+  object x 0.304 y -0.294 (dx +0.235), bearing -44 deg
+  burst vx +0.25 vtheta -0.64 for 2.0 s (arc to face it)
+  object x 0.201 y 0.096 (dx +0.132), bearing 26 deg
+  burst vx +0.25 vtheta +0.45 for 1.6 s (walk)
+  object x 0.049 y 0.098 (dx -0.020), bearing 63 deg (at most: blob cut by the frame bottom)
+  burst vx +0.25 vtheta +1.00 for 1.8 s (arc to face it)
+  burst vx +0.25 vtheta +1.00 for 2.0 s (lost close by, arc away)
+[71.8] approach -> search: object lost close by
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 1)
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 2)
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 3)
+  object at x 0.424 y -0.313 m, bearing -36 deg, 4630 px
+[104.2] search -> approach
+  object x 0.411 y -0.296 (dx +0.342), bearing -36 deg
+  head pose {'head_pitch': 0.8} for 0.51 m
+  object x 0.400 y -0.288 (dx +0.331), bearing -36 deg
+  burst vx +0.25 vtheta -0.52 for 2.0 s (arc to face it)
+  object x 0.274 y 0.109 (dx +0.205), bearing 22 deg
+  head pose {'head_pitch': 1.0} for 0.30 m
+  object x 0.276 y 0.106 (dx +0.207), bearing 21 deg
+  burst vx +0.25 vtheta +0.31 for 2.0 s (walk)
+  object x 0.186 y 0.151 (dx +0.117), bearing 39 deg
+  head pose {'head_pitch': 1.0} for 0.24 m
+  object x 0.130 y 0.082 (dx +0.061), bearing 32 deg (at most: blob cut by the frame bottom)
+  burst vx +0.25 vtheta +0.87 for 1.1 s (arc to face it)
+  burst vx +0.25 vtheta +1.00 for 2.0 s (lost close by, arc away)
+[124.5] approach -> search: object lost close by
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 1)
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 2)
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 3)
+  object at x 0.312 y -0.267 m, bearing -41 deg, 2834 px
+[155.0] search -> approach
+  object x 0.311 y -0.258 (dx +0.242), bearing -40 deg
+  head pose {'head_pitch': 0.8} for 0.40 m
+  object x 0.292 y -0.253 (dx +0.223), bearing -41 deg
+  burst vx +0.25 vtheta -0.59 for 2.0 s (arc to face it)
+  object x 0.181 y 0.083 (dx +0.112), bearing 25 deg
+  burst vx +0.25 vtheta +0.48 for 1.5 s (walk)
+  object x 0.051 y 0.079 (dx -0.018), bearing 57 deg (at most: blob cut by the frame bottom)
+  burst vx +0.25 vtheta +1.00 for 1.7 s (arc to face it)
+  burst vx +0.25 vtheta +1.00 for 2.0 s (lost close by, arc away)
+[172.2] approach -> search: object lost close by
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 1)
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 2)
+  burst vx +0.25 vtheta -1.00 for 1.5 s (arc right, search turn 3)
+  object at x 0.335 y -0.312 m, bearing -43 deg, 4750 px
+[205.2] search -> approach
+  object x 0.334 y -0.333 (dx +0.265), bearing -45 deg
+  burst vx +0.25 vtheta -0.65 for 2.0 s (arc to face it)
+  object x 0.247 y 0.103 (dx +0.178), bearing 23 deg
+  burst vx +0.25 vtheta +0.33 for 2.0 s (walk)
+  object x 0.061 y -0.004 (dx -0.008), bearing -4 deg (at most: blob cut by the frame bottom)
+[216.9] approach -> crouch: in the pickup window
+mode -> groundpick
+[219.3] crouch -> grip
+  gripping: jaw stopped at 14.0 deg
+[220.9] grip -> lift
+mode -> walk
+[224.7] lift -> done: standing with the object
+{"ok": true, "why": "standing with the object", "phase": "done", "elapsed_s": 224.7, "bursts": 31, "trips": 0, "grip_dist_m": 0.024, "held": true, "object_z": 0.18, "object_foot_frame": [0.077, 0.0], "fell_at": null, "max_tilt": 34.8, "end_tilt": 0.5, "end_mode": "walk", "frames": 474, "events": [[223.16, "ground pick complete, stand61"]], "obj": [0.35, 0.0], "obj_height": 0.09, "volt": 7.4, "pitch_offset": 4.75}

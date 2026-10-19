@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""Refresh the copied parts of cmu/ from the private robotics working tree (Shawn's Mac only).
+
+  python3 cmu/sync_from_robotics.py [--robotics ~/code/robotics] [--check]
+
+Everything under cmu/mac, cmu/pi, cmu/whole, cmu/real-logs and cmu/model/sole is a generated copy: edit the
+source in the robotics tree, rerun this script, commit the result. The rewrite rules below are the only
+difference between a source file and its copy (path hops between the two layouts, no private venv re-exec,
+relative manifest paths); each rule must match or the sync stops, so a drifted source is noticed, not silently
+copied. --check reports what would change without writing.
+"""
+import argparse
+import difflib
+import os
+import re
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+SIM_REL = "microduck-sim"
+MAC = "guide/firmware/mac"
+PI = "guide/firmware/pi"
+WHOLE = "hardware-design-20260912/whole-robot-20260912"
+
+# (source relative to microduck-sim, destination relative to cmu/)
+FILES = []
+
+
+def add(src_dir, dst_dir, names):
+    for n in names:
+        FILES.append((f"{src_dir}/{n}", f"{dst_dir}/{n}"))
+
+
+add(MAC, "mac", [
+    "walk_brain.py", "walk_wired.py", "brain_sim_check.py", "brain_sim_batch.py", "jaw_ctl.py", "fake_pi.py",
+    "pickup.py", "pickup_sim.py", "target_ground.py", "orange_target.py", "duck_cam.py", "stance_switch.py",
+    "sim_walk_check.py", "measure_gap.py", "walk_trial.py", "pose_snapshot.py",
+    "test_pickup.py", "test_pickup_modes.py", "test_stance_switch.py", "test_target_ground.py", "test_walk_wired_battery.py",
+    "PICKUP.md", "CAMERA.md", "stance_poses.json", "stance_poses_big.json", "stance_poses_small.json",
+    "brain-sim-check.json", "battery-stop-sim.json",
+])
+add(f"{MAC}/jitter-20261018", "mac/jitter-20261018", ["jitter_sim.py", "compare.py", "osc_metrics.py", "band.py", "summ.sh"])
+add(f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016", [])  # filled below from the directory listing
+add(f"{MAC}/robot-runs-20261018", "real-logs/robot-runs-20261018", [])
+add(PI, "pi", [
+    "stand_pose.py", "battery.py", "dxl_fast.py", "jaw_limits.py", "jaw_limits.json", "jaw_pose_caps.json",
+    "jaw_calibration.json", "test_battery.py", "test_jaw_limits.py", "pi_imu_uart.py", "pi_bridge.py", "stand.py",
+    "JAW-LIMIT.md", "seam_fix.py", "set_shutdown.py", "check_voltage_limit.py", "joint_signs.py",
+    "set_jaw_limit.py",  # imported by test_jaw_limits.py (its pure planning part is under test)
+    "scan_bus.py",  # stand.py imports its ROLES table; test_battery.py imports stand.py with a mocked dynamixel_sdk
+])
+add(f"{PI}/microduck_rt", "pi/microduck_rt", ["constants.py", "imu_reader.py"])
+add(f"{WHOLE}/dynamics", "whole/dynamics", ["evaluate.py"])
+add(f"{WHOLE}/dynamics/asbuilt-20261015", "whole/dynamics/asbuilt-20261015",
+    ["asbuilt-mass-manifest.json", "asbuilt.config.json", "build_asbuilt_manifest.py"])
+add(f"{WHOLE}/dynamics/v19-20261014", "whole/dynamics/v19-20261014", ["v19-mass-manifest.json"])
+add(f"{WHOLE}/dynamics/v19-20261014/runs", "whole/dynamics/v19-20261014/runs", ["const-bat90-sensor0-nocomp-seed0.config.json"])
+add(f"{WHOLE}/dynamics/realgap-20261014", "whole/dynamics/realgap-20261014", [
+    "README.md", "static_gap.py", "policy_test.py", "margins.py", "margins.json", "volt_margins.py", "volt_margins.json",
+    "trims.py", "trims.json", "ramp_test.py", "scan_lean.py", "head_test.py", "sitstand_volt.py", "literature-note.md", "batch1.py",
+])
+add(f"{WHOLE}/delay-repair-20260912", "whole/delay-repair-20260912", ["evaluate_delay.py", "compensation.py", "README.md"])
+add(f"{WHOLE}/runtime-overlay", "whole/runtime-overlay", ["source-lock.json"])  # README.md is a Pi-install note for the old community runtime, not copied
+add(f"{WHOLE}/runtime-overlay/models", "whole/runtime-overlay/models", ["walk61.onnx", "stand61.onnx", "groundpick61.onnx"])
+add(f"{WHOLE}/runtime-overlay/models-ft3-it999", "whole/runtime-overlay/models-ft3-it999", [])
+add(f"{WHOLE}/electrical", "whole/electrical", ["existing-model-mass-audit.json"])
+add("build-pack-20260913/procurement/feet-sole-20261018", "model/sole", ["README.md", "sole_thickness_sim.py", "sole_template.py"])
+add("build-pack-20260913/procurement/feet-sole-20261018/sweep", "model/sole/sweep", ["summary.json"])
+DIR_COPIES = [  # (source dir, dest dir): every regular file, no recursion
+    (f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016"),
+    (f"{MAC}/robot-runs-20261018", "real-logs/robot-runs-20261018"),
+    (f"{WHOLE}/runtime-overlay/models-ft3-it999", "whole/runtime-overlay/models-ft3-it999"),
+]
+
+WHOLE_HOP = '"..", "..", "..", "hardware-design-20260912", "whole-robot-20260912"'
+EXEC_BLOCK = re.compile(
+    r'SIM_PYTHON = os\.path\.expanduser\("~/\.venvs/microduck-dyn/bin/python"\)\n'
+    r'if os\.path\.realpath\(sys\.prefix\) != os\.path\.realpath\(os\.path\.dirname\(os\.path\.dirname\(SIM_PYTHON\)\)\):\n'
+    r'    os\.execv\(SIM_PYTHON, \[SIM_PYTHON, os\.path\.abspath\(__file__\)\] \+ sys\.argv\[1:\]\)\n')
+EXEC_NOTE = "# cmu/ copy: runs in the repository's uv environment (uv run <script>); no private venv re-exec.\n"
+ABS_SIM = os.path.expanduser("~/code/robotics/") + SIM_REL + "/"  # the private tree's absolute path, stripped from copied JSON
+DUCK_IP = re.compile(r"\b100\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")  # the robot's private Tailscale address (100.64/10); the copies carry the placeholder DUCK_IP
+
+# destination -> list of (kind, pattern, replacement, min_matches)
+RULES = {
+    "mac/walk_brain.py": [("str", WHOLE_HOP, '"..", "whole"', 1), ("re", DUCK_IP, "DUCK_IP", 1)],
+    "mac/pickup.py": [("re", DUCK_IP, "DUCK_IP", 1)],
+    "mac/duck_cam.py": [("re", DUCK_IP, "DUCK_IP", 1)],
+    "mac/CAMERA.md": [("re", DUCK_IP, "DUCK_IP", 1)],
+    "whole/runtime-overlay/source-lock.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
+    "whole/electrical/existing-model-mass-audit.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
+    "mac/brain_sim_check.py": [("str", WHOLE_HOP, '"..", "whole"', 1), ("re", EXEC_BLOCK, EXEC_NOTE, 1),
+        ("str", "# The as-built model needs the patched bam in ~/.venvs/microduck-dyn (the pip release lacks vin_drop_resistance);\n",
+         "# The as-built model uses bam at the commit locked in uv.lock (the one Pollen trains with).\n", 1)],
+    "mac/pickup_sim.py": [("str", WHOLE_HOP, '"..", "whole"', 1), ("re", EXEC_BLOCK, EXEC_NOTE, 1)],
+    "mac/target_ground.py": [("str", WHOLE_HOP, '"..", "whole"', 1)],
+    "mac/jitter-20261018/jitter_sim.py": [("re", EXEC_BLOCK, EXEC_NOTE, 1)],
+    "whole/delay-repair-20260912/evaluate_delay.py": [
+        ("str", "SIM / 'microduck_rl/src/mjlab_microduck/robot/microduck'", "SIM / 'src/mjlab_microduck/robot/microduck'", 1),
+        ("str", "SIM / 'microduck-simulator/app/public/policies'", "SIM / 'cmu/whole/runtime-overlay/models'", 1),
+        # The fork keeps Pollen's bam pin (62bd8ce: sag = vin_drop_gain in V per Nm; the private venv runs a newer bam with
+        # vin_drop_resistance in Ohm). No sim-check config sets a sag term, so both read 0.0 and the models are identical.
+        ("str", "vin_drop_resistance=config.get('wire_resistance',0.0),",
+         "vin_drop_gain=config.get('vin_drop_gain',0.0),  # cmu/ copy: bam 62bd8ce API, see sync_from_robotics.py", 1),
+    ],
+    "whole/dynamics/realgap-20261014/static_gap.py": [
+        ("str", "    c.update(remove_old_battery_kg=battery, **kw)\n    return c\n",
+         "    c.update(remove_old_battery_kg=battery, **kw)\n"
+         "    if c.get('mass_manifest') and not Path(c['mass_manifest']).is_absolute():  # cmu/ copy: paths relative to the config\n"
+         "        c['mass_manifest'] = str(MODELS[model].parent / c['mass_manifest'])\n"
+         "    return c\n", 1),
+    ],
+    "whole/dynamics/asbuilt-20261015/asbuilt.config.json": [
+        ("str", f'"{ABS_SIM}{WHOLE}/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json"', '"asbuilt-mass-manifest.json"', 1)],
+    "whole/dynamics/v19-20261014/runs/const-bat90-sensor0-nocomp-seed0.config.json": [
+        ("str", f'"{ABS_SIM}{WHOLE}/dynamics/v19-20261014/v19-mass-manifest.json"', '"../v19-mass-manifest.json"', 1)],
+    "whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
+    "whole/dynamics/v19-20261014/v19-mass-manifest.json": [("str", ABS_SIM, f"{SIM_REL}/", 0)],
+    "whole/dynamics/asbuilt-20261015/build_asbuilt_manifest.py": [("str", "/private/tmp/claude-501/", "/private/tmp/", 0)],
+}
+TEXT_SUFFIXES = {".py", ".json", ".md", ".sh", ".txt", ".jsonl", ".csv"}
+
+
+def rewrite(dst_rel, data: bytes) -> bytes:
+    rules = RULES.get(dst_rel)
+    if not rules:
+        return data
+    text = data.decode()
+    for kind, pat, rep, n_min in rules:
+        if kind == "str":
+            n = text.count(pat)
+            text = text.replace(pat, rep)
+        else:
+            text, n = pat.subn(rep, text)
+        if n < n_min:
+            sys.exit(f"sync: rule for {dst_rel} matched {n} times (expected at least {n_min}): {pat!r}")
+    return text.encode()
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--robotics", default=os.path.expanduser("~/code/robotics"))
+    ap.add_argument("--check", action="store_true", help="report differences, write nothing")
+    a = ap.parse_args()
+    sim = Path(a.robotics) / SIM_REL
+    if not sim.is_dir():
+        sys.exit(f"sync: {sim} is not a directory; this script runs on the machine that holds the robotics tree")
+    pairs = list(FILES)
+    for sdir, ddir in DIR_COPIES:
+        for p in sorted((sim / sdir).iterdir()):
+            if p.is_file() and not p.name.startswith("."):
+                pairs.append((f"{sdir}/{p.name}", f"{ddir}/{p.name}"))
+    changed = 0
+    for src_rel, dst_rel in pairs:
+        src, dst = sim / src_rel, HERE / dst_rel
+        if not src.exists():
+            sys.exit(f"sync: missing source {src}")
+        data = rewrite(dst_rel, src.read_bytes())
+        old = dst.read_bytes() if dst.exists() else None
+        if old == data:
+            continue
+        changed += 1
+        if a.check:
+            if dst.suffix in TEXT_SUFFIXES and old is not None:
+                diff = difflib.unified_diff(old.decode().splitlines(), data.decode().splitlines(), str(dst), str(src), lineterm="", n=1)
+                print("\n".join(list(diff)[:40]))
+            else:
+                print(f"would write {dst_rel}")
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(data)
+        print(f"wrote {dst_rel}")
+    unused = set(RULES) - {d for _, d in pairs}
+    if unused:
+        sys.exit(f"sync: rules for files that are not synced: {sorted(unused)}")
+    print(f"sync: {len(pairs)} files, {changed} {'would change' if a.check else 'written'}")
+
+
+if __name__ == "__main__":
+    main()

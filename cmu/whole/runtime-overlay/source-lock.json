@@ -1,0 +1,30 @@
+{
+  "community_commit": "49678215d0b40529522772a40c06c216390449dd",
+  "community_walk_sha256": "234e783d85e1e3fb86adff74da3dc8ea24fae73df4d8d155cc17c94c10423c46",
+  "source_files_sha256": {
+    "microduck-sim/Microduck-build-tutorial/microduck/src/constants.py": "59424852fe54eded8b5c261af7fa8bcef333d7a8b91affd52627c1ce27b620f6",
+    "microduck-sim/Microduck-build-tutorial/microduck/src/observer.py": "c63802f488f0f94957b138ac6bc131bca4d741d939ca8356a3b08153720a8c42",
+    "microduck-sim/Microduck-build-tutorial/microduck/src/imu_reader.py": "e9533d671840e8eea9114acf894297373dea0d5f510c1e5c76841df042a2d853",
+    "microduck-sim/Microduck-build-tutorial/microduck/src/moves/walk.py": "234e783d85e1e3fb86adff74da3dc8ea24fae73df4d8d155cc17c94c10423c46"
+  },
+  "models_sha256": {
+    "stand61.onnx": "1569268713e40deea795dd2922dba50d3621e15a872855408b6b1b125b1c094b",
+    "walk61.onnx": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+    "groundpick61.onnx": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872"
+  },
+  "official_policy_repository": "https://github.com/pollen-robotics/microduck-simulator",
+  "official_policy_commit": "73a3f18a2e2e952b7de27d75ac74cbe183f28200",
+  "verified_date": "2026-09-12",
+  "overlay_files_sha256": {
+    "src/moves/walk.py": "ec7b2de0bdf9230022484f507344054a7bc9c77e5224c284b64b2dea7f209964",
+    "install.py": "de69e8515af4587cdadfbdcd48fd530885b4aad1ba7ab459f18f81cc3cee82e1",
+    "test_offline.py": "96cf6f6e3ce7ae8550525f47d1bdc3968f25969181f2bc325f59321ff5373e40",
+    "README.md": "995e1b886350c143f6d6ddf38fe02762d2145431071d527936cefd9fd4d164af",
+    "LICENSE": "f882cb4ee533a88e73fec57c75ddb63bdd204480e1dd5f663975e9d4c6751bf0"
+  },
+  "groundpick61_source": {
+    "file": "microduck-simulator/app/public/policies/alpha_ground_pick.onnx",
+    "copied": "2026-10-16",
+    "note": "Pollen alpha_ground_pick: same 61-input layout; command slots carry [cos 2*pi*phase, sin 2*pi*phase, 0]; used by guide/firmware/mac/walk_brain.py mode groundpick. Not part of the Pi overlay install."
+  }
+}

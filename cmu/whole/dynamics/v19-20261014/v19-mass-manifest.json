@@ -1,0 +1,4008 @@
+{
+ "schema": "signed mass parts for add_signed_inertias (dynamics/evaluate.py)",
+ "build": "as built 2026-10-14: V1.8 printed parts, no audio, USB-C 5 V tether",
+ "frame": "official MJCF body frames, m; guide geometry mapped from trunk_base qpos0 frame",
+ "excluded": [
+  "Not fitted on the as-built robot: orange V1.9 parts (V1.9 rear pack and head cap replaced by the printed V1.8 ones; speaker_retainer, clip_torso, clip_bracket, clip_head, clip_cap omitted), MAX98357A amplifier, CMS-30204-18SP speaker, no microphone; cables ['amp-lrc', 'amp-bclk', 'amp-din', 'amp-gnd', 'amp-vin', 'spk-plus', 'spk-minus'] and their screws",
+  "BNO085 zip ties on the V1.8 shelf (< 0.3 g)",
+  "NP-F970 battery: removed by the runner through remove_old_battery_kg (assumption sweep)",
+  "Bench tether beyond the robot (USB-C cable, Adafruit 5991 on the bench): not modelled; only the 98 mm of 22 AWG pair drawn on the robot is included. Its drag/pull force is not simulated.",
+  "Community printed rings vs official seeed bearings, neck_pitch_ring, neck shims: unchanged or < 1 g",
+  "Threaded inserts: none in the guide screw list (all screws are self-tapping TAP)"
+ ],
+ "parts": [
+  {
+   "id": "add-rear_pack",
+   "body": "trunk_base",
+   "mass_kg": 0.020001,
+   "position_m": [
+    -0.028713254634152956,
+    -0.0001419387780621079,
+    -0.005556117750991047
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     1.4177754989838102e-05,
+     5.619037240491348e-09,
+     -5.176488270250617e-07
+    ],
+    [
+     5.619037240491348e-09,
+     1.2205020230622386e-05,
+     -2.9851893436815325e-08
+    ],
+    [
+     -5.176488270250617e-07,
+     -2.9851893436815325e-08,
+     5.611454826959926e-06
+    ]
+   ],
+   "basis": "slicer",
+   "source": "microduck-sim/guide/print/release-V1.8/run/delivery/zhengxia_V1.8_Orange_Elegoo-Centauri-Carbon_3h28m.gcode object rear_pack_1",
+   "solid_volume_cm3": 17.175,
+   "label": "slicer"
+  },
+  {
+   "id": "add-head_cap",
+   "body": "jaw_soft",
+   "mass_kg": 0.03569,
+   "position_m": [
+    0.021805755212922263,
+    -3.665069086076658e-05,
+    -0.027633271997721278
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     7.672998385063162e-05,
+     -4.327604643930707e-08,
+     5.064298098199761e-06
+    ],
+    [
+     -4.327604643930707e-08,
+     5.43340997231595e-05,
+     -7.648313925039654e-08
+    ],
+    [
+     5.064298098199761e-06,
+     -7.648313925039654e-08,
+     3.443814585707672e-05
+    ]
+   ],
+   "basis": "slicer",
+   "source": "microduck-sim/guide/print/release-V1.8/run/delivery/zhengxia_V1.8_Orange_Elegoo-Centauri-Carbon_3h28m.gcode object head_cap_1",
+   "solid_volume_cm3": 30.676,
+   "label": "slicer"
+  },
+  {
+   "id": "add-head_bottom",
+   "body": "jaw_soft",
+   "mass_kg": 0.031659,
+   "position_m": [
+    -0.009526349619086574,
+    -0.0011586768264385083,
+    -0.02428441534971195
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     5.7400707238176334e-05,
+     9.662304650783541e-08,
+     2.5279688102557543e-06
+    ],
+    [
+     9.662304650783541e-08,
+     3.696252070630484e-05,
+     1.563613303258876e-07
+    ],
+    [
+     2.5279688102557543e-06,
+     1.563613303258876e-07,
+     2.1545426026379035e-05
+    ]
+   ],
+   "basis": "slicer",
+   "source": "microduck-sim/guide/print/release-V1.8/run/delivery/zhengxia_V1.8_Yellow_Elegoo-Centauri-Carbon_2h56m.gcode object head_bottom_1",
+   "solid_volume_cm3": 27.016,
+   "label": "slicer"
+  },
+  {
+   "id": "add-jaw_frame",
+   "body": "jaw_soft",
+   "mass_kg": 0.020763,
+   "position_m": [
+    -0.01123986789245677,
+    -0.0005636197717813788,
+    -0.05706306219408022
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     2.145175883981579e-05,
+     1.671071302982578e-07,
+     -8.580050327974435e-07
+    ],
+    [
+     1.671071302982578e-07,
+     5.226648766478182e-06,
+     4.5660003162014893e-07
+    ],
+    [
+     -8.580050327974435e-07,
+     4.5660003162014893e-07,
+     1.718971003449313e-05
+    ]
+   ],
+   "basis": "slicer",
+   "source": "microduck-sim/guide/print/release-V1.8/run/delivery/zhengxia_V1.8_Yellow_Elegoo-Centauri-Carbon_2h56m.gcode object jaw_frame_1",
+   "solid_volume_cm3": 27.964,
+   "label": "slicer"
+  },
+  {
+   "id": "add-face_panel",
+   "body": "jaw_soft",
+   "mass_kg": 0.0049960000000000004,
+   "position_m": [
+    0.014700429533933572,
+    4.6450900372706734e-05,
+    -0.0726261701009926
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     2.6387862137738873e-06,
+     -6.082323225016904e-10,
+     -7.431492189146909e-11
+    ],
+    [
+     -6.082323225016904e-10,
+     7.759145532619921e-07,
+     -8.967515913447822e-10
+    ],
+    [
+     -7.431492189146909e-11,
+     -8.967515913447822e-10,
+     3.4129900497601727e-06
+    ]
+   ],
+   "basis": "slicer",
+   "source": "microduck-sim/guide/print/release-V1.8/run/delivery/zhengxia_V1.8_White_Elegoo-Centauri-Carbon_10m.gcode object face_panel_1",
+   "solid_volume_cm3": 4.13,
+   "label": "slicer"
+  },
+  {
+   "id": "add-eye_trim",
+   "body": "jaw_soft",
+   "mass_kg": 0.003849,
+   "position_m": [
+    0.015491622686651323,
+    -8.984428905768828e-05,
+    -0.07721172297556785
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     2.908485568368217e-07,
+     5.409260799248067e-13,
+     1.358541186628587e-10
+    ],
+    [
+     5.409260799248067e-13,
+     2.8803343200415705e-07,
+     -2.168153455102204e-12
+    ],
+    [
+     1.358541186628587e-10,
+     -2.168153455102204e-12,
+     5.388488647986966e-07
+    ]
+   ],
+   "basis": "slicer",
+   "source": "microduck-sim/guide/print/release-V1.8/run/delivery/zhengxia_V1.8_Black_Elegoo-Centauri-Carbon_44m.gcode object eye_trim_1",
+   "solid_volume_cm3": 4.213,
+   "label": "slicer"
+  },
+  {
+   "id": "add-rear_pack_cover",
+   "body": "trunk_base",
+   "mass_kg": 0.006304000000000001,
+   "position_m": [
+    -0.04579317325261358,
+    -1.850222075993561e-09,
+    -0.005326314947094884
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     3.631628916721108e-06,
+     -1.2355209557404712e-14,
+     -4.242180450898362e-08
+    ],
+    [
+     -1.2355209557404712e-14,
+     2.9569240360969814e-06,
+     4.354233987764209e-13
+    ],
+    [
+     -4.242180450898362e-08,
+     4.354233987764209e-13,
+     6.928260094830409e-07
+    ]
+   ],
+   "basis": "slicer",
+   "source": "microduck-sim/guide/print/release-V1.8/run/delivery/zhengxia_V1.8_Black_Elegoo-Centauri-Carbon_44m.gcode object rear_pack_cover_1",
+   "solid_volume_cm3": 5.569,
+   "label": "slicer"
+  },
+  {
+   "id": "add-jaw_support",
+   "body": "jaw_soft",
+   "mass_kg": 0.007934829309285902,
+   "position_m": [
+    0.006742957261577445,
+    -0.0015737800341822958,
+    -0.017380364036822516
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     6.040800235231638e-06,
+     -2.1017225249377537e-07,
+     3.4032829246353146e-08
+    ],
+    [
+     -2.1017225249377537e-07,
+     2.6891517936419345e-06,
+     2.4571102131736667e-07
+    ],
+    [
+     3.4032829246353146e-08,
+     2.4571102131736667e-07,
+     3.9399159280849595e-06
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "guide audit solid x slicer-calibrated effective density (no per-object slice on file)",
+   "label": "CAD-volume"
+  },
+  {
+   "id": "add-mouth_sliding_ring",
+   "body": "jaw_soft",
+   "mass_kg": 0.00020132981501664644,
+   "position_m": [
+    0.0030000013238010164,
+    -0.0387207519379793,
+    -0.01800000041087962
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     4.2595534208050355e-09,
+     -6.108551742311867e-17,
+     -6.437290029156007e-34
+    ],
+    [
+     -6.108551742311867e-17,
+     8.32098834123068e-09,
+     1.4387485702760735e-17
+    ],
+    [
+     -6.437290029156007e-34,
+     1.4387485702760735e-17,
+     4.259551782360734e-09
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "guide audit solid x slicer-calibrated effective density (no per-object slice on file)",
+   "label": "CAD-volume"
+  },
+  {
+   "id": "add-neck_pitch",
+   "body": "neck_pitch",
+   "mass_kg": 0.004378693763327024,
+   "position_m": [
+    -2.847476580913887e-09,
+    0.00937137118246635,
+    -0.01449990479449529
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     9.373666740011486e-07,
+     -1.144925135632774e-12,
+     -1.110655217682472e-12
+    ],
+    [
+     -1.144925135632774e-12,
+     8.427838440499099e-07,
+     3.077201720799514e-12
+    ],
+    [
+     -1.110655217682472e-12,
+     3.077201720799514e-12,
+     3.529959408787788e-07
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "guide audit solid x slicer-calibrated effective density (no per-object slice on file)",
+   "label": "CAD-volume"
+  },
+  {
+   "id": "add-openrb_board",
+   "body": "trunk_base",
+   "mass_kg": 0.013,
+   "position_m": [
+    -0.027503741464080664,
+    -0.0002653509422258313,
+    -0.007250935684321876
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     5.296008555976967e-06,
+     -3.0604160731392845e-10,
+     1.6492561606138505e-07
+    ],
+    [
+     -3.0604160731392845e-10,
+     4.638088944302604e-06,
+     -5.083478731088042e-09
+    ],
+    [
+     1.6492561606138505e-07,
+     -5.083478731088042e-09,
+     8.454167746484037e-07
+    ]
+   ],
+   "basis": "sept_source",
+   "source": "ROBOTIS OpenRB-150 https://en.robotis.com/shop_en/item.php?it_id=902-0183-000 (verified 2026-09-12, electrical/component-mass-envelope.json)",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-imu_board",
+   "body": "trunk_base",
+   "mass_kg": 0.0025,
+   "position_m": [
+    -0.006518021581611753,
+    -0.0011793006195545532,
+    0.018273481092947984
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     1.3613804460279835e-07,
+     -2.1417796322484297e-10,
+     -1.1863031382693974e-09
+    ],
+    [
+     -2.1417796322484297e-10,
+     2.2364480700353348e-07,
+     -1.9961616457212745e-10
+    ],
+    [
+     -1.1863031382693974e-09,
+     -1.9961616457212745e-10,
+     9.130092908651309e-08
+    ]
+   ],
+   "basis": "sept_source",
+   "source": "Adafruit BNO085 #4754 https://www.adafruit.com/product/4754 (verified 2026-09-12)",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-camera_board",
+   "body": "jaw_soft",
+   "mass_kg": 0.004,
+   "position_m": [
+    0.01549080340580971,
+    -0.0003956991744747983,
+    -0.07141777136640258
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     1.6219268271367832e-07,
+     -3.4877176187165355e-14,
+     -1.0072047889066679e-14
+    ],
+    [
+     -3.4877176187165355e-14,
+     1.4762655984188647e-07,
+     1.1201422756594228e-08
+    ],
+    [
+     -1.0072047889066679e-14,
+     1.1201422756594228e-08,
+     2.5485285100967936e-07
+    ]
+   ],
+   "basis": "sept_source",
+   "source": "Raspberry Pi Camera Module 3 Wide, https://www.raspberrypi.com/documentation/accessories/camera.html (verified 2026-09-12)",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-pi",
+   "body": "jaw_soft",
+   "mass_kg": 0.009300000000000001,
+   "position_m": [
+    0.013898458364897247,
+    -7.9141346850318e-08,
+    -0.050467040423555716
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     3.2334869589316456e-06,
+     3.30326848032059e-11,
+     1.1532724398391296e-07
+    ],
+    [
+     3.30326848032059e-11,
+     6.783491808694656e-07,
+     -5.960630610970863e-12
+    ],
+    [
+     1.1532724398391296e-07,
+     -5.960630610970863e-12,
+     3.867204788729716e-06
+    ]
+   ],
+   "basis": "datasheet",
+   "source": "Raspberry Pi Zero W 9.3 g, https://www.adafruit.com/product/3400 (read 2026-10-14)",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-pi-gpio-header",
+   "body": "jaw_soft",
+   "mass_kg": 0.0025,
+   "position_m": [
+    0.0024006602203571472,
+    -3.879206508589362e-07,
+    -0.0505415987689393
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     5.649447354930125e-07,
+     5.4916125764433554e-14,
+     1.5158741976808029e-09
+    ],
+    [
+     5.4916125764433554e-14,
+     1.1552414567551812e-08,
+     -2.5149380964259035e-14
+    ],
+    [
+     1.5158741976808029e-09,
+     -2.5149380964259035e-14,
+     5.732744058009515e-07
+    ]
+   ],
+   "basis": "estimate",
+   "source": "soldered 2x20 male header (plastic base + 40 pins), engineering estimate",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-dxl-r5-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.004535999999999999,
+   "position_m": [
+    -0.030011882170926377,
+    -0.0011519429606973196,
+    0.008391121059473983
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Controller link R (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 1.00",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-l10-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.004535999999999999,
+   "position_m": [
+    -0.02860493472412608,
+    0.0057465867116190525,
+    0.013941861156697388
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Controller link L (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 1.00",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-n12-neck",
+   "body": "neck",
+   "mass_kg": 0.00015883857353815112,
+   "position_m": [
+    0.009999999999999997,
+    -0.008578500000000008,
+    0.025999999999999995
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Controller link N (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.04",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-n12-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.0043771614264618485,
+   "position_m": [
+    -0.019412422207697354,
+    0.0077223381056747385,
+    0.02029288980395902
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Controller link N (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.96",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-supply-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.0009654998825972716,
+   "position_m": [
+    -0.035980552852901186,
+    0.004963633263272879,
+    -0.012350375073500388
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "5 V supply pair (22 AWG solid, red + black, from the Adafruit 5991 on the bench); 22 AWG solid pair: Cu 0.326 mm2 x 8.96 g/cm3 = 2.92 g/m + PVC ~1.0 g/m per conductor; 0.0078 g/mm x 98 mm + ends, share 1.00",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-pi-trunk-jaw_soft",
+   "body": "jaw_soft",
+   "mass_kg": 0.0014371098651980597,
+   "position_m": [
+    0.013199490919208351,
+    -0.0026125269559153165,
+    -0.043949752306086214
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Pi 5 V lead (two jumper chains, red + black); 22 AWG solid pair: Cu 0.326 mm2 x 8.96 g/cm3 = 2.92 g/m + PVC ~1.0 g/m per conductor; 0.0050 g/mm x 397 mm + ends, share 0.56",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-pi-trunk-neck",
+   "body": "neck",
+   "mass_kg": 0.00032769108153053847,
+   "position_m": [
+    -0.0020000000000000013,
+    -0.02607849999999999,
+    0.03699999999999999
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Pi 5 V lead (two jumper chains, red + black); 22 AWG solid pair: Cu 0.326 mm2 x 8.96 g/cm3 = 2.92 g/m + PVC ~1.0 g/m per conductor; 0.0050 g/mm x 397 mm + ends, share 0.13",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-pi-trunk-neck_pitch",
+   "body": "neck_pitch",
+   "mass_kg": 0.00011803268274641676,
+   "position_m": [
+    0.0,
+    0.004941593510506228,
+    -0.03598534066749068
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Pi 5 V lead (two jumper chains, red + black); 22 AWG solid pair: Cu 0.326 mm2 x 8.96 g/cm3 = 2.92 g/m + PVC ~1.0 g/m per conductor; 0.0050 g/mm x 397 mm + ends, share 0.05",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-pi-trunk-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.0006514113706048594,
+   "position_m": [
+    -0.004233862101283175,
+    -0.010063025160471436,
+    0.039126511400641314
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Pi 5 V lead (two jumper chains, red + black); 22 AWG solid pair: Cu 0.326 mm2 x 8.96 g/cm3 = 2.92 g/m + PVC ~1.0 g/m per conductor; 0.0050 g/mm x 397 mm + ends, share 0.25",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-pi-trunk-yaw_roll_motion",
+   "body": "yaw_roll_motion",
+   "mass_kg": 5.075499992012561e-05,
+   "position_m": [
+    0.008799999999999995,
+    -0.02464999999999999,
+    0.03243540000000002
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Pi 5 V lead (two jumper chains, red + black); 22 AWG solid pair: Cu 0.326 mm2 x 8.96 g/cm3 = 2.92 g/m + PVC ~1.0 g/m per conductor; 0.0050 g/mm x 397 mm + ends, share 0.02",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-imu-jaw_soft",
+   "body": "jaw_soft",
+   "mass_kg": 0.0016872750771728888,
+   "position_m": [
+    0.012958274972155842,
+    -0.002267919147502045,
+    -0.04430540789250446
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "IMU lead (4397 cable, extended); STEMMA QT 4-wire 28 AWG (~1.5 g/m per conductor) with JST SH ends; 0.0060 g/mm x 394 mm + ends, share 0.57",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-imu-neck",
+   "body": "neck",
+   "mass_kg": 0.0003791353473039084,
+   "position_m": [
+    -0.0020000000000000013,
+    -0.02607849999999999,
+    0.03699999999999999
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "IMU lead (4397 cable, extended); STEMMA QT 4-wire 28 AWG (~1.5 g/m per conductor) with JST SH ends; 0.0060 g/mm x 394 mm + ends, share 0.13",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-imu-neck_pitch",
+   "body": "neck_pitch",
+   "mass_kg": 0.00013656264905733892,
+   "position_m": [
+    0.0,
+    0.004941593510506228,
+    -0.03598534066749068
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "IMU lead (4397 cable, extended); STEMMA QT 4-wire 28 AWG (~1.5 g/m per conductor) with JST SH ends; 0.0060 g/mm x 394 mm + ends, share 0.05",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-imu-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.0007023038924661317,
+   "position_m": [
+    0.0008417347753999036,
+    -0.011155712002482806,
+    0.04126373152343131
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "IMU lead (4397 cable, extended); STEMMA QT 4-wire 28 AWG (~1.5 g/m per conductor) with JST SH ends; 0.0060 g/mm x 394 mm + ends, share 0.24",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-imu-yaw_roll_motion",
+   "body": "yaw_roll_motion",
+   "mass_kg": 5.872303399973172e-05,
+   "position_m": [
+    0.008799999999999995,
+    -0.02464999999999999,
+    0.03243540000000002
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "IMU lead (4397 cable, extended); STEMMA QT 4-wire 28 AWG (~1.5 g/m per conductor) with JST SH ends; 0.0060 g/mm x 394 mm + ends, share 0.02",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-uart-jaw_soft",
+   "body": "jaw_soft",
+   "mass_kg": 0.001294841284016896,
+   "position_m": [
+    0.012672926327933565,
+    -0.001820138137241532,
+    -0.04488259819694491
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "UART link (two jumper wires); two Dupont jumpers, 26-28 AWG ~2.5 g/m each, 0.1-0.15 g per housing; 0.0050 g/mm x 423 mm + ends, share 0.54",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-uart-neck",
+   "body": "neck",
+   "mass_kg": 0.00028403394864374455,
+   "position_m": [
+    -0.0020000000000000013,
+    -0.02607849999999999,
+    0.03699999999999999
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "UART link (two jumper wires); two Dupont jumpers, 26-28 AWG ~2.5 g/m each, 0.1-0.15 g per housing; 0.0050 g/mm x 423 mm + ends, share 0.12",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-uart-neck_pitch",
+   "body": "neck_pitch",
+   "mass_kg": 0.000102307602614308,
+   "position_m": [
+    0.0,
+    0.004941593510506228,
+    -0.03598534066749068
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "UART link (two jumper wires); two Dupont jumpers, 26-28 AWG ~2.5 g/m each, 0.1-0.15 g per housing; 0.0050 g/mm x 423 mm + ends, share 0.04",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-uart-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.0006898240753391789,
+   "position_m": [
+    -0.008838108568457851,
+    -0.008229135084702625,
+    0.03474542991678269
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "UART link (two jumper wires); two Dupont jumpers, 26-28 AWG ~2.5 g/m each, 0.1-0.15 g per housing; 0.0050 g/mm x 423 mm + ends, share 0.29",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-uart-yaw_roll_motion",
+   "body": "yaw_roll_motion",
+   "mass_kg": 4.3993089385872514e-05,
+   "position_m": [
+    0.008799999999999995,
+    -0.02464999999999999,
+    0.03243540000000002
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "UART link (two jumper wires); two Dupont jumpers, 26-28 AWG ~2.5 g/m each, 0.1-0.15 g per housing; 0.0050 g/mm x 423 mm + ends, share 0.02",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-dxl-12-11-neck",
+   "body": "neck",
+   "mass_kg": 0.0011613636363636364,
+   "position_m": [
+    -0.01625,
+    -0.0249785,
+    0.03749999999999999
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Neck chain 12 \u2192 11 (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.46",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-12-11-neck_pitch",
+   "body": "neck_pitch",
+   "mass_kg": 0.0006077272727272727,
+   "position_m": [
+    -0.00894240837696335,
+    -0.009021499999999986,
+    -0.033007591623036646
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Neck chain 12 \u2192 11 (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.24",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-12-11-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.0007509090909090908,
+   "position_m": [
+    0.03633580508474576,
+    -0.019364194915254238,
+    0.0414
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Neck chain 12 \u2192 11 (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.30",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-11-13-jaw_soft",
+   "body": "jaw_soft",
+   "mass_kg": 0.0009891799393638614,
+   "position_m": [
+    0.01882455944564209,
+    -0.0024546360332688227,
+    -0.011844895990156158
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Neck chain 11 \u2192 13 (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.22",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-11-13-neck_pitch",
+   "body": "neck_pitch",
+   "mass_kg": 0.002147785350040295,
+   "position_m": [
+    0.012524487571007414,
+    0.0049005223539083645,
+    -0.026443940594142963
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Neck chain 11 \u2192 13 (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.47",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-11-13-yaw_roll_motion",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.0013990347105958434,
+   "position_m": [
+    -0.007960700975182054,
+    0.0075594242056975505,
+    0.020534036054157743
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Neck chain 11 \u2192 13 (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.31",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-13-14-jaw_soft",
+   "body": "jaw_soft",
+   "mass_kg": 0.0016908377916366756,
+   "position_m": [
+    0.013401684234959766,
+    -0.011854659126976263,
+    0.01929228980108217
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Neck chain 13 \u2192 14 (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.67",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-13-14-yaw_roll_motion",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.0008291622083633242,
+   "position_m": [
+    -0.013288983050847452,
+    -0.006811016949152542,
+    0.03027099322033898
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Neck chain 13 \u2192 14 (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.33",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-14-15-jaw_soft",
+   "body": "jaw_soft",
+   "mass_kg": 0.003766241597568377,
+   "position_m": [
+    0.011127380734243431,
+    -0.0021820238608161024,
+    0.014969095422473027
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Neck chain 14 \u2192 15 (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.83",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-14-15-yaw_roll_motion",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.0007697584024316224,
+   "position_m": [
+    0.009057001610907625,
+    0.01199406765812039,
+    0.018988043989414106
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Neck chain 14 \u2192 15 (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.17",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-5-4-bearing_roll",
+   "body": "bearing_roll",
+   "mass_kg": 0.0014775011457795434,
+   "position_m": [
+    0.013438053994375435,
+    -0.011948058263441533,
+    0.011751095863366388
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 5 \u2192 4, hip yaw to hip roll (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.33",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-5-4-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.003058498854220456,
+   "position_m": [
+    -0.008205775018790497,
+    -0.011253724262054458,
+    0.01894666875258229
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 5 \u2192 4, hip yaw to hip roll (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.67",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-4-3-bearing_roll",
+   "body": "bearing_roll",
+   "mass_kg": 0.0008127868393375228,
+   "position_m": [
+    -0.012224500027364762,
+    -0.015219652162423653,
+    0.02546776469005594
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 4 \u2192 3, hip roll to hip pitch (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.32",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-4-3-hip_l_2",
+   "body": "hip_l_2",
+   "mass_kg": 0.00030881351545275986,
+   "position_m": [
+    0.0197494037841353,
+    0.015999999999999986,
+    -0.0177763263614074
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 4 \u2192 3, hip roll to hip pitch (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.12",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-4-3-leg_2",
+   "body": "leg_2",
+   "mass_kg": 0.00016638214685842014,
+   "position_m": [
+    0.005999999999999989,
+    0.013636801103939942,
+    0.007854985150766394
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 4 \u2192 3, hip roll to hip pitch (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.07",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-4-3-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.0001801426879196693,
+   "position_m": [
+    -0.018478011276848963,
+    -0.025832224652535235,
+    -0.030887225774384065
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 4 \u2192 3, hip roll to hip pitch (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.07",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-4-3-upper_leg_right",
+   "body": "upper_leg_right",
+   "mass_kg": 0.0010518748104316271,
+   "position_m": [
+    -0.014830771101052041,
+    0.0076152389025459805,
+    0.014144852459734092
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 4 \u2192 3, hip roll to hip pitch (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.42",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-3-2-leg_2",
+   "body": "leg_2",
+   "mass_kg": 0.0007652743832417889,
+   "position_m": [
+    0.011078146406672323,
+    0.0026693770860846595,
+    0.0054999999999999945
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 3 \u2192 2, inside the thigh (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.17",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-3-2-upper_leg_right",
+   "body": "upper_leg_right",
+   "mass_kg": 0.003770725616758212,
+   "position_m": [
+    -0.00216312481065759,
+    0.02918372256303631,
+    0.010717114821170163
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 3 \u2192 2, inside the thigh (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.83",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-2-1-leg_2",
+   "body": "leg_2",
+   "mass_kg": 0.002772687270678976,
+   "position_m": [
+    -0.020424879006026925,
+    -0.014502680118949307,
+    -0.014301032911598219
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 2 \u2192 1, knee to ankle (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.61",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-2-1-upper_leg_right",
+   "body": "upper_leg_right",
+   "mass_kg": 0.0017633127293210228,
+   "position_m": [
+    -0.02572815489797911,
+    0.03922635297410688,
+    0.024049604286467637
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Right leg 2 \u2192 1, knee to ankle (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.39",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-10-9-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.002698438346159703,
+   "position_m": [
+    -0.003,
+    0.005343884383686737,
+    0.016491332615753272
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 10 \u2192 9, hip yaw to hip roll (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.59",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-10-9-yaw2roll",
+   "body": "yaw2roll",
+   "mass_kg": 0.001837561653840296,
+   "position_m": [
+    -0.013453572963124109,
+    -0.011152493837822677,
+    0.011794174991349295
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 10 \u2192 9, hip yaw to hip roll (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.41",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-9-8-hip_l",
+   "body": "hip_l",
+   "mass_kg": 0.00030881351545275986,
+   "position_m": [
+    0.0197494037841353,
+    -0.015999999999999986,
+    -0.0177763263614074
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 9 \u2192 8, hip roll to hip pitch (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.12",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-9-8-leg",
+   "body": "leg",
+   "mass_kg": 0.00016638214685842014,
+   "position_m": [
+    -0.013636801103939939,
+    -0.005999999999999987,
+    0.00785498515076639
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 9 \u2192 8, hip roll to hip pitch (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.07",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-9-8-trunk_base",
+   "body": "trunk_base",
+   "mass_kg": 0.00020518216066587529,
+   "position_m": [
+    -0.018401371713253685,
+    0.025791681507333065,
+    -0.03043115219264372
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 9 \u2192 8, hip roll to hip pitch (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.08",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-9-8-upper_leg_left",
+   "body": "upper_leg_left",
+   "mass_kg": 0.0010518748104316271,
+   "position_m": [
+    0.014830771101052041,
+    0.0076152389025459805,
+    0.014144852459734092
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 9 \u2192 8, hip roll to hip pitch (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.42",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-9-8-yaw2roll",
+   "body": "yaw2roll",
+   "mass_kg": 0.0007877473665913169,
+   "position_m": [
+    0.012358780708948344,
+    -0.014945326447563622,
+    0.02557322372687184
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 9 \u2192 8, hip roll to hip pitch (100 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 100 mm + ends, share 0.31",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-8-7-leg",
+   "body": "leg",
+   "mass_kg": 0.0007652743832417889,
+   "position_m": [
+    -0.00266937708608466,
+    -0.011078146406672321,
+    0.005499999999999993
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 8 \u2192 7, inside the thigh (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.17",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-8-7-upper_leg_left",
+   "body": "upper_leg_left",
+   "mass_kg": 0.003770725616758212,
+   "position_m": [
+    0.00216312481065759,
+    0.02918372256303631,
+    0.010717114821170163
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 8 \u2192 7, inside the thigh (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.83",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-7-6-leg",
+   "body": "leg",
+   "mass_kg": 0.0017309411811584107,
+   "position_m": [
+    0.02112325842327197,
+    0.022820501210107997,
+    -0.007861988507563249
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 7 \u2192 6, knee to ankle (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.38",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-dxl-7-6-upper_leg_left",
+   "body": "upper_leg_left",
+   "mass_kg": 0.002805058818841588,
+   "position_m": [
+    0.030450717516217488,
+    0.03924597212559646,
+    0.02291703860952942
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "datasheet",
+   "source": "Left leg 7 \u2192 6, knee to ankle (180 mm kit cable); ROBOTIS X3P kit cable, whole kit length, housings included; 0.0252 g/mm x 180 mm + ends, share 0.62",
+   "label": "datasheet"
+  },
+  {
+   "id": "add-cable-csi-jaw_soft",
+   "body": "jaw_soft",
+   "mass_kg": 0.0016,
+   "position_m": [
+    0.014850021879273556,
+    -0.026752824932086156,
+    -0.06289926042293001
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Camera ribbon (200 mm, 15-to-22 pin); 200 mm 15-to-22 pin FFC; 0.0060 g/mm x 200 mm + ends, share 1.00",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-case-069",
+   "body": "trunk_base",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    -0.0165,
+    0.0095,
+    -0.003094
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-case-070",
+   "body": "trunk_base",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    -0.0165,
+    0.0255,
+    -0.00095
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-case-073",
+   "body": "trunk_base",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    -0.0165,
+    -0.0255,
+    -0.00095
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-case-074",
+   "body": "trunk_base",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    -0.0165,
+    -0.0095,
+    -0.003094
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-case-072",
+   "body": "trunk_base",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    -0.0165,
+    0.0095,
+    0.025049
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-case-076",
+   "body": "trunk_base",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    -0.0165,
+    -0.0095,
+    0.025049
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-case-087",
+   "body": "neck",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    0.007999999999999998,
+    -0.022499500000000002,
+    0.0010500000000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-case-088",
+   "body": "neck",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    -0.008000000000000002,
+    -0.022499500000000002,
+    0.0010500000000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-case-089",
+   "body": "neck",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    0.007999999999999998,
+    -0.022499500000000002,
+    0.027999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-case-090",
+   "body": "neck",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    -0.008000000000000002,
+    -0.022499500000000002,
+    0.027999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-case-091",
+   "body": "neck",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    -0.008000000000000002,
+    -0.027499500000000003,
+    0.0010500000000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-case-092",
+   "body": "neck",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    0.007999999999999998,
+    -0.027499500000000003,
+    0.0010500000000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-case-093",
+   "body": "neck",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    -0.008000000000000002,
+    -0.027499500000000003,
+    0.027999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-case-094",
+   "body": "neck",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    0.007999999999999998,
+    -0.027499500000000003,
+    0.027999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-rear_center-117",
+   "body": "trunk_base",
+   "mass_kg": 0.0003798364588971315,
+   "position_m": [
+    0.026,
+    -0.0127,
+    0.032422
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-rear_center-118",
+   "body": "neck_pitch",
+   "mass_kg": 0.0003798364588971315,
+   "position_m": [
+    0.0,
+    -4.999999999727444e-07,
+    -0.027199999999999995
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-horn-041",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.006,
+    0.01484350000000002,
+    -0.014499999999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-horn-042",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    0.01484350000000002,
+    -0.008499999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-horn-043",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    0.01484350000000002,
+    -0.020499999999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-horn-044",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.005999999999999997,
+    0.01484350000000002,
+    -0.014499999999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S14-horn-049",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.01454899999999999,
+    0.005999999999999995,
+    0.014500400000000017
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S14-horn-050",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.01454899999999999,
+    -0.006,
+    0.014500400000000017
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S14-horn-051",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.01454899999999999,
+    -3.0891196211362e-18,
+    0.008500400000000016
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S14-horn-052",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.01454899999999999,
+    -2.5522121850380224e-18,
+    0.02050040000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-case-095",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    0.008,
+    0.007499999999999994,
+    0.0274504
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-case-096",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    -0.007999999999999997,
+    0.007499999999999994,
+    0.0274504
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-case-097",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    0.008,
+    -0.022499999999999992,
+    0.027950400000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-case-098",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    -0.007999999999999997,
+    -0.022499999999999992,
+    0.027950400000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-033",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.006,
+    -4.999999999727444e-07,
+    0.003
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-034",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    0.005999500000000017,
+    0.003
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-035",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    -0.006000499999999976,
+    0.003
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-036",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.005999999999999997,
+    -4.999999999727444e-07,
+    0.003
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-037",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.006,
+    -4.999999999727444e-07,
+    -0.031999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-038",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    -0.006000499999999976,
+    -0.031999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-039",
+   "body": "neck_pitch",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    0.005999500000000017,
+    -0.031999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-026",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.032,
+    -0.018401,
+    0.032521999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-027",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.026,
+    -0.018401,
+    0.026521999999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-028",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.026,
+    -0.018401,
+    0.038522
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-029",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.026,
+    0.0179,
+    0.038422
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-030",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.026,
+    0.0179,
+    0.026422
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-031",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.02,
+    0.0179,
+    0.032422
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-032",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.032,
+    0.0179,
+    0.032422
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-case-071",
+   "body": "trunk_base",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    0.0135,
+    0.0255,
+    0.024922
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-case-075",
+   "body": "trunk_base",
+   "mass_kg": 0.0003156672298327024,
+   "position_m": [
+    0.0135,
+    -0.0255,
+    0.02495
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S15-horn-045",
+   "body": "jaw_soft",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.002999599999999964,
+    0.04355399999999998,
+    -0.017999999999999988
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S15-horn-046",
+   "body": "jaw_soft",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0030004000000000385,
+    0.04411899999999998,
+    -0.023999999999999987
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S15-horn-047",
+   "body": "jaw_soft",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.009000400000000028,
+    0.04418299999999998,
+    -0.017999999999999988
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S15-horn-048",
+   "body": "jaw_soft",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0030004000000000385,
+    0.04361899999999998,
+    -0.011999999999999988
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-H-jaw_support-01",
+   "body": "jaw_soft",
+   "mass_kg": 0.0003798364588971315,
+   "position_m": [
+    -0.0023995999999999462,
+    0.01899999999999999,
+    0.0015000000000000059
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-H-jaw_support-02",
+   "body": "jaw_soft",
+   "mass_kg": 0.0003798364588971315,
+   "position_m": [
+    -0.002399599999999946,
+    0.009349999999999992,
+    -0.040999999999999974
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-H-jaw_support-04",
+   "body": "jaw_soft",
+   "mass_kg": 0.0003798364588971315,
+   "position_m": [
+    -0.0023995999999999436,
+    -0.02999999999999999,
+    0.005000000000000004
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-C-camera-01",
+   "body": "jaw_soft",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    0.00498540000000004,
+    -0.0001800000000000025,
+    -0.06977999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-C-camera-02",
+   "body": "jaw_soft",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    0.025985400000000037,
+    -0.00018000000000000156,
+    -0.06977999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-E-pi-01",
+   "body": "jaw_soft",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0026304000000000466,
+    -0.02899999999999999,
+    -0.04924099999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-E-pi-02",
+   "body": "jaw_soft",
+   "mass_kg": 0.000197292018645439,
+   "position_m": [
+    0.002630400000000044,
+    0.028999999999999984,
+    -0.04924099999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.004
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 4 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-E-pi-03",
+   "body": "jaw_soft",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.025280400000000054,
+    -0.02899999999999999,
+    -0.05323499999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-K-head_close-01",
+   "body": "jaw_soft",
+   "mass_kg": 0.0003798364588971315,
+   "position_m": [
+    -0.003253599999999954,
+    0.038999999999999986,
+    -0.06749999999999996
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-K-head_close-02",
+   "body": "jaw_soft",
+   "mass_kg": 0.0003798364588971315,
+   "position_m": [
+    -0.0032535999999999507,
+    -0.038999999999999986,
+    -0.06749999999999996
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-K-head_close-03",
+   "body": "jaw_soft",
+   "mass_kg": 0.0003798364588971315,
+   "position_m": [
+    -0.0032535999999999525,
+    -2.966257302842399e-18,
+    0.031499999999999986
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-B-openrb-01",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.0264,
+    -0.010539999999999999,
+    -0.03975
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-B-openrb-02",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.0264,
+    0.00996,
+    -0.03975
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-B-openrb-03",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.0264,
+    -0.010539999999999999,
+    0.02175
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-B-openrb-04",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.0264,
+    0.00996,
+    0.02175
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-C-pack_cover-01",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.047,
+    -0.0161,
+    0.026
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-C-pack_cover-02",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.047,
+    0.0161,
+    0.026
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-C-pack_cover-03",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.047,
+    -0.0161,
+    -0.0365
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-C-pack_cover-04",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.047,
+    0.0161,
+    -0.0365
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-P-passive_tab-01",
+   "body": "yaw2roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.009,
+    0.012499999999999995,
+    -4.336808689942017e-18
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-P-passive_tab-02",
+   "body": "yaw2roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.008999999999999996,
+    0.012499999999999995,
+    -4.336808689942017e-18
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-P-passive_tab-03",
+   "body": "bearing_roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.009,
+    0.012499999999999995,
+    -4.336808689942017e-18
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-P-passive_tab-04",
+   "body": "bearing_roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.008999999999999996,
+    0.012499999999999995,
+    -4.336808689942017e-18
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-X-shell_cross-01",
+   "body": "trunk_base",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.038,
+    0.0020499999999999997,
+    0.03496
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-horn-001",
+   "body": "yaw2roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.005999999999999997,
+    0.0,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-horn-002",
+   "body": "yaw2roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.006,
+    0.0,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-horn-003",
+   "body": "yaw2roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    -0.005999999999999998,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-horn-004",
+   "body": "yaw2roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    0.005999999999999998,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-horn-005",
+   "body": "bearing_roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.006,
+    0.0,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-horn-006",
+   "body": "bearing_roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.005999999999999997,
+    0.0,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-horn-007",
+   "body": "bearing_roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    -0.005999999999999998,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-horn-008",
+   "body": "bearing_roll",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    0.005999999999999998,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-case-077",
+   "body": "yaw2roll",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    -0.008,
+    0.012498999999999994,
+    0.03499999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-case-078",
+   "body": "yaw2roll",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    0.007999999999999995,
+    0.012498999999999994,
+    0.03499999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-case-079",
+   "body": "yaw2roll",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    -0.008,
+    -0.012299999999999997,
+    0.004999999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-case-080",
+   "body": "yaw2roll",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    0.007999999999999995,
+    -0.012299999999999997,
+    0.004999999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-rear_center-109",
+   "body": "yaw2roll",
+   "mass_kg": 0.0003798364588971315,
+   "position_m": [
+    0.0,
+    -0.012001999999999995,
+    0.012499999999999994
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-case-099",
+   "body": "bearing_roll",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    -0.007999999999999995,
+    0.012498999999999994,
+    0.03499999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-case-100",
+   "body": "bearing_roll",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    0.008,
+    0.012498999999999994,
+    0.03499999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-case-101",
+   "body": "bearing_roll",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    -0.007999999999999995,
+    -0.012299999999999997,
+    0.004999999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-case-102",
+   "body": "bearing_roll",
+   "mass_kg": 0.00027620882610361456,
+   "position_m": [
+    0.008,
+    -0.012299999999999997,
+    0.004999999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-rear_center-113",
+   "body": "bearing_roll",
+   "mass_kg": 0.0003798364588971315,
+   "position_m": [
+    0.0,
+    -0.012001999999999995,
+    0.012499999999999994
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-horn-009",
+   "body": "hip_l",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.005999999999999996,
+    0.0,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-horn-010",
+   "body": "hip_l",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    0.005999999999999999,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-horn-011",
+   "body": "hip_l",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    -0.005999999999999996,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-horn-012",
+   "body": "hip_l",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.005999999999999999,
+    0.0,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-horn-053",
+   "body": "hip_l_2",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.005999999999999996,
+    0.0,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-horn-054",
+   "body": "hip_l_2",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    -0.005999999999999999,
+    0.0,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-horn-055",
+   "body": "hip_l_2",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    0.005999999999999996,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-horn-056",
+   "body": "hip_l_2",
+   "mass_kg": 0.00023675042237452677,
+   "position_m": [
+    0.0,
+    -0.005999999999999999,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate"
+  },
+  {
+   "id": "remove-official-power_support",
+   "body": "trunk_base",
+   "mass_kg": -0.01107997168463338,
+   "position_m": [
+    -0.023106866723953307,
+    4.235573104107418e-05,
+    0.0008288884016814355
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -8.295385149954665e-06,
+     5.189887235522264e-10,
+     -8.545271312670007e-09
+    ],
+    [
+     5.189887235522264e-10,
+     -6.131200955069818e-06,
+     1.708227611307694e-08
+    ],
+    [
+     -8.545271312670007e-09,
+     1.708227611307694e-08,
+     -2.3077886561431885e-06
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 10.494,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-banana_pcb_locker",
+   "body": "trunk_base",
+   "mass_kg": -0.00048531963394358107,
+   "position_m": [
+    -0.03146044936472476,
+    0.0005470465549193244,
+    0.034498690463524335
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -1.1908748720447237e-07,
+     -2.3629847025109138e-11,
+     -8.942451081665847e-11
+    ],
+    [
+     -2.3629847025109138e-11,
+     -1.9330251890101988e-09,
+     5.066186318228031e-10
+    ],
+    [
+     -8.942451081665847e-11,
+     5.066186318228031e-10,
+     -1.1750710293033932e-07
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 0.46,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-top_head_shell",
+   "body": "jaw_soft",
+   "mass_kg": -0.031541466460262776,
+   "position_m": [
+    0.02192058619681371,
+    -1.4003841247931286e-05,
+    -0.027207001724437165
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -6.840150824669359e-05,
+     4.901840391850911e-09,
+     -4.685849482123573e-06
+    ],
+    [
+     4.901840391850911e-09,
+     -4.869887356776694e-05,
+     -4.849884560058052e-09
+    ],
+    [
+     -4.685849482123573e-06,
+     -4.849884560058052e-09,
+     -3.0476890639464168e-05
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 29.873,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-bottom_head_shell",
+   "body": "jaw_soft",
+   "mass_kg": -0.02512521364923442,
+   "position_m": [
+    -0.009910190866734439,
+    -0.0012835729331827017,
+    -0.019101382557211496
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -4.386128226004513e-05,
+     -9.607364717329683e-08,
+     -1.8777623611611696e-06
+    ],
+    [
+     -9.607364717329683e-08,
+     -2.771824031979739e-05,
+     7.021090297019952e-09
+    ],
+    [
+     -1.8777623611611696e-06,
+     7.021090297019952e-09,
+     -1.7078440143990832e-05
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 23.796,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-face_part",
+   "body": "jaw_soft",
+   "mass_kg": -0.00614943506565013,
+   "position_m": [
+    0.014981313308212426,
+    0.0005843571699298275,
+    -0.07106869174303695
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -3.517925592783738e-06,
+     9.429076092182757e-09,
+     5.4494404600441956e-09
+    ],
+    [
+     9.429076092182757e-09,
+     -9.378101230277954e-07,
+     5.726769018208341e-09
+    ],
+    [
+     5.4494404600441956e-09,
+     5.726769018208341e-09,
+     -4.3507463227924466e-06
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 5.824,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-noenoeil",
+   "body": "jaw_soft",
+   "mass_kg": -0.004487575878879161,
+   "position_m": [
+    0.015500000189662444,
+    -9.137779981336342e-05,
+    -0.07719596972641857
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -3.3660849697212515e-07,
+     4.726666212938481e-19,
+     -1.7788908218810742e-17
+    ],
+    [
+     4.726666212938481e-19,
+     -3.366084966452242e-07,
+     -2.6918928023848596e-18
+    ],
+    [
+     -1.7788908218810742e-17,
+     -2.6918928023848596e-18,
+     -6.264273800373186e-07
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 4.25,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-jaw",
+   "body": "jaw_soft",
+   "mass_kg": -0.009882832051240877,
+   "position_m": [
+    -0.01079137147836488,
+    -0.0016860745791603335,
+    -0.04912978651858446
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -1.5802872680626058e-05,
+     -2.3028531305049536e-07,
+     1.1572147176393687e-06
+    ],
+    [
+     -2.3028531305049536e-07,
+     -5.076301727231542e-06,
+     -5.175574755685367e-07
+    ],
+    [
+     1.1572147176393687e-06,
+     -5.175574755685367e-07,
+     -1.1890962748373886e-05
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 9.36,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-jaw_soft",
+   "body": "jaw_soft",
+   "mass_kg": -0.01964001057142909,
+   "position_m": [
+    -0.011465083138336768,
+    1.1353780612113287e-06,
+    -0.06105366343567914
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -1.3747598381927528e-05,
+     -8.433682337591844e-11,
+     1.0022448081417132e-08
+    ],
+    [
+     -8.433682337591844e-11,
+     -1.4179749610974413e-06,
+     5.5848046179695614e-11
+    ],
+    [
+     1.0022448081417132e-08,
+     5.5848046179695614e-11,
+     -1.253081783254517e-05
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 18.601,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-soft_mouth_top",
+   "body": "jaw_soft",
+   "mass_kg": -0.0028503404109890525,
+   "position_m": [
+    -0.006693941462653698,
+    2.3925754569333678e-08,
+    -0.061387861975312576
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -2.2693320687834008e-06,
+     8.790569868534372e-14,
+     7.17844214063435e-09
+    ],
+    [
+     8.790569868534372e-14,
+     -2.849745942285498e-07,
+     6.96800522709808e-13
+    ],
+    [
+     7.17844214063435e-09,
+     6.96800522709808e-13,
+     -1.9867385451229163e-06
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 2.7,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-motor_support",
+   "body": "jaw_soft",
+   "mass_kg": -0.00793482541112893,
+   "position_m": [
+    0.006742947838961326,
+    -0.001573803610969328,
+    -0.0173803504362154
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -6.0407962169269205e-06,
+     2.101711268367949e-07,
+     -3.403226584328056e-08
+    ],
+    [
+     2.101711268367949e-07,
+     -2.6891517990346366e-06,
+     -2.457094162059573e-07
+    ],
+    [
+     -3.403226584328056e-08,
+     -2.457094162059573e-07,
+     -3.939911622079107e-06
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 7.515,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-neck_pitch",
+   "body": "neck_pitch",
+   "mass_kg": -0.004336035343995796,
+   "position_m": [
+    4.534100529266989e-08,
+    0.00931344693965511,
+    -0.01449998560590562
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -9.352523311326236e-07,
+     -1.8316212260527567e-12,
+     1.075300488340166e-12
+    ],
+    [
+     -1.8316212260527567e-12,
+     -8.413763816368959e-07,
+     2.028051897828072e-13
+    ],
+    [
+     1.075300488340166e-12,
+     2.028051897828072e-13,
+     -3.5084605238721446e-07
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "official visual mesh volume x slicer-calibrated density; true lumped share unknown",
+   "official_mesh_volume_cm3": 4.107,
+   "label": "CAD-volume"
+  },
+  {
+   "id": "remove-official-pi-zero-2w",
+   "body": "jaw_soft",
+   "mass_kg": -0.01,
+   "position_m": [
+    0.015245177722092216,
+    -1.1303037980042068e-05,
+    -0.06000999964016337
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -3.45500475926835e-06,
+     3.6293122052822504e-11,
+     1.886978970820783e-14
+    ],
+    [
+     3.6293122052822504e-11,
+     -7.294074646474969e-07,
+     1.21294563884367e-13
+    ],
+    [
+     1.886978970820783e-14,
+     1.21294563884367e-13,
+     -4.18015340115761e-06
+    ]
+   ],
+   "basis": "sept_source",
+   "source": "Pi Zero 2 W 10 g (https://www.adafruit.com/product/5291, verified 2026-09-12); assumes the official lumped head carried it at that mass",
+   "official_mesh_volume_cm3": 3.018,
+   "label": "datasheet"
+  },
+  {
+   "id": "remove-official-lens",
+   "body": "jaw_soft",
+   "mass_kg": -0.00375,
+   "position_m": [
+    0.015500000000000002,
+    -9.137779999999981e-05,
+    -0.07326368665756318
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -1.4232872912014014e-07,
+     -1.0806982796748154e-24,
+     -2.213270076774022e-21
+    ],
+    [
+     -1.0806982796748154e-24,
+     -1.4232872912014456e-07,
+     4.3227931186992615e-24
+    ],
+    [
+     -2.213270076774022e-21,
+     4.3227931186992615e-24,
+     -1.0135298628183851e-07
+    ]
+   ],
+   "basis": "assumption",
+   "source": "September head-electronics removal assumption (15 g total, shares as prepare_full_model.py)",
+   "official_mesh_volume_cm3": 2.803,
+   "label": "estimate"
+  },
+  {
+   "id": "remove-official-elec_rpi_robot_hat_pcb",
+   "body": "jaw_soft",
+   "mass_kg": -0.00675,
+   "position_m": [
+    0.015232560531243581,
+    0.00011089914279681675,
+    -0.051480000003334234
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -2.320924350192204e-06,
+     -4.779187182922138e-09,
+     -1.3342821429599136e-20
+    ],
+    [
+     -4.779187182922138e-09,
+     -4.901594303466627e-07,
+     -4.0306439735247384e-22
+    ],
+    [
+     -1.3342821429599136e-20,
+     -4.0306439735247384e-22,
+     -2.810289980551604e-06
+    ]
+   ],
+   "basis": "assumption",
+   "source": "September head-electronics removal assumption (15 g total, shares as prepare_full_model.py)",
+   "official_mesh_volume_cm3": 1.569,
+   "label": "estimate"
+  },
+  {
+   "id": "remove-official-m12_lens_holder",
+   "body": "jaw_soft",
+   "mass_kg": -0.00225,
+   "position_m": [
+    0.015465646893200829,
+    -9.137848641336593e-05,
+    -0.06303947008166692
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -1.1452612212567001e-07,
+     -1.0585822390986663e-14,
+     3.509311528517422e-10
+    ],
+    [
+     -1.0585822390986663e-14,
+     -1.0108321499557573e-07,
+     -2.642188283144539e-15
+    ],
+    [
+     3.509311528517422e-10,
+     -2.642188283144539e-15,
+     -1.376108193220056e-07
+    ]
+   ],
+   "basis": "assumption",
+   "source": "September head-electronics removal assumption (15 g total, shares as prepare_full_model.py)",
+   "official_mesh_volume_cm3": 1.098,
+   "label": "estimate"
+  },
+  {
+   "id": "remove-official-speaker",
+   "body": "jaw_soft",
+   "mass_kg": -0.00225,
+   "position_m": [
+    0.013500000108033415,
+    0.0007140000745058039,
+    0.01352259981373548
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -3.468750054482399e-07,
+     4.747847666171777e-24,
+     7.596556265874843e-23
+    ],
+    [
+     4.747847666171777e-24,
+     -1.2637500405963618e-07,
+     -1.8991390664687108e-23
+    ],
+    [
+     7.596556265874843e-23,
+     -1.8991390664687108e-23,
+     -2.388750025229545e-07
+    ]
+   ],
+   "basis": "assumption",
+   "source": "September head-electronics removal assumption (15 g total, shares as prepare_full_model.py)",
+   "official_mesh_volume_cm3": 6.125,
+   "label": "estimate"
+  }
+ ],
+ "summary": {
+  "rho_eff_g_cm3": 1.0558,
+  "sliced_mass_g": {
+   "rear_pack": 20.001,
+   "head_cap": 35.69,
+   "head_bottom": 31.659,
+   "jaw_frame": 20.763,
+   "face_panel": 4.996,
+   "eye_trim": 3.849,
+   "rear_pack_cover": 6.304
+  },
+  "sliced_solid_volume_cm3": {
+   "rear_pack": 17.175,
+   "head_cap": 30.676,
+   "head_bottom": 27.016,
+   "jaw_frame": 27.964,
+   "face_panel": 4.13,
+   "eye_trim": 4.213,
+   "rear_pack_cover": 5.569
+  },
+  "body_delta_g": {
+   "trunk_base": 60.3,
+   "jaw_soft": 5.23,
+   "neck_pitch": 6.18,
+   "neck": 4.71,
+   "yaw_roll_motion": 5.39,
+   "bearing_roll": 5.23,
+   "hip_l_2": 1.27,
+   "leg_2": 3.71,
+   "upper_leg_right": 6.58,
+   "yaw2roll": 5.57,
+   "hip_l": 1.27,
+   "leg": 2.67,
+   "upper_leg_left": 7.63
+  },
+  "cables": [
+   {
+    "id": "dxl-r5",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "trunk_base"
+    ]
+   },
+   {
+    "id": "dxl-l10",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "trunk_base"
+    ]
+   },
+   {
+    "id": "dxl-n12",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "neck",
+     "trunk_base"
+    ]
+   },
+   {
+    "id": "supply",
+    "kind": "power-5v",
+    "length_mm": 98,
+    "mass_g": 0.965,
+    "basis": "estimate",
+    "bodies": [
+     "trunk_base"
+    ]
+   },
+   {
+    "id": "pi-trunk",
+    "kind": "power-5v",
+    "length_mm": 397,
+    "mass_g": 2.585,
+    "basis": "estimate",
+    "bodies": [
+     "jaw_soft",
+     "neck",
+     "neck_pitch",
+     "trunk_base",
+     "yaw_roll_motion"
+    ]
+   },
+   {
+    "id": "imu",
+    "kind": "i2c",
+    "length_mm": 394,
+    "mass_g": 2.964,
+    "basis": "estimate",
+    "bodies": [
+     "jaw_soft",
+     "neck",
+     "neck_pitch",
+     "trunk_base",
+     "yaw_roll_motion"
+    ]
+   },
+   {
+    "id": "uart",
+    "kind": "uart",
+    "length_mm": 423,
+    "mass_g": 2.415,
+    "basis": "estimate",
+    "bodies": [
+     "jaw_soft",
+     "neck",
+     "neck_pitch",
+     "trunk_base",
+     "yaw_roll_motion"
+    ]
+   },
+   {
+    "id": "dxl-12-11",
+    "kind": "dxl",
+    "length_mm": 100,
+    "mass_g": 2.52,
+    "basis": "datasheet",
+    "bodies": [
+     "neck",
+     "neck_pitch",
+     "trunk_base"
+    ]
+   },
+   {
+    "id": "dxl-11-13",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "jaw_soft",
+     "neck_pitch",
+     "yaw_roll_motion"
+    ]
+   },
+   {
+    "id": "dxl-13-14",
+    "kind": "dxl",
+    "length_mm": 100,
+    "mass_g": 2.52,
+    "basis": "datasheet",
+    "bodies": [
+     "jaw_soft",
+     "yaw_roll_motion"
+    ]
+   },
+   {
+    "id": "dxl-14-15",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "jaw_soft",
+     "yaw_roll_motion"
+    ]
+   },
+   {
+    "id": "dxl-5-4",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "bearing_roll",
+     "trunk_base"
+    ]
+   },
+   {
+    "id": "dxl-4-3",
+    "kind": "dxl",
+    "length_mm": 100,
+    "mass_g": 2.52,
+    "basis": "datasheet",
+    "bodies": [
+     "bearing_roll",
+     "hip_l_2",
+     "leg_2",
+     "trunk_base",
+     "upper_leg_right"
+    ]
+   },
+   {
+    "id": "dxl-3-2",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "leg_2",
+     "upper_leg_right"
+    ]
+   },
+   {
+    "id": "dxl-2-1",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "leg_2",
+     "upper_leg_right"
+    ]
+   },
+   {
+    "id": "dxl-10-9",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "trunk_base",
+     "yaw2roll"
+    ]
+   },
+   {
+    "id": "dxl-9-8",
+    "kind": "dxl",
+    "length_mm": 100,
+    "mass_g": 2.52,
+    "basis": "datasheet",
+    "bodies": [
+     "hip_l",
+     "leg",
+     "trunk_base",
+     "upper_leg_left",
+     "yaw2roll"
+    ]
+   },
+   {
+    "id": "dxl-8-7",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "leg",
+     "upper_leg_left"
+    ]
+   },
+   {
+    "id": "dxl-7-6",
+    "kind": "dxl",
+    "length_mm": 180,
+    "mass_g": 4.536,
+    "basis": "datasheet",
+    "bodies": [
+     "leg",
+     "upper_leg_left"
+    ]
+   },
+   {
+    "id": "csi",
+    "kind": "csi",
+    "length_mm": 200,
+    "mass_g": 1.6,
+    "basis": "estimate",
+    "bodies": [
+     "jaw_soft"
+    ]
+   }
+  ],
+  "screws_g": {
+   "trunk_base": 6.61,
+   "neck": 2.37,
+   "neck_pitch": 2.98,
+   "yaw_roll_motion": 2.21,
+   "jaw_soft": 4.45,
+   "yaw2roll": 2.91,
+   "bearing_roll": 2.91,
+   "hip_l": 0.95,
+   "hip_l_2": 0.95
+  },
+  "frame_check": [
+   {
+    "body": "jaw_soft",
+    "guide_motor": "motor15",
+    "nearest_official_xl330_geom_origin_mm": 0.66
+   },
+   {
+    "body": "jaw_soft",
+    "guide_motor": "motor14",
+    "nearest_official_xl330_geom_origin_mm": 0.66
+   },
+   {
+    "body": "trunk_base",
+    "guide_motor": "motor10",
+    "nearest_official_xl330_geom_origin_mm": 0.66
+   },
+   {
+    "body": "yaw_roll_motion",
+    "guide_motor": "motor13",
+    "nearest_official_xl330_geom_origin_mm": 0.66
+   }
+  ],
+  "by_basis_add_remove_g": {
+   "slicer": [
+    123.26,
+    0
+   ],
+   "CAD-volume": [
+    12.51,
+    -123.51
+   ],
+   "datasheet": [
+    88.78,
+    -10.0
+   ],
+   "estimate": [
+    39.36,
+    -15.0
+   ]
+  }
+ }
+}

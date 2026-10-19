@@ -1,0 +1,47 @@
+{
+ "v7.4-com+2.5": {
+  "fell_at": null,
+  "max_tilt": 8.8,
+  "dist_x": 1.954
+ },
+ "v7.4-com+5": {
+  "fell_at": null,
+  "max_tilt": 9.8,
+  "dist_x": 2.165
+ },
+ "v7.4-com+7.5": {
+  "fell_at": null,
+  "max_tilt": 10.7,
+  "dist_x": 1.753
+ },
+ "v7.4-com+10": {
+  "fell_at": 0.82,
+  "max_tilt": 48.4,
+  "dist_x": null
+ },
+ "v7.4-com+15": {
+  "fell_at": 0.62,
+  "max_tilt": 50.1,
+  "dist_x": null
+ },
+ "v7.4-hip+6": {
+  "fell_at": null,
+  "max_tilt": 9.1,
+  "dist_x": 0.827
+ },
+ "v7.4-hip+8": {
+  "fell_at": null,
+  "max_tilt": 8.9,
+  "dist_x": -1.552
+ },
+ "v7.4-hip+10": {
+  "fell_at": null,
+  "max_tilt": 10.4,
+  "dist_x": -0.54
+ },
+ "v7.4-imu-6": {
+  "fell_at": null,
+  "max_tilt": 12.5,
+  "dist_x": 1.728
+ }
+}

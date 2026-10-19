@@ -1,0 +1,48 @@
+{
+ "run_name": "ft3",
+ "task": "Mjlab-Velocity-Flat-MicroDuck",
+ "gpu": "L4",
+ "num_envs": 4096,
+ "max_iters": 1000,
+ "warmup_iters": 100,
+ "init_std": 0.25,
+ "seed": 1,
+ "delta": {
+  "yaw_push": 0.6,
+  "joint_friction": [
+   0.8,
+   1.5
+  ],
+  "vin_range": [
+   6.0,
+   8.2
+  ],
+  "vin_drop_gain": [
+   0.0,
+   0.3
+  ],
+  "vin_min": 5.5,
+  "gyro_noise": 0.1,
+  "joint_vel_noise": 0.5,
+  "action_rate": -1.0,
+  "track_lin_vel": {
+   "tau_s": 0.5,
+   "std": 0.22360679774997896
+  }
+ },
+ "asbuilt": true,
+ "remove_battery_kg": 0.09,
+ "caps": {
+  "max_hours": 2.0,
+  "max_dollars": 3.0,
+  "rate_per_hour": 1.116
+ },
+ "source_onnx": "/root/assets/walk61.onnx",
+ "started": "2026-10-17T03:23:23",
+ "finished": "2026-10-17T04:16:28",
+ "final_iter": 999,
+ "stop_reason": "max_iters reached",
+ "elapsed_s": 3344.0,
+ "dollars": 1.037,
+ "onnx": "/vol/runs/ft3/ft3.onnx"
+}

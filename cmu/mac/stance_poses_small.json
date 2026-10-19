@@ -1,0 +1,114 @@
+{
+ "kp": 400,
+ "hold_s": 1.5,
+ "ramp_s": 0.0,
+ "poses": [
+  {
+   "name": "STAND",
+   "joints": {
+    "right_hip_yaw": 0.0,
+    "right_hip_roll": 0.0873,
+    "right_hip_pitch": 0.4579,
+    "right_knee": 0.0049,
+    "right_ankle": -0.453,
+    "left_hip_yaw": 0.0,
+    "left_hip_roll": -0.0873,
+    "left_hip_pitch": -0.4579,
+    "left_knee": -0.0049,
+    "left_ankle": 0.453,
+    "neck_pitch": 0.3491,
+    "head_pitch": 0.3491,
+    "head_yaw": 0.0,
+    "head_roll": 0.0
+   }
+  },
+  {
+   "name": "ankle_back03",
+   "joints": {
+    "right_hip_yaw": 0.0,
+    "right_hip_roll": 0.0873,
+    "right_hip_pitch": 0.4579,
+    "right_knee": 0.0049,
+    "right_ankle": -0.483,
+    "left_hip_yaw": 0.0,
+    "left_hip_roll": -0.0873,
+    "left_hip_pitch": -0.4579,
+    "left_knee": -0.0049,
+    "left_ankle": 0.483,
+    "neck_pitch": 0.3491,
+    "head_pitch": 0.3491,
+    "head_yaw": 0.0,
+    "head_roll": 0.0
+   }
+  },
+  {
+   "name": "hip_back",
+   "joints": {
+    "right_hip_yaw": 0.0,
+    "right_hip_roll": 0.0873,
+    "right_hip_pitch": 0.4179,
+    "right_knee": 0.0049,
+    "right_ankle": -0.453,
+    "left_hip_yaw": 0.0,
+    "left_hip_roll": -0.0873,
+    "left_hip_pitch": -0.4179,
+    "left_knee": -0.0049,
+    "left_ankle": 0.453,
+    "neck_pitch": 0.3491,
+    "head_pitch": 0.3491,
+    "head_yaw": 0.0,
+    "head_roll": 0.0
+   }
+  },
+  {
+   "name": "knee_back",
+   "joints": {
+    "right_hip_yaw": 0.0,
+    "right_hip_roll": 0.0873,
+    "right_hip_pitch": 0.4579,
+    "right_knee": 0.054900000000000004,
+    "right_ankle": -0.453,
+    "left_hip_yaw": 0.0,
+    "left_hip_roll": -0.0873,
+    "left_hip_pitch": -0.4579,
+    "left_knee": -0.054900000000000004,
+    "left_ankle": 0.453,
+    "neck_pitch": 0.3491,
+    "head_pitch": 0.3491,
+    "head_yaw": 0.0,
+    "head_roll": 0.0
+   }
+  },
+  {
+   "name": "head_p15",
+   "joints": {
+    "right_hip_yaw": 0.0,
+    "right_hip_roll": 0.0873,
+    "right_hip_pitch": 0.4579,
+    "right_knee": 0.0049,
+    "right_ankle": -0.453,
+    "left_hip_yaw": 0.0,
+    "left_hip_roll": -0.0873,
+    "left_hip_pitch": -0.4579,
+    "left_knee": -0.0049,
+    "left_ankle": 0.453,
+    "neck_pitch": 0.4991,
+    "head_pitch": 0.4991,
+    "head_yaw": 0.0,
+    "head_roll": 0.0
+   }
+  }
+ ],
+ "sequence": [
+  "STAND",
+  "ankle_back03",
+  "STAND",
+  "hip_back",
+  "STAND",
+  "knee_back",
+  "STAND",
+  "head_p15",
+  "STAND"
+ ],
+ "note": "2026-10-15 real-test sequence, one rep of each small backward lean (right-side deltas, left mirrored: ankle -0.03, hip_pitch -0.04, knee +0.05 rad; neck+head +0.15). Sim-verified on the as-built model at kp 400. Open-loop KP 400 is marginally stable (servo stiffness ~ m g h): forward leans and head-forward run away, and each back-lean leaves a backward residual, so a second rep in the same run tipped the sim robot; re-stand (stand mode) between reps."
+}

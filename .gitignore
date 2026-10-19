@@ -21,6 +21,9 @@ agents
 *.pch
 nohup.out
 *.onnx
+# CMU layer: the deployed policies and fine-tune candidates are data teammates need (cmu/whole/runtime-overlay/*).
+!cmu/**/*.onnx
+cmu/finetune/kaggle/out/
 beyondmimic_motions/
 artifacts/
 *.npz

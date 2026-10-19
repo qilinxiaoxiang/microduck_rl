@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "jaw_id": 15,
+  "head_pitch_id": 11,
+  "jaw_max_open_deg": 25.0,
+  "jaw_open_threshold_deg": 2.0,
+  "head_pitch_max_while_jaw_open_deg": 65.0,
+  "jaw_hardware_limit_margin_deg": 2.0,
+  "jaw_hardware_limit_head_yaw_deg": 60.0,
+  "xl330_ticks_per_rev": 4096,
+  "xl330_center_tick": 2048,
+  "head_pitch_sign": 1.0,
+  "head_pitch_offset_rad": 0.0,
+  "neck_pitch_id": 12,
+  "neck_pitch_sign": 1.0,
+  "neck_pitch_offset_rad": 0.0,
+  "head_yaw_id": 13,
+  "head_yaw_sign": 1.0,
+  "head_yaw_offset_rad": 0.0,
+  "head_roll_id": 14,
+  "head_roll_sign": 1.0,
+  "head_roll_offset_rad": 0.0,
+  "jaw_pose_cap_table": "jaw_pose_caps.json",
+  "jaw_pose_cap_margin_deg": 2.0,
+  "jaw_min_usable_open_deg": 5.0,
+  "jaw_pose_edge_tolerance_deg": 0.5,
+  "conventions": {
+    "jaw_opening": "Degrees of jaw opening measured from the calibrated closed jaw (phase1 calibration.json jaw.closed_rad; opening direction from jaw.open_rad). The jaw horn is fitted at any hole alignment (guide step 'jaw'), so the closed tick is per robot and is never assumed.",
+    "head_pitch": "MJCF head_pitch joint angle. Positive tips the head forward, nose down (joint axis +Y in the robot frame). Real ID11 uses the community mapping: sign +1, offset 0, so model radians equal rustypot radians and tick = 2048 + rad * 4096 / (2 pi).",
+    "ticks": "rustypot 1.4.2 AnglePosition: rad = 2 pi raw / 4096 - pi; raw = trunc(4096 (pi + rad) / (2 pi)).",
+    "head_pose": "MJCF neck_pitch, head_pitch, head_yaw and head_roll joint angles (the community model radians; IDs 12, 11, 13 and 14 use sign +1 and offset 0). The pose cap uses the commanded and the measured pose; a joint with neither is unknown and takes its whole range.",
+    "jaw_pose_cap": "Jaw opening cap = min(jaw_max_open_deg, first contact - jaw_pose_cap_margin_deg), where first contact is the smallest table value over the grid nodes surrounding every head pose between the commanded and the measured pose (no interpolation). A cap below jaw_min_usable_open_deg becomes 0: the jaw is held closed and the clamp is logged."
+  },
+  "sources": {
+    "jaw_max_open_deg": "guide/extension-20261012-neck-audio/jaw-neck-check/margin-yaw.json: first jaw contact with the head-pitch bracket 26.25 deg at head_yaw +-60 and +-120 (neck_pitch 0, roll 0); trained policy maximum 18.33 deg.",
+    "head_pitch_max_while_jaw_open_deg": "jaw-neck-check/README.md and margin-release-yaw-4.0.json: first contact 27.25 deg at head_pitch 65 (neck_pitch 12, yaw -4, roll 0); the simulated release tipped head_pitch to 71-85 deg.",
+    "jaw_open_threshold_deg": "margin-release-yaw-4.0.json: first contact 6.0 deg at head_pitch 90 (the joint limit), so a jaw below 2 deg clears every head_pitch at roll 0.",
+    "jaw_hardware_limit": "HANDOFF-20261013.md open item 3: head at yaw 60, open the jaw by hand to contact, set the ID15 position limit 2 deg short of that reading.",
+    "jaw_pose_cap_table": "jaw_pose_caps.json, built by guide/extension-20261012-neck-audio/jaw-neck-check/scripts/build_pose_caps.py from pose_cap_sweep.py (neck_pitch -90..60 step 15, head_pitch -90..90 step 5, head_yaw -170..170 step 10, head_roll -25..25 step 5: the runtime's calibrated joint ranges).",
+    "jaw_min_usable_open_deg": "Below 5 deg the opening is too small to grasp or release anything, so the jaw is held closed there instead of moving within a few degrees of contact. Example: neck_pitch 0, head_pitch -45, head_yaw 140 (torso shells, first contact 5.8 deg).",
+    "jaw_pose_edge_tolerance_deg": "Joints read up to 0.5 deg past the table edge at their limits (simulated pickups: neck_pitch -90.28 / 60.02, head_roll +-25.03). Such a value counts as lying in the last grid cell; further out the joint is treated as unknown."
+  },
+  "mirrors": [
+    "microduck-simulator/app/src/game/jaw-limits.json",
+    "microduck-simulator/app/src/game/jaw-pose-caps.json (copy of jaw_pose_caps.json)"
+  ]
+}

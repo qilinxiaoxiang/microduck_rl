@@ -278,3 +278,7 @@ for _task_id, _make_cfg, _kw, _rl_cfg, _robot_cfg in _BACKLASH_TASKS:
         rl_cfg=_rl_cfg,
         runner_cls=MicroduckOnPolicyRunner,
     )
+
+# CMU as-built mass variants (cmu/model): the velocity recipe on the measured robot, -CMU-Plugged / -CMU-Battery.
+from .cmu_asbuilt import register_cmu_tasks
+register_cmu_tasks(MicroduckOnPolicyRunner)

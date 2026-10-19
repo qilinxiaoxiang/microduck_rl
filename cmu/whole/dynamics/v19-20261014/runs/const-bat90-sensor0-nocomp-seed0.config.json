@@ -1,0 +1,25 @@
+{
+ "voltage": 5,
+ "kp": 200,
+ "current_limit": 1.47,
+ "duration": 30,
+ "command": [
+  0.3,
+  0,
+  0
+ ],
+ "action_delay_ticks": 1,
+ "remove_old_battery_kg": 0.09,
+ "mass_manifest": "../v19-mass-manifest.json",
+ "mass_parts": [],
+ "heading_hold": true,
+ "heading_gain": 2,
+ "heading_rate_limit": 0.8,
+ "sensor_delay_ticks": 0,
+ "prediction_fraction": 1.0,
+ "predict_heading": true,
+ "delay_compensation": "none",
+ "seed": 0,
+ "joint_noise": 0.0,
+ "name": "const-bat90-sensor0-nocomp-seed0"
+}
