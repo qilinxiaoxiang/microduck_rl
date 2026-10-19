@@ -30,9 +30,10 @@ the open problems); the quickstarts are in the [top-level README](../README.md).
 
 - Simulate and judge. `uv run cmu/mac/brain_sim_check.py --model asbuilt --volt 7.0 --drop 0.04 --vx 0.25` walks the
   as-built model with the robot's control logic; `uv run cmu/simcheck/sim_suite.py <onnx-dir> out.jsonl` scores any
-  policy directory against the reference rows. Flags worth knowing: `--com-x 5` (shift the centre of mass in mm),
+  policy directory against the reference rows (`--variant plugged|battery` runs it on the other mass models). Flags worth knowing: `--com-x 5` (shift the centre of mass in mm),
   `--imu-pitch 4` (IMU misalignment), `--imu-hz 35` (hold the IMU below 50 Hz), `--drop 0.08`, `--kp-rl`,
-  `--tick-log` (a real-log-shaped trace), `--head-yaw/--head-pitch`, `--gp-at/--gp-phase` (ground pick).
+  `--tick-log` (a real-log-shaped trace), `--head-yaw/--head-pitch`, `--gp-at/--gp-phase` (ground pick),
+  `--manifest cmu/model/manifests/battery.json` (another mass model).
 - Train. `Mjlab-Velocity-{Flat,Rough}-MicroDuck-CMU-{Plugged,Battery}` are Pollen's velocity task on our masses;
   `uv run train <task> --env.scene.num-envs 4096` on a CUDA GPU, export with `uv run scripts/export.py`. The exported
   ONNX drops into `walk_wired.py --models <dir>` unchanged as long as the 61-input layout is kept. To fine-tune the

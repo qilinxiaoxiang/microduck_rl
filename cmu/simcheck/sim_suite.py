@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Eight-case simulation suite for a candidate MicroDuck policy directory, at the robot's current condition.
 
-  uv run --no-sync python cmu/simcheck/sim_suite.py <models-dir> <out.jsonl> [--walk-s 10]
+  uv run --no-sync python cmu/simcheck/sim_suite.py <models-dir> <out.jsonl> [--walk-s 10] [--variant asbuilt|plugged|battery]
         [--condition cmu/robot-condition.json] [--reference cmu/simcheck/reference-walk61.jsonl] [--compare other.jsonl]
+
+--variant picks the mass model: asbuilt (the 2026-10-15 manifest the sim check carries, default), plugged or battery
+(cmu/model/manifests/<variant>.json, passed to brain_sim_check.py as --manifest). Rows carry "variant"; the default
+reference file is reference-walk61.jsonl for asbuilt and reference-walk61-<variant>.jsonl otherwise.
 
 Replaces the private sim_suite.sh. Every case runs cmu/mac/brain_sim_check.py (the Mac-side Brain in the as-built
 MuJoCo model) with the base flags derived from robot-condition.json, then the case's own flags, which override:
@@ -18,7 +22,7 @@ Cases and classes (same as sim_suite.sh):
 
 Real cases are the robot's condition: the verdict compares them with the reference rows (walk61 by default). Stress
 rows are harsher than the robot and are printed as "stress, report only"; they never accept or reject a policy.
-Each output row is the brain_sim_check JSON row with "case" and "class" prefixed; stderr of all cases goes to
+Each output row is the brain_sim_check JSON row with "case", "class" and "variant" prefixed; stderr of all cases goes to
 <out>.err, and a case without a result row stops the suite with a non-zero exit.
 """
 import argparse
@@ -31,7 +35,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CMU = os.path.dirname(HERE)
 CHECK = os.path.join(CMU, "mac", "brain_sim_check.py")
 DEFAULT_CONDITION = os.path.join(CMU, "robot-condition.json")
-DEFAULT_REFERENCE = os.path.join(HERE, "reference-walk61.jsonl")
+VARIANTS = ("asbuilt", "plugged", "battery")  # asbuilt = the model's own 2026-10-15 manifest; others from cmu/model/manifests/
+MANIFESTS = os.path.join(CMU, "model", "manifests")
+
+
+def default_reference(variant):
+    return os.path.join(HERE, "reference-walk61.jsonl" if variant == "asbuilt" else f"reference-walk61-{variant}.jsonl")
 
 CASES = [  # (class, name, extra flags)
     ("real", "nominal", []),
@@ -63,8 +72,17 @@ def base_flags(condition_path):
     return flags
 
 
-def run_case(models, walk_s, base, cls, name, extra, err):
-    cmd = [sys.executable, CHECK, "--model", "asbuilt", "--walk-s", str(walk_s), "--models", models] + base + extra
+def variant_flags(variant):
+    if variant == "asbuilt":
+        return []
+    path = os.path.join(MANIFESTS, f"{variant}.json")
+    if not os.path.exists(path):
+        sys.exit(f"sim_suite: {path} is missing; run `uv run --no-sync python cmu/model/make_variants.py` first")
+    return ["--manifest", path]
+
+
+def run_case(models, walk_s, base, cls, name, extra, err, variant="asbuilt"):
+    cmd = [sys.executable, CHECK, "--model", "asbuilt", "--walk-s", str(walk_s), "--models", models] + variant_flags(variant) + base + extra
     err.write(f"== {name} ({cls}): {' '.join(cmd)}\n")
     err.flush()
     p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=err, text=True)
@@ -73,7 +91,7 @@ def run_case(models, walk_s, base, cls, name, extra, err):
     if p.returncode != 0 or not last.startswith("{"):
         sys.exit(f"sim_suite: case {name} produced no result row (exit {p.returncode}); see {err.name}")
     row = json.loads(last)
-    return {"case": name, "class": cls, **row}
+    return {"case": name, "class": cls, "variant": variant, **row}
 
 
 def fmt(row):
@@ -109,18 +127,22 @@ def main():
     ap.add_argument("out", help="output JSONL, one row per case (stderr of the cases in <out>.err)")
     ap.add_argument("--walk-s", type=float, default=10.0)
     ap.add_argument("--condition", default=DEFAULT_CONDITION, help="robot-condition.json (default cmu/robot-condition.json)")
-    ap.add_argument("--reference", default=DEFAULT_REFERENCE,
-                    help="reference rows the real cases are judged against (default reference-walk61.jsonl)")
+    ap.add_argument("--variant", choices=VARIANTS, default="asbuilt",
+                    help="mass model: asbuilt (the 2026-10-15 manifest, default), plugged or battery (cmu/model/manifests/<variant>.json)")
+    ap.add_argument("--reference", default=None,
+                    help="reference rows the real cases are judged against (default reference-walk61[-<variant>].jsonl)")
     ap.add_argument("--compare", default=None, help="print this JSONL side by side with the new rows, per case")
     a = ap.parse_args()
     if not os.path.isdir(a.models):
         sys.exit(f"sim_suite: {a.models} is not a directory")
+    if a.reference is None:
+        a.reference = default_reference(a.variant)
     base = base_flags(a.condition)
-    print(f"sim_suite: models {a.models}, walk {a.walk_s} s, base flags from {a.condition}: {' '.join(base)}")
+    print(f"sim_suite: models {a.models}, variant {a.variant}, walk {a.walk_s} s, base flags from {a.condition}: {' '.join(base)}")
     rows = []
     with open(a.out, "w") as out, open(a.out + ".err", "w") as err:
         for cls, name, extra in CASES:
-            row = run_case(a.models, a.walk_s, base, cls, name, extra, err)
+            row = run_case(a.models, a.walk_s, base, cls, name, extra, err, a.variant)
             out.write(json.dumps(row) + "\n")
             out.flush()
             rows.append(row)

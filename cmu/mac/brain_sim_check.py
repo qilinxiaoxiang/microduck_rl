@@ -58,6 +58,8 @@ def rot_y(deg):
 def run(args):
     zero = {k: float(v) for k, v in args.zero}
     c0 = cfg(0.09, model=args.model, kp=200, voltage=args.volt)
+    if args.manifest:  # another signed-part manifest on the same loader (the 90 g NP-F970 removal is still applied by the loader)
+        c0["mass_manifest"] = os.path.abspath(args.manifest)
     if args.com_x:
         c0["mass_parts"] = [dict(body="trunk_base", mass_kg=-0.05, position_m=[0, 0, 0.0]),
                             dict(body="trunk_base", mass_kg=0.05, position_m=[args.com_x / 1000 * 0.76 / 0.05, 0, 0.0])]
@@ -239,6 +241,8 @@ def main():
                     help="servo supply; default: servo_rail_v in microduck-sim/CURRENT-STATE.json (the as-run rail)")
     ap.add_argument("--model", choices=("v19", "asbuilt"), default="v19",
                     help="mass model: v19 (default) or asbuilt (2026-10-15, D-007 bench backpack)")
+    ap.add_argument("--manifest", default=None,
+                    help="signed-part mass manifest to use instead of the model's own (same schema; e.g. a plugged/battery variant)")
     ap.add_argument("--walk-ramp", type=float, default=0.0, help="Brain walk_ramp; 1.5 reproduces the old behaviour")
     ap.add_argument("--com-x", type=float, default=0.0, help="whole-robot COM shift forward, mm")
     ap.add_argument("--zero", nargs=2, action="append", default=[], metavar=("JOINT", "DEG"))
@@ -285,6 +289,7 @@ def main():
         import walk_brain as _wb
         _wb.KP_RL = args.kp_rl
     out = run(args)
+    out["manifest"] = args.manifest  # as given on the command line (None = the model's own manifest)
     if not args.trace:
         out.pop("trace")
     print(json.dumps(out))

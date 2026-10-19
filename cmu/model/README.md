@@ -15,7 +15,7 @@ Pollen's MJCF describes Pollen's duck. Our robot carries a head computer, a benc
 ## Variants
 
 - `official`: Pollen's model as exported, no parts.
-- `asbuilt`: the robot as built on 2026-10-15 (V1.8 prints, V1.9 rear pack, bench box without lid with two XL4015 and the 5991 PD board, Pi Zero W head with the V1.9 cap and audio), battery removed. This is what `cmu/mac/brain_sim_check.py --model asbuilt` and the fine-tune worker use today: the base manifest, not these variants.
+- `asbuilt`: the robot as built on 2026-10-15 (V1.8 prints, V1.9 rear pack, bench box without lid with two XL4015 and the 5991 PD board, Pi Zero W head with the V1.9 cap and audio), battery removed. This is what `cmu/mac/brain_sim_check.py --model asbuilt` without `--manifest` and the fine-tune worker's default use: the base manifest.
 - `plugged`: today's robot on the bench supply. `asbuilt` with the Pi Zero W (9.3 g) replaced by the Radxa Cubie A7Z (18 g, estimate) at the former Pi position and the AC019 antenna (1.5 g, estimate) at the cap's centre of mass. The Camera Module 3 entry (4 g) stands in for the fitted Radxa Camera 13M 214, which is of the same order and not weighed.
 - `battery`: the robot on the 2S battery backpack (D-010). `plugged` with the bench box removed (frame, two XL4015, 5991, their screws, the 15 V and 7 V leads: 59.5 g) and the backpack parts from the 2026-10-15 plan added on `trunk_base` (frame 16.05 g, cap 8.05 g, Tattu 2S 650 43 g, switch 14 g, DFR1202 6 g, plugs and leads 10 g: 97.1 g), all plan estimates.
 
@@ -38,7 +38,7 @@ uv run --no-sync --with pytest pytest tests/test_cmu_asbuilt_cfg.py
 
 In Python: `parts = variant_parts("battery"); apply_parts_to_spec(spec, parts)` on any `mujoco.MjSpec` of the official robot (all official exports share the same bodies and inertials, so the walk, groundcontact and allcollisions models give the same masses).
 
-The CPU sim check (`cmu/mac/brain_sim_check.py --model asbuilt`) still loads the base manifest through its own loader, so it simulates the `asbuilt` numbers below until it is pointed at a generated manifest.
+The CPU sim check takes a generated manifest with `--manifest cmu/model/manifests/battery.json` (its loader still applies the 90 g battery removal, which the generated manifests do not list), and the suite with `cmu/simcheck/sim_suite.py ... --variant battery`; walk61 reference rows for both variants are in `cmu/simcheck/README.md`.
 
 ## Measured on 2026-10-19
 

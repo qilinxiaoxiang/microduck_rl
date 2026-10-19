@@ -14,7 +14,11 @@ Run from the repository root with the synced uv environment.
 - Side by side with another run and a verdict against the walk61 reference:
   `uv run --no-sync python cmu/simcheck/sim_suite.py <models-dir> out.jsonl --compare cmu/simcheck/reference-walk61.jsonl`
 - Options: `--walk-s 10` (seconds of commanded walking), `--condition cmu/robot-condition.json`,
-  `--reference cmu/simcheck/reference-walk61.jsonl` (the rows the verdict uses).
+  `--reference cmu/simcheck/reference-walk61.jsonl` (the rows the verdict uses),
+  `--variant asbuilt|plugged|battery` (the mass model: `asbuilt` is the 2026-10-15 manifest the sim check carries,
+  `plugged` and `battery` are `cmu/model/manifests/<variant>.json`, passed to `brain_sim_check.py --manifest`; the
+  rows carry `variant` and the default reference becomes `reference-walk61-<variant>.jsonl`).
+- One case on a variant by hand: add `--manifest cmu/model/manifests/battery.json` to the `brain_sim_check.py` line.
 - One case by hand: `uv run --no-sync python cmu/mac/brain_sim_check.py --model asbuilt --volt 7.0 --drop 0.04 --vx 0.25 --walk-s 6`
   (prints one JSON row; about 2 s on a Mac CPU).
 
@@ -88,6 +92,36 @@ Extras (walk61 models, `reference-extras.jsonl`):
 - head_yaw0.6_pitch0.6: `--head-yaw 0.6 --head-pitch 0.6 --volt 7.0 --drop 0.04 --vx 0.25 --walk-s 10`. Final head
   pose neck_pitch 0.247, head_pitch 0.735, head_yaw 0.567, head_roll 0.003 rad; walked only 0.122 m in 10 s with
   the head turned (yaw drift -9.6 deg), no fall, max tilt 6.5, 3 action jumps.
+
+walk61 on the `plugged` mass model (`reference-walk61-plugged.jsonl`, 2026-10-19: A7Z head at 18 g estimate, antenna,
+bench box; `--variant plugged`):
+
+- nominal: 1.588, no fall, 6.5, 3, 0.9
+- vx0.25: 1.165, no fall, 6.3, 1, 0.91
+- vx0.2: -0.0 (does not step, stands), no fall, 4.0, 0, 0.3
+- com+5: 2.136, no fall, 14.0, 10, 1.57
+- imu_pitch4: 1.455, no fall, 5.5, 2, 0.88
+- volt6.3 (stress): 1.491, no fall, 7.7, 4, 1.2
+- drop8_imu35 (stress): 1.568, no fall, 7.4, 28, 1.17
+- drop8_imu35_s1 (stress): 1.533, no fall, 7.5, 24, 1.19
+
+walk61 on the `battery` mass model (`reference-walk61-battery.jsonl`, 2026-10-19: bench box removed, 2S backpack parts at
+plan masses; `--variant battery`):
+
+- nominal: 1.373, no fall, 6.3, 2, 0.9
+- vx0.25: 0.956, no fall, 6.3, 2, 1.03
+- vx0.2: 0.001 (does not step, stands), no fall, 6.3, 0, 0.5
+- com+5: 1.752, no fall, 7.5, 1, 1.09
+- imu_pitch4: 1.206, no fall, 4.8, 3, 1.13
+- volt6.3 (stress): 1.317, no fall, 6.2, 2, 1.02
+- drop8_imu35 (stress): 1.382, no fall, 7.0, 25, 0.96
+- drop8_imu35_s1 (stress): 1.313, no fall, 9.9, 23, 0.95
+
+Reading the three walk61 rows together: no fall in any variant. `plugged` is within the seed-to-seed spread of
+`asbuilt` except `com+5`, where the extra head mass plus the 5 mm forward COM shift raises the peak tilt from 10.1 to
+14.0 deg with 10 action jumps. `battery` walks 10 to 15 % shorter in every real case (nominal 1.373 against 1.533 m,
+0.25 m/s 0.956 against 1.13 m) with the same tilt and jumps: the 38 g on the back of the trunk slows the gait but does
+not destabilise it in the simulation. These are plan-mass estimates; refresh the rows after the backpack is weighed.
 
 Rerun the suite to refresh these rows after a model, mass manifest, or condition change, and record the date.
 

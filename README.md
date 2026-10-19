@@ -39,7 +39,8 @@ uv sync --extra cmu          # Pollen's deps plus opencv and pyserial for the pi
 uv run cmu/mac/brain_sim_check.py --model asbuilt --volt 7.0 --drop 0.04 --vx 0.25 --walk-s 6
 
 # 2. Judge a candidate policy directory before a robot test (eight cases, real condition from robot-condition.json)
-uv run cmu/simcheck/sim_suite.py cmu/whole/runtime-overlay/models out.jsonl
+uv run cmu/simcheck/sim_suite.py cmu/whole/runtime-overlay/models out.jsonl                      # today's as-built masses
+uv run cmu/simcheck/sim_suite.py cmu/whole/runtime-overlay/models out.jsonl --variant battery    # on the battery backpack
 
 # 3. Train Pollen's velocity task on our masses (GPU)
 uv run train Mjlab-Velocity-Flat-MicroDuck-CMU-Plugged --env.scene.num-envs 4096
