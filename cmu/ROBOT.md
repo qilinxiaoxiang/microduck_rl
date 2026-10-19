@@ -40,8 +40,11 @@ number below disagrees with `robot-condition.json`, the JSON wins.
   the jaw.
 - Conventions the runtime applies between model radians and servo ticks (`pi/microduck_rt/constants.py`,
   `pi/joint_signs.py`, `mac/walk_brain.py`): the knees carry a fixed plus or minus 45 degree horn offset, and the right
-  hip yaw (ID 5) horn sits half a turn off, corrected in software at every power-up (`pi/seam_fix.py`). Sim and real
-  logs are compared in model radians, after these conversions.
+  hip yaw (ID 5) horn is being refitted half a turn round (D-018, 2026-10-19) so that the leg-forward reading leaves the
+  encoder's 0/4095 seam; `pi/hip_yaw_check.py` (read-only, run by `pi/stand.py` and `mac/walk_wired.py`) refuses torque
+  while ID 5 is outside 2048 plus or minus 600 ticks. Until 2026-10-19 the seam was corrected in software at every
+  power-up (Extended Position mode with a plus or minus 2048 homing offset; `seam_fix.py` in the git history). Sim and
+  real logs are compared in model radians, after these conversions.
 - Position P gain: 200 (register value) in walk and ground-pick modes, 400 in the open-loop stand mode. XL330 I and D
   are 0. BAM's model of the XL330 (the `MujocoController` used in training and in our CPU checks) treats the register
   P as P/256, which a register dump confirmed (a 0.067 rad error held with 69/885 PWM).

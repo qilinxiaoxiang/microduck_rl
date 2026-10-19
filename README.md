@@ -21,6 +21,8 @@ Walking today is Pollen's `walk61` policy driven from a MacBook; the open proble
 - Wrapped anti-slip sole on the printed feet (friction inside Pollen's training range; thickness does not matter
   in the sim up to 5 mm).
 - An extra jaw servo (ID 15) that the 14-joint policies do not see.
+- Printed parts of our own (the battery backpack, the rear power box, head parts for the A7Z): the backpack design and
+  the print pipeline for the club's printers are in `cmu/hardware/`, so teammates can redesign and reprint them.
 
 Details and the current measured condition: [cmu/ROBOT.md](cmu/ROBOT.md) and
 [cmu/robot-condition.json](cmu/robot-condition.json).
@@ -68,6 +70,12 @@ Everything in `uv run list-envs` from Pollen still works; the `-CMU-` tasks are 
   numbers.
 - [cmu/finetune/modal/FINETUNE-DELTA.md](cmu/finetune/modal/FINETUNE-DELTA.md): the fine-tune runs ft1 to ft3, the
   reward audit and the literature pass behind them.
+- [cmu/hardware/README.md](cmu/hardware/README.md): the printed parts you can redesign. The battery backpack
+  ([cmu/hardware/battery-backpack/](cmu/hardware/battery-backpack/README.md): STL files in robot and print pose, the
+  mating robot parts, bought-part envelopes, fixed interfaces, parts list, wiring page, masses that feed the `battery`
+  sim variant) and how to slice for the RoboClub printers
+  ([cmu/hardware/printing/](cmu/hardware/printing/README.md): X1 Carbon and Centauri Carbon profiles, slicer command
+  lines, orientation and brim rules, the Centauri preview rule, the ready-to-print V1.20 plate).
 - [docs/UPSTREAM-README.md](docs/UPSTREAM-README.md) and [AGENTS.md](AGENTS.md): Pollen's documentation and
   reward-design playbook.
 

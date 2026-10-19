@@ -1,0 +1,256 @@
+{
+ "X_LID": -74.45,
+ "X_SPLIT": -67.05,
+ "depthBehindCoverMm": 27.45,
+ "switch": {
+  "xc": -54.2,
+  "z_pf": -25.51,
+  "body_x": [
+   -59.353,
+   -49.052
+  ],
+  "body_y": [
+   -16.222,
+   16.222
+  ],
+  "top_z": 4.058,
+  "tip_z": -34.002
+ },
+ "batteryPocket": {
+  "lo": [
+   -73.25,
+   -16.0,
+   -22.51
+  ],
+  "hi": [
+   -60.25,
+   16.0,
+   35.49
+  ],
+  "listingCavityMarginMm": 0.46,
+  "leadBandMm": 7.31
+ },
+ "battery": {
+  "lo": [
+   -72.25,
+   -15.5,
+   -22.51
+  ],
+  "hi": [
+   -60.25,
+   15.5,
+   34.49
+  ]
+ },
+ "dfr1202": {
+  "lo": [
+   -57.2,
+   -13.0,
+   10.5
+  ],
+  "hi": [
+   -49.2,
+   13.0,
+   40.5
+  ],
+  "gapToBatteryMm": 3.05
+ },
+ "capScrews": [
+  {
+   "y": 27.0,
+   "z": 24.0,
+   "screw": "M2 x 8",
+   "headSeatX": -70.05,
+   "tipX": -62.05
+  },
+  {
+   "y": -27.0,
+   "z": 24.0,
+   "screw": "M2 x 8",
+   "headSeatX": -70.05,
+   "tipX": -62.05
+  },
+  {
+   "y": 0.0,
+   "z": -26.5,
+   "screw": "M2 x 8",
+   "headSeatX": -70.05,
+   "tipX": -62.05
+  }
+ ],
+ "plugs": {
+  "J1 battery-switch XT30": {
+   "centre": [
+    -66.0,
+    -21.0,
+    16.0
+   ],
+   "size": [
+    10.2,
+    5.2,
+    26.0
+   ]
+  },
+  "J2 switch-feed XT30": {
+   "centre": [
+    -66.0,
+    21.0,
+    16.0
+   ],
+   "size": [
+    10.2,
+    5.2,
+    26.0
+   ]
+  },
+  "J3 servo swap XT30": {
+   "centre": [
+    -41.6,
+    6.5,
+    17.0
+   ],
+   "size": [
+    5.2,
+    10.2,
+    26.0
+   ]
+  },
+  "J4 A7Z swap MR30": {
+   "centre": [
+    -41.6,
+    -6.5,
+    17.0
+   ],
+   "size": [
+    4.9,
+    10.3,
+    22.8
+   ]
+  },
+  "balance plug JST-XH": {
+   "centre": [
+    -65.0,
+    17.0,
+    38.8
+   ],
+   "size": [
+    6.0,
+    8.0,
+    4.5
+   ]
+  }
+ },
+ "window": {
+  "y": 12.0,
+  "z": [
+   4.6,
+   9.4
+  ]
+ },
+ "wiresMm": {
+  "battery lead (16 AWG)": 22.6,
+  "switch lead to J1": 35.6,
+  "switch lead to J2": 35.6,
+  "feed lead to VIN/GND": 40.0,
+  "servo lead to J3": 16.1,
+  "5 V lead to J4": 16.2,
+  "robot servo inlet (from OpenRB J4)": 14.7,
+  "robot A7Z lead (from the neck)": 24.1
+ },
+ "volumesMm3": {
+  "frame": 15211.3,
+  "cap": 7628.4
+ },
+ "bounds": {
+  "frame": [
+   [
+    -67.05,
+    -32.05,
+    -44.0
+   ],
+   [
+    -45.0,
+    32.05,
+    43.0
+   ]
+  ],
+  "cap": [
+   [
+    -74.45,
+    -32.05,
+    -34.0
+   ],
+   [
+    -67.05,
+    32.05,
+    43.0
+   ]
+  ]
+ },
+ "outline": {
+  "R_EDGE": {
+   "side": 7.4,
+   "top": 6.5,
+   "step": 4.3,
+   "nside": 3.5,
+   "nbot": 5.0
+  },
+  "RC": {
+   "top": 1.8,
+   "step": 1.8,
+   "nbot": 2.1,
+   "rf": 3.0
+  },
+  "N": {
+   "hy": 17.7,
+   "z0": -34.0
+  },
+  "T": 1.2
+ },
+ "boughtPartOverlapMm3": {
+  "switch": {
+   "frame": 31.89,
+   "cap": 0.0
+  },
+  "battery": {
+   "frame": 0.0,
+   "cap": 0.0
+  },
+  "dfr1202": {
+   "frame": 7.79,
+   "cap": 0.0
+  },
+  "dfr_pads": {
+   "frame": 0.02,
+   "cap": 0.0
+  },
+  "plugs": {
+   "frame": 0.0,
+   "cap": 0.0
+  },
+  "swap_plugs": {
+   "frame": 0.0,
+   "cap": 0.0
+  },
+  "J1 battery-switch XT30": {
+   "frame": 0.0,
+   "cap": 0.0
+  },
+  "J2 switch-feed XT30": {
+   "frame": 0.0,
+   "cap": 0.0
+  },
+  "J3 servo swap XT30": {
+   "frame": 0.0,
+   "cap": 0.0
+  },
+  "J4 A7Z swap MR30": {
+   "frame": 0.0,
+   "cap": 0.0
+  },
+  "balance plug JST-XH": {
+   "frame": 0.0,
+   "cap": 0.0
+  }
+ }
+}

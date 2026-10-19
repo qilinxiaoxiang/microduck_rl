@@ -1,0 +1,370 @@
+{
+ "schemaVersion": 1,
+ "releaseKind": "incremental",
+ "version": "V1.20",
+ "prototype": true,
+ "prototypeScope": "V1.20 delta package on one Orange plate: the battery backpack frame refitted to the Swann 39 switch, its cap, and the rear converter box cap with 3.0 mm screw-head floors (V1.19, never printed, folded in here).",
+ "knownFitBoundary": "Shells need the V1.9 rear pack (its shoulder bars); Shawn confirmed it is fitted. The pack bar has no printed pilot: drill dia 1.6 through the shell roof hole with a tape flag 7.0 mm from the tip. Driver above each pack screw on the finished robot: 57.8 mm to the lower head shell. Cap: closes with the same three ROBOTIS M2.6 x 6 as the V1.9 cap; the A7Z rests on the four round pads and screws on with the Pi screws (E-pi-01..04). Face: the camera takes 4 x M2 x 4 into 2.4 mm of thread (below the 3.5 mm target, face-a7z/README.md) and the eye trim 2 x M2 x 6 from the face back; the image needs a 90 deg rotation in software. Thighs: same geometry as the 10/1 thighs; fitting them means taking both legs apart and re-reading the joint zeros (guide/firmware/mac/pose_snapshot.py). Battery backpack: built for the Tattu 2S 650 listing size (57 x 31 x 12 mm) in a 58 x 32 x 13 pocket; measure the pack before printing if it may be larger. It mounts on the same four cover screws as the rear converter box (swap one for the other); cap 3 x M2 x 8, fixing 4 x M2 x 6. V1.19 caps: the box cap takes the same four M2 x 10 as V1.17 and fits the printed V1.17 frame; tighten until the cap sits on the rim and stop, the heads bear on printed floors. V1.20 frame: the Swann 39 switch snaps up through the 12.3 x 27.5 mm floor hole from the rocker pocket; wire the switch lead before inserting it.",
+ "baselineStock": {
+  "path": "microduck-sim/build-pack-20260913/redesign-20260913/printing/copy-manifest.json",
+  "sha256": "6baa7326bb3a16cd8e7b8cd2241c77f494a39afabd5450b40ae403c89510f42a"
+ },
+ "profiles": {
+  "Yellow_Bambu": {
+   "path": "microduck-sim/build-pack-20260913/redesign-20260913/printing/12-REPAIR-V1-20261008/dual-printer/Yellow_Bambu_editable.3mf",
+   "sha256": "061290b612bb407903c874c609e73bef25480985e6eae3703b08c298fc5bb060"
+  },
+  "Yellow_Elegoo": {
+   "path": "microduck-sim/build-pack-20260913/redesign-20260913/printing/12-REPAIR-V1-20261008/dual-printer/Yellow_Elegoo_editable.3mf",
+   "sha256": "c737d7bca008862c870a734859bbfd9afed6b76e12309865b1dd3df80e8e31df"
+  },
+  "White_Bambu": {
+   "path": "microduck-sim/build-pack-20260913/redesign-20260913/printing/12-REPAIR-V1-20261008/delivery-V1.3-Incremental/White/White_V1.3_editable.3mf",
+   "sha256": "ea11150668bf990d7e30dc932b4295cc55990682ac649f71698ed349fd3a9311"
+  },
+  "White_Elegoo": {
+   "path": "microduck-sim/build-pack-20260913/redesign-20260913/printing/12-REPAIR-V1-20261008/dual-printer/White_Elegoo_editable.3mf",
+   "sha256": "8fb2ced2fc38b8cb21a289608c344b601e0072fba034241b149cc356cc4fcf44"
+  },
+  "Orange_Bambu": {
+   "path": "microduck-sim/build-pack-20260913/redesign-20260913/printing/12-REPAIR-V1-20261008/dual-printer/Orange_Bambu_editable.3mf",
+   "sha256": "a901c21c58ff13781f695ffa52a35c0ec615ceb93bd7631bfe31445d456c282b"
+  },
+  "Orange_Elegoo": {
+   "path": "microduck-sim/build-pack-20260913/redesign-20260913/printing/12-REPAIR-V1-20261008/dual-printer/Orange_Elegoo_editable.3mf",
+   "sha256": "e6ef710f2a7ca3c220c1b4e02b0ace80056a813fd2a5e96971365ad55b035fca"
+  },
+  "Black_Bambu": {
+   "path": "microduck-sim/build-pack-20260913/redesign-20260913/printing/12-REPAIR-V1-20261008/dual-printer/Black_Bambu_editable.3mf",
+   "sha256": "ef9593097fb01bef35b9cb2e8e57f6f539362f8c341b01fdfa78ec74151243a4"
+  },
+  "Black_Elegoo": {
+   "path": "microduck-sim/build-pack-20260913/redesign-20260913/printing/12-REPAIR-V1-20261008/dual-printer/Black_Elegoo_editable.3mf",
+   "sha256": "c2954f042a62096191201a4a355c356247b084f8ae5b08398d1db4a612585163"
+  }
+ },
+ "placements": {
+  "Orange": [
+   {
+    "key": "rear_lid",
+    "copy": 1,
+    "translation": [
+     19.85,
+     88.49,
+     0.0
+    ]
+   },
+   {
+    "key": "battery_backpack_frame",
+    "copy": 1,
+    "translation": [
+     95.95,
+     84.5,
+     0.0
+    ]
+   },
+   {
+    "key": "battery_backpack_cap",
+    "copy": 1,
+    "translation": [
+     172.0492,
+     89.5,
+     0.0
+    ]
+   }
+  ]
+ },
+ "processOverrides": {},
+ "processOverrideReason": "No process overrides: V1.20 carries only the Orange plate.",
+ "parts": [
+  {
+   "key": "rear_lid",
+   "color": "Orange",
+   "quantity": 1,
+   "decision": "addition",
+   "replacesStockIds": [],
+   "path": "microduck-sim/guide/print/back-plate/layout-F/rear_lid-world.stl",
+   "sha256": "ee096c39ac2da0eef539a8aa47b4c28a6f6b3d7ba9e450a02896be59fcc22a17",
+   "sourceFrame": "robot frame (mm, x forward, y left, z up)",
+   "sourceToPrint": [
+    [
+     0.0,
+     1.0,
+     0.0,
+     32.04999923706055
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     36.0192985534668
+    ],
+    [
+     1.0,
+     0.0,
+     0.0,
+     67.1016845703125
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "flatContact": {
+    "minimumAreaMm2": 1900
+   },
+   "poseOrigin": "back-plate/layout-F/build.json printPoses.lid and back-plate/layout-F/rear_lid-print.stl: outer rear face (robot x -67.1) on the bed, x' = y, y' = z, z' = x; 2634.0 mm2 bed contact, 12.5 mm tall (open side up, no tongues). The rounded rear edges (R 4.3..8.0) leave the bed at a shallow angle: tree support under them. The four screw columns stand vertical with their driver holes open on the bed face and 1 mm floors bridging over the dia 2.3 clearance holes. The open side cannot go down because the four screw columns stand up to 4.5 mm proud of the rim.",
+   "poseCheck": {
+    "printStl": {
+     "path": "microduck-sim/guide/print/back-plate/layout-F/rear_lid-print.stl",
+     "sha256": "05fd5baad85660da01c9e3b60609bf571ee77c6b265f307f71f6cd137e1ba68d"
+    },
+    "bedContactMm2": 2633.97,
+    "printSizeMm": [
+     64.1,
+     79.02,
+     14.5
+    ],
+    "note": "V1.20: the unprinted V1.19 row, STL unchanged (sha checked)"
+   },
+   "changeReason": "V1.20: the V1.19 layout F cap, unprinted, carried unchanged. the V1.17 layout F cap with each of its four screw-head floors thickened from 1.0 to 3.0 mm. The printed V1.17 cap's two low floors tore into open holes when it was taken off (Shawn 2026-10-15, IMG_7004). The floors grow 2.0 mm forward (column fronts x -53.1 low, -52.6 top), so the head seats (x -56.1 / -55.6), the four stock M2 x 10 and the thread engagement (3.9 / 4.6 mm) are unchanged; the +y low column is flattened to 0.5 mm above the USB-C socket. Gaps: 1.5 mm to the 5991 PCB, 1.25 mm to the 7 V board, cap to boards 0.287 mm (unchanged walls). Evidence: back-plate/layout-F/raycast_cap_screws.json and post_build.json.",
+   "incrementalEvidence": {
+    "path": "microduck-sim/guide/print/back-plate/layout-F/checks.json",
+    "sha256": "71fa8c7c2f56d2a1ca70dd4334e8f366a0058e63f2d598efd6a5357fdb0c474d"
+   },
+   "evidenceAlso": [
+    {
+     "path": "microduck-sim/guide/print/back-plate/layout-F/build.json",
+     "sha256": "9afc310d5b65a348f6613e78096981bc983f76c99d0eaa3ac2b5d3c40a182592"
+    },
+    {
+     "path": "microduck-sim/guide/print/back-plate/layout-F/README.md",
+     "sha256": "a82a6991c7cff984aa76a34bd5484edff9ca233520ce9383703ec3f8cc9330e7"
+    },
+    {
+     "path": "microduck-sim/guide/print/back-plate/layout-F/layout_f.json",
+     "sha256": "eb3518f60724f657d538c9f5ccf2319bad12ca775d843176605642ff2b5f1797"
+    },
+    {
+     "path": "microduck-sim/guide/print/back-plate/layout-F/post_build.json",
+     "sha256": "7650842c8b315ca8560b587e1f7cdeca79d5ff6be1203ff89de71fba6f6c152a"
+    },
+    {
+     "path": "microduck-sim/guide/print/back-plate/layout-F/features.json",
+     "sha256": "06d93c3137b8df3752cb1c54c9c1a412cd5191741c5e730d1c959c278c2eb6bd"
+    }
+   ],
+   "supportBlockers": [],
+   "supersedes": "rear_lid of release V1.17 (printed 2026-10-15; its two low screw floors tore) and V1.16 / V1.15 / V1.14 / V1.13 / V1.11; the unprinted rear_lid of V1.19"
+  },
+  {
+   "key": "battery_backpack_frame",
+   "color": "Orange",
+   "quantity": 1,
+   "decision": "addition",
+   "replacesStockIds": [],
+   "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/battery_backpack_frame-world.stl",
+   "sha256": "dd1366714547b4102cf4e6fe5d3532cacd32559d43f010265b848701ead863e5",
+   "sourceFrame": "robot frame (mm, x forward, y left, z up)",
+   "sourceToPrint": [
+    [
+     0,
+     1,
+     0,
+     32.05
+    ],
+    [
+     0,
+     0,
+     1,
+     44.0
+    ],
+    [
+     1,
+     0,
+     0,
+     66.35
+    ],
+    [
+     0,
+     0,
+     0,
+     1
+    ]
+   ],
+   "flatContact": {
+    "minimumAreaMm2": 641,
+    "reason": "90 % of the measured rim-down contact (bp_checks.json printPoses.frame)."
+   },
+   "poseOrigin": "back-plate/battery-backpack-20261015/bp_checks.json printPoses.frame: rim-down as rear_frame, the frame rim (robot x -66.35, the cap seam) on the bed, x' = y, y' = z, z' = x; 713.1 mm2 bed contact (the wall ring, the solid narrow-tier floor and the two upper cap-screw bosses), height 21.35 mm. The front plate is a ceiling 19.35 mm above the bed and the cover flap below the box floor overhangs, as on rear_frame: tree support from the Orange profiles; the DFR1202 standoff ribs and clip lips hang from that ceiling and print on support.",
+   "poseCheck": {
+    "printStl": {
+     "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/battery_backpack_frame-print.stl",
+     "sha256": "23904171ab56801cf7cb0cd95fa99f548deb984c5f3ad30ce8718987e51ecc64"
+    },
+    "bedContactMm2": 712.67,
+    "printSizeMm": [
+     64.1,
+     87.0,
+     22.05
+    ],
+    "note": "V1.20: contact from the regenerated world STL with the unchanged row sourceToPrint"
+   },
+   "changeReason": "V1.20: the V1.18 battery backpack frame refitted to the switch in hand, a Swann 39 (SPST 15 A 125 VAC, solder lugs). Its 11.5 mm body (Shawn 2026-10-17) did not pass the V1.18 10.6 mm hole (REV-31-1387 cutout). The floor hole is now the Swann cutout 12.3 x 27.5 mm (Swann catalogue 27.4 x 12.3 mm for the same family), the rocker pocket 14.4 mm wide for the 13.8 mm flange, and the battery pocket starts 0.3 mm behind the measured body, so the box is 27.45 mm deep (V1.18 26.75). Single watertight body, 713 mm2 rim contact; print gate passed 2026-10-17. Evidence: back-plate/battery-backpack-20261015/build/build.json, bp_checks.json, README.md.",
+   "supersedes": "battery_backpack_frame of release V1.18 (printed 2026-10-15; the switch does not fit its hole)",
+   "incrementalEvidence": {
+    "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/bp_checks.json",
+    "sha256": "4a376c50776ab643395a894264adcdb37dd1af5f79daebcd58cadaa0cc718c6a"
+   },
+   "evidenceAlso": [
+    {
+     "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/build/build.json",
+     "sha256": "ab0dc3a165fe45f3976d7ff5dc9cebca6b0d4c0c0d0b26991cb4674851b56d3b"
+    },
+    {
+     "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/README.md",
+     "sha256": "7c9e9110fd5afc521992630737128c1b2542297cfd20b47404a9eedd02978679"
+    },
+    {
+     "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/bp_hip_sweep.json",
+     "sha256": "0988efed1313a430cfb2bdf4596dca73b844c08c1146b693e4bf402ac49720a7"
+    },
+    {
+     "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/bp_mass.json",
+     "sha256": "d0892e2bb03685d09a75f54f0d42bbf5135560bb54f4660c0306864616d33b77"
+    }
+   ],
+   "supportBlockers": []
+  },
+  {
+   "key": "battery_backpack_cap",
+   "color": "Orange",
+   "quantity": 1,
+   "decision": "addition",
+   "replacesStockIds": [],
+   "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/battery_backpack_cap-world.stl",
+   "sha256": "0ccf28073cb54986fc25860e8d55550e2602f7d37ece24d051d2670a0171760d",
+   "sourceFrame": "robot frame (mm, x forward, y left, z up)",
+   "sourceToPrint": [
+    [
+     0,
+     1,
+     0,
+     32.05
+    ],
+    [
+     0,
+     0,
+     1,
+     34.0
+    ],
+    [
+     1,
+     0,
+     0,
+     73.75
+    ],
+    [
+     0,
+     0,
+     0,
+     1
+    ]
+   ],
+   "flatContact": {
+    "minimumAreaMm2": 2071,
+    "reason": "90 % of the measured rear-face contact (bp_checks.json printPoses.cap)."
+   },
+   "poseOrigin": "back-plate/battery-backpack-20261015/bp_checks.json printPoses.cap: outer rear face (robot x -73.75) on the bed, x' = y, y' = z, z' = x as rear_lid; 2301.9 mm2 bed contact, 7.4 mm tall.",
+   "poseCheck": {
+    "printStl": {
+     "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/battery_backpack_cap-print.stl",
+     "sha256": "3346bdf372e00a869ce9b77c592fe1d4e3d3eb727ffd67862afedd52151acb70"
+    },
+    "bedContactMm2": 2691.23,
+    "printSizeMm": [
+     64.1,
+     77.0,
+     7.4
+    ],
+    "note": "V1.20: contact from the regenerated world STL with the unchanged row sourceToPrint"
+   },
+   "changeReason": "V1.20: the unprinted V1.19 battery backpack cap moved 0.7 mm back with the deeper V1.20 frame. Same 3.0 mm screw-head floors and three stock M2 x 8; seats and tips move with the cap, 5.0 mm of frame boss thread unchanged. Evidence: back-plate/battery-backpack-20261015/bp_checks.json screws.",
+   "supersedes": "battery_backpack_cap of release V1.18 (printed) and the unprinted V1.19 cap",
+   "incrementalEvidence": {
+    "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/bp_checks.json",
+    "sha256": "4a376c50776ab643395a894264adcdb37dd1af5f79daebcd58cadaa0cc718c6a"
+   },
+   "evidenceAlso": [
+    {
+     "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/build/build.json",
+     "sha256": "ab0dc3a165fe45f3976d7ff5dc9cebca6b0d4c0c0d0b26991cb4674851b56d3b"
+    },
+    {
+     "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/README.md",
+     "sha256": "7c9e9110fd5afc521992630737128c1b2542297cfd20b47404a9eedd02978679"
+    },
+    {
+     "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/bp_hip_sweep.json",
+     "sha256": "0988efed1313a430cfb2bdf4596dca73b844c08c1146b693e4bf402ac49720a7"
+    },
+    {
+     "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/bp_mass.json",
+     "sha256": "d0892e2bb03685d09a75f54f0d42bbf5135560bb54f4660c0306864616d33b77"
+    }
+   ],
+   "supportBlockers": []
+  }
+ ],
+ "retiredParts": [
+  {
+   "part": "battery_backpack_frame (V1.18)",
+   "printed": "V1.18 (Orange)",
+   "reason": "the Swann 39 switch body (11.5 mm) does not pass its 10.6 mm hole; replaced by the V1.20 frame with the 12.3 x 27.5 mm Swann cutout"
+  },
+  {
+   "part": "battery_backpack_cap (V1.18)",
+   "printed": "V1.18 (Orange)",
+   "reason": "1.0 mm screw floors and the old box depth; replaced by the V1.20 cap (3.0 mm floors, three M2 x 8)"
+  },
+  {
+   "part": "rear_lid (V1.17)",
+   "printed": "V1.17 (Orange)",
+   "reason": "its two low 1.0 mm screw floors tore through (IMG_7004); replaced by the V1.20 cap (the unprinted V1.19 design) on the same four M2 x 10"
+  }
+ ],
+ "deferred": [
+  {
+   "part": "head_cap_v20",
+   "path": "microduck-sim/guide/print/v20-source/head_cap_v20-world.stl",
+   "reason": "Shawn 2026-10-14: the head stays on ROBOTIS M2.6 screws while the lower shell is not reprinted; print with the V2.0 lower shell when the head is next opened"
+  },
+  {
+   "part": "head_bottom_v20",
+   "path": "microduck-sim/guide/print/v20-source/head_bottom_v20-world.stl",
+   "reason": "Shawn 2026-10-14: no real change; print when the head is next opened"
+  },
+  {
+   "part": "jaw_frame_v20",
+   "path": "microduck-sim/guide/print/v20-source/jaw_frame_v20-world.stl",
+   "reason": "Shawn 2026-10-14: no real change; print when the head is next opened"
+  }
+ ],
+ "deliveryContract": {
+  "colors": [
+   "Orange"
+  ],
+  "filesPerColor": 2,
+  "fileCount": 2,
+  "baseline": "printed V1.8 set, the V1.9 Orange plate, V1.17 and V1.18 (both printed 2026-10-15); V1.19 never printed",
+  "supersedes": [
+   "V1.19 (unprinted; its two caps are in this plate)",
+   "battery_backpack_frame of V1.18",
+   "battery_backpack_cap of V1.18",
+   "rear_lid of V1.17"
+  ],
+  "status": "INCREMENTAL_REPRINT"
+ }
+}

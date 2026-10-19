@@ -2,7 +2,7 @@
 
 Follows the community runtime's ramp_to_neutral (Microduck-build-tutorial/microduck/src/main.py) and its
 constants: hardware rad = model rad * sign + offset (signs below), knees +-45 deg, 2048 ticks = 0 rad, KP 400.
-The jaw (ID15) stays torque-off. ID5 gets the encoder-seam fix (seam_fix.py) first.
+The jaw (ID15) stays torque-off. ID5 is checked first (hip_yaw_check.py).
 
   python3 stand.py --port /dev/cu.usbmodemXXXX --dry      # print present vs target per joint, no torque
   python3 stand.py --port /dev/cu.usbmodemXXXX            # torque on, ramp, hold, torque off
@@ -28,7 +28,7 @@ from dynamixel_sdk import COMM_SUCCESS, GroupSyncRead, GroupSyncWrite, PacketHan
 from battery import (ADDR_HW_ERROR as ADDR_HW_ERROR_STATUS, ADDR_PRESENT_VOLTAGE, ADDR_SHUTDOWN, ALERT_BIT,
                      STOP_MARKER, BatteryGuard, voltage_alert_only)
 from scan_bus import ROLES
-from seam_fix import fix_seam
+from hip_yaw_check import check_hip_yaw
 
 MOTOR_TO_ID = {"right_hip_yaw": 5, "right_hip_roll": 4, "right_hip_pitch": 3, "right_knee": 2, "right_ankle": 1,
                "left_hip_yaw": 10, "left_hip_roll": 9, "left_hip_pitch": 8, "left_knee": 7, "left_ankle": 6,
@@ -170,12 +170,7 @@ def main():
     args = ap.parse_args()
     guard = None if args.supply == "bench" else BatteryGuard(args.supply)
     bus = Bus(args.port)
-    if args.takeover:
-        mode, _, _ = bus.pk.read1ByteTxRx(bus.port, 5, 11)
-        if mode != 4:
-            sys.exit("takeover needs ID5 already in Extended Position mode from fix_seam")
-    else:
-        fix_seam(bus.port, bus.pk)
+    check_hip_yaw(bus.port, bus.pk)
     start = bus.positions()
     if args.takeover:  # continue from the goals the previous process left, so holding force does not dip
         for i in IDS:

@@ -6,7 +6,8 @@ The Pi never turns torque off. With no fresh command it keeps the last goals, so
 On start it takes over from whatever was holding (stand.py killed with SIGKILL): it reads the present goals and
 keeps writing them until the Mac sends new ones.
 
-  python3 pi_bridge.py [--port /dev/serial0] [--udp 9870] [--imu-bus 1]
+  python3 pi_bridge.py [--port /dev/serial0] [--udp 9870] [--imu-bus 1] [--baud 1000000]
+  A7Z with openrb_dual_host: python3 pi_bridge.py --port /dev/ttyAS2 --imu-bus 7 --baud 500000
 
 State packet (Pi -> Mac): b"DKS1", seq u32, pi_time f64, 14 pos i32, 14 vel i32, quat wxyz 4f, gyro 3f, acc 3f,
 imu_age f32, read_ms f32, loop_ms f32, cmd_age f32, flags u8 (bit0 joints fresh, bit1 imu valid),
@@ -40,13 +41,15 @@ def main():
     ap.add_argument("--port", default="/dev/serial0")
     ap.add_argument("--udp", type=int, default=9870)
     ap.add_argument("--imu-bus", type=int, default=1)
+    ap.add_argument("--baud", type=int, default=1_000_000,
+                    help="J12 link baud; 500000 with openrb_dual_host on the A7Z (its UART cannot do 1 Mbaud)")
     args = ap.parse_args()
 
     stop = {"now": False}
     signal.signal(signal.SIGTERM, lambda *_: stop.update(now=True))
     signal.signal(signal.SIGINT, lambda *_: stop.update(now=True))
 
-    bus = FastBus(args.port)
+    bus = FastBus(args.port, args.baud)
     goals = {}
     for _ in range(20):  # take over: continue from the goals the holding process left
         got = bus.sync_read(ADDR_GOAL, 4, [i for i in IDS if i not in goals], timeout=0.03)

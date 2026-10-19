@@ -3,7 +3,7 @@
 
   python3 cmu/sync_from_robotics.py [--robotics ~/code/robotics] [--check]
 
-Everything under cmu/mac, cmu/pi, cmu/whole, cmu/real-logs and cmu/model/sole is a generated copy: edit the
+Everything under cmu/mac, cmu/pi, cmu/whole, cmu/real-logs, cmu/model/sole and the copied files of cmu/hardware is a generated copy: edit the
 source in the robotics tree, rerun this script, commit the result. The rewrite rules below are the only
 difference between a source file and its copy (path hops between the two layouts, no private venv re-exec,
 relative manifest paths); each rule must match or the sync stops, so a drifted source is noticed, not silently
@@ -45,7 +45,7 @@ add(f"{MAC}/robot-runs-20261018", "real-logs/robot-runs-20261018", [])
 add(PI, "pi", [
     "stand_pose.py", "battery.py", "dxl_fast.py", "jaw_limits.py", "jaw_limits.json", "jaw_pose_caps.json",
     "jaw_calibration.json", "test_battery.py", "test_jaw_limits.py", "pi_imu_uart.py", "pi_bridge.py", "stand.py",
-    "JAW-LIMIT.md", "seam_fix.py", "set_shutdown.py", "check_voltage_limit.py", "joint_signs.py",
+    "JAW-LIMIT.md", "hip_yaw_check.py", "set_shutdown.py", "check_voltage_limit.py", "joint_signs.py",
     "set_jaw_limit.py",  # imported by test_jaw_limits.py (its pure planning part is under test)
     "scan_bus.py",  # stand.py imports its ROLES table; test_battery.py imports stand.py with a mocked dynamixel_sdk
 ])
@@ -70,6 +70,54 @@ DIR_COPIES = [  # (source dir, dest dir): every regular file, no recursion
     (f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016"),
     (f"{MAC}/robot-runs-20261018", "real-logs/robot-runs-20261018"),
     (f"{WHOLE}/runtime-overlay/models-ft3-it999", "whole/runtime-overlay/models-ft3-it999"),
+]
+
+# cmu/hardware: the battery backpack design materials and the RoboClub print pipeline (2026-10-19, Shawn's ask: teammates
+# redesign and print the backpack themselves). Generated copies like everything else here; the hand-written pages are
+# cmu/hardware/README.md, battery-backpack/README.md and printing/README.md.
+BP = "guide/print/back-plate/battery-backpack-20261015"
+HWB = "hardware/battery-backpack"
+PIPE = "build-pack-20260913/redesign-20260913/printing/13-RELEASE-PIPELINE-20261009"
+ELEGOO = "build-pack-20260913/redesign-20260913/printing-elegoo-20260929"
+REL = "guide/print/release-V1.20"
+HWP = "hardware/printing"
+FILES += [
+    (f"{BP}/README.md", f"{HWB}/DESIGN-D010.md"),
+    ("build-pack-20260913/power/battery-backpack-20261015/README.md", f"{HWB}/POWER-PLAN.md"),
+    ("bringup/BATTERY-BACKPACK-TEAM.html", f"{HWB}/BATTERY-BACKPACK-TEAM.html"),
+    (f"{PIPE}/README.md", f"{HWP}/RELEASE-PIPELINE.md"),
+    ("guide/print/orientation-study/PRINT-ORIENTATION-PRACTICE.md", f"{HWP}/PRINT-ORIENTATION-PRACTICE.md"),
+    ("guide/print/orientation-study/orientation_check.py", f"{HWP}/scripts/orientation_check.py"),
+    ("guide/print/PRINT-LESSONS.md", f"{HWP}/PRINT-LESSONS.md"),
+    (f"{ELEGOO}/filament.json", f"{HWP}/profiles/elegoo-filament.json"),
+    (f"{ELEGOO}/process.json", f"{HWP}/profiles/elegoo-process.json"),
+    (f"{ELEGOO}/machine.json", f"{HWP}/profiles/elegoo-machine.json"),
+    (f"{REL}/manifest-V1.20.json", f"{HWP}/ready/V1.20/manifest-V1.20.json"),
+    (f"{REL}/PARTS-SHEET-V1.20.html", f"{HWP}/ready/V1.20/PARTS-SHEET-V1.20.html"),
+    (f"{REL}/run/Orange_Bambu_editable.3mf", f"{HWP}/ready/V1.20/Orange_Bambu_editable.3mf"),
+    (f"{REL}/run/Orange_Elegoo_editable.3mf", f"{HWP}/ready/V1.20/Orange_Elegoo_editable.3mf"),
+    (f"{REL}/run/delivery-folder/zhengxia_MicroDuck_V1.20/Orange-plate.png", f"{HWP}/ready/V1.20/Orange-plate.png"),
+    (f"{REL}/run/delivery-folder/zhengxia_MicroDuck_V1.20/X1C/zhengxia_V1.20_Orange_Bambu-X1C_2h20m.gcode.3mf",
+     f"{HWP}/ready/V1.20/X1C/zhengxia_V1.20_Orange_Bambu-X1C_2h20m.gcode.3mf"),
+    (f"{REL}/run/delivery-folder/zhengxia_MicroDuck_V1.20/Elegoo/zhengxia_V1.20_Orange_Elegoo-Centauri-Carbon_2h22m.gcode",
+     f"{HWP}/ready/V1.20/Elegoo/zhengxia_V1.20_Orange_Elegoo-Centauri-Carbon_2h22m.gcode"),
+]
+add(BP, f"{HWB}/stl", ["battery_backpack_frame-world.stl", "battery_backpack_cap-world.stl",
+                       "battery_backpack_frame-print.stl", "battery_backpack_cap-print.stl"])
+add(f"{BP}/build", f"{HWB}/envelopes", ["battery-world.stl", "dfr1202-world.stl", "dfr_pads-world.stl", "switch_swann-world.stl",
+                                        "switch-world.stl", "plugs-world.stl", "swap_plugs-world.stl", "wires.json", "build.json"])
+add(BP, f"{HWB}/checks", ["bp_checks.json", "bp_mass.json", "bp_hip_sweep.json", "release-rows-orange.json"])
+add(f"{BP}/renders", f"{HWB}/renders", ["BP-sheet.png", "lead-bend-explainer.png"])
+add(f"{BP}/renders/team", f"{HWB}/renders", ["TEAM-sheet.png"])
+add(BP, f"{HWB}/cad-source", ["build_bp.py", "concepts.py", "bp_checks.py", "bp_mass.py", "render_bp.py", "render_team.py",
+                              "swann_switch.py", "release_rows.py"])
+add("guide/print/world", f"{HWB}/mating", ["rear_pack.stl", "rear_frame.stl", "rear_lid.stl", "shell_left.stl", "shell_right.stl",
+                                           "openrb-board-upright.stl"])
+add(PIPE, f"{HWP}/scripts", ["release_pipeline_v2.py", "verify_release_v2.py", "review_brim.py"])
+# (3mf, member, destination): a JSON member of a project archive written out as a readable profile
+EXTRACTS = [
+    (f"{REL}/run/Orange_Bambu_editable.3mf", "Metadata/project_settings.config", f"{HWP}/profiles/x1c-orange-project_settings.json"),
+    (f"{REL}/run/Orange_Elegoo_editable.3mf", "Metadata/project_settings.config", f"{HWP}/profiles/elegoo-orange-project_settings.json"),
 ]
 
 WHOLE_HOP = '"..", "..", "..", "hardware-design-20260912", "whole-robot-20260912"'
@@ -117,6 +165,20 @@ RULES = {
     "whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
     "whole/dynamics/v19-20261014/v19-mass-manifest.json": [("str", ABS_SIM, f"{SIM_REL}/", 0)],
     "whole/dynamics/asbuilt-20261015/build_asbuilt_manifest.py": [("str", "/private/tmp/claude-501/", "/private/tmp/", 0)],
+    # cmu/hardware copies: private absolute paths become paths relative to the robotics checkout; scratch paths are named.
+    "hardware/battery-backpack/checks/release-rows-orange.json": [("str", ABS_SIM, f"{SIM_REL}/", 12)],
+    "hardware/battery-backpack/cad-source/bp_checks.py": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
+    "hardware/battery-backpack/cad-source/concepts.py": [
+        ("re", re.compile(r"Path\('/private/tmp/[^']*rev_1\.stl'\)"),
+         "Path('parts/rev_1.stl')  # cmu/ copy: the REV-31-1387 STEP export lived in a scratch directory; parts/rev_31_1387_switch-local.stl is its cached copy", 1)],
+    "hardware/printing/PRINT-ORIENTATION-PRACTICE.md": [("str", ABS_SIM, f"{SIM_REL}/", 2)],
+    "hardware/printing/ready/V1.20/manifest-V1.20.json": [("str", ABS_SIM, f"{SIM_REL}/", 34)],
+    "hardware/printing/scripts/release_pipeline_v2.py": [
+        ("str", "fp=REDESIGN/'printing-elegoo-20260929/filament.json'",
+         "fp=HERE.parent/'profiles/elegoo-filament.json'  # cmu/ copy: the Elegoo filament profile ships beside the script", 1)],
+    "hardware/battery-backpack/POWER-PLAN.md": [
+        ("re", re.compile(r" \(DigiKey order \d+\)"), "", 2), ("str", " (same order)", "", 1),
+        ("str", " (same or next day to 15213)", " (same or next day to Pittsburgh)", 1)],
 }
 TEXT_SUFFIXES = {".py", ".json", ".md", ".sh", ".txt", ".jsonl", ".csv"}
 
@@ -170,10 +232,24 @@ def main():
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_bytes(data)
         print(f"wrote {dst_rel}")
+    import json, zipfile
+    for src_rel, member, dst_rel in EXTRACTS:
+        with zipfile.ZipFile(sim / src_rel) as z:
+            data = (json.dumps(json.loads(z.read(member)), indent=1, sort_keys=True) + "\n").encode()
+        dst = HERE / dst_rel
+        if dst.exists() and dst.read_bytes() == data:
+            continue
+        changed += 1
+        if a.check:
+            print(f"would write {dst_rel} (from {src_rel}:{member})")
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(data)
+        print(f"wrote {dst_rel}")
     unused = set(RULES) - {d for _, d in pairs}
     if unused:
         sys.exit(f"sync: rules for files that are not synced: {sorted(unused)}")
-    print(f"sync: {len(pairs)} files, {changed} {'would change' if a.check else 'written'}")
+    print(f"sync: {len(pairs) + len(EXTRACTS)} files, {changed} {'would change' if a.check else 'written'}")
 
 
 if __name__ == "__main__":

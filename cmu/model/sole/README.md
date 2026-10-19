@@ -21,3 +21,24 @@ Conclusion: a 1 mm inner tube plus thin tape needs no foot reprint. Up to 5 mm t
 Template: `sole_template.py` writes `sole_template.pdf` (US Letter, 1:1, 50 mm check bar, two per foot): the printed foot bottom developed to 2.5 mm above the flat (sim contacts reach 1.6 mm), with a 2 mm dart at each corner (the doubly curved corner has about 1 mm of excess at 45 deg of tilt).
 
 Official sole (read 2026-10-19): Open Duck Mini v2, the open design the MicroDuck descends from, prints `foot_bottom_tpu.stl` in TPU at 40 % infill and screws it to `foot_bottom_pla.stl` with two M3x6 (apirrone/Open_Duck_Mini v2 print guide and assembly guide); the BOM lists no separate rubber or foam. Pollen's public CAD shows the sole as a separate yellow layer under the foot body (teardown article, 2026); Pollen's training script calls the real sole "grippy polyurethane" (microduck_rl infer_policy.py). A TPU print is a polyurethane; whether Pollen's kit part is printed or moulded is not published. Printed TPU is slippery when hard (95A) and printed smooth; the grip of a PU sole comes from low hardness (30-60A) and a matte surface, which is why cast PU (two-part urethane rubber poured in a printed mould) or sheet rubber grips better than a 95A print.
+
+## Hot-glue sole cast in a printed mold (2026-10-19)
+
+RoboClub's suggestion: coat the foot bottom with hot glue. Free-hand coats grip well but the face is uneven. `hotglue_mold.py` builds a mold from each foot STL (left `community-44`, right `community-46`):
+
+- Cavity floor = the foot bottom offset outward by 1.0 mm along the normal, up to 3.0 mm above the flat (sim contacts reach 1.6 mm), so the coat is 1.0 mm on the flat and on the curve.
+- Outside the cavity the mold top is the plane 3.0 mm up; the foot touches it along its 3 mm contour, which closes the cavity and gives the coat a clean edge.
+- Three 1.6 mm pins with their tops on the flat set the depth (the coat gets three 1.6 mm dimples).
+- Eight vents lead excess glue to a moat; four tabs 0.4 mm outside the foot outline, up to 12 mm, centre the foot.
+- Check (`hotglue-mold-check.json`): no overlap between the seated foot and the mold, coat 1.00 mm along the normal (1st-99th pct), coat volume 1.95 cm3 per foot, cavity 1859 mm2.
+- Print: `mold-process.json` (X1C) and `mold-process-elegoo.json` (Centauri Carbon), PLA, 0.12 mm layers, top ironing, 4 walls, 40 % infill, no supports, cavity up. Both molds on one plate: X1C 2 h 17 min / 38.9 g, Centauri 2 h 29 min / 36.8 g. Delivery: `~/Downloads/zhengxia_MicroDuck_HotGlueMold/` (X1C, Elegoo, STL, preview).
+
+Process:
+1. Peel the old glue off. Sand the foot bottom with the sandpaper, wipe with alcohol. Nothing oily on the foot.
+2. Wipe a thin film of release on the mold cavity, pins and top (cooking oil or petroleum jelly; silicone spray if at hand), wipe off the excess so no pools stay. A paper or PTFE liner wrinkles in the curved cavity and prints the wrinkles into the sole.
+3. Fill the cavity from the centre outward with the glue gun, about 2.5 cm3 (6 cm of 11 mm stick), slightly domed.
+4. If the surface has skinned, warm the glue in the mold with the heat gun on low, nozzle moving 5 cm away, a few seconds, until it is glossy again. Heat the glue in the mold, never the foot: PLA softens at about 60 C.
+5. Press the foot straight down between the tabs until it stops on the pins; hold one minute. Glue should come out of the vents.
+6. Cool 5 minutes (2 minutes in a freezer helps release), lift the foot out, trim the vent flash and the edge with a knife.
+
+A PLA mold softens where hot air hits its bare surfaces; if it deforms after a few casts, print it again or print it in PETG.

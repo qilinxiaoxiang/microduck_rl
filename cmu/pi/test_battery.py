@@ -1,5 +1,5 @@
 """Unit tests for the 2S battery software: battery.py, set_shutdown.py, check_voltage_limit.py --rail battery, the
-Alert-bit handling in seam_fix.py and stand.py, and stand.py's battery stop. Mocked buses only, no hardware.
+Alert-bit handling in hip_yaw_check.py and stand.py, and stand.py's battery stop. Mocked buses only, no hardware.
 
 Run from this folder:  python3 -m unittest test_battery -v
 pyserial and dynamixel_sdk are replaced by stand-ins when they are not installed.
@@ -38,7 +38,7 @@ class World:
             r = bytearray(256)
             struct.pack_into("<H", r, 32, 70)
             struct.pack_into("<H", r, 34, 35)
-            r[11], r[63], r[64], r[70] = (4 if i == 5 else 3), shutdown, torque, hw_err
+            r[11], r[63], r[64], r[70] = 3, shutdown, torque, hw_err
             struct.pack_into("<i", r, 132, 2048)
             struct.pack_into("<H", r, 144, volts_dv)
             self.regs[i] = r
@@ -544,32 +544,48 @@ def install_sdk(world):
 def import_with_sdk(world, *names):
     sdk = install_sdk(world)
     with mock.patch.dict(sys.modules, {"dynamixel_sdk": sdk}):
-        for n in names + ("scan_bus", "seam_fix"):
+        for n in names + ("scan_bus", "hip_yaw_check"):
             sys.modules.pop(n, None)
         mods = [__import__(n) for n in names]
-        for n in names + ("scan_bus", "seam_fix"):
+        for n in names + ("scan_bus", "hip_yaw_check"):
             sys.modules.pop(n, None)
     return mods
 
 
 class AlertTolerance(unittest.TestCase):
-    def test_seam_fix_runs_on_the_battery(self):
+    def test_hip_yaw_check_runs_on_the_battery(self):
         w = World(shutdown=52, hw_err=0x01, volts_dv=82)
-        (seam_fix,) = import_with_sdk(w, "seam_fix")
-        raw, homing, pos = seam_fix.fix_seam(None, FakePacketHandler(w))
-        self.assertEqual((raw, homing), (2048, -2048))
+        (hyc,) = import_with_sdk(w, "hip_yaw_check")
+        self.assertEqual(hyc.check_hip_yaw(None, FakePacketHandler(w)), 2048)
+        self.assertEqual(w.log, [])  # read-only
 
-    def test_seam_fix_still_stops_on_a_real_hardware_error(self):
+    def test_hip_yaw_check_still_stops_on_a_real_hardware_error(self):
         w = World(shutdown=52, hw_err=0x21, volts_dv=82)  # overload as well as the voltage flag
-        (seam_fix,) = import_with_sdk(w, "seam_fix")
+        (hyc,) = import_with_sdk(w, "hip_yaw_check")
         with self.assertRaises(RuntimeError):
-            seam_fix.fix_seam(None, FakePacketHandler(w))
+            hyc.check_hip_yaw(None, FakePacketHandler(w))
 
-    def test_seam_fix_stops_on_the_voltage_flag_with_shutdown_53(self):
+    def test_hip_yaw_check_stops_on_the_voltage_flag_with_shutdown_53(self):
         w = World(shutdown=53, hw_err=0x01, volts_dv=82)
-        (seam_fix,) = import_with_sdk(w, "seam_fix")
+        (hyc,) = import_with_sdk(w, "hip_yaw_check")
         with self.assertRaises(RuntimeError):
-            seam_fix.fix_seam(None, FakePacketHandler(w))
+            hyc.check_hip_yaw(None, FakePacketHandler(w))
+
+    def test_hip_yaw_check_refuses_the_old_software_seam_fix(self):
+        w = World()
+        w.regs[5][11] = 4
+        struct.pack_into("<i", w.regs[5], 20, 2048)
+        (hyc,) = import_with_sdk(w, "hip_yaw_check")
+        with self.assertRaises(RuntimeError):
+            hyc.check_hip_yaw(None, FakePacketHandler(w))
+        self.assertEqual(w.log, [])
+
+    def test_hip_yaw_check_refuses_a_reading_near_the_seam(self):
+        w = World()
+        struct.pack_into("<i", w.regs[5], 132, 80)
+        (hyc,) = import_with_sdk(w, "hip_yaw_check")
+        with self.assertRaises(RuntimeError):
+            hyc.check_hip_yaw(None, FakePacketHandler(w))
 
     def test_stand_bus_check(self):
         w = World(shutdown=52, hw_err=0x01)

@@ -1,0 +1,215 @@
+{
+ "method": "Battery backpack hip-swing sweep (2026-10-15, copy of layout-F/hip_sweep.py): minimum clearance of the backpack frame and cap,\nthe J1-J4 plug blocks and every wire (all segments, capsule chains) to every leg geom while each hip pitch swings over HOME +-30 deg (no walk61 joint range is\nrecorded in the repository, so the coordinator's fallback range is used) combined with hip roll HOME +-10 deg; the\nother joints stay at HOME. STAND moves only the ankles and the neck/head, so it is covered by the same sweep.\n\nModel: the as-built MuJoCo scene (evaluate_delay.MODEL_DIR/scene.xml) with the box parts added to trunk_base, as\nrender_scene.py does. Distances come from mujoco.mj_geomDistance, which treats every mesh as its convex hull: the\nframe's hull covers the box, and each leg mesh hull covers its link, so the reported minimum is a lower bound of the\ntrue gap. Wires are chains of 0.9 mm capsules (wire radius) along every third point of build/wires.json.\n\n    ~/.venvs/microduck-dyn/bin/python bp_hip_sweep.py      (writes bp_hip_sweep.json)",
+ "grid": {
+  "hipPitchDeltaDeg": [
+   -30,
+   30,
+   5
+  ],
+  "hipRollDeltaDeg": [
+   -10,
+   10,
+   5
+  ],
+  "posesPerLeg": 65
+ },
+ "homeJointsRad": {
+  "left_hip_yaw": 0.0,
+  "left_hip_roll": -0.0873,
+  "left_hip_pitch": -0.4579,
+  "left_knee": -0.0049,
+  "left_ankle": 0.453,
+  "neck_pitch": 0.3491,
+  "head_pitch": 0.3491,
+  "head_yaw": 0.0,
+  "head_roll": 0.0,
+  "right_hip_yaw": 0.0,
+  "right_hip_roll": 0.0873,
+  "right_hip_pitch": 0.4579,
+  "right_knee": 0.0049,
+  "right_ankle": -0.453
+ },
+ "minimumOverSweep": {
+  "frame": {
+   "minMm": 0.0,
+   "legGeom": "upper_leg_right#geom131",
+   "side": "right",
+   "hipPitchDeltaDeg": 0.0,
+   "hipRollDeltaDeg": 5.0,
+   "refinedTrueSurfaceMinMm": 6.0,
+   "refinedAt": "frame | right pitch +0 roll +5",
+   "refinedLegGeom": "none within 6 mm of the target box"
+  },
+  "lid": {
+   "minMm": 24.65,
+   "legGeom": "upper_leg_right#geom131",
+   "side": "right",
+   "hipPitchDeltaDeg": -30.0,
+   "hipRollDeltaDeg": -10.0
+  },
+  "plug_blocks": {
+   "minMm": 27.28,
+   "legGeom": "upper_leg_left#geom79",
+   "side": "left",
+   "hipPitchDeltaDeg": 30.0,
+   "hipRollDeltaDeg": 10.0
+  },
+  "wire battery lead (16 AWG)": {
+   "minMm": 45.09,
+   "legGeom": "upper_leg_right#geom131",
+   "side": "right",
+   "hipPitchDeltaDeg": -30.0,
+   "hipRollDeltaDeg": -10.0
+  },
+  "wire switch lead to J1": {
+   "minMm": 27.48,
+   "legGeom": "upper_leg_right#geom131",
+   "side": "right",
+   "hipPitchDeltaDeg": -30.0,
+   "hipRollDeltaDeg": -10.0
+  },
+  "wire switch lead to J2": {
+   "minMm": 27.48,
+   "legGeom": "upper_leg_left#geom79",
+   "side": "left",
+   "hipPitchDeltaDeg": 30.0,
+   "hipRollDeltaDeg": 10.0
+  },
+  "wire feed lead to VIN/GND": {
+   "minMm": 27.48,
+   "legGeom": "upper_leg_left#geom79",
+   "side": "left",
+   "hipPitchDeltaDeg": 30.0,
+   "hipRollDeltaDeg": 10.0
+  },
+  "wire servo lead to J3": {
+   "minMm": 34.04,
+   "legGeom": "yaw2roll#geom72",
+   "side": "left",
+   "hipPitchDeltaDeg": 30.0,
+   "hipRollDeltaDeg": 10.0
+  },
+  "wire 5 V lead to J4": {
+   "minMm": 34.46,
+   "legGeom": "upper_leg_right#geom131",
+   "side": "right",
+   "hipPitchDeltaDeg": -30.0,
+   "hipRollDeltaDeg": -10.0
+  },
+  "wire robot servo inlet (from OpenRB J4)": {
+   "minMm": 38.88,
+   "legGeom": "bearing_roll#geom121",
+   "side": "right",
+   "hipPitchDeltaDeg": 30.0,
+   "hipRollDeltaDeg": 10.0
+  },
+  "wire robot A7Z lead (from the neck)": {
+   "minMm": 42.69,
+   "legGeom": "bearing_roll#geom121",
+   "side": "right",
+   "hipPitchDeltaDeg": 0.0,
+   "hipRollDeltaDeg": 0.0
+  }
+ },
+ "atHomeConvexHull": {
+  "frame | left leg": {
+   "minMm": 16.36,
+   "legGeom": "upper_leg_left#geom79"
+  },
+  "lid | left leg": {
+   "minMm": 32.15,
+   "legGeom": "upper_leg_left#geom79"
+  },
+  "plug_blocks | left leg": {
+   "minMm": 32.47,
+   "legGeom": "yaw2roll#geom72"
+  },
+  "wire battery lead (16 AWG) | left leg": {
+   "minMm": 50.0,
+   "legGeom": "yaw2roll#geom72"
+  },
+  "wire switch lead to J1 | left leg": {
+   "minMm": 47.23,
+   "legGeom": "yaw2roll#geom72"
+  },
+  "wire switch lead to J2 | left leg": {
+   "minMm": 39.67,
+   "legGeom": "upper_leg_left#geom79"
+  },
+  "wire feed lead to VIN/GND | left leg": {
+   "minMm": 42.74,
+   "legGeom": "upper_leg_left#geom79"
+  },
+  "wire servo lead to J3 | left leg": {
+   "minMm": 34.04,
+   "legGeom": "yaw2roll#geom72"
+  },
+  "wire 5 V lead to J4 | left leg": {
+   "minMm": 36.7,
+   "legGeom": "yaw2roll#geom72"
+  },
+  "wire robot servo inlet (from OpenRB J4) | left leg": {
+   "minMm": 38.88,
+   "legGeom": "yaw2roll#geom72"
+  },
+  "wire robot A7Z lead (from the neck) | left leg": {
+   "minMm": 43.34,
+   "legGeom": "yaw2roll#geom72"
+  },
+  "frame | right leg": {
+   "minMm": 16.35,
+   "legGeom": "upper_leg_right#geom131"
+  },
+  "lid | right leg": {
+   "minMm": 32.15,
+   "legGeom": "upper_leg_right#geom131"
+  },
+  "plug_blocks | right leg": {
+   "minMm": 32.82,
+   "legGeom": "bearing_roll#geom121"
+  },
+  "wire battery lead (16 AWG) | right leg": {
+   "minMm": 50.0,
+   "legGeom": "bearing_roll#geom121"
+  },
+  "wire switch lead to J1 | right leg": {
+   "minMm": 39.67,
+   "legGeom": "upper_leg_right#geom131"
+  },
+  "wire switch lead to J2 | right leg": {
+   "minMm": 47.23,
+   "legGeom": "bearing_roll#geom121"
+  },
+  "wire feed lead to VIN/GND | right leg": {
+   "minMm": 48.14,
+   "legGeom": "bearing_roll#geom121"
+  },
+  "wire servo lead to J3 | right leg": {
+   "minMm": 36.21,
+   "legGeom": "bearing_roll#geom121"
+  },
+  "wire 5 V lead to J4 | right leg": {
+   "minMm": 34.56,
+   "legGeom": "bearing_roll#geom121"
+  },
+  "wire robot servo inlet (from OpenRB J4) | right leg": {
+   "minMm": 38.88,
+   "legGeom": "bearing_roll#geom121"
+  },
+  "wire robot A7Z lead (from the neck) | right leg": {
+   "minMm": 42.69,
+   "legGeom": "bearing_roll#geom121"
+  }
+ },
+ "under2mm": [],
+ "refinedPoses": {
+  "frame | right pitch +0 roll +5": {
+   "sampledMinMm": 6.0,
+   "legGeom": "none within 6 mm of the target box"
+  },
+  "frame | right pitch +15 roll -10": {
+   "sampledMinMm": 6.0,
+   "legGeom": "none within 6 mm of the target box"
+  }
+ }
+}

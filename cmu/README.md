@@ -25,6 +25,9 @@ the open problems); the quickstarts are in the [top-level README](../README.md).
 - `real-logs/`: the 2026-10-18 robot tick logs and the real-versus-sim jitter numbers.
 - `finetune/`: the walk61 fine-tune pipeline (`modal/`, with the reward audit gate, tracking guard and cost caps) and
   its Kaggle launcher (`kaggle/`); `modal/FINETUNE-DELTA.md` is the run history.
+- `hardware/`: the battery backpack design materials (`battery-backpack/`: STL files, mating parts, envelopes, checks,
+  masses, wiring page, parts list, CAD source) and the print pipeline for the RoboClub printers (`printing/`: profiles,
+  slicer commands, orientation and brim rules, the ready V1.20 plate). `hardware/README.md` is the index.
 
 ## Three ways in
 
@@ -55,8 +58,8 @@ the open problems); the quickstarts are in the [top-level README](../README.md).
 
 ## How this directory is refreshed
 
-`mac/`, `pi/`, `whole/`, `real-logs/` and `model/sole/` are generated copies of the robotics working tree on the
-robot's MacBook. `sync_from_robotics.py` copies them with a short list of rewrite rules (path hops between the two
+`mac/`, `pi/`, `whole/`, `real-logs/`, `model/sole/` and the copied files under `hardware/` (everything there but
+the three `README.md` pages) are generated copies of the robotics working tree on the robot's MacBook. `sync_from_robotics.py` copies them with a short list of rewrite rules (path hops between the two
 layouts, no private venv re-exec, relative manifest paths, private addresses replaced). Each rule must match or the
 sync stops, so a drifted source is noticed. The workflow on that machine:
 
@@ -68,12 +71,12 @@ git add -A cmu && git commit && git push origin main
 ```
 
 Do not edit the copied files in this fork: fix the source and resync. `model/`, `simcheck/`, `finetune/`,
-`robot-condition.json` and the three Markdown pages are owned here. Pollen's updates arrive through the `develop`
+`robot-condition.json`, the three Markdown pages and the `hardware/**/README.md` pages are owned here. Pollen's updates arrive through the `develop`
 mirror (see the top-level README).
 
 ## Conventions
 
-- Model radians everywhere in logs and the sim; the servo tick conventions (signs, knee offsets, hip-yaw seam) are
+- Model radians everywhere in logs and the sim; the servo tick conventions (signs, knee offsets, the ID 5 hip-yaw check) are
   applied only at the wire by `walk_brain.py` and `pi/joint_signs.py`.
 - Joint order in `q`, `dq`, `action`: 0 to 4 left leg (hip yaw, hip roll, hip pitch, knee, ankle), 5 to 8 neck pitch,
   head pitch, head yaw, head roll, 9 to 13 right leg.

@@ -1,0 +1,110 @@
+{
+ "backpack": {
+  "items": [
+   {
+    "id": "frame",
+    "g": 16.05,
+    "com": [
+     -53.41,
+     0.01,
+     -0.8
+    ],
+    "label": "CAD volume x 1.24 x 0.851"
+   },
+   {
+    "id": "cap",
+    "g": 8.05,
+    "com": [
+     -72.19,
+     -0.0,
+     6.18
+    ],
+    "label": "CAD volume x 1.24 x 0.851"
+   },
+   {
+    "id": "battery",
+    "g": 43.0,
+    "com": [
+     -66.25,
+     0.0,
+     5.99
+    ],
+    "label": "Tattu listing 43 g"
+   },
+   {
+    "id": "switch_with_leads",
+    "g": 14.0,
+    "com": [
+     -54.2,
+     0,
+     -14.0
+    ],
+    "label": "estimate"
+   },
+   {
+    "id": "dfr1202",
+    "g": 6.0,
+    "com": [
+     -53.2,
+     0.0,
+     25.5
+    ],
+    "label": "estimate"
+   },
+   {
+    "id": "plugs_and_wires",
+    "g": 10.0,
+    "com": [
+     -58.0,
+     0,
+     12.0
+    ],
+    "label": "estimate: 4 XT30 halves, 1 MR30 half, box leads"
+   },
+   {
+    "id": "rear_pack_cover_removed",
+    "g": -6.304,
+    "com": [
+     -45.8,
+     0,
+     -5.3
+    ],
+    "label": "slicer (V1.8 cover)"
+   }
+  ],
+  "netAddedG": 90.8,
+  "newTotalG": 883.4,
+  "newComMm": [
+   -5.89,
+   -0.2,
+   20.07
+  ],
+  "comShiftMm": [
+   -6.46,
+   0.02,
+   -1.79
+  ]
+ },
+ "F_bench_box": {
+  "netAddedG": 57.2,
+  "newTotalG": 849.8,
+  "newComMm": [
+   -3.29,
+   -0.2,
+   21.04
+  ],
+  "comShiftMm": [
+   -3.86,
+   0.02,
+   -0.82
+  ]
+ },
+ "baseline": {
+  "totalMassG": 792.6,
+  "comMm": [
+   0.57,
+   -0.22,
+   21.86
+  ]
+ }
+}

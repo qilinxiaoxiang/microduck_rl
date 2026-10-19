@@ -1,0 +1,265 @@
+{
+ "printPoses": {
+  "frame": {
+   "toPrint": [
+    [
+     0,
+     1,
+     0,
+     32.05
+    ],
+    [
+     0,
+     0,
+     1,
+     44.0
+    ],
+    [
+     1,
+     0,
+     0,
+     67.05
+    ],
+    [
+     0,
+     0,
+     0,
+     1
+    ]
+   ],
+   "printBounds": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     64.1,
+     87.0,
+     22.05
+    ]
+   ],
+   "bedContactMm2": 712.7,
+   "heightMm": 22.05,
+   "overhangOver60degFromVerticalMm2": 3349.9,
+   "watertight": true,
+   "bodies": 1,
+   "volumeMm3": 15211.3
+  },
+  "cap": {
+   "toPrint": [
+    [
+     0,
+     1,
+     0,
+     32.05
+    ],
+    [
+     0,
+     0,
+     1,
+     34.0
+    ],
+    [
+     1,
+     0,
+     0,
+     74.45
+    ],
+    [
+     0,
+     0,
+     0,
+     1
+    ]
+   ],
+   "printBounds": [
+    [
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     64.1,
+     77.0,
+     7.4
+    ]
+   ],
+   "bedContactMm2": 2691.2,
+   "heightMm": 7.4,
+   "overhangOver60degFromVerticalMm2": 1409.0,
+   "watertight": true,
+   "bodies": 1,
+   "volumeMm3": 7628.4
+  }
+ },
+ "insertion": {
+  "battery_out_along_minus_x": {
+   "maxOverlapMm3": 0.0,
+   "atMm": 0.0
+  },
+  "dfr1202_in_along_plus_x_outside_clips": {
+   "maxOverlapMm3": 0.0,
+   "atMm": null
+  },
+  "dfr1202_in_along_plus_x_clips_only": {
+   "maxOverlapMm3": 7.787,
+   "atMm": 0.0
+  },
+  "switch_up_from_below_outside_panel": {
+   "maxOverlapMm3": 0.0,
+   "atMm": null
+  },
+  "switch_seated_panel_only": 31.89
+ },
+ "capPath": {
+  "frame": {
+   "maxOverlapMm3": 0.0,
+   "atOffsetMm": null
+  },
+  "parts": {
+   "maxOverlapMm3": 0.0,
+   "atOffsetMm": 2.5
+  },
+  "seatedGapMm": {
+   "frame": 0.0,
+   "parts": 0.0
+  }
+ },
+ "outline": {
+  "frame": {
+   "maxMm": 0.0,
+   "count": 0
+  },
+  "cap": {
+   "maxMm": 0.0,
+   "count": 0
+  },
+  "passed": true
+ },
+ "wireCentrelinePenetration": {
+  "perWire": {
+   "battery lead (16 AWG)": {
+    "frame": 0,
+    "cap": 0
+   },
+   "switch lead to J1": {
+    "frame": 0,
+    "cap": 0
+   },
+   "switch lead to J2": {
+    "frame": 0,
+    "cap": 0
+   },
+   "feed lead to VIN/GND": {
+    "frame": 0,
+    "cap": 0
+   },
+   "servo lead to J3": {
+    "frame": 0,
+    "cap": 0
+   },
+   "5 V lead to J4": {
+    "frame": 0,
+    "cap": 0
+   },
+   "robot servo inlet (from OpenRB J4)": {
+    "frame": 0,
+    "cap": 0
+   },
+   "robot A7Z lead (from the neck)": {
+    "frame": 0,
+    "cap": 0
+   }
+  },
+  "passed": true
+ },
+ "screws": {
+  "cap y+27 z+24.0": {
+   "axisYZ": [
+    27.0,
+    24.0
+   ],
+   "seatX": -70.05,
+   "tipX": -62.05,
+   "ringMaterialSeatToTipMm": {
+    "frame": 5.0,
+    "cap": 0.0
+   },
+   "headEnvelopeSamplesInside": {
+    "frame": 0,
+    "cap": 0,
+    "samples": 288
+   },
+   "driverLaneDia4SamplesInside": {
+    "frame": 0,
+    "cap": 0,
+    "samples": 500
+   }
+  },
+  "cap y-27 z+24.0": {
+   "axisYZ": [
+    -27.0,
+    24.0
+   ],
+   "seatX": -70.05,
+   "tipX": -62.05,
+   "ringMaterialSeatToTipMm": {
+    "frame": 5.0,
+    "cap": 0.0
+   },
+   "headEnvelopeSamplesInside": {
+    "frame": 0,
+    "cap": 0,
+    "samples": 288
+   },
+   "driverLaneDia4SamplesInside": {
+    "frame": 0,
+    "cap": 0,
+    "samples": 500
+   }
+  },
+  "cap y+0 z-26.5": {
+   "axisYZ": [
+    0.0,
+    -26.5
+   ],
+   "seatX": -70.05,
+   "tipX": -62.05,
+   "ringMaterialSeatToTipMm": {
+    "frame": 5.0,
+    "cap": 0.0
+   },
+   "headEnvelopeSamplesInside": {
+    "frame": 0,
+    "cap": 0,
+    "samples": 288
+   },
+   "driverLaneDia4SamplesInside": {
+    "frame": 0,
+    "cap": 0,
+    "samples": 500
+   }
+  },
+  "fixing y+16.1 z+26.0": {
+   "route": "with the cap and battery out, straight back through the battery space",
+   "laneBlockedBy": {},
+   "clear": true
+  },
+  "fixing y+16.1 z-36.5": {
+   "route": "under the box floor, straight back",
+   "laneBlockedBy": {},
+   "clear": true
+  },
+  "fixing y-16.1 z+26.0": {
+   "route": "with the cap and battery out, straight back through the battery space",
+   "laneBlockedBy": {},
+   "clear": true
+  },
+  "fixing y-16.1 z-36.5": {
+   "route": "under the box floor, straight back",
+   "laneBlockedBy": {},
+   "clear": true
+  }
+ }
+}

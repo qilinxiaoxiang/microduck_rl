@@ -2,7 +2,7 @@
 
 The 2S pack (8.4 V full, 7.4 V nominal) feeds the 15 XL330-M288-T servos straight through the OpenRB-150
 (build-pack-20260913/power/battery-backpack-20261015/README.md section 6). Shared by set_shutdown.py,
-check_voltage_limit.py --rail battery, stand.py, seam_fix.py and mac/walk_wired.py. No bus or hardware access here.
+check_voltage_limit.py --rail battery, stand.py, hip_yaw_check.py and mac/walk_wired.py. No bus or hardware access here.
 
 XL330-M288 control table (https://emanual.robotis.com/docs/en/dxl/x/xl330-m288/, checked 2026-10-15):
   63 Shutdown                1 byte, EEPROM, initial 53 (0x35); bit 0 = Input Voltage Error clears Torque Enable

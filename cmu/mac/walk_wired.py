@@ -202,34 +202,6 @@ def write_cmd(path, want, why):
     print(f"STOP -> {what}: {why}", flush=True)
 
 
-SEAM_ID = 5  # right_hip_yaw: its horn sits half a turn round, so it runs in Extended Position mode (pi/seam_fix.py)
-
-
-def fix_seam(link):
-    """pi/seam_fix.py over the wired link: after a power-up, bring ID5's reading back near 2048 before torque on."""
-    def rd(addr, size):
-        for _ in range(20):
-            g = link.sync_read(addr, size, [SEAM_ID], timeout=0.03)
-            if g:
-                return int.from_bytes(g[SEAM_ID], "little", signed=size == 4)
-        raise RuntimeError(f"ID{SEAM_ID} read {addr} failed")
-    if rd(ADDR_TORQUE, 1):
-        raise RuntimeError(f"ID{SEAM_ID} torque is on; the seam fix must run before torque on")
-    if rd(11, 1) != 4:
-        link.sync_write(11, 1, {SEAM_ID: 4})
-    link.sync_write(20, 4, {SEAM_ID: 0})
-    link.ser.write(_packet(SEAM_ID, 0x08, b""))  # reboot: drop the turn count so Present Position is raw 0..4095
-    time.sleep(0.5)
-    raw = rd(132, 4)
-    homing = -2048 if raw >= 2048 else 2048
-    link.sync_write(20, 4, {SEAM_ID: homing})
-    pos = rd(132, 4)
-    if not 2048 - 600 <= pos <= 2048 + 600:
-        raise RuntimeError(f"ID{SEAM_ID} reads {pos} after the seam fix (raw {raw}); hip yaw should be near 2048")
-    print(f"seam fix: ID{SEAM_ID} raw {raw} homing {homing} now {pos}", flush=True)
-    return pos
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", default=None, help="default: the only /dev/cu.usbmodem* (Mac) or /dev/ttyACM* (A7Z)")
@@ -379,13 +351,10 @@ def main():
             last_block = now
         if not torque_on and want.get("mode", "monitor") in Brain.TORQUE_MODES and fresh and not block:
             # never enable torque without every present position, every servo in position mode (3) and every
-            # reading inside one turn away from the wrap edge (a joint whose zero sits at 0/4095 cannot cross it)
-            if not 2048 - 600 <= pos[IDS.index(SEAM_ID)] <= 2048 + 600:
-                fix_seam(link)
-                continue  # re-read every position before enabling torque
+            # reading away from the 0/4095 wrap edge (ID5 included since its horn refit, pi/hip_yaw_check.py)
             modes = link.sync_read(11, 1, IDS, timeout=0.03)
             bad = [nm for i, nm, p in zip(IDS, NAMES, pos)
-                   if i not in modes or modes[i][0] != (4 if i == SEAM_ID else 3) or not 256 <= p <= 3840]
+                   if i not in modes or modes[i][0] != 3 or not 256 <= p <= 3840]
             if bad:
                 if now - last_print > 1.0:
                     print(f"torque refused: {bad} not in position mode or near the wrap edge", flush=True)
