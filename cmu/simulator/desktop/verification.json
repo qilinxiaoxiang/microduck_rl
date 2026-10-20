@@ -1,0 +1,56 @@
+{
+  "verifiedAt": "2026-09-08T20:54:38.194777-04:00",
+  "machine": "Apple M1 Pro",
+  "computeBenchmark": {
+    "simulationSeconds": 2,
+    "beforeMilliseconds": [
+      11034.781833000001,
+      10943.623791000002,
+      10692.009584
+    ],
+    "afterMilliseconds": [
+      9985.279959,
+      10238.6275,
+      9973.085125000001
+    ],
+    "exactMatch": {
+      "qpos": true,
+      "summary": true,
+      "contact": true
+    },
+    "scope": "Three repeated settling/approach segments; no rendering; not a general real-time claim"
+  },
+  "browserTrial": {
+    "task": "ground-soft-ball",
+    "phase": "done",
+    "rows": 634,
+    "simulationSeconds": 12.680000000037792,
+    "acceptance": {
+      "accepted": true,
+      "failures": [],
+      "heldSeconds": 1.22,
+      "heldDrift": 0.00024360327767623702,
+      "minHeldClearance": 0.1869115785963119,
+      "releaseFall": 0.1869704459059746,
+      "maximumPenetration": 0.00011329529677548456,
+      "maximumJointLimitExcess": 0.00033708967347823027,
+      "minRadialScale": 0.5391582977709467
+    },
+    "provenance": {
+      "engine": "MuJoCo 3.11.0",
+      "inference": "onnxruntime-web 1.27.0 wasm",
+      "modelSha256": "b5e35b8d85a8ae4e7856d3bf8f50bb1a1d065e6605271fa74ba43b97285d9b14",
+      "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+      "controllerSha256": "c735ac977e1cd76d0e30bbbb2976ef97c184fc21e19be225f4680768ef11a564",
+      "coreSha256": "162e5a1ac8a4a4fccb34c1ba31f744e166f4f9b8ec89bafbc4571cd60524f00e",
+      "sceneSha256": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+      "controlMode": "learned",
+      "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+      "jawAdapterSha256": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+      "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+      "task": "ground-soft-ball",
+      "learnedScope": "frozen table-trained jaw PPO transferred to ground; body approach/lift controller is not learned here"
+    },
+    "rawSha256": "2707aa61afbaae24672b7f63240ebbcf0024ff91d8804d356103d9407ad58bae"
+  }
+}

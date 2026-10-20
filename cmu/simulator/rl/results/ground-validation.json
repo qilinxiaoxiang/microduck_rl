@@ -1,0 +1,2567 @@
+{
+  "generatedAt": "2026-09-04T17:33:30.198Z",
+  "accepted": true,
+  "failures": [],
+  "problem": "P0",
+  "scope": "Fixed 99-vertex simulation example: frozen table-trained jaw PPO transferred to free-standing ground pickup of a radial elastic ball. No ground-specific training, whole-body RL or hardware/material validation.",
+  "counts": {
+    "baseline": 4,
+    "learned": 4,
+    "untrained": 0
+  },
+  "pairedConditions": 4,
+  "halfStepClearanceDifferenceMm": 0.21799570206801344,
+  "modelParity": {
+    "rawEqual": false,
+    "exportMatchesBrowserHash": true,
+    "withoutXmlDeclarationMatchesNode": true
+  },
+  "meshRefinement": {
+    "allPassed": false,
+    "trials": [
+      {
+        "name": "219_nodes",
+        "mode": "learned",
+        "file": "rl/runs/ground-finer-219-learned.json",
+        "sha256": "c456b933e51bfc7f34cfdfcbe647484d7e65d13e9b6eccaba54d071c609dc252",
+        "config": {
+          "x": -0.532,
+          "y": 0.006,
+          "z": 0.0142,
+          "mass": 0.0005,
+          "lift": 0.06,
+          "radius": 0.014,
+          "young": 5000,
+          "poisson": 0.2,
+          "softDamping": 0.0002,
+          "meshCount": 7,
+          "softBall": true,
+          "crouch": 0.3,
+          "worldAngle": 0,
+          "neckTarget": -1.53,
+          "ramp": 2,
+          "closeAt": 4.6,
+          "jawTorque": 0.02,
+          "friction": 0.8,
+          "footStiff": true,
+          "stiffStops": true,
+          "dt": 0.0000625,
+          "actor": "app/public/policies/jaw-ppo.json",
+          "output": "rl/runs/ground-finer-219-learned.json"
+        },
+        "phase": "failed",
+        "acceptance": {
+          "accepted": false,
+          "failures": [
+            "controller did not complete",
+            "payload impact penetration exceeds 0.5 mm",
+            "no continuous elevated opposing-pad hold for 1.2 seconds",
+            "ball slipped by at least 3 mm during final held second",
+            "opening did not release the ball into a real fall onto the ground"
+          ],
+          "heldSeconds": 0,
+          "heldDrift": null,
+          "minHeldClearance": 0,
+          "releaseFall": 0,
+          "maximumPenetration": 0.0005804901718668036,
+          "maximumJointLimitExcess": 0.00035430590621166047,
+          "minRadialScale": 0.5148943680549127,
+          "landingSeconds": 0
+        },
+        "summary": {
+          "maxPenetration": 0.0005804901718668036,
+          "maxExternal": 0,
+          "maxRobotPenetration": 0.0001799661010757278,
+          "nonFootSupport": false,
+          "maxZ": 0.14499149970386108,
+          "steps": 167040,
+          "finite": true,
+          "solverReset": false,
+          "resetAt": null,
+          "warningCounts": {},
+          "maxJointLimitExcess": 0.00035430590621166047,
+          "maxTargetClamp": 0,
+          "minRadialScale": 0.5148943680549127
+        },
+        "modelAudit": {
+          "freePayload": true,
+          "freeBase": true,
+          "equalities": 0,
+          "mocapBodies": 0,
+          "payloadMass": 0.0004999999999999988,
+          "deformable": true,
+          "flexVertices": 219,
+          "pedestalPresent": false,
+          "terrainPresent": false,
+          "floorHeight": 0,
+          "flexAllNodesFree": true,
+          "jawTorqueLimit": [
+            -0.02,
+            0.02
+          ],
+          "timestep": 0.0000625
+        },
+        "provenance": {
+          "engine": "MuJoCo 3.11.0",
+          "inference": "onnxruntime-node 1.27.0 cpu",
+          "sources": {
+            "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+            "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+            "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+            "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+            "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+            "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+            "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+            "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+            "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+          },
+          "modelSha256": "1d008e96cfcec5eb978ef362307595001a284a6cf28b1a050be86d6c486483b0",
+          "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+          "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+          "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+          "sourcesUnchanged": true
+        },
+        "events": [
+          {
+            "time": 1,
+            "from": "settle",
+            "to": "descend"
+          },
+          {
+            "time": 2.2,
+            "from": "descend",
+            "to": "reach"
+          },
+          {
+            "time": 4.6000000000000005,
+            "from": "reach",
+            "to": "clamp"
+          },
+          {
+            "time": 5.4,
+            "from": "clamp",
+            "to": "lift"
+          },
+          {
+            "time": 10.42,
+            "from": "lift",
+            "to": "failed"
+          }
+        ]
+      },
+      {
+        "name": "219_nodes_half_timestep",
+        "mode": "learned",
+        "file": "rl/runs/ground-finer-219-half-step.json",
+        "sha256": "23f0fbcb9a1fe3475586bb5d75d7661c2f5adeb09afce3a9a5134238bd2332c4",
+        "config": {
+          "x": -0.532,
+          "y": 0.006,
+          "z": 0.0142,
+          "mass": 0.0005,
+          "lift": 0.06,
+          "radius": 0.014,
+          "young": 5000,
+          "poisson": 0.2,
+          "softDamping": 0.0002,
+          "meshCount": 7,
+          "softBall": true,
+          "crouch": 0.3,
+          "worldAngle": 0,
+          "neckTarget": -1.53,
+          "ramp": 2,
+          "closeAt": 4.6,
+          "jawTorque": 0.02,
+          "friction": 0.8,
+          "footStiff": true,
+          "stiffStops": true,
+          "dt": 0.00003125,
+          "actor": "app/public/policies/jaw-ppo.json",
+          "output": "rl/runs/ground-finer-219-half-step.json"
+        },
+        "phase": "failed",
+        "acceptance": {
+          "accepted": false,
+          "failures": [
+            "controller did not complete",
+            "payload impact penetration exceeds 0.5 mm",
+            "no continuous elevated opposing-pad hold for 1.2 seconds",
+            "ball slipped by at least 3 mm during final held second",
+            "opening did not release the ball into a real fall onto the ground"
+          ],
+          "heldSeconds": 0,
+          "heldDrift": null,
+          "minHeldClearance": 0,
+          "releaseFall": 0,
+          "maximumPenetration": 0.0008015232808145477,
+          "maximumJointLimitExcess": 0.00035090814856397756,
+          "minRadialScale": 0.5118846964196061,
+          "landingSeconds": 0
+        },
+        "summary": {
+          "maxPenetration": 0.0008015232808145477,
+          "maxExternal": 0,
+          "maxRobotPenetration": 0.0001823451159831532,
+          "nonFootSupport": false,
+          "maxZ": 0.206800020211584,
+          "steps": 365440,
+          "finite": true,
+          "solverReset": false,
+          "resetAt": null,
+          "warningCounts": {},
+          "maxJointLimitExcess": 0.00035090814856397756,
+          "maxTargetClamp": 0,
+          "minRadialScale": 0.5118846964196061
+        },
+        "modelAudit": {
+          "freePayload": true,
+          "freeBase": true,
+          "equalities": 0,
+          "mocapBodies": 0,
+          "payloadMass": 0.0004999999999999988,
+          "deformable": true,
+          "flexVertices": 219,
+          "pedestalPresent": false,
+          "terrainPresent": false,
+          "floorHeight": 0,
+          "flexAllNodesFree": true,
+          "jawTorqueLimit": [
+            -0.02,
+            0.02
+          ],
+          "timestep": 0.00003125
+        },
+        "provenance": {
+          "engine": "MuJoCo 3.11.0",
+          "inference": "onnxruntime-node 1.27.0 cpu",
+          "sources": {
+            "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+            "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+            "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+            "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+            "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+            "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+            "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+            "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+            "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+          },
+          "modelSha256": "2df5d0ed873f84808801c0cf594bda8354569e996026e4385e0d302c91de69a0",
+          "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+          "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+          "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+          "sourcesUnchanged": true
+        },
+        "events": [
+          {
+            "time": 1,
+            "from": "settle",
+            "to": "descend"
+          },
+          {
+            "time": 2.2,
+            "from": "descend",
+            "to": "reach"
+          },
+          {
+            "time": 4.6000000000000005,
+            "from": "reach",
+            "to": "clamp"
+          },
+          {
+            "time": 5.4,
+            "from": "clamp",
+            "to": "lift"
+          },
+          {
+            "time": 8.4,
+            "from": "lift",
+            "to": "hold"
+          },
+          {
+            "time": 11.4,
+            "from": "hold",
+            "to": "failed"
+          }
+        ]
+      },
+      {
+        "name": "219_nodes_back_1p5mm_half_timestep",
+        "mode": "learned",
+        "file": "rl/runs/ground-finer-219-back-half-step.json",
+        "sha256": "1e48b98329c7cc5fedcf6df3c5e7070d147e4c15b2959b58702eee42e6ba7096",
+        "config": {
+          "x": -0.5335,
+          "y": 0.006,
+          "z": 0.0142,
+          "mass": 0.0005,
+          "lift": 0.06,
+          "radius": 0.014,
+          "young": 5000,
+          "poisson": 0.2,
+          "softDamping": 0.0002,
+          "meshCount": 7,
+          "softBall": true,
+          "crouch": 0.3,
+          "worldAngle": 0,
+          "neckTarget": -1.53,
+          "ramp": 2,
+          "closeAt": 4.6,
+          "jawTorque": 0.02,
+          "friction": 0.8,
+          "footStiff": true,
+          "stiffStops": true,
+          "dt": 0.00003125,
+          "actor": "app/public/policies/jaw-ppo.json",
+          "output": "rl/runs/ground-finer-219-back-half-step.json"
+        },
+        "phase": "done",
+        "acceptance": {
+          "accepted": true,
+          "failures": [],
+          "heldSeconds": 1.22,
+          "heldDrift": 0.0006795557182011431,
+          "minHeldClearance": 0.18654436274829742,
+          "releaseFall": 0.18653933476409928,
+          "maximumPenetration": 0.00017020949607715637,
+          "maximumJointLimitExcess": 0.0003494589494659195,
+          "minRadialScale": 0.5333198386887776,
+          "landingSeconds": 0.32
+        },
+        "summary": {
+          "maxPenetration": 0.00017020949607715637,
+          "maxExternal": 0,
+          "maxRobotPenetration": 0.0001823451159831532,
+          "nonFootSupport": false,
+          "maxZ": 0.2066624505888985,
+          "steps": 365440,
+          "finite": true,
+          "solverReset": false,
+          "resetAt": null,
+          "warningCounts": {},
+          "maxJointLimitExcess": 0.0003494589494659195,
+          "maxTargetClamp": 0,
+          "minRadialScale": 0.5333198386887776
+        },
+        "modelAudit": {
+          "freePayload": true,
+          "freeBase": true,
+          "equalities": 0,
+          "mocapBodies": 0,
+          "payloadMass": 0.0004999999999999988,
+          "deformable": true,
+          "flexVertices": 219,
+          "pedestalPresent": false,
+          "terrainPresent": false,
+          "floorHeight": 0,
+          "flexAllNodesFree": true,
+          "jawTorqueLimit": [
+            -0.02,
+            0.02
+          ],
+          "timestep": 0.00003125
+        },
+        "provenance": {
+          "engine": "MuJoCo 3.11.0",
+          "inference": "onnxruntime-node 1.27.0 cpu",
+          "sources": {
+            "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+            "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+            "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+            "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+            "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+            "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+            "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+            "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+            "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+          },
+          "modelSha256": "2df5d0ed873f84808801c0cf594bda8354569e996026e4385e0d302c91de69a0",
+          "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+          "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+          "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+          "sourcesUnchanged": true
+        },
+        "events": [
+          {
+            "time": 1,
+            "from": "settle",
+            "to": "descend"
+          },
+          {
+            "time": 2.2,
+            "from": "descend",
+            "to": "reach"
+          },
+          {
+            "time": 4.6000000000000005,
+            "from": "reach",
+            "to": "clamp"
+          },
+          {
+            "time": 5.4,
+            "from": "clamp",
+            "to": "lift"
+          },
+          {
+            "time": 8.4,
+            "from": "lift",
+            "to": "hold"
+          },
+          {
+            "time": 9.620000000000001,
+            "from": "hold",
+            "to": "release"
+          },
+          {
+            "time": 11.4,
+            "from": "release",
+            "to": "done"
+          }
+        ]
+      }
+    ],
+    "notPartOfPairedSuccessRate": true
+  },
+  "rows": [
+    {
+      "name": "nominal",
+      "mode": "baseline",
+      "file": "rl/runs/ground-validation-clockfixed-20260904/nominal-baseline.json",
+      "sha256": "1939bb4c59dca28bccc334c71b3ae75f60ff22502275330511b327faa737e4ed",
+      "config": {
+        "x": -0.532,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-validation-clockfixed-20260904/nominal-baseline.json"
+      },
+      "phase": "done",
+      "acceptance": {
+        "accepted": true,
+        "failures": [],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.0001941634018555839,
+        "minHeldClearance": 0.18699786457350365,
+        "releaseFall": 0.18700064028582178,
+        "maximumPenetration": 0.00008116388930685425,
+        "maximumJointLimitExcess": 0.0003423631626926493,
+        "minRadialScale": 0.5383958842258949,
+        "landingSeconds": 0.32
+      },
+      "summary": {
+        "maxPenetration": 0.00008116388930685425,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.20687699807209275,
+        "steps": 199040,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.0003423631626926493,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.5383958842258949
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0004999999999999993,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "459d68bbc6d821dc0ced075fd7a81408c772751aea36d2b7b8b3da60d43e1347",
+        "jawPolicySha256": null,
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 12.42,
+          "from": "release",
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "name": "nominal",
+      "mode": "learned",
+      "file": "rl/runs/ground-validation-clockfixed-20260904/nominal-learned.json",
+      "sha256": "2cdaa63b6eaf860f5bc7b25d2e2f25d3499cd9923eb5090788033aeca73ff1d1",
+      "config": {
+        "x": -0.532,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "actor": "app/public/policies/jaw-ppo.json",
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-validation-clockfixed-20260904/nominal-learned.json"
+      },
+      "phase": "done",
+      "acceptance": {
+        "accepted": true,
+        "failures": [],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.0001941634018555839,
+        "minHeldClearance": 0.18699786457350365,
+        "releaseFall": 0.18705634089690257,
+        "maximumPenetration": 0.00010529724261155807,
+        "maximumJointLimitExcess": 0.0003423631626926493,
+        "minRadialScale": 0.5383958842258949,
+        "landingSeconds": 0.32
+      },
+      "summary": {
+        "maxPenetration": 0.00010529724261155807,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.20687699807209275,
+        "steps": 200320,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.0003423631626926493,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.5383958842258949
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0004999999999999993,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "459d68bbc6d821dc0ced075fd7a81408c772751aea36d2b7b8b3da60d43e1347",
+        "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 12.5,
+          "from": "release",
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "name": "nominal",
+      "mode": "untrained",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/nominal-untrained.json",
+      "sha256": "179bdb90df3b743bd957c5c1802fb4faafef219fe675f66cbdc117dfce1c8686",
+      "config": {
+        "x": -0.532,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "actor": "app/public/policies/jaw-ppo-initial.json",
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/nominal-untrained.json"
+      },
+      "phase": "failed",
+      "acceptance": {
+        "accepted": false,
+        "failures": [
+          "controller did not complete",
+          "opening did not release the ball into a real fall onto the ground"
+        ],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.0001941634018555839,
+        "minHeldClearance": 0.18699786457350365,
+        "releaseFall": 0.05480538766039514,
+        "maximumPenetration": 0.00007147821778728968,
+        "maximumJointLimitExcess": 0.0003423631626926493,
+        "minRadialScale": 0.5383958842258949,
+        "landingSeconds": 0
+      },
+      "summary": {
+        "maxPenetration": 0.00007147821778728968,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.20687699807209275,
+        "steps": 256640,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.0003423631626926493,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.5383958842258949
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0004999999999999993,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "459d68bbc6d821dc0ced075fd7a81408c772751aea36d2b7b8b3da60d43e1347",
+        "jawPolicySha256": "91805c4d3e6562b2446c482cadc442d8da58af3ef9ada8b71c37f62259bce371",
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 16.02,
+          "from": "release",
+          "to": "failed"
+        }
+      ]
+    },
+    {
+      "name": "x_back_1p5mm",
+      "mode": "baseline",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/x_back_1p5mm-baseline.json",
+      "sha256": "99f42d47ea05e83810788f65afafcade105f0ad1cbd3ee03fedd240de996d79f",
+      "config": {
+        "x": -0.5335,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/x_back_1p5mm-baseline.json"
+      },
+      "phase": "done",
+      "acceptance": {
+        "accepted": true,
+        "failures": [],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.00027634687601750535,
+        "minHeldClearance": 0.18687844617441035,
+        "releaseFall": 0.18687004664876672,
+        "maximumPenetration": 0.00014501884415563833,
+        "maximumJointLimitExcess": 0.00035457990437515186,
+        "minRadialScale": 0.5552523004462734,
+        "landingSeconds": 0.32
+      },
+      "summary": {
+        "maxPenetration": 0.00014501884415563833,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.20671604165715862,
+        "steps": 220480,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.00035457990437515186,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.5552523004462734
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0004999999999999993,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "459d68bbc6d821dc0ced075fd7a81408c772751aea36d2b7b8b3da60d43e1347",
+        "jawPolicySha256": null,
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 13.76,
+          "from": "release",
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "name": "x_back_1p5mm",
+      "mode": "learned",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/x_back_1p5mm-learned.json",
+      "sha256": "a8615a445baeb114a0079297996c2f527c838f695dc4e066067c3e290ce86b27",
+      "config": {
+        "x": -0.5335,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "actor": "app/public/policies/jaw-ppo.json",
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/x_back_1p5mm-learned.json"
+      },
+      "phase": "done",
+      "acceptance": {
+        "accepted": true,
+        "failures": [],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.00027634687601750535,
+        "minHeldClearance": 0.18687844617441035,
+        "releaseFall": 0.1869436185911735,
+        "maximumPenetration": 0.00013617802701891546,
+        "maximumJointLimitExcess": 0.00035457990437515186,
+        "minRadialScale": 0.5552523004462734,
+        "landingSeconds": 0.32
+      },
+      "summary": {
+        "maxPenetration": 0.00013617802701891546,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.20671604165715862,
+        "steps": 218560,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.00035457990437515186,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.5552523004462734
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0004999999999999993,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "459d68bbc6d821dc0ced075fd7a81408c772751aea36d2b7b8b3da60d43e1347",
+        "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 13.64,
+          "from": "release",
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "name": "x_back_1p5mm",
+      "mode": "untrained",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/x_back_1p5mm-untrained.json",
+      "sha256": "19b99f98e8c1252c147f07e813aa8b685dc038184c52ec54562f29d7d1b2d2b8",
+      "config": {
+        "x": -0.5335,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "actor": "app/public/policies/jaw-ppo-initial.json",
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/x_back_1p5mm-untrained.json"
+      },
+      "phase": "failed",
+      "acceptance": {
+        "accepted": false,
+        "failures": [
+          "controller did not complete",
+          "opening did not release the ball into a real fall onto the ground"
+        ],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.00027634687601750535,
+        "minHeldClearance": 0.18687844617441035,
+        "releaseFall": 0.0541534907879338,
+        "maximumPenetration": 0.00007177763634012664,
+        "maximumJointLimitExcess": 0.00035457990437515186,
+        "minRadialScale": 0.5552523004462734,
+        "landingSeconds": 0
+      },
+      "summary": {
+        "maxPenetration": 0.00007177763634012664,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.20671604165715862,
+        "steps": 256640,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.00035457990437515186,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.5552523004462734
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0004999999999999993,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "459d68bbc6d821dc0ced075fd7a81408c772751aea36d2b7b8b3da60d43e1347",
+        "jawPolicySha256": "91805c4d3e6562b2446c482cadc442d8da58af3ef9ada8b71c37f62259bce371",
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 16.02,
+          "from": "release",
+          "to": "failed"
+        }
+      ]
+    },
+    {
+      "name": "y_right_1p5mm",
+      "mode": "baseline",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/y_right_1p5mm-baseline.json",
+      "sha256": "77d0420703d5ca6e4089f0e3c8964c7246571e88b1b634c6b00c366925c91e2e",
+      "config": {
+        "x": -0.532,
+        "y": 0.0075,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/y_right_1p5mm-baseline.json"
+      },
+      "phase": "done",
+      "acceptance": {
+        "accepted": true,
+        "failures": [],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.0003154475595450263,
+        "minHeldClearance": 0.18684452380851643,
+        "releaseFall": 0.1869228945777494,
+        "maximumPenetration": 0.00013372223238807592,
+        "maximumJointLimitExcess": 0.0003493717243583383,
+        "minRadialScale": 0.53880084113723,
+        "landingSeconds": 0.32
+      },
+      "summary": {
+        "maxPenetration": 0.00013372223238807592,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.2068534851766207,
+        "steps": 209920,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.0003493717243583383,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.53880084113723
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0004999999999999993,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "459d68bbc6d821dc0ced075fd7a81408c772751aea36d2b7b8b3da60d43e1347",
+        "jawPolicySha256": null,
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 13.1,
+          "from": "release",
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "name": "y_right_1p5mm",
+      "mode": "learned",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/y_right_1p5mm-learned.json",
+      "sha256": "543e6c69954117f8e4f6fec0f69291f23b88d6031b09224e6e3d5b251faee774",
+      "config": {
+        "x": -0.532,
+        "y": 0.0075,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "actor": "app/public/policies/jaw-ppo.json",
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/y_right_1p5mm-learned.json"
+      },
+      "phase": "done",
+      "acceptance": {
+        "accepted": true,
+        "failures": [],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.0003154475595450263,
+        "minHeldClearance": 0.18684452380851643,
+        "releaseFall": 0.18705437504578093,
+        "maximumPenetration": 0.00012338192556809958,
+        "maximumJointLimitExcess": 0.0003493717243583383,
+        "minRadialScale": 0.53880084113723,
+        "landingSeconds": 0.32
+      },
+      "summary": {
+        "maxPenetration": 0.00012338192556809958,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.2068534851766207,
+        "steps": 212160,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.0003493717243583383,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.53880084113723
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0004999999999999993,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "459d68bbc6d821dc0ced075fd7a81408c772751aea36d2b7b8b3da60d43e1347",
+        "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 13.24,
+          "from": "release",
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "name": "y_right_1p5mm",
+      "mode": "untrained",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/y_right_1p5mm-untrained.json",
+      "sha256": "fcdbc9690439da7c21c07db915b63fb2cbcbedd7bb483a60e85c81424a24e416",
+      "config": {
+        "x": -0.532,
+        "y": 0.0075,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "actor": "app/public/policies/jaw-ppo-initial.json",
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/y_right_1p5mm-untrained.json"
+      },
+      "phase": "failed",
+      "acceptance": {
+        "accepted": false,
+        "failures": [
+          "controller did not complete",
+          "opening did not release the ball into a real fall onto the ground"
+        ],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.0003154475595450263,
+        "minHeldClearance": 0.18684452380851643,
+        "releaseFall": 0.05460103561365362,
+        "maximumPenetration": 0.00007119573387687848,
+        "maximumJointLimitExcess": 0.0003493717243583383,
+        "minRadialScale": 0.53880084113723,
+        "landingSeconds": 0
+      },
+      "summary": {
+        "maxPenetration": 0.00007119573387687848,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.2068534851766207,
+        "steps": 256640,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.0003493717243583383,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.53880084113723
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0004999999999999993,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "459d68bbc6d821dc0ced075fd7a81408c772751aea36d2b7b8b3da60d43e1347",
+        "jawPolicySha256": "91805c4d3e6562b2446c482cadc442d8da58af3ef9ada8b71c37f62259bce371",
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 16.02,
+          "from": "release",
+          "to": "failed"
+        }
+      ]
+    },
+    {
+      "name": "mass_plus_20pct",
+      "mode": "baseline",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/mass_plus_20pct-baseline.json",
+      "sha256": "c9cb5a41fa2e2f65d738c5884d4f08b0c318c84c8e5f72025e477a8c7fbc6e4e",
+      "config": {
+        "x": -0.532,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0006,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/mass_plus_20pct-baseline.json"
+      },
+      "phase": "done",
+      "acceptance": {
+        "accepted": true,
+        "failures": [],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.00014873430946717896,
+        "minHeldClearance": 0.18687418794546284,
+        "releaseFall": 0.18704462212079048,
+        "maximumPenetration": 0.00011150787710512215,
+        "maximumJointLimitExcess": 0.0003494114351276778,
+        "minRadialScale": 0.5426074825468306,
+        "landingSeconds": 0.32
+      },
+      "summary": {
+        "maxPenetration": 0.00011150787710512215,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.20687179754082965,
+        "steps": 222400,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.0003494114351276778,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.5426074825468306
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0006000000000000008,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "539f34dd92aecbbfae882022b74a5883c2bc8ad16400043db966026b7ad93f02",
+        "jawPolicySha256": null,
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 13.88,
+          "from": "release",
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "name": "mass_plus_20pct",
+      "mode": "learned",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/mass_plus_20pct-learned.json",
+      "sha256": "5ce8e963095317f604493c37d759076a8aa678929296d350d9afa3d58e00ff8d",
+      "config": {
+        "x": -0.532,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0006,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "actor": "app/public/policies/jaw-ppo.json",
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/mass_plus_20pct-learned.json"
+      },
+      "phase": "done",
+      "acceptance": {
+        "accepted": true,
+        "failures": [],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.00014873430946717896,
+        "minHeldClearance": 0.18687418794546284,
+        "releaseFall": 0.18715147869695448,
+        "maximumPenetration": 0.00011665463807967342,
+        "maximumJointLimitExcess": 0.0003494114351276778,
+        "minRadialScale": 0.5426074825468306,
+        "landingSeconds": 0.32
+      },
+      "summary": {
+        "maxPenetration": 0.00011665463807967342,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.20687179754082965,
+        "steps": 222720,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.0003494114351276778,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.5426074825468306
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0006000000000000008,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "539f34dd92aecbbfae882022b74a5883c2bc8ad16400043db966026b7ad93f02",
+        "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 13.9,
+          "from": "release",
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "name": "mass_plus_20pct",
+      "mode": "untrained",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/mass_plus_20pct-untrained.json",
+      "sha256": "fb1ae42542ce6a8f6d7b4a1256b2111b6f8444f2dd8863278445ab9e00651be4",
+      "config": {
+        "x": -0.532,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0006,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "actor": "app/public/policies/jaw-ppo-initial.json",
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/mass_plus_20pct-untrained.json"
+      },
+      "phase": "failed",
+      "acceptance": {
+        "accepted": false,
+        "failures": [
+          "controller did not complete",
+          "opening did not release the ball into a real fall onto the ground"
+        ],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.00014873430946717896,
+        "minHeldClearance": 0.18687418794546284,
+        "releaseFall": 0.05476058188711824,
+        "maximumPenetration": 0.000060089223070195196,
+        "maximumJointLimitExcess": 0.0003494114351276778,
+        "minRadialScale": 0.5426074825468306,
+        "landingSeconds": 0
+      },
+      "summary": {
+        "maxPenetration": 0.000060089223070195196,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.20687179754082965,
+        "steps": 256640,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.0003494114351276778,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.5426074825468306
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0006000000000000008,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "539f34dd92aecbbfae882022b74a5883c2bc8ad16400043db966026b7ad93f02",
+        "jawPolicySha256": "91805c4d3e6562b2446c482cadc442d8da58af3ef9ada8b71c37f62259bce371",
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 16.02,
+          "from": "release",
+          "to": "failed"
+        }
+      ]
+    }
+  ],
+  "fine": {
+    "name": "half_timestep",
+    "mode": "learned",
+    "file": "rl/runs/ground-validation-clockfixed-20260904/half-step-learned.json",
+    "sha256": "06fe0025a35f6ccbe9f9b17b46121826b8675a1c4709b02eddfbcc60a54cceba",
+    "config": {
+      "x": -0.532,
+      "y": 0.006,
+      "z": 0.0142,
+      "mass": 0.0005,
+      "lift": 0.06,
+      "radius": 0.014,
+      "young": 5000,
+      "poisson": 0.2,
+      "softDamping": 0.0002,
+      "meshCount": 5,
+      "softBall": true,
+      "crouch": 0.3,
+      "worldAngle": 0,
+      "neckTarget": -1.53,
+      "ramp": 2,
+      "closeAt": 4.6,
+      "jawTorque": 0.02,
+      "friction": 0.8,
+      "footStiff": true,
+      "stiffStops": true,
+      "dt": 0.00003125,
+      "actor": "app/public/policies/jaw-ppo.json",
+      "output": "microduck-sim/microduck-simulator/rl/runs/ground-validation-clockfixed-20260904/half-step-learned.json"
+    },
+    "phase": "done",
+    "acceptance": {
+      "accepted": true,
+      "failures": [],
+      "heldSeconds": 1.22,
+      "heldDrift": 0.00031624590239404116,
+      "minHeldClearance": 0.18677986887143563,
+      "releaseFall": 0.18675236181214946,
+      "maximumPenetration": 0.0001278145822381191,
+      "maximumJointLimitExcess": 0.0003497953580477997,
+      "minRadialScale": 0.5265136489184583,
+      "landingSeconds": 0.32
+    },
+    "summary": {
+      "maxPenetration": 0.0001278145822381191,
+      "maxExternal": 0,
+      "maxRobotPenetration": 0.0001823451159831532,
+      "nonFootSupport": false,
+      "maxZ": 0.20689620347633234,
+      "steps": 412160,
+      "finite": true,
+      "solverReset": false,
+      "resetAt": null,
+      "warningCounts": {},
+      "maxJointLimitExcess": 0.0003497953580477997,
+      "maxTargetClamp": 0,
+      "minRadialScale": 0.5265136489184583
+    },
+    "modelAudit": {
+      "freePayload": true,
+      "freeBase": true,
+      "equalities": 0,
+      "mocapBodies": 0,
+      "payloadMass": 0.0004999999999999993,
+      "deformable": true,
+      "flexVertices": 99,
+      "pedestalPresent": false,
+      "terrainPresent": false,
+      "floorHeight": 0,
+      "flexAllNodesFree": true,
+      "jawTorqueLimit": [
+        -0.02,
+        0.02
+      ],
+      "timestep": 0.00003125
+    },
+    "provenance": {
+      "engine": "MuJoCo 3.11.0",
+      "inference": "onnxruntime-node 1.27.0 cpu",
+      "sources": {
+        "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+        "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+        "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+        "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+        "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+        "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+        "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+        "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+        "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+      },
+      "modelSha256": "7ba72443cb147091f563075643a1255cb64c4a3a34f7cbb8c39e07bc45dda908",
+      "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+      "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+      "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+      "sourcesUnchanged": true
+    },
+    "events": [
+      {
+        "time": 1,
+        "from": "settle",
+        "to": "descend"
+      },
+      {
+        "time": 2.2,
+        "from": "descend",
+        "to": "reach"
+      },
+      {
+        "time": 4.6000000000000005,
+        "from": "reach",
+        "to": "clamp"
+      },
+      {
+        "time": 5.4,
+        "from": "clamp",
+        "to": "lift"
+      },
+      {
+        "time": 8.4,
+        "from": "lift",
+        "to": "hold"
+      },
+      {
+        "time": 9.620000000000001,
+        "from": "hold",
+        "to": "release"
+      },
+      {
+        "time": 12.86,
+        "from": "release",
+        "to": "done"
+      }
+    ]
+  },
+  "materialVariants": [
+    {
+      "name": "young_plus_20pct",
+      "mode": "learned",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/stiffer-learned.json",
+      "sha256": "9e3ef29514ebd0de9de265babfecf39a62ae4556d55d4acb3cd192b139d91381",
+      "config": {
+        "x": -0.532,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 6000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 5,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "actor": "app/public/policies/jaw-ppo.json",
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/stiffer-learned.json"
+      },
+      "phase": "done",
+      "acceptance": {
+        "accepted": true,
+        "failures": [],
+        "heldSeconds": 1.22,
+        "heldDrift": 0.00028621096515032534,
+        "minHeldClearance": 0.18614152395473824,
+        "releaseFall": 0.18619797564002621,
+        "maximumPenetration": 0.0001367304253399789,
+        "maximumJointLimitExcess": 0.00034934286883236965,
+        "minRadialScale": 0.5538682045935864,
+        "landingSeconds": 0.32
+      },
+      "summary": {
+        "maxPenetration": 0.0001367304253399789,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.20608009680314057,
+        "steps": 189120,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.00034934286883236965,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.5538682045935864
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0004999999999999993,
+        "deformable": true,
+        "flexVertices": 99,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "ec7c45599cc9b259518b9b3f77d0174115911b22e44f19c91aea4fc4d6b119b9",
+        "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 5.4,
+          "from": "clamp",
+          "to": "lift"
+        },
+        {
+          "time": 8.4,
+          "from": "lift",
+          "to": "hold"
+        },
+        {
+          "time": 9.620000000000001,
+          "from": "hold",
+          "to": "release"
+        },
+        {
+          "time": 11.8,
+          "from": "release",
+          "to": "done"
+        }
+      ]
+    },
+    {
+      "name": "27_nodes",
+      "mode": "learned",
+      "file": "rl/runs/ground-perturbations-clockfixed-20260904/coarse-learned.json",
+      "sha256": "c94b0c3b70f7906847c3e731642538df4a8c7f1011b13715dc3cd4de1d1e6be1",
+      "config": {
+        "x": -0.532,
+        "y": 0.006,
+        "z": 0.0142,
+        "mass": 0.0005,
+        "lift": 0.06,
+        "radius": 0.014,
+        "young": 5000,
+        "poisson": 0.2,
+        "softDamping": 0.0002,
+        "meshCount": 3,
+        "softBall": true,
+        "crouch": 0.3,
+        "worldAngle": 0,
+        "neckTarget": -1.53,
+        "ramp": 2,
+        "closeAt": 4.6,
+        "jawTorque": 0.02,
+        "friction": 0.8,
+        "footStiff": true,
+        "stiffStops": true,
+        "dt": 0.0000625,
+        "actor": "app/public/policies/jaw-ppo.json",
+        "output": "microduck-sim/microduck-simulator/rl/runs/ground-perturbations-clockfixed-20260904/coarse-learned.json"
+      },
+      "phase": "failed",
+      "acceptance": {
+        "accepted": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous elevated opposing-pad hold for 1.2 seconds",
+          "ball slipped by at least 3 mm during final held second",
+          "opening did not release the ball into a real fall onto the ground"
+        ],
+        "heldSeconds": 0,
+        "heldDrift": null,
+        "minHeldClearance": 0,
+        "releaseFall": 0,
+        "maximumPenetration": 0.000035297608247468476,
+        "maximumJointLimitExcess": 0.00003961129027918453,
+        "minRadialScale": 0.6519893676712394,
+        "landingSeconds": 0
+      },
+      "summary": {
+        "maxPenetration": 0.000035297608247468476,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001799661010757278,
+        "nonFootSupport": false,
+        "maxZ": 0.014699961679687502,
+        "steps": 121920,
+        "finite": true,
+        "solverReset": false,
+        "resetAt": null,
+        "warningCounts": {},
+        "maxJointLimitExcess": 0.00003961129027918453,
+        "maxTargetClamp": 0,
+        "minRadialScale": 0.6519893676712394
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0005,
+        "deformable": true,
+        "flexVertices": 27,
+        "pedestalPresent": false,
+        "terrainPresent": false,
+        "floorHeight": 0,
+        "flexAllNodesFree": true,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 0.0000625
+      },
+      "provenance": {
+        "engine": "MuJoCo 3.11.0",
+        "inference": "onnxruntime-node 1.27.0 cpu",
+        "sources": {
+          "app/tests/run-ground-pick.mjs": "1e8fe64167b1f6f69cc6f0e7044d9e2cd71304f1f777755f05a5b90b0d66e81c",
+          "app/src/game/ground-pick-controller.js": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+          "app/src/game/ground-pick-scene.js": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+          "app/src/game/ground-pick-acceptance.js": "58cf678bff0bf5fcea2c22c92d6e209f0857ad44c303dcdf81e4de751a40dbb8",
+          "app/src/game/whole-body-core.js": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+          "app/src/game/contact-observer.js": "f199c99aa05c413d65588bf43afe747e491cae06b9651369b049c18a8558ad6f",
+          "app/src/game/jaw-rl.js": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+          "app/src/game/physics-model.js": "3d5168e418dd3fc80c0cd36e07ca368bb7e1f4add1a3b51c8ce1a2176265382b",
+          "app/src/game/beak-colliders.js": "8cc05e699ad90123f309b67091f300d4a8f13d1706ad8ad90a43cd75f6bdd680"
+        },
+        "modelSha256": "ce1dfda7b46ea165eee2b5c21f08c5196b88b5bc75614757961229884b52a037",
+        "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+        "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+        "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+        "sourcesUnchanged": true
+      },
+      "events": [
+        {
+          "time": 1,
+          "from": "settle",
+          "to": "descend"
+        },
+        {
+          "time": 2.2,
+          "from": "descend",
+          "to": "reach"
+        },
+        {
+          "time": 4.6000000000000005,
+          "from": "reach",
+          "to": "clamp"
+        },
+        {
+          "time": 7.6000000000000005,
+          "from": "clamp",
+          "to": "failed"
+        }
+      ]
+    }
+  ],
+  "browser": {
+    "name": "browser",
+    "mode": "learned",
+    "file": "rl/runs/ground-browser-complete.json",
+    "sha256": "0be23c0d146645a9dd4677c834ed0802c17aec47d24f2a72a9efdf69860affd0",
+    "config": {
+      "x": -0.532,
+      "y": 0.006,
+      "z": 0.0142,
+      "mass": 0.0005,
+      "lift": 0.06,
+      "radius": 0.014,
+      "young": 5000,
+      "poisson": 0.2,
+      "softDamping": 0.0002,
+      "meshCount": 5,
+      "softBall": true,
+      "crouch": 0.3,
+      "worldAngle": 0,
+      "neckTarget": -1.53,
+      "ramp": 2,
+      "closeAt": 4.6,
+      "jawTorque": 0.02,
+      "friction": 0.8,
+      "footStiff": true,
+      "stiffStops": true,
+      "dt": 0.0000625
+    },
+    "phase": "done",
+    "acceptance": {
+      "accepted": true,
+      "failures": [],
+      "heldSeconds": 1.22,
+      "heldDrift": 0.00024360327767623702,
+      "minHeldClearance": 0.1869115785963119,
+      "releaseFall": 0.1869704459059746,
+      "maximumPenetration": 0.00011329529677548456,
+      "maximumJointLimitExcess": 0.00033708967347823027,
+      "minRadialScale": 0.5391582977709467,
+      "landingSeconds": 0.32
+    },
+    "summary": {
+      "maxPenetration": 0.00011329529677548456,
+      "maxExternal": 0,
+      "maxRobotPenetration": 0.00017996615367349943,
+      "nonFootSupport": false,
+      "maxZ": 0.2068508974710716,
+      "steps": 202880,
+      "finite": true,
+      "solverReset": false,
+      "resetAt": null,
+      "warningCounts": {},
+      "maxJointLimitExcess": 0.00033708967347823027,
+      "maxTargetClamp": 0,
+      "minRadialScale": 0.5391582977709467
+    },
+    "modelAudit": {
+      "freePayload": true,
+      "freeBase": true,
+      "equalities": 0,
+      "mocapBodies": 0,
+      "payloadMass": 0.0004999999999999993,
+      "deformable": true,
+      "flexVertices": 99,
+      "pedestalPresent": false,
+      "terrainPresent": false,
+      "floorHeight": 0,
+      "flexAllNodesFree": true,
+      "jawTorqueLimit": [
+        -0.02,
+        0.02
+      ],
+      "timestep": 0.0000625
+    },
+    "provenance": {
+      "engine": "MuJoCo 3.11.0",
+      "inference": "onnxruntime-web 1.27.0 wasm",
+      "modelSha256": "b5e35b8d85a8ae4e7856d3bf8f50bb1a1d065e6605271fa74ba43b97285d9b14",
+      "policySha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+      "controllerSha256": "8c8cf4b5b0d8a23a4c85ec24ad4e0e9a9838482fef6783b883422a95280e3ef9",
+      "coreSha256": "35ac6b6bad67e41b79639c81c99c34237ea8e3dfc3fbb6bde61bd5eb87594e67",
+      "sceneSha256": "ccb8e70364fb4197826c594bee7a29dd5dfa6b1bf53e40c4b0388eec2501ee49",
+      "controlMode": "learned",
+      "jawPolicySha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+      "jawAdapterSha256": "cd6f0b70b807bc913cff8e318e83f3f4775b11480e34c6368a810556e7c806cc",
+      "groundPolicySha256": "ffbf5109982ff999b0ba53afe86b9ae731bbec679d67fb7f8ab4c52152c88872",
+      "task": "ground-soft-ball",
+      "learnedScope": "frozen table-trained jaw PPO transferred to ground; body approach/lift controller is not learned here"
+    },
+    "events": [
+      {
+        "time": 1,
+        "from": "settle",
+        "to": "descend"
+      },
+      {
+        "time": 2.2,
+        "from": "descend",
+        "to": "reach"
+      },
+      {
+        "time": 4.6000000000000005,
+        "from": "reach",
+        "to": "clamp"
+      },
+      {
+        "time": 5.4,
+        "from": "clamp",
+        "to": "lift"
+      },
+      {
+        "time": 8.4,
+        "from": "lift",
+        "to": "hold"
+      },
+      {
+        "time": 9.620000000000001,
+        "from": "hold",
+        "to": "release"
+      },
+      {
+        "time": 12.66,
+        "from": "release",
+        "to": "done"
+      }
+    ]
+  },
+  "materialBench": {
+    "file": "rl/runs/ground-development/soft-material-final.json",
+    "sha256": "ab75fdc2af8573591976003c588b1dd37bf0767af664d04d4d753642d991000a"
+  }
+}

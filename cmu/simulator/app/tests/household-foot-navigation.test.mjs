@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {footNavigationPosition,HouseholdPickController} from '../src/game/household-pick-controller.js';
+const feet=[[.1,.04,.006],[.1,-.04,.006]];
+assert.deepEqual(footNavigationPosition(feet,[-.006,0],0),[.094,0]);
+const rotated=feet.map(([x,y,z])=>[-y,x,z]);
+const p=footNavigationPosition(rotated,[-.006,0],Math.PI/2);
+assert.ok(Math.abs(p[0])<1e-12&&Math.abs(p[1]-.094)<1e-12);
+assert.throws(()=>footNavigationPosition([[NaN,0],[0,0]],[0,0],0));
+const snapshot={time:1,payload:[.1,0,.006,1,0,0,0],root:[0,0,.12,1,0,0,0]};
+const c=new HouseholdPickController({kind:'pen',bodyHeadingOffset:.1});
+assert.equal(c.begin(snapshot),true);
+assert.ok(Math.abs(c.yaw-.1)<1e-12);
+assert.deepEqual(c.target,[.1,0,.006]);
+console.log('PASS: foot-referenced navigation preserves a calibrated standing offset under yaw');

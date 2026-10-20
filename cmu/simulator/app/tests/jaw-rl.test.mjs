@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import {JawActionFilter,jawObservation,jawReward,jawSafetyFailure,jawActor} from "../src/game/jaw-rl.js";
+const filter=new JawActionFilter();
+assert.equal(filter.update(0),.308);
+for(let i=0;i<100;i++)filter.update(0);
+assert.equal(filter.target,0);
+for(let i=0;i<100;i++)filter.update(1);
+assert.equal(filter.target,.32);
+assert.throws(()=>filter.update(2));assert.throws(()=>filter.update(NaN));
+const s={payload:[.01,0,.24,1,0,0,0],graspPoint:[0,0,.23],jaw:.12,root:[0,0,.117,1,0,0,0],joint:Array(14).fill(0),contact:{upperForce:.3,lowerForce:.3,otherSupport:false}};
+const ctl={phase:"hold",height:.195,age:1,hold:1};
+assert.equal(jawObservation(s,ctl,.1).length,20);
+assert.ok(jawReward(s,ctl)>jawReward({...s,contact:{}},ctl));
+assert.equal(jawSafetyFailure({finite:true,maxExternal:0,nonFootSupport:false,maxPenetration:.0001,maxRobotPenetration:.0001,maxJointLimitExcess:0}),false);
+assert.equal(jawSafetyFailure({finite:true,maxExternal:1}),true);
+assert.equal(jawSafetyFailure({finite:true,maxExternal:0,maxPenetration:.0005}),true);
+assert.equal(jawActor({version:1,layers:[{weight:[Array(20).fill(0),Array(20).fill(0)],bias:[0,1],activation:"linear"}]},Array(20).fill(0)).action,1);
+console.log("PASS: jaw observation, action boundaries, physical reward and safety rejection");

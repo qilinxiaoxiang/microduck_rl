@@ -3,7 +3,7 @@
 
   python3 cmu/sync_from_robotics.py [--robotics ~/code/robotics] [--check]
 
-Everything under cmu/mac, cmu/pi, cmu/whole, cmu/real-logs, cmu/model/sole and the copied files of cmu/hardware is a generated copy: edit the
+Everything under cmu/mac, cmu/pi, cmu/whole, cmu/real-logs, cmu/model/sole, cmu/simulator and the copied files of cmu/hardware is a generated copy: edit the
 source in the robotics tree, rerun this script, commit the result. The rewrite rules below are the only
 difference between a source file and its copy (path hops between the two layouts, no private venv re-exec,
 relative manifest paths); each rule must match or the sync stops, so a drifted source is noticed, not silently
@@ -123,6 +123,39 @@ EXTRACTS = [
     (f"{REL}/run/Orange_Elegoo_editable.3mf", "Metadata/project_settings.config", f"{HWP}/profiles/elegoo-orange-project_settings.json"),
 ]
 
+# cmu/simulator: the browser simulator and the Microduck macOS app, from the microduck-simulator checkout (Pollen's Hugging
+# Face Space with our commits on top). Committed content only: a file with uncommitted edits is copied as it is at HEAD,
+# so half-done work never lands here, and files no longer in the checkout are removed from the copy. Left out:
+# app/test-results (about 1.5 GB of September household result archives) and the household research records (docs,
+# experiments, tutorials, sources, scripts). rl/ is kept: the app's ground-pick tests import its review helpers, and it
+# holds the jaw PPO policy. .gitattributes is left out too: this repository does not use Git LFS.
+SIMULATOR = "microduck-simulator"
+SIM_DST = "simulator"
+SIM_KEEP = ("app/", "desktop/", "rl/", "README.md", "Dockerfile", ".gitignore", "Play-Jaw-RL.command", "Play-MicroDuck-Course.command")
+SIM_SKIP = ("app/test-results/",)
+LFS_POINTER = b"version https://git-lfs.github.com/spec/"
+
+
+def simulator_files(sim: Path) -> dict:
+    """{destination relative to cmu/: bytes} for the simulator's committed files."""
+    import subprocess
+    root = sim / SIMULATOR
+    git = lambda *args: subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True).stdout
+    tracked = [f for f in git("ls-files", "-z").decode().split("\0") if f]
+    dirty = {f for f in git("diff", "--name-only", "-z", "HEAD").decode().split("\0") if f}
+    out = {}
+    for rel in tracked:
+        if not rel.startswith(SIM_KEEP) or rel.startswith(SIM_SKIP):
+            continue
+        data = git("show", f"HEAD:{rel}") if rel in dirty else (root / rel).read_bytes()
+        if data.startswith(LFS_POINTER):  # an LFS file whose content is not in the checkout (run git lfs pull there)
+            sys.exit(f"sync: {SIMULATOR}/{rel} is a Git LFS pointer, not its content")
+        if Path(rel).suffix in TEXT_SUFFIXES:  # recorded absolute paths of the private tree, as for the other copies
+            data = data.replace(ABS_SIM.encode(), f"{SIM_REL}/".encode())
+        out[f"{SIM_DST}/{rel}"] = data
+    return out
+
+
 WHOLE_HOP = '"..", "..", "..", "hardware-design-20260912", "whole-robot-20260912"'
 EXEC_BLOCK = re.compile(
     r'SIM_PYTHON = os\.path\.expanduser\("~/\.venvs/microduck-dyn/bin/python"\)\n'
@@ -215,12 +248,16 @@ def main():
         for p in sorted((sim / sdir).iterdir()):
             if p.is_file() and not p.name.startswith("."):
                 pairs.append((f"{sdir}/{p.name}", f"{ddir}/{p.name}"))
+    sim_copy = simulator_files(sim)
     changed = 0
-    for src_rel, dst_rel in pairs:
+    items = [(src_rel, dst_rel, None) for src_rel, dst_rel in pairs] + \
+        [(f"{SIMULATOR}/{d[len(SIM_DST) + 1:]}", d, data) for d, data in sim_copy.items()]
+    for src_rel, dst_rel, data in items:
         src, dst = sim / src_rel, HERE / dst_rel
-        if not src.exists():
-            sys.exit(f"sync: missing source {src}")
-        data = rewrite(dst_rel, src.read_bytes())
+        if data is None:
+            if not src.exists():
+                sys.exit(f"sync: missing source {src}")
+            data = rewrite(dst_rel, src.read_bytes())
         old = dst.read_bytes() if dst.exists() else None
         if old == data:
             continue
@@ -249,10 +286,20 @@ def main():
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_bytes(data)
         print(f"wrote {dst_rel}")
+    for stale in sorted(p for p in (HERE / SIM_DST).rglob("*") if p.is_file()) if (HERE / SIM_DST).is_dir() else []:
+        rel = stale.relative_to(HERE).as_posix()
+        if rel in sim_copy or "/node_modules/" in f"/{rel}" or "/dist/" in f"/{rel}":
+            continue
+        changed += 1
+        if a.check:
+            print(f"would remove {rel}")
+            continue
+        stale.unlink()
+        print(f"removed {rel}")
     unused = set(RULES) - {d for _, d in pairs}
     if unused:
         sys.exit(f"sync: rules for files that are not synced: {sorted(unused)}")
-    print(f"sync: {len(pairs) + len(EXTRACTS)} files, {changed} {'would change' if a.check else 'written'}")
+    print(f"sync: {len(pairs) + len(EXTRACTS) + len(sim_copy)} files, {changed} {'would change' if a.check else 'written'}")
 
 
 if __name__ == "__main__":

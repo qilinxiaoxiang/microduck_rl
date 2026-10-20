@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MicroDuck · 生活用品叼取</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101f29;color:#eaf4f7;font:15px system-ui}canvas{display:block}aside{position:absolute;top:18px;left:18px;background:#10222bee;padding:20px;border:1px solid #39515f;border-radius:15px;width:310px;max-height:calc(100vh - 36px);overflow:auto}h1{font-size:22px;margin:0 0 14px}p{line-height:1.65}small,.muted{color:#b3c9d2;font-size:13px}a{color:#a1dcf9}button,select{font:inherit;padding:8px 10px;border-radius:7px;border:1px solid #5b7582;background:#284451;color:#f0f7fa;cursor:pointer;margin:3px}button:disabled{opacity:.45;cursor:wait}button.primary{background:#a8d8c4;color:#102a27;border:0;font-weight:600}#state{color:#ffe1a5}#measure{white-space:pre-line;font-size:13px;line-height:1.7;font-variant-numeric:tabular-nums}kbd{display:inline-block;background:#365361;padding:1px 5px;border-radius:4px}label{display:block;margin:10px 0}details{border-top:1px solid #3a5360;padding-top:12px;margin-top:16px}summary{cursor:pointer}#help{position:absolute;right:18px;bottom:15px;color:#a9c5d2;font-size:13px}#drive{display:grid;grid-template-columns:repeat(3,1fr);max-width:200px;margin:8px 0}#drive button{touch-action:none;user-select:none}@media(max-width:700px){aside{width:245px;left:8px;top:8px;padding:12px;font-size:13px}h1{font-size:19px}}
+</style></head><body><aside>
+<h1>走近，再叼起来</h1>
+<label>地上的物品 <select id="object"><option value="pen">笔</option><option value="sock">薄袜子 · 实验模型</option></select></label>
+<p id="scope" class="muted">正在载入机器人和物理模型…</p>
+<p class="muted">实验版：先试默认位置。走路后的精确对准仍不稳定，失败会保留现场，不会偷偷把物品摆回嘴边。</p>
+<p><kbd>W</kbd> 前进 · <kbd>S</kbd> 后退<br><kbd>A</kbd> / <kbd>D</kbd> 转向<br><kbd>G</kbd> 自动对准、蹲低并叼取<br><kbd>E</kbd> 放下 · <kbd>空格</kbd> 暂停</p>
+<div id="drive"><span></span><button data-drive="KeyW" aria-label="前进">↑</button><span></span><button data-drive="KeyA" aria-label="左转">↶</button><button data-drive="KeyS" aria-label="后退">↓</button><button data-drive="KeyD" aria-label="右转">↷</button></div>
+<button id="step-forward" disabled>前进半秒</button><button id="walk-forward" disabled>前进两秒</button><small>按仿真时间计；按 G 会立即停下行走。</small><br>
+<button id="pick" class="primary" disabled>G 自动叼取</button><button id="release" disabled>E 放下</button>
+<p id="state" role="status">加载中…</p><p id="measure"></p>
+<button id="reset" disabled>重置场景</button><button id="pause" disabled>暂停</button>
+<details><summary>实验边界与证据</summary><p class="muted">自动对准读取仿真中的物体位置。身体沿用已有走路、蹲起策略；本页新增位置控制和动作衔接。物品仅受重力、碰撞和材料内力作用。尺寸与材质尚未实物标定，失败不自动摆回。</p><label><input id="wire" type="checkbox">显示嘴部碰撞边界</label><button id="export" disabled>导出本次证据</button><p><a href="/ground-pick.html?controller=learned">地面小球</a> · <a href="/microduck-course.html">从零搭建教程</a></p></details>
+</aside><span id="help">拖动旋转视角 · 滚轮缩放</span><script type="module" src="/src/household-pick.js"></script></body></html>

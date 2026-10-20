@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="从零搭建 MicroDuck 仿真、软球接触和强化学习的可运行课程">
+  <title>MicroDuck 从零搭到强化学习</title>
+  <link rel="stylesheet" href="/src/microduck-course.css">
+</head>
+<body>
+  <header class="hero">
+    <nav class="topbar"><span class="brand">MICRODUCK LAB</span><a href="/ground-pick.html?controller=learned">直接看成功案例</a></nav>
+    <div class="hero-copy">
+      <p class="eyebrow">从一块 XML 到一只会叼球的鸭子</p>
+      <h1>从零搭仿真<br>再把它变成学习环境</h1>
+      <p class="lede">14 章 notebook 加一个真实物理实验台。机器人、材质、关节、碰撞、强化学习和验收都能拆开看。</p>
+      <div class="hero-actions">
+        <a class="primary" href="#lab">开始改软球</a>
+        <a class="secondary" href="#lessons">查看课程</a>
+      </div>
+    </div>
+    <div class="hero-proof">
+      <span>当前已验证</span>
+      <strong>28 mm</strong><small>软球直径</small>
+      <strong>1.22 s</strong><small>连续悬空夹持</small>
+      <strong>0.113 mm</strong><small>最大物体穿入</small>
+    </div>
+  </header>
+
+  <main>
+    <section class="truth-strip" aria-label="项目边界">
+      <p><b>已经做到</b>　默认软球从平地夹起、保持、张嘴、自然落地。</p>
+      <p><b>还没做到</b>　任意网格、任意材质和薄片泛化。</p>
+      <p><b>学习范围</b>　PPO 只学习嘴部开合，身体动作来自已有策略与专用控制器。</p>
+    </section>
+
+    <section id="lessons" class="section lessons">
+      <div class="section-heading"><p class="eyebrow">NOTEBOOK SERIES</p><h2>按依赖顺序学</h2><p>每章都读取这套项目的真实源码或实验数据。先运行，再改一个参数，再解释结果。</p></div>
+      <div class="lesson-grid">
+        <article><span>00</span><h3>全景图</h3><p>五层系统和学习边界</p></article>
+        <article><span>01</span><h3>世界与时间步</h3><p>单位、坐标、四元数</p></article>
+        <article><span>02</span><h3>机器人 MJCF</h3><p>刚体树、14 关节、自由度</p></article>
+        <article><span>03</span><h3>关节与扭矩</h3><p>极限、阻尼、位置伺服</p></article>
+        <article><span>04</span><h3>碰撞与穿模</h3><p>215 个嘴部凸碰撞片</p></article>
+        <article><span>05</span><h3>可变形小球</h3><p>质量、弹性、网格、恢复</p></article>
+        <article><span>06</span><h3>抓取与验收</h3><p>状态机和独立证据</p></article>
+        <article><span>07</span><h3>Gymnasium</h3><p>观察、动作、奖励、RPC</p></article>
+        <article><span>08</span><h3>PPO 训练</h3><p>库的职责和我们的扩展</p></article>
+        <article><span>09</span><h3>策略部署</h3><p>actor、ONNX、浏览器运行</p></article>
+        <article><span>10</span><h3>泛化</h3><p>失败样本和薄片实验</p></article>
+        <article><span>11</span><h3>笔和袜子</h3><p>刚体与自由布节点</p></article>
+        <article><span>12</span><h3>反馈与训练</h3><p>预测控制和失败对照</p></article>
+        <article><span>13</span><h3>计算与复现</h3><p>云端费用和可复用贡献</p></article>
+      </div>
+      <div class="notebook-note">
+        <b>Notebook 在本地仓库</b>
+        <code>tutorials/microduck-from-zero/notebooks/00_course_map.ipynb</code>
+        <p>用 VS Code 或 Jupyter 打开。默认练习只用 Python 标准库，不会自动重训。</p>
+      </div>
+    </section>
+
+    <section id="lab" class="section lab">
+      <div class="section-heading"><p class="eyebrow">LIVE MATERIAL LAB</p><h2>改参数，打开真实仿真</h2><p>一次只改一个量。页面会生成完整实验链接，不会把参数变化藏起来。</p></div>
+      <div class="lab-layout">
+        <form id="material-form">
+          <label><span>控制器</span><select name="controller"><option value="learned">训练后嘴部</option><option value="untrained">训练前对照</option><option value="baseline">规则控制</option></select></label>
+          <label><span>半径 <output data-for="radius"></output></span><input name="radius" type="range" min="8" max="24" step="1" value="14"><small>毫米</small></label>
+          <label><span>质量 <output data-for="mass"></output></span><input name="mass" type="range" min="0.2" max="3" step="0.1" value="0.5"><small>克</small></label>
+          <label><span>杨氏模量 <output data-for="young"></output></span><input name="young" type="range" min="1000" max="15000" step="500" value="5000"><small>帕，越大越硬</small></label>
+          <label><span>泊松比 <output data-for="poisson"></output></span><input name="poisson" type="range" min="0.05" max="0.45" step="0.05" value="0.2"><small>受压时横向鼓起程度</small></label>
+          <label><span>形变阻尼 <output data-for="softDamping"></output></span><input name="softDamping" type="range" min="0" max="0.003" step="0.0001" value="0.0002"><small>越大越快停止振动</small></label>
+          <label><span>滑动摩擦 <output data-for="friction"></output></span><input name="friction" type="range" min="0.25" max="1.4" step="0.05" value="0.8"><small>球与嘴部接触</small></label>
+          <label><span>网格</span><select name="meshCount"><option value="3">27 节点</option><option value="5" selected>99 节点</option><option value="7">219 节点</option></select><small>更细不代表自动更稳</small></label>
+          <label><span>物理时间步</span><select name="dt"><option value="0.000125">0.125 ms</option><option value="0.0000625" selected>0.0625 ms</option><option value="0.00003125">0.03125 ms</option></select><small>越小越慢，撞击解析更细</small></label>
+          <label><span>球的前后位置 <output data-for="x"></output></span><input name="x" type="range" min="-540" max="-524" step="0.5" value="-532"><small>毫米</small></label>
+        </form>
+        <aside class="readout">
+          <p class="status" id="experiment-status">默认已验证配置</p>
+          <div><span>直径</span><strong id="diameter">28.0 mm</strong></div>
+          <div><span>等体积密度</span><strong id="density">43.5 kg/m³</strong></div>
+          <div><span>柔性节点</span><strong id="vertices">99</strong></div>
+          <div><span>每个控制周期</span><strong id="steps">320 物理步</strong></div>
+          <a id="run-experiment" class="primary run" href="/ground-pick.html?controller=learned">运行这组参数</a>
+          <button id="reset-form" type="button">恢复默认参数</button>
+          <p class="fineprint">新组合没有预先保证成功。运行结束后请看验收结果，再导出 JSON 留证。</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section playgrounds">
+      <div class="section-heading"><p class="eyebrow">PLAYGROUNDS</p><h2>四个入口，各看一层</h2></div>
+      <div class="playground-grid">
+        <a href="/index.html?boot=1&telemetry=1"><b>机器人自由场</b><span>走路、坐下、翻滚，看 61 维策略驱动 14 个关节。</span></a>
+        <a href="/grasp-bench.html"><b>碰撞观察台</b><span>打开绿色边界，看视觉网格与碰撞几何是否贴合。</span></a>
+        <a href="/ground-pick.html?controller=learned"><b>地面软球</b><span>看真实夹持、悬空、滑移、穿入和自然落地。</span></a>
+        <a href="/table-pick.html?controller=learned"><b>训练原任务</b><span>回看 PPO 学习嘴部开合时使用的台面薄块。</span></a>
+      </div>
+    </section>
+  </main>
+  <footer><span>MicroDuck Lab · P0 可验证具身学习闭环</span><a href="https://github.com/pollen-robotics/microduck_rl">上游 MicroDuck RL</a></footer>
+  <script type="module" src="/src/microduck-course.js"></script>
+</body>
+</html>

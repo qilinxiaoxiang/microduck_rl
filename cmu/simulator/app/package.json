@@ -1,0 +1,41 @@
+{
+  "name": "microduck-sandbox",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:physics": "node tests/browser-budget.test.mjs && node tests/control-loop-clock.test.mjs && node tests/table-pick-controller.test.mjs && node tests/head-reach-controller.test.mjs && node tests/physics.test.mjs",
+    "test:whole-body": "node tests/whole-body.test.mjs && node tests/whole-body-sampled.test.mjs && node tests/whole-body-sampled.test.mjs 92605",
+    "test:jaw-rl": "node tests/jaw-rl.test.mjs",
+    "test:ground": "node tests/jaw-safety.test.mjs && node tests/ground-pick.test.mjs && node tests/ground-physics.test.mjs",
+    "test:household": "node tests/household-pick.test.mjs && node tests/household-physics.test.mjs && node tests/household-reach.test.mjs && node tests/household-grasp-target.mjs",
+    "test:household:residual": "node tests/household-heading.test.mjs && node tests/household-residual.test.mjs && node tests/household-retry-target.test.mjs && node tests/household-run-budget.test.mjs",
+    "test:household:experimental": "node tests/household-foot-navigation.test.mjs && node tests/household-predictive-servo.test.mjs && node tests/household-support-statics.test.mjs",
+    "test:household:predictive": "node tests/household-predictive-client.test.mjs && node tests/household-lift-stop.test.mjs && node tests/household-transport.test.mjs && node tests/household-cloth-target.test.mjs && node tests/household-drive.test.mjs",
+    "test:household:evidence": "node tests/household-evidence.test.mjs",
+    "test:tutorial": "node tests/tutorial-parameters.test.mjs"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^9.3.1",
+    "@react-three/fiber": "^9.7.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "three": "^0.164.1",
+    "zustand": "^5.0.15"
+  },
+  "overrides": {
+    "onnxruntime-node": { "adm-zip": "0.6.0" }
+  },
+  "devDependencies": {
+    "@mujoco/mujoco": "3.11.0",
+    "@vitejs/plugin-react": "^6.1.0",
+    "jsdom": "26.1.0",
+    "onnxruntime-node": "1.27.0",
+    "vite": "^8.2.2"
+  }
+}

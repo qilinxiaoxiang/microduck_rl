@@ -28,6 +28,10 @@ the open problems); the quickstarts are in the [top-level README](../README.md).
 - `hardware/`: the battery backpack design materials (`battery-backpack/`: STL files, mating parts, envelopes, checks,
   masses, wiring page, parts list, CAD source) and the print pipeline for the RoboClub printers (`printing/`: profiles,
   slicer commands, orientation and brim rules, the ready V1.20 plate). `hardware/README.md` is the index.
+- `simulator/`: the browser simulator and the Microduck macOS app: the game with our duck as built (legs only), the
+  ground and table pickup pages, the real-robot monitor and remote control (`app/robot-live.html`), the desktop
+  launcher (`desktop/`) and the jaw PPO research (`rl/`). Run it with `cd cmu/simulator/app && npm ci && npx vite`;
+  checks: `npm run test:physics` and `npm run test:ground`. `simulator/desktop/README.md` covers the app and the robot link.
 
 ## Three ways in
 
@@ -58,10 +62,11 @@ the open problems); the quickstarts are in the [top-level README](../README.md).
 
 ## How this directory is refreshed
 
-`mac/`, `pi/`, `whole/`, `real-logs/`, `model/sole/` and the copied files under `hardware/` (everything there but
+`mac/`, `pi/`, `whole/`, `real-logs/`, `model/sole/`, `simulator/` and the copied files under `hardware/` (everything there but
 the three `README.md` pages) are generated copies of the robotics working tree on the robot's MacBook. `sync_from_robotics.py` copies them with a short list of rewrite rules (path hops between the two
 layouts, no private venv re-exec, relative manifest paths, private addresses replaced). Each rule must match or the
-sync stops, so a drifted source is noticed. The workflow on that machine:
+sync stops, so a drifted source is noticed. `simulator/` is the committed content of the microduck-simulator checkout
+(Pollen's Hugging Face Space plus our commits), without its 1.5 GB of September result archives. The workflow on that machine:
 
 ```bash
 python3 cmu/sync_from_robotics.py --check   # what would change

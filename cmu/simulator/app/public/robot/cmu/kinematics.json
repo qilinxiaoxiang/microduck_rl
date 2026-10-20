@@ -1,0 +1,1805 @@
+{
+ "bodies": [
+  {
+   "name": "trunk_base",
+   "parent": null,
+   "pos": [
+    0.0,
+    0.0,
+    0.12
+   ],
+   "quat": [
+    1.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "trunk_base__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "trunk_base__dark",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.0331,
+      0.0331,
+      0.03968,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    },
+    {
+     "type": "mesh",
+     "mesh": "trunk_base__light",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.78741,
+      0.74841,
+      0.63828,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "trunk_base__orange",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.89001,
+      0.17064,
+      0.0049,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "trunk_base__pcb_blue",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01961,
+      0.07324,
+      0.34239,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "trunk_base__pcb_green",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01961,
+      0.13287,
+      0.06372,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "trunk_base__servo",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.02452,
+      0.02452,
+      0.02721,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    },
+    {
+     "type": "mesh",
+     "mesh": "trunk_base__white",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.84809,
+      0.84809,
+      0.80735,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    }
+   ],
+   "joint": null
+  },
+  {
+   "name": "yaw2roll",
+   "parent": "trunk_base",
+   "pos": [
+    0.006,
+    0.0175,
+    -0.005
+   ],
+   "quat": [
+    0.0,
+    -0.707107,
+    -0.707107,
+    -0.0
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "yaw2roll__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "yaw2roll__metal",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.477,
+      0.49191,
+      0.50708,
+      1
+     ],
+     "roughness": 0.35,
+     "metalness": 0.7
+    },
+    {
+     "type": "mesh",
+     "mesh": "yaw2roll__servo",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.02452,
+      0.02452,
+      0.02721,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    }
+   ],
+   "joint": {
+    "name": "left_hip_yaw",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -0.4363323129985824,
+     0.5235987755982988
+    ],
+    "actuator_index": 0
+   }
+  },
+  {
+   "name": "hip_l",
+   "parent": "yaw2roll",
+   "pos": [
+    0.0,
+    0.0165,
+    0.0125
+   ],
+   "quat": [
+    0.707107,
+    -0.707107,
+    -0.0,
+    -0.0
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "hip_l__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "hip_l__orange",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.89001,
+      0.17064,
+      0.0049,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    }
+   ],
+   "joint": {
+    "name": "left_hip_roll",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -0.3839724354387525,
+     0.3839724354387525
+    ],
+    "actuator_index": 1
+   }
+  },
+  {
+   "name": "upper_leg_left",
+   "parent": "hip_l",
+   "pos": [
+    0.025,
+    0.0,
+    -0.0185
+   ],
+   "quat": [
+    0.5,
+    -0.5,
+    0.5,
+    -0.5
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "upper_leg_left__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "upper_leg_left__servo",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.02452,
+      0.02452,
+      0.02721,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    },
+    {
+     "type": "mesh",
+     "mesh": "upper_leg_left__white",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.84809,
+      0.84809,
+      0.80735,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    }
+   ],
+   "joint": {
+    "name": "left_hip_pitch",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -1.570796326795005,
+     1.5707963267947882
+    ],
+    "actuator_index": 2
+   }
+  },
+  {
+   "name": "leg",
+   "parent": "upper_leg_left",
+   "pos": [
+    0.022,
+    0.0357771,
+    -0.004
+   ],
+   "quat": [
+    0.0,
+    0.707107,
+    0.707107,
+    0.0
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "leg__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "leg__metal",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.477,
+      0.49191,
+      0.50708,
+      1
+     ],
+     "roughness": 0.35,
+     "metalness": 0.7
+    },
+    {
+     "type": "mesh",
+     "mesh": "leg__servo",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.02452,
+      0.02452,
+      0.02721,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    }
+   ],
+   "joint": {
+    "name": "left_knee",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -1.570796326795012,
+     1.570796326794781
+    ],
+    "actuator_index": 3
+   }
+  },
+  {
+   "name": "ankle_left",
+   "parent": "leg",
+   "pos": [
+    0.0,
+    0.042,
+    -0.026
+   ],
+   "quat": [
+    0.0,
+    1.0,
+    -0.0,
+    0.0
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "ankle_left__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "ankle_left__orange",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.89001,
+      0.17064,
+      0.0049,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "ankle_left__yellow",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      1.0,
+      0.60383,
+      0.01002,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    }
+   ],
+   "joint": {
+    "name": "left_ankle",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -1.5707963267949019,
+     1.5707963267948912
+    ],
+    "actuator_index": 4
+   }
+  },
+  {
+   "name": "neck",
+   "parent": "trunk_base",
+   "pos": [
+    0.026,
+    0.0145,
+    0.0324215
+   ],
+   "quat": [
+    0.0,
+    0.0,
+    0.707107,
+    -0.707107
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "neck__orange",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.89001,
+      0.17064,
+      0.0049,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "neck__servo",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.02452,
+      0.02452,
+      0.02721,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    }
+   ],
+   "joint": {
+    "name": "neck_pitch",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -1.5707963267948966,
+     1.0471975511965976
+    ],
+    "actuator_index": 5
+   }
+  },
+  {
+   "name": "neck_pitch",
+   "parent": "neck",
+   "pos": [
+    0.0,
+    -0.05,
+    -0.0
+   ],
+   "quat": [
+    0.0,
+    1.0,
+    0.0,
+    0.0
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "neck_pitch__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "neck_pitch__orange",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.89001,
+      0.17064,
+      0.0049,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    }
+   ],
+   "joint": {
+    "name": "head_pitch",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -1.5707963267948974,
+     1.5707963267948957
+    ],
+    "actuator_index": 6
+   }
+  },
+  {
+   "name": "yaw_roll_motion",
+   "parent": "neck_pitch",
+   "pos": [
+    -0.0,
+    0.0186931,
+    -0.0145
+   ],
+   "quat": [
+    0.0,
+    0.0,
+    -0.707107,
+    -0.707107
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "yaw_roll_motion__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "yaw_roll_motion__servo",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.02452,
+      0.02452,
+      0.02721,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    }
+   ],
+   "joint": {
+    "name": "head_yaw",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -2.967059728390373,
+     2.967059728390348
+    ],
+    "actuator_index": 7
+   }
+  },
+  {
+   "name": "jaw_soft",
+   "parent": "yaw_roll_motion",
+   "pos": [
+    -0.0179,
+    0.0,
+    0.0145
+   ],
+   "quat": [
+    0.707107,
+    -0.0,
+    -0.707107,
+    -0.0
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__dark",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.0331,
+      0.0331,
+      0.03968,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__gold",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.60383,
+      0.34239,
+      0.05088,
+      1
+     ],
+     "roughness": 0.35,
+     "metalness": 0.6
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__light",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.78741,
+      0.74841,
+      0.63828,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__metal",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.477,
+      0.49191,
+      0.50708,
+      1
+     ],
+     "roughness": 0.35,
+     "metalness": 0.7
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__orange",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.89001,
+      0.17064,
+      0.0049,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__pcb_blue",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01961,
+      0.07324,
+      0.34239,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__pcb_green",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01961,
+      0.13287,
+      0.06372,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__servo",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.02452,
+      0.02452,
+      0.02721,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__white",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.84809,
+      0.84809,
+      0.80735,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__yellow",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      1.0,
+      0.60383,
+      0.01002,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "jaw_soft__jaw_yellow",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      1.0,
+      0.60383,
+      0.01002,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    }
+   ],
+   "joint": {
+    "name": "head_roll",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -0.43633231299859127,
+     0.4363323129985735
+    ],
+    "actuator_index": 8
+   }
+  },
+  {
+   "name": "bearing_roll",
+   "parent": "trunk_base",
+   "pos": [
+    0.006,
+    -0.0175,
+    -0.005
+   ],
+   "quat": [
+    0.0,
+    0.707107,
+    0.707107,
+    0.0
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "bearing_roll__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "bearing_roll__metal",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.477,
+      0.49191,
+      0.50708,
+      1
+     ],
+     "roughness": 0.35,
+     "metalness": 0.7
+    },
+    {
+     "type": "mesh",
+     "mesh": "bearing_roll__servo",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.02452,
+      0.02452,
+      0.02721,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    }
+   ],
+   "joint": {
+    "name": "right_hip_yaw",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -0.5235987755982988,
+     0.4363323129985824
+    ],
+    "actuator_index": 9
+   }
+  },
+  {
+   "name": "hip_l_2",
+   "parent": "bearing_roll",
+   "pos": [
+    -0.0,
+    0.0165,
+    0.0125
+   ],
+   "quat": [
+    0.0,
+    -0.0,
+    0.707107,
+    0.707107
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "hip_l_2__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "hip_l_2__orange",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.89001,
+      0.17064,
+      0.0049,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    }
+   ],
+   "joint": {
+    "name": "right_hip_roll",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -0.3839724354387525,
+     0.3839724354387525
+    ],
+    "actuator_index": 10
+   }
+  },
+  {
+   "name": "upper_leg_right",
+   "parent": "hip_l_2",
+   "pos": [
+    0.025,
+    0.0,
+    -0.0185
+   ],
+   "quat": [
+    0.5,
+    -0.5,
+    0.5,
+    -0.5
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "upper_leg_right__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "upper_leg_right__servo",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.02452,
+      0.02452,
+      0.02721,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    },
+    {
+     "type": "mesh",
+     "mesh": "upper_leg_right__white",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.84809,
+      0.84809,
+      0.80735,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    }
+   ],
+   "joint": {
+    "name": "right_hip_pitch",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -1.5707963267949268,
+     1.5707963267948664
+    ],
+    "actuator_index": 11
+   }
+  },
+  {
+   "name": "leg_2",
+   "parent": "upper_leg_right",
+   "pos": [
+    -0.022,
+    0.0357771,
+    -0.004
+   ],
+   "quat": [
+    0.0,
+    1.0,
+    -0.0,
+    -0.0
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "leg_2__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "leg_2__metal",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.477,
+      0.49191,
+      0.50708,
+      1
+     ],
+     "roughness": 0.35,
+     "metalness": 0.7
+    },
+    {
+     "type": "mesh",
+     "mesh": "leg_2__servo",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.02452,
+      0.02452,
+      0.02721,
+      1
+     ],
+     "roughness": 0.55,
+     "metalness": 0.1
+    }
+   ],
+   "joint": {
+    "name": "right_knee",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -1.570796326794932,
+     1.570796326794861
+    ],
+    "actuator_index": 12
+   }
+  },
+  {
+   "name": "ankle_right",
+   "parent": "leg_2",
+   "pos": [
+    -0.042,
+    0.0,
+    -0.026
+   ],
+   "quat": [
+    0.0,
+    -0.707107,
+    -0.707107,
+    0.0
+   ],
+   "geoms": [
+    {
+     "type": "mesh",
+     "mesh": "ankle_right__black",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.01165,
+      0.01165,
+      0.01341,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "ankle_right__orange",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.89001,
+      0.17064,
+      0.0049,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "ankle_right__yellow",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      1.0,
+      0.60383,
+      0.01002,
+      1
+     ],
+     "roughness": 0.5,
+     "metalness": 0.0
+    }
+   ],
+   "joint": {
+    "name": "right_ankle",
+    "axis": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "type": "hinge",
+    "pos": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "range": [
+     -1.5707963267949054,
+     1.5707963267948877
+    ],
+    "actuator_index": 13
+   }
+  }
+ ],
+ "actuated_joints": [
+  "left_hip_yaw",
+  "left_hip_roll",
+  "left_hip_pitch",
+  "left_knee",
+  "left_ankle",
+  "neck_pitch",
+  "head_pitch",
+  "head_yaw",
+  "head_roll",
+  "right_hip_yaw",
+  "right_hip_roll",
+  "right_hip_pitch",
+  "right_knee",
+  "right_ankle"
+ ],
+ "mesh_dir": "/robot/cmu",
+ "glb": "/robot/cmu/cmu.glb",
+ "jaw": {
+  "body": "jaw_soft",
+  "meshes": [
+   "jaw_soft__jaw_yellow"
+  ],
+  "pivot": [
+   0.003,
+   -0.0,
+   -0.018
+  ],
+  "axis": [
+   -0.0,
+   1.0,
+   0.0
+  ],
+  "open_positive": "a positive angle about axis swings the lip tip down (opens)"
+ },
+ "source": "microduck_rl/cmu/model/export_web.py from cmu/model/visual/visual.json (fitted.json)",
+ "guide_revision": "guide-20261015-backpack"
+}

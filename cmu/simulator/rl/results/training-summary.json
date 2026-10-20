@@ -1,0 +1,25 @@
+{
+  "trainingDecisions": 6144,
+  "trainingWallSeconds": 1158.369598041987,
+  "completedEpisodes": 70,
+  "stochasticTrainingSuccesses": 23,
+  "rejectedPenetrationEpisodes": 5,
+  "maximumTrainingPenetrationMm": 1.1512595526023888,
+  "uniqueTrainingConditions": 48,
+  "heldoutConditionOverlap": 0,
+  "trainingTimestep": 0.000125,
+  "evaluationTimestep": 6.25e-05,
+  "seeds": [
+    92610
+  ],
+  "resumeRestartsEnvironmentStream": true,
+  "python": "3.13.5 (main, Jun 12 2025, 12:22:43) [Clang 20.1.4 ]",
+  "node": "v20.19.6",
+  "packages": {
+    "stable-baselines3": "2.7.1",
+    "gymnasium": "1.2.3",
+    "torch": "2.14.0",
+    "numpy": "2.5.2"
+  },
+  "originalTrainingSourceSnapshotsVerified": true
+}

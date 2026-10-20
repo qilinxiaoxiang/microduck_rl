@@ -1,0 +1,587 @@
+{
+  "generatedAt": "2026-09-04T07:37:28.008950+00:00",
+  "method": "scripted",
+  "model": null,
+  "modelSha256": null,
+  "seed": 92620,
+  "successes": 12,
+  "trials": 12,
+  "results": [
+    {
+      "config": {
+        "label": "unseen-1",
+        "x": -0.4789699155674046,
+        "y": -0.0008195523770243711,
+        "mass": 0.0016989486268017876,
+        "friction": 0.7626690795980289
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04800018446471688,
+        "holdDrift": 9.380582480910022e-06,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 0.00018293799154818144,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018014253652298088,
+        "nonFootSupport": false,
+        "maxZ": 0.24587747921028535,
+        "steps": 198720,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0016989486268017876,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 28.323953722786904,
+      "wallSeconds": 31.374951584,
+      "trace": "rl/runs/fine-heldout-scripted/trial-0.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-2",
+        "x": -0.482904718925761,
+        "y": 0.0006967333904904607,
+        "mass": 0.0034364407071643868,
+        "friction": 0.7635982472096745
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04823508905697044,
+        "holdDrift": 6.44830524544531e-05,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 0.00010584038312328424,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018025557490070586,
+        "nonFootSupport": false,
+        "maxZ": 0.24588396314980082,
+        "steps": 186880,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0034364407071643868,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 27.357004585069888,
+      "wallSeconds": 29.739322958000006,
+      "trace": "rl/runs/fine-heldout-scripted/trial-1.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-3",
+        "x": -0.4770827778276716,
+        "y": 0.0005937173804311031,
+        "mass": 0.00258799366849851,
+        "friction": 0.8829093213311272
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04688881367466147,
+        "holdDrift": 3.969437878647816e-06,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 0.00012171446066657973,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018025102122927981,
+        "nonFootSupport": false,
+        "maxZ": 0.24554552830680684,
+        "steps": 348800,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.00258799366849851,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 28.060852257119336,
+      "wallSeconds": 50.427593791999996,
+      "trace": "rl/runs/fine-heldout-scripted/trial-2.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-4",
+        "x": -0.4788870105778244,
+        "y": -0.00036222075392951193,
+        "mass": 0.0018768144892874672,
+        "friction": 0.6860207887026497
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.047939432996037035,
+        "holdDrift": 1.440023806640637e-05,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 0.00010686458850764358,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018022383916240295,
+        "nonFootSupport": false,
+        "maxZ": 0.24559232971107609,
+        "steps": 200960,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0018768144892874672,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 28.444872965569136,
+      "wallSeconds": 30.833407416999997,
+      "trace": "rl/runs/fine-heldout-scripted/trial-3.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-5",
+        "x": -0.4791583767490379,
+        "y": -0.00018245648587847984,
+        "mass": 0.002397512745571047,
+        "friction": 0.8620251363023981
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.048096880235544204,
+        "holdDrift": 1.7416831376348997e-05,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 5.7129775230618796e-05,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001802289569175202,
+        "nonFootSupport": false,
+        "maxZ": 0.24617760783826573,
+        "steps": 197760,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.002397512745571047,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 28.231547901997587,
+      "wallSeconds": 31.009493707999994,
+      "trace": "rl/runs/fine-heldout-scripted/trial-4.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-6",
+        "x": -0.47884409640964865,
+        "y": -0.0001628434327082662,
+        "mass": 0.0033480065979313864,
+        "friction": 0.8878127766729904
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04793384821280197,
+        "holdDrift": 1.5203802052470368e-05,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 0.00013619997787818125,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001802295166733062,
+        "nonFootSupport": false,
+        "maxZ": 0.24546636120094908,
+        "steps": 200960,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0033480065979313864,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 28.447545212978085,
+      "wallSeconds": 33.282573833,
+      "trace": "rl/runs/fine-heldout-scripted/trial-5.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-7",
+        "x": -0.48066437386568145,
+        "y": -0.0006117731886558148,
+        "mass": 0.0026728106100222717,
+        "friction": 0.875952707824806
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04843844181148205,
+        "holdDrift": 7.771681040025106e-05,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 0.00010722904121186413,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018021671601842378,
+        "nonFootSupport": false,
+        "maxZ": 0.2463654808154421,
+        "steps": 192640,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0026728106100222717,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 27.76245856662659,
+      "wallSeconds": 27.398441542,
+      "trace": "rl/runs/fine-heldout-scripted/trial-6.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-8",
+        "x": -0.4826290142575691,
+        "y": 0.0008860088541386595,
+        "mass": 0.001561788667641348,
+        "friction": 0.685161628423663
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04859079416476053,
+        "holdDrift": 6.776917651609289e-05,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 0.00013273125282354734,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001803566575491215,
+        "nonFootSupport": false,
+        "maxZ": 0.24618524275207607,
+        "steps": 186880,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.001561788667641348,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 27.477666620132144,
+      "wallSeconds": 28.669420791,
+      "trace": "rl/runs/fine-heldout-scripted/trial-7.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-9",
+        "x": -0.47949391027061555,
+        "y": -0.00022394272799175496,
+        "mass": 0.0036554574663851544,
+        "friction": 0.6772757465674833
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04812270342530561,
+        "holdDrift": 7.0254517350269524e-06,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 4.762104352723506e-05,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018022777377130553,
+        "nonFootSupport": false,
+        "maxZ": 0.2468131163030427,
+        "steps": 196480,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0036554574663851544,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 28.021890610878142,
+      "wallSeconds": 29.295569624999995,
+      "trace": "rl/runs/fine-heldout-scripted/trial-8.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-10",
+        "x": -0.4807604085617226,
+        "y": -0.0006944712896114306,
+        "mass": 0.0017450114707402535,
+        "friction": 0.8462259886671327
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04840850000438454,
+        "holdDrift": 7.67897366924803e-05,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 0.00016586821834310185,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018021176361848485,
+        "nonFootSupport": false,
+        "maxZ": 0.24635268032544236,
+        "steps": 192000,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0017450114707402535,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 27.724903846889674,
+      "wallSeconds": 28.225082625,
+      "trace": "rl/runs/fine-heldout-scripted/trial-9.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-11",
+        "x": -0.4810546620834123,
+        "y": 0.0007236460705711503,
+        "mass": 0.0017863834019095166,
+        "friction": 0.823637242733179
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04847085216666802,
+        "holdDrift": 8.19143327911764e-05,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 9.946522453987625e-05,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018026499047192612,
+        "nonFootSupport": false,
+        "maxZ": 0.24642380526932595,
+        "steps": 191360,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0017863834019095166,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 27.736625624945308,
+      "wallSeconds": 26.886218999999997,
+      "trace": "rl/runs/fine-heldout-scripted/trial-10.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-12",
+        "x": -0.4823314826900984,
+        "y": 0.0006073088180885498,
+        "mass": 0.0025718492677346706,
+        "friction": 0.8659708430798297
+      },
+      "method": "scripted",
+      "acceptance": {
+        "accepted": true,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04857122657274496,
+        "holdDrift": 6.378980272543428e-05,
+        "released": true,
+        "failures": []
+      },
+      "summary": {
+        "maxPenetration": 0.00015771089037878647,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018025141241423924,
+        "nonFootSupport": false,
+        "maxZ": 0.24625765625638169,
+        "steps": 187840,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0025718492677346706,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 27.46578117347478,
+      "wallSeconds": 27.871843875,
+      "trace": "rl/runs/fine-heldout-scripted/trial-11.json.gz",
+      "actionCounts": {
+        "0": 0,
+        "1": 0
+      }
+    }
+  ]
+}

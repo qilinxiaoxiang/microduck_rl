@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MicroDuck 整机叼取验证</title>
+<style>body{margin:0;background:#111e28;color:#eaf3fa;font:15px/1.6 system-ui,sans-serif}canvas{display:block}aside{position:fixed;top:20px;left:20px;width:310px;padding:20px;background:#111e28ed;border:1px solid #52738a;border-radius:12px}h1{font-size:23px;margin:0 0 10px}p{color:#bfced9;margin:8px 0}.small{font-size:12px}output{display:block;white-space:pre-line;font-variant-numeric:tabular-nums;margin:14px 0}button,a{color:#eaf3fa;font:inherit}button{background:#285f74;border:1px solid #91cce0;padding:5px 9px;border-radius:6px;cursor:pointer}label{display:block;margin:12px 0}#state{color:#8ee8bf}@media(max-width:650px){aside{width:260px;left:8px;top:8px;padding:12px;font-size:13px}}</style>
+</head>
+<body>
+<aside>
+  <h1>整机叼取验证</h1>
+  <p>站稳伸颈 → 夹紧 → 抬起 → 保持 → 松嘴</p>
+  <p id="state">正在加载…</p>
+  <output id="measure"></output>
+  <button id="restart" disabled>重做一次</button>
+  <button id="pause" disabled>暂停</button>
+  <button id="export" disabled>导出记录</button>
+  <label><input id="wire" type="checkbox">显示实际碰撞表面</label>
+  <p id="scope" class="small">蓝色物体是自由刚体，没有吸附、焊接或位置跟随。双脚靠地面支撑；本场景验证可够范围内的台沿叼取，远距离走近与地面拾取仍在实验中。</p>
+  <p class="small">位置来自仿真读数，不是真实视觉。摩擦与嘴部扭矩尚未实机标定；页面运行结果不代表所有场景通过。</p>
+  <p class="small"><a href="/table-pick.html?controller=learned">训练后</a> · <a href="/table-pick.html?controller=untrained">训练前</a> · <a href="/table-pick.html?controller=baseline">原控制器</a></p>
+  <a class="small" href="/grasp-bench.html">嘴部台架</a> · <a class="small" href="/?boot=1&telemetry=1">原整机模式</a>
+</aside>
+<script type="module" src="/src/table-pick.js"></script>
+</body></html>

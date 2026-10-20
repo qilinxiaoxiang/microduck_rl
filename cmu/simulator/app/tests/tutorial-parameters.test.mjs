@@ -1,0 +1,22 @@
+import assert from "node:assert/strict";
+import {courseMetrics,groundExperimentUrl,normalizeCourseConfig} from "../src/game/tutorial-parameters.js";
+
+const defaults=normalizeCourseConfig();
+const metrics=courseMetrics(defaults);
+assert.equal(metrics.diameterMm,28);
+assert.equal(metrics.massG,.5);
+assert.equal(metrics.flexVertices,99);
+assert.equal(metrics.physicsStepsPerControl,320);
+assert.equal(metrics.knownDefault,true);
+const changed=normalizeCourseConfig({meshCount:6.8,radius:.1,mass:-2,young:6000});
+assert.equal(changed.meshCount,7);
+assert.equal(changed.radius,.024);
+assert.equal(changed.mass,.0002);
+assert.equal(changed.young,6000);
+assert.equal(courseMetrics(changed).flexVertices,219);
+const url=new URL(groundExperimentUrl(changed,"baseline","http://127.0.0.1:5177/microduck-course.html"));
+assert.equal(url.pathname,"/ground-pick.html");
+assert.equal(url.searchParams.get("controller"),"baseline");
+assert.deepEqual(JSON.parse(url.searchParams.get("config")),changed);
+assert.throws(()=>groundExperimentUrl(defaults,"magic"),/未知控制器/);
+console.log("PASS: tutorial parameter bounds, derived physics metrics and experiment URL");

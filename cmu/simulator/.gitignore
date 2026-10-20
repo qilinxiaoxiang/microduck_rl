@@ -1,0 +1,12 @@
+.env
+/.modal-budget-local.json
+/.venv-rl/
+/scripts/__pycache__/
+/rl/__pycache__/
+/rl/runs/
+/app/test-results/rl-baseline-preflight.json
+# Full trial traces stay local and are retained in the checked-in ZIP
+# archives; compact validation summaries remain directly reviewable.
+/app/test-results/table-pick-*.json
+/app/test-results/whole-body/**/*.json
+!/app/test-results/whole-body/**/validation.json

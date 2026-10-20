@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import {HouseholdPickController,wrapAngle} from '../src/game/household-pick-controller.js';
+import {householdConfig} from '../src/game/household-pick-scene.js';
+import {evaluateHouseholdTrial} from '../src/game/household-pick-acceptance.js';
+import {readPayloadContacts} from '../src/game/contact-observer.js';
+assert.throws(()=>householdConfig({kind:'unknown'}));
+for(const bad of [{mass:-1},{radius:0},{length:.005},{kind:'sock',rings:1},{kind:'sock',sides:3.5}])assert.throws(()=>householdConfig(bad));
+assert.ok(Math.abs(wrapAngle(2*Math.PI+.1)-.1)<1e-12);
+const c=householdConfig(),ctl=new HouseholdPickController(c);
+const s={time:30,root:[-.5987,.0002,.117,1,0,0,0],payload:[c.x,c.y,c.z,1,0,0,0]};
+assert.equal(ctl.begin({...s,payload:[.5,0,0,1,0,0,0]}),false);assert.equal(ctl.phase,'manual');
+assert.equal(ctl.begin(s),true);assert.equal(ctl.phase,'align');assert.equal(ctl.events[0].time,30);assert.equal(ctl.begin(s),false);
+const runtime={async policy(name,command){assert.equal(name,'walk');assert.ok(command.every(Number.isFinite));}};
+for(let i=0;i<51&&ctl.phase==='align';i++)await ctl.actuate(runtime,{...s,time:30+i*.02});
+assert.equal(ctl.phase,'settle');assert.ok(ctl.start>=30.98);assert.equal(ctl.inner.c.holdUntilRelease,true);
+const stalled=new HouseholdPickController({...c,alignTimeout:20});stalled.begin(s);
+for(let i=0;i<1100&&stalled.phase!=='failed';i++)await stalled.actuate(runtime,{...s,time:30+i*.02,root:[-.7,.1,.117,1,0,0,0]});
+assert.equal(stalled.phase,'failed');
+const prestand=new HouseholdPickController({...c,preStand:true});prestand.begin(s);
+assert.equal(prestand.phase,'prestand');
+for(let i=0;i<120;i++)await prestand.actuate(runtime,{...s,time:30+i*.02,root:[s.root[0]+i*.002,...s.root.slice(1)],contact:{feetForce:7}});
+assert.equal(prestand.phase,'prestand','moving trunk must not hand off');
+for(let i=0;i<30;i++)await prestand.actuate(runtime,{...s,time:32.4+i*.02,contact:{feetForce:7}});
+assert.equal(prestand.phase,'align','settled supported trunk may hand off');
+const sample=(time,phase,z)=>({time,phase,payload:[0,0,z,1,0,0,0],graspPoint:[0,0,z],headQuat:[1,0,0,0],jaw:.32,shape:{minZ:z-.006},contact:{lowerForce:phase==='hold'?.1:0,upperForce:phase==='hold'?.1:0,feetForce:7,nonFootSupport:false,nonMouthSupport:phase!=='hold',floorForce:phase==='hold'?0:.06}});
+const trial={phase:'done',modelAudit:{freeBase:true,freePayload:true,equalities:0,mocapBodies:0,floorHeight:0},summary:{finite:true,maxExternal:0,maxPenetration:.0001,maxRobotPenetration:.0001,maxJointLimitExcess:.0001},rows:[...Array.from({length:50},(_,i)=>sample((i+1)*.02,'manual',.006)),...Array.from({length:65},(_,i)=>sample(1.02+i*.02,'hold',.11)),sample(2.32,'release',.11),sample(4,'done',.006)]};
+assert.equal(evaluateHouseholdTrial(trial).accepted,true);
+const gapped=structuredClone(trial);gapped.rows[80].time+=.01;assert.equal(evaluateHouseholdTrial(gapped).accepted,false);
+for(const mutate of [t=>t.phase='failed',t=>t.modelAudit.freePayload=false,t=>t.modelAudit.equalities=1,t=>t.summary.maxExternal=.001,t=>t.summary.nonFootSupport=true,t=>t.summary.maxPenetration=.0005,t=>t.summary.solverReset=true,t=>t.rows.forEach(s=>s.contact.upperForce=0),t=>t.rows.forEach(s=>s.contact.nonMouthSupport=true),t=>t.rows.at(-1).payload[2]=.1,t=>t.rows[80].payload[0]=.004]){
+ const bad=structuredClone(trial);mutate(bad);assert.equal(evaluateHouseholdTrial(bad).accepted,false);
+}
+const selfContact={geom1:-1,geom2:-1,flex:[0,0],dist:-.0001,efc_address:0,delete(){}};
+const result=readPayloadContacts({mj_contactForce(){throw Error('self contact must not be counted as external support');}},{},{ncon:1,contact:{get:()=>selfContact,delete(){}}},[],[],[],{},null,0);
+assert.equal(result.nonMouthSupport,false);assert.equal(result.lowerForce,0);assert.equal(result.maxPenetration,.0001);
+console.log('PASS: trigger distance, relative clock, alignment timeout, independent grasp negatives, cloth self-contact exclusion');

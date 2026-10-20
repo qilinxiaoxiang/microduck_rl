@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
+const directory=fs.mkdtempSync(path.join(os.tmpdir(),'household-budget-test-')),output=path.join(directory,'trial.json');
+execFileSync(process.execPath,[new URL('./run-household-pick.mjs',import.meta.url).pathname,JSON.stringify({kind:'pen',approach:true,ticks:1,output})],{maxBuffer:8*1024*1024});
+const trial=JSON.parse(fs.readFileSync(output));
+assert.equal(trial.phase,'manual');assert.equal(trial.incomplete,true);assert.equal(trial.acceptance.accepted,false);
+assert.match(trial.failure,/budget exhausted/);assert.ok(trial.acceptance.failures.includes(trial.failure));
+console.log('PASS: a control-step budget stop retains the actual phase and cannot masquerade as a completed trial');

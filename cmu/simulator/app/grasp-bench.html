@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MicroDuck 真实接触台架</title>
+<style>
+body{margin:0;background:#101923;color:#edf2f7;font:15px/1.6 system-ui,sans-serif}canvas{display:block;width:100vw;height:100vh}aside{position:fixed;top:20px;left:20px;max-width:350px;padding:20px;background:#101923ed;border:1px solid #486275;border-radius:12px}h1{font-size:23px;margin:0 0 8px}p{margin:8px 0;color:#bdcbd6}button,a{font:inherit;color:#eef6fc}button{background:#285e72;border:1px solid #81c2d5;border-radius:5px;padding:5px 10px;cursor:pointer}label{display:block;margin-top:12px}output{display:block;white-space:pre-line;font-variant-numeric:tabular-nums;margin:15px 0}.small{font-size:12px}#state{color:#85e2bc;font-weight:600}@media(max-width:650px){aside{max-width:280px;left:10px;top:10px;padding:12px;font-size:13px}}
+</style></head><body>
+<aside><h1>嘴部接触台架</h1><p>夹紧 → 抬起 5 cm → 保持 → 张嘴</p><p id="state">正在载入真实碰撞模型…</p><output id="measure"></output><button id="restart" disabled>重做一次</button> <button id="pause" disabled>暂停</button><label><input id="wire" type="checkbox">显示碰撞表面（绿色）</label><p class="small">橙色：嘴。蓝色：自由物体。拖动旋转，滚轮缩放。</p><p class="small">这是头部升降台架，不是完整机器人的抓取策略。物体只受重力、接触与摩擦；材质与嘴部扭矩尚未实机标定。</p><a class="small" href="/?boot=1&telemetry=1">返回整机仿真</a></aside>
+<script type="module" src="/src/grasp-bench.js"></script></body></html>

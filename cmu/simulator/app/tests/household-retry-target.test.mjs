@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {retryBiteTarget} from '../src/game/household-pick-controller.js';
+const c={distance:.0787,lateral:-.0442,error:[-.001,0,-.013],yaw:0};
+const horizontal=retryBiteTarget(c),vertical=retryBiteTarget({...c,verticalStep:.006});
+assert.ok(Math.abs(vertical.distance-horizontal.distance-.006)<1e-12);
+assert.equal(vertical.lateral,c.lateral);assert.ok(vertical.distance>.084);
+const rotated=retryBiteTarget({...c,error:[0,-.001,-.013],yaw:Math.PI/2,verticalStep:.006});
+assert.ok(Math.abs(rotated.distance-vertical.distance)<1e-12);
+assert.throws(()=>retryBiteTarget({...c,error:[NaN,0,0]}));
+const bounded=retryBiteTarget({...c,error:[-1,1,-1],verticalStep:.02});
+assert.equal(bounded.distance,.11);assert.equal(bounded.lateral,-.075);
+console.log('PASS: measured vertical-reach retry changes standoff in the object heading, with finite bounded targets');

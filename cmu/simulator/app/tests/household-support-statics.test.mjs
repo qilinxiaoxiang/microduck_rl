@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {supportStatics} from '../src/game/household-support-statics.js';
+const eye=Array.from({length:6},(_,i)=>Array.from({length:20},(_,j)=>Number(i===j)));
+const foot={position:eye.slice(0,3),rotation:eye.slice(3)};
+const bias=[0,0,4,0,0,0,...Array(14).fill(.02)];
+const s=supportStatics([foot,foot],bias);
+assert.ok(s.baseResidual.every(x=>Math.abs(x)<1e-6));
+assert.ok(s.wrenches.every(w=>Math.abs(w[2]-2)<1e-6));
+assert.deepEqual(s.torques,Array(14).fill(.02));
+const changed={position:foot.position.map(row=>row.slice()),rotation:foot.rotation.map(row=>row.slice())};
+changed.position[2][6]=.1;
+const t=supportStatics([changed,foot],bias);
+assert.ok(Math.abs(t.torques[0]+.18)<1e-6);
+assert.throws(()=>supportStatics([foot,foot],bias.map((v,i)=>i===6?NaN:v)));
+assert.throws(()=>supportStatics([foot],bias));
+console.log('PASS: support statics balances the floating base and maps foot load to motor torque');

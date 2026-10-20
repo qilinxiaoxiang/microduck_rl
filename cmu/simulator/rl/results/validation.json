@@ -1,0 +1,54 @@
+{
+  "accepted": true,
+  "failures": [],
+  "scope": "learned jaw; frozen balance and scripted head motion",
+  "initialSuccesses": 0,
+  "trainedSuccesses": 12,
+  "scriptedSuccesses": 12,
+  "trials": 12,
+  "minimumHeldLiftMm": 46.63121064648831,
+  "maximumPenetrationMm": 0.18731314100408833,
+  "maximumHoldDriftMm": 0.08153858368165179,
+  "halfStepLiftDifferenceMm": 0.18761227636829303,
+  "actorSha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+  "checkpointSha256": "ffcdd40c32635db0c9fbdfa32dbca3eb5ee3869b5ded7993115d8d0c1268656d",
+  "learning": {
+    "actorParameters": 1794,
+    "changedParameters": 1794,
+    "actorDeltaL2": 2.3825485706329346,
+    "ppoOptimizerEpochs": 240,
+    "initialSha256": "1aece470f3edb4222091f7c7fccb432f5746873fcb2c842a2398f77b2319dc93",
+    "finalSha256": "ffcdd40c32635db0c9fbdfa32dbca3eb5ee3869b5ded7993115d8d0c1268656d",
+    "accepted": true
+  },
+  "exports": {
+    "observations": 1000,
+    "maxLogitDifference": 2.626202271205358e-07,
+    "actionMismatches": 0,
+    "checkpointSha256": "ffcdd40c32635db0c9fbdfa32dbca3eb5ee3869b5ded7993115d8d0c1268656d",
+    "actorSha256": "fda7a44c0787232377da9082cd72ccd66bd7d93184f20069e0b381fc7365e759",
+    "accepted": true
+  },
+  "browserAcceptance": {
+    "accepted": true,
+    "heldSeconds": 1.2,
+    "minHeldLift": 0.048202978255274115,
+    "holdDrift": 0.00010428058549902631,
+    "released": true,
+    "failures": []
+  },
+  "evidence": {
+    "initial": "rl/runs/fine-heldout-initial/evaluation.json",
+    "trained": "rl/runs/fine-heldout-trained/evaluation.json",
+    "scripted": "rl/runs/fine-heldout-scripted/evaluation.json",
+    "export_check": "rl/runs/final-export-check.json",
+    "learning_check": "rl/runs/run-92610-cont2/learning-check.json",
+    "browser": "rl/runs/browser/learned-fine.json",
+    "actor": "app/public/policies/jaw-ppo.json",
+    "fine_step": "rl/runs/fine-half-step/evaluation.json",
+    "nominal": "rl/runs/final-half-step/evaluation.json",
+    "output": "rl/results/validation.json",
+    "negative_open": "rl/runs/fine-negative-open/evaluation.json",
+    "negative_closed": "rl/runs/fine-negative-closed/evaluation.json"
+  }
+}

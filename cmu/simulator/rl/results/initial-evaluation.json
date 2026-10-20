@@ -1,0 +1,634 @@
+{
+  "generatedAt": "2026-09-04T07:36:42.778015+00:00",
+  "method": "learned",
+  "model": "rl/runs/run-92610/initial.zip",
+  "modelSha256": "1aece470f3edb4222091f7c7fccb432f5746873fcb2c842a2398f77b2319dc93",
+  "seed": 92620,
+  "successes": 0,
+  "trials": 12,
+  "results": [
+    {
+      "config": {
+        "label": "unseen-1",
+        "x": -0.4789699155674046,
+        "y": -0.0008195523770243711,
+        "mass": 0.0016989486268017876,
+        "friction": 0.7626690795980289
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018014253652298088,
+        "nonFootSupport": false,
+        "maxZ": 0.1954999616796875,
+        "steps": 137600,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0016989486268017876,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -5.3,
+      "wallSeconds": 19.748337542,
+      "trace": "rl/runs/fine-heldout-initial/trial-0.json.gz",
+      "actionCounts": {
+        "0": 2,
+        "1": 28
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-2",
+        "x": -0.482904718925761,
+        "y": 0.0006967333904904607,
+        "mass": 0.0034364407071643868,
+        "friction": 0.7635982472096745
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 1.2,
+        "minHeldLift": 0.04823538528234769,
+        "holdDrift": 6.550870564957115e-05,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018025557490070586,
+        "nonFootSupport": false,
+        "maxZ": 0.24583740585738,
+        "steps": 293440,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0034364407071643868,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": 11.523337781701088,
+      "wallSeconds": 54.305546208,
+      "trace": "rl/runs/fine-heldout-initial/trial-1.json.gz",
+      "actionCounts": {
+        "0": 111,
+        "1": 22
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-3",
+        "x": -0.4770827778276716,
+        "y": 0.0005937173804311031,
+        "mass": 0.00258799366849851,
+        "friction": 0.8829093213311272
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018025102122927981,
+        "nonFootSupport": false,
+        "maxZ": 0.1954999616796875,
+        "steps": 285760,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.00258799366849851,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -5.3,
+      "wallSeconds": 39.197544583,
+      "trace": "rl/runs/fine-heldout-initial/trial-2.json.gz",
+      "actionCounts": {
+        "0": 3,
+        "1": 27
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-4",
+        "x": -0.4788870105778244,
+        "y": -0.00036222075392951193,
+        "mass": 0.0018768144892874672,
+        "friction": 0.6860207887026497
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018022383916240295,
+        "nonFootSupport": false,
+        "maxZ": 0.1954999616796875,
+        "steps": 138880,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0018768144892874672,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -5.3,
+      "wallSeconds": 18.83626325,
+      "trace": "rl/runs/fine-heldout-initial/trial-3.json.gz",
+      "actionCounts": {
+        "0": 2,
+        "1": 28
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-5",
+        "x": -0.4791583767490379,
+        "y": -0.00018245648587847984,
+        "mass": 0.002397512745571047,
+        "friction": 0.8620251363023981
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001802289569175202,
+        "nonFootSupport": false,
+        "maxZ": 0.19571573420790708,
+        "steps": 136960,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.002397512745571047,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -5.3,
+      "wallSeconds": 19.466307166000004,
+      "trace": "rl/runs/fine-heldout-initial/trial-4.json.gz",
+      "actionCounts": {
+        "0": 3,
+        "1": 27
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-6",
+        "x": -0.47884409640964865,
+        "y": -0.0001628434327082662,
+        "mass": 0.0033480065979313864,
+        "friction": 0.8878127766729904
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001802295166733062,
+        "nonFootSupport": false,
+        "maxZ": 0.1954999616796875,
+        "steps": 138880,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0033480065979313864,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -5.3,
+      "wallSeconds": 20.832074041,
+      "trace": "rl/runs/fine-heldout-initial/trial-5.json.gz",
+      "actionCounts": {
+        "0": 2,
+        "1": 28
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-7",
+        "x": -0.48066437386568145,
+        "y": -0.0006117731886558148,
+        "mass": 0.0026728106100222717,
+        "friction": 0.875952707824806
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018021671601842378,
+        "nonFootSupport": false,
+        "maxZ": 0.19695321368316412,
+        "steps": 133760,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0026728106100222717,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -5.12,
+      "wallSeconds": 19.642568500000003,
+      "trace": "rl/runs/fine-heldout-initial/trial-6.json.gz",
+      "actionCounts": {
+        "0": 5,
+        "1": 25
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-8",
+        "x": -0.4826290142575691,
+        "y": 0.0008860088541386595,
+        "mass": 0.001561788667641348,
+        "friction": 0.685161628423663
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.0001803566575491215,
+        "nonFootSupport": false,
+        "maxZ": 0.19693932741289918,
+        "steps": 129920,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.001561788667641348,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -4.79,
+      "wallSeconds": 20.336765042,
+      "trace": "rl/runs/fine-heldout-initial/trial-7.json.gz",
+      "actionCounts": {
+        "0": 7,
+        "1": 23
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-9",
+        "x": -0.47949391027061555,
+        "y": -0.00022394272799175496,
+        "mass": 0.0036554574663851544,
+        "friction": 0.6772757465674833
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478961901e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018022777377130553,
+        "nonFootSupport": false,
+        "maxZ": 0.19694788579991132,
+        "steps": 136320,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0036554574663851544,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -5.2700000000000005,
+      "wallSeconds": 20.939636875,
+      "trace": "rl/runs/fine-heldout-initial/trial-8.json.gz",
+      "actionCounts": {
+        "0": 4,
+        "1": 26
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-10",
+        "x": -0.4807604085617226,
+        "y": -0.0006944712896114306,
+        "mass": 0.0017450114707402535,
+        "friction": 0.8462259886671327
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018021176361848485,
+        "nonFootSupport": false,
+        "maxZ": 0.1969429414820797,
+        "steps": 133440,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0017450114707402535,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -4.94,
+      "wallSeconds": 18.766761917,
+      "trace": "rl/runs/fine-heldout-initial/trial-9.json.gz",
+      "actionCounts": {
+        "0": 6,
+        "1": 24
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-11",
+        "x": -0.4810546620834123,
+        "y": 0.0007236460705711503,
+        "mass": 0.0017863834019095166,
+        "friction": 0.823637242733179
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018026499047192612,
+        "nonFootSupport": false,
+        "maxZ": 0.19696546196458714,
+        "steps": 132800,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0017863834019095166,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -4.94,
+      "wallSeconds": 18.758955833,
+      "trace": "rl/runs/fine-heldout-initial/trial-10.json.gz",
+      "actionCounts": {
+        "0": 6,
+        "1": 24
+      }
+    },
+    {
+      "config": {
+        "label": "unseen-12",
+        "x": -0.4823314826900984,
+        "y": 0.0006073088180885498,
+        "mass": 0.0025718492677346706,
+        "friction": 0.8659708430798297
+      },
+      "method": "learned",
+      "acceptance": {
+        "accepted": false,
+        "heldSeconds": 0,
+        "minHeldLift": 0,
+        "holdDrift": 0,
+        "released": false,
+        "failures": [
+          "controller did not complete",
+          "no continuous one-second elevated opposing-contact hold",
+          "opening did not release the object into a real fall"
+        ]
+      },
+      "summary": {
+        "maxPenetration": 9.534075478948023e-06,
+        "maxExternal": 0,
+        "maxRobotPenetration": 0.00018025141241423924,
+        "nonFootSupport": false,
+        "maxZ": 0.19693090780592087,
+        "steps": 130240,
+        "finite": true,
+        "maxJointLimitExcess": 0,
+        "maxTargetClamp": 0
+      },
+      "modelAudit": {
+        "freePayload": true,
+        "freeBase": true,
+        "equalities": 0,
+        "mocapBodies": 0,
+        "payloadMass": 0.0025718492677346706,
+        "jawTorqueLimit": [
+          -0.02,
+          0.02
+        ],
+        "timestep": 6.25e-05
+      },
+      "reward": -4.79,
+      "wallSeconds": 18.439025084,
+      "trace": "rl/runs/fine-heldout-initial/trial-11.json.gz",
+      "actionCounts": {
+        "0": 7,
+        "1": 23
+      }
+    }
+  ]
+}

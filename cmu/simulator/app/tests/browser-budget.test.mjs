@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+const doc = new EventTarget(); doc.hidden = true; globalThis.document = doc;
+const {waitForVisible,createDisplayBudget,displayPixelRatio} = await import('../src/game/browser-budget.js');
+let resumed = 0;
+const waits = [waitForVisible().then(() => resumed++), waitForVisible().then(() => resumed++)];
+await Promise.resolve(); assert.equal(resumed, 0);
+doc.dispatchEvent(new Event('visibilitychange')); await Promise.resolve(); assert.equal(resumed, 0);
+doc.hidden = false; doc.dispatchEvent(new Event('visibilitychange')); await Promise.all(waits); assert.equal(resumed, 2);
+await waitForVisible();
+const display = createDisplayBudget();
+assert.equal(displayPixelRatio, 1);
+assert.equal(display.shouldRender(0), true); assert.equal(display.shouldRender(16), false); assert.equal(display.shouldRender(34), true);
+doc.hidden = true; assert.equal(display.shouldRender(1000), false);
+doc.hidden = false; assert.equal(display.shouldRender(1001), true);
+console.log('PASS: hidden tabs wait without advancing, resume together, and drawing respects its independent budget');
