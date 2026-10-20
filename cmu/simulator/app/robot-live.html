@@ -86,11 +86,12 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
   <section class="charts">
     <figure class="card" id="c-temp"><figcaption><strong>SoC 温度 °C</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
     <figure class="card" id="c-volt"><figcaption><strong>电压 V</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
-    <figure class="card" id="c-mhz"><figcaption><strong>CPU 频率 MHz</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
+    <figure class="card" id="c-mhz"><figcaption><strong>CPU 频率 MHz（每 0.5 秒平均）</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
+    <figure class="card" id="c-busy"><figcaption><strong>CPU 占用 %</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
     <figure class="card" id="c-loop"><figcaption><strong>大脑循环时间 ms</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
     <div class="card wide"><h2>最新读数</h2><dl id="now" class="now-grid"></dl></div>
     <div class="card wide"><h2>连接与重启记录</h2><ol id="events"></ol>
-      <p class="note">每 0.5 秒一个健康读数，超过 1.5 秒没有新数据即判为失联。A7Z 端只读 sysfs 和大脑日志，不碰舵机总线；曲线保留在本机服务里最近 30 分钟。</p></div>
+      <p class="note">每 0.5 秒一个健康读数，超过 1.5 秒没有新数据即判为失联。A7Z 端只读 sysfs 和大脑日志；大脑没在运行时由待机读取（duck_sense.py）只读舵机位置、电压和 IMU，大脑一启动它就让出总线，Mac 上跑大脑时不读；曲线保留在本机服务里最近 30 分钟。</p></div>
   </section>
 </main>
 <script type="module" src="/src/robot-live.js"></script>

@@ -96,8 +96,16 @@ const charts = [
   {id: "c-volt", band: {label: "舵机电源（近 2 秒最低–最高）", color: "--s1", get: servoBand},
     series: [{label: "舵机电源最低", color: "--s1", get: r => r.brain?.servo_v_min},
       {label: "A7Z 输入（PMIC）", color: "--s2", get: r => firstValue(r.vin), optional: true}], digits: 2, unit: " V", minSpan: 0.6},
-  {id: "c-mhz", series: [{label: "当前频率", color: "--s1", get: r => r.mhz}, {label: "降频上限", color: "--s2", dash: true, get: r => r.mhz_cap}],
-    digits: 0, unit: " MHz", floor: 0},
+  // per cluster: the average clock over each 0.5 s and the thermal cap (one instantaneous sample zigzagged between
+  // the lowest and highest step); the big cores' cap sits at the lowest step while the board is hot
+  {id: "c-mhz", series: [
+    {label: "小核 0–5 平均", color: "--s1", get: r => r.clusters?.little?.avg_mhz},
+    {label: "小核上限", color: "--s1", dash: true, get: r => r.clusters?.little?.cap_mhz},
+    {label: "大核 6–7 平均", color: "--s2", get: r => r.clusters?.big?.avg_mhz},
+    {label: "大核上限", color: "--s2", dash: true, get: r => r.clusters?.big?.cap_mhz}], digits: 0, unit: " MHz", floor: 0},
+  {id: "c-busy", series: [
+    {label: "小核 0–5", color: "--s1", get: r => r.clusters?.little?.busy},
+    {label: "大核 6–7", color: "--s2", get: r => r.clusters?.big?.busy}], digits: 0, unit: " %", floor: 0, minSpan: 20},
   {id: "c-loop", series: [{label: "大脑每 tick 用时", color: "--s1", get: r => r.brain?.running ? r.brain.loop_ms : null}],
     refs: [{y: 20, label: "50 Hz 预算 20 ms"}], digits: 1, unit: " ms", floor: 0},
 ];
@@ -229,15 +237,20 @@ function showNow() {
   const temps = Object.entries(r.temps ?? {}).filter(([k]) => !k.includes("idle"));
   items.push(["SoC 最高温度", temps.length ? fmt(Math.max(...temps.map(([, v]) => v))) + " °C（内核 110 °C 关机）" : "内核没有给出"]);
   items.push(["各区温度", temps.map(([k, v]) => `${k} ${fmt(v)}`).join(" · ")]);
-  items.push(["CPU", r.mhz == null ? "–" : `${r.mhz} MHz${r.mhz_cap < r.mhz_hw ? `（降频，上限 ${r.mhz_cap}/${r.mhz_hw}）` : ""}`]);
+  for (const [key, label] of [["little", "小核 0–5"], ["big", "大核 6–7"]]) {
+    const c = r.clusters?.[key];
+    if (!c) continue;
+    items.push([label, `${c.avg_mhz == null ? "–" : `平均 ${c.avg_mhz} MHz`} · 占用 ${c.busy == null ? "–" : fmt(c.busy, 0) + " %"}`
+      + (c.cap_mhz < c.hw_mhz ? `（过热降频：上限 ${c.cap_mhz}/${c.hw_mhz}）` : "")]);
+  }
   items.push(["负载 / 可用内存", `${fmt(r.load, 2)} / ${r.mem_mb ?? "–"} MB`]);
-  items.push(["舵机电源", b.servo_v_min != null ? `${fmt(b.servo_v_min)}–${fmt(b.servo_v_max)} V（近 2 秒 ${b.servo_v_count} 次）` : "大脑没在读"]);
+  items.push(["舵机电源", b.servo_v_min != null ? `${fmt(b.servo_v_min)}–${fmt(b.servo_v_max)} V（${b.running ? `近 2 秒 ${b.servo_v_count} 次` : `待机读取，${b.servo_v_count} 个舵机`}）` : "没有读数"]);
   items.push(["A7Z 输入电压", Object.keys(r.vin ?? {}).length ? Object.entries(r.vin).map(([k, v]) => `${k} ${fmt(v, 2)} V`).join(" · ") : "内核没有读数"]);
   items.push(["大脑", b.running ? `${b.mode} · 扭矩${b.torque ? "开" : "关"}` : b.log ? `没在运行（${b.log}，${b.age < 120 ? Math.round(b.age) + " 秒" : Math.round(b.age / 60) + " 分钟"}前停）` : "没在运行"]);
-  if (b.running) {
+  if (b.running || b.standby) {
     items.push(["IMU 延迟", fmt(b.imu_age_ms, 0) + " ms"]);
-    items.push(["舵机故障", b.hw_faults?.length ? b.hw_faults.join(", ") : "无"]);
-    items.push(["本 tick 缺读", b.missing?.length ? b.missing.join(", ") : "无"]);
+    if (b.running) items.push(["舵机故障", b.hw_faults?.length ? b.hw_faults.join(", ") : "无"]);
+    items.push([b.running ? "本 tick 缺读" : "没回话的舵机", b.missing?.length ? b.missing.join(", ") : "无"]);
   }
   if (cpuStart && r.t - cpuStart.t >= 10) items.push(["本监视的 A7Z 开销", `一个核的 ${fmt((r.cpu_s - cpuStart.cpu_s) / (r.t - cpuStart.t) * 100, 1)}%（${Math.round(r.t - cpuStart.t)} 秒平均）`]);
   $("#now").innerHTML = items.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
@@ -261,8 +274,10 @@ const down = new THREE.Vector3(0, 0, -1), gb = new THREE.Vector3();
 
 function setPoseTarget(brain) {
   const note = $("#poseNote");
-  if (!brain?.running || !brain.joints) {
-    note.textContent = brain?.log ? `大脑没在运行，显示的是最后姿态（${brain.log}）` : "大脑没在运行，没有关节读数";
+  if (!brain?.joints) {
+    note.textContent = brain?.running ? "大脑在运行，还没有关节读数"
+      : brain?.standby_error ? `大脑没在运行，待机读取没起来：${brain.standby_error}`
+      : "大脑没在运行，待机读取正在启动（Mac 上的大脑在跑时不读，免得抢总线）";
     return;
   }
   Object.assign(target.joints, brain.joints);
@@ -271,7 +286,8 @@ function setPoseTarget(brain) {
   if (brain.gb) target.quat.setFromUnitVectors(gb.set(...brain.gb).normalize(), down);
   target.jaw = brain.jaw_deg == null ? 0 : Math.min(1, Math.max(0, brain.jaw_deg * Math.PI / 180 / JAW_MAX_OPEN));
   const tilt = brain.gb ? Math.acos(Math.min(1, -brain.gb[2] / Math.hypot(...brain.gb))) * 180 / Math.PI : null;
-  note.textContent = `${brain.mode} · 扭矩${brain.torque ? "开" : "关"} · 躯干倾斜 ${fmt(tilt)}° · 嘴 ${fmt(brain.jaw_deg)}°`;
+  note.textContent = `${brain.running ? `${brain.mode} · 扭矩${brain.torque ? "开" : "关"}` : "大脑没在运行 · 待机只读"} · 躯干倾斜 ${fmt(tilt)}° · 嘴 ${fmt(brain.jaw_deg)}°`
+    + (brain.missing?.length ? ` · 没回话的舵机 ${brain.missing.join(", ")}` : "");
   $("#joints").innerHTML = Object.entries(JOINTS).map(([group, list]) =>
     `<div><b>${group}</b>${list.map(([k, l]) => `${l} ${fmt(brain.joints[k] * 180 / Math.PI)}°`).join("<br>")}</div>`).join("");
 }

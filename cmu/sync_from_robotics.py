@@ -39,6 +39,7 @@ add(MAC, "mac", [
     "PICKUP.md", "CAMERA.md", "stance_poses.json", "stance_poses_big.json", "stance_poses_small.json",
     "brain-sim-check.json", "battery-stop-sim.json",
     "duck_sound.py",  # walk_wired.py imports it (quack)
+    "duck_sense.py",  # the live page's read-only standby reader on the A7Z
     "test_teleop_modes.py", "teleop_sim_batch.py", "teleop-sim-check.json",
 ])
 add(f"{MAC}/jitter-20261018", "mac/jitter-20261018", ["jitter_sim.py", "compare.py", "osc_metrics.py", "band.py", "summ.sh"])

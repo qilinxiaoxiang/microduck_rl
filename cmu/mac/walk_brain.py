@@ -206,6 +206,28 @@ def apply_inverse(q, v):
     return v - w * t + np.cross(xyz, t)
 
 
+def session_options():
+    """One thread per policy. onnxruntime's default pool (one thread per core) spins between runs: on the A7Z a 61-input
+    policy at 50 Hz then cost 41 ms of CPU per 1.1 ms run, two cores busy just waiting; one thread costs 0.6-1.4 ms
+    per 0.6-1.3 ms run (2026-10-20, little or big cores)."""
+    so = ort.SessionOptions()
+    so.intra_op_num_threads = 1
+    so.inter_op_num_threads = 1
+    return so
+
+
+def body_quat(quat):
+    """The trunk's orientation from a raw BNO085 quaternion (w, x, y, z)."""
+    quat = qmul(quat, MOUNT_FIX)  # this build's BNO085 sits 90 deg about its vertical axis from the community mount
+    trim_inv = (IMU_PITCH_TRIM[0], -IMU_PITCH_TRIM[1], -IMU_PITCH_TRIM[2], -IMU_PITCH_TRIM[3])
+    return qmul(qmul(quat, IMU_MOUNT_QUAT), trim_inv)  # sensor reads q_true * trim; undo it
+
+
+def body_gravity(quat):
+    """Gravity in the body frame from a raw BNO085 quaternion: upright -> [0, 0, -1], what the 61-input policy sees."""
+    return apply_inverse(body_quat(quat), [0.0, 0.0, -1.0])
+
+
 def yaw_of(q):
     w, x, y, z = q
     return math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
@@ -234,7 +256,7 @@ class Brain:
     def __init__(self, models, compensation=True, walk_ramp=0.0):
         names = ["walk", "stand"] + [k for k in ("groundpick", "sitstand", "kick_left", "kick_right")
                                      if os.path.exists(os.path.join(models, k + "61.onnx"))]
-        self.sessions = {k: ort.InferenceSession(os.path.join(models, k + "61.onnx")) for k in names}
+        self.sessions = {k: ort.InferenceSession(os.path.join(models, k + "61.onnx"), session_options()) for k in names}
         for k, sess in self.sessions.items():
             meta = sess.get_modelmeta().custom_metadata_map
             assert sess.get_inputs()[0].shape == [1, 61] and meta["observation_names"] == OBS_NAMES, k
@@ -366,11 +388,10 @@ class Brain:
         """joint_age / imu_age: predicted sample ages (s) at the moment the returned goals reach the servos."""
         q = {n: to_model(n, t) for n, t in zip(NAMES, pos_t)}
         dq = {n: v * VEL_UNIT * SIGN[n] for n, v in zip(NAMES, vel_t)}
-        quat = qmul(quat, MOUNT_FIX)  # this build's BNO085 sits 90 deg about its vertical axis from the community mount
+        q_body = body_quat(quat)
+        grav_body = apply_inverse(q_body, [0.0, 0.0, -1.0])  # upright -> [0, 0, -1]; what the 61-input policy sees
         gyro = tuple(apply_inverse(MOUNT_FIX, gyro))
         trim_inv = (IMU_PITCH_TRIM[0], -IMU_PITCH_TRIM[1], -IMU_PITCH_TRIM[2], -IMU_PITCH_TRIM[3])
-        q_body = qmul(qmul(quat, IMU_MOUNT_QUAT), trim_inv)  # sensor reads q_true * trim; undo it
-        grav_body = apply_inverse(q_body, [0.0, 0.0, -1.0])  # upright -> [0, 0, -1]; what the 61-input policy sees
         gyro_body = apply_inverse(trim_inv, apply_inverse(IMU_MOUNT_QUAT, gyro))  # R(trim) @ sensor-body gyro
         info = {"q": [round(q[n], 4) for n in NAMES], "dq": [round(dq[n], 3) for n in NAMES],
                 "gb": grav_body.round(3).tolist(), "gyro_body": np.round(gyro_body, 3).tolist(), "action": None,

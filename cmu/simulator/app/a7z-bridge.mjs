@@ -3,12 +3,16 @@
 // lines are pushed to every open page as Server-Sent Events at /api/a7z/stream. The session starts with the first
 // page and stops 10 s after the last one closes. Health samples (2 Hz) are kept for 30 minutes so a reloaded page
 // redraws its charts. MICRODUCK_ROBOT_HOST overrides the SSH alias for tests.
+// With no brain running on the A7Z, the session also reads the servos and the IMU read-only (duck-telemetry.py `bus`,
+// duck_sense.py on the A7Z). It leaves that out while walk_wired.py runs on this Mac: a Mac brain drives the servos over
+// the OpenRB's USB port, and a request from the A7Z would take the bus away from it. The check runs once a second and
+// restarts the session when the answer changes.
 //
 // Remote control: POST /api/a7z/cmd with {"op": "set", "cmd": {...}} or {"op": "merge", "patch": {...}} writes
 // walk_wired.py's control file through a second SSH session running desktop/duck-command.py (passed as base64 on the
 // command line, nothing installed). The answer carries what was written, or the error. MICRODUCK_CMD_PATH overrides
 // the control-file path the writer finds on the A7Z.
-import {spawn} from "node:child_process";
+import {spawn, spawnSync} from "node:child_process";
 import {readFileSync} from "node:fs";
 
 const HISTORY_S = 1800, SILENT_S = 3, ACK_S = 3;
@@ -21,13 +25,16 @@ export function a7zBridge({script, commandScript, host = process.env.MICRODUCK_R
     apply: "serve",
     configureServer(server) {
       const clients = new Set(), history = [];
-      let child = null, buffer = "", lastLine = 0, linger = null, retry = null;
+      let child = null, buffer = "", lastLine = 0, linger = null, retry = null, childBus = null;
+      const macBrain = () => spawnSync("pgrep", ["-f", "walk_wired\\.py"]).status === 0;
       const send = message => { const text = `data: ${JSON.stringify(message)}\n\n`; for (const c of clients) c.write(text); };
       function start() {
         clearTimeout(retry);
         if (child || !clients.size) return;
-        const proc = spawn("ssh", [...SSH_OPTS, host, "exec nice -n 10 python3 -u - duck-telemetry fast"], {stdio: ["pipe", "pipe", "pipe"]});
-        child = proc; lastLine = Date.now(); buffer = "";
+        const bus = !macBrain();
+        const proc = spawn("ssh", [...SSH_OPTS, host, `exec nice -n 10 python3 -u - duck-telemetry fast${bus ? " bus" : ""}`],
+          {stdio: ["pipe", "pipe", "pipe"]});
+        child = proc; childBus = bus; lastLine = Date.now(); buffer = "";
         let stderr = "";
         proc.stdin.end(readFileSync(script));
         proc.stderr.on("data", d => { stderr = (stderr + d).slice(-400); });
@@ -53,7 +60,10 @@ export function a7zBridge({script, commandScript, host = process.env.MICRODUCK_R
         send({link: "connecting", host});
       }
       // A session whose A7Z vanished (reset, power cut) can hang until TCP gives up; drop it and reconnect.
-      setInterval(() => { if (child && Date.now() - lastLine > SILENT_S * 1000) child.kill(); }, 1000).unref();
+      setInterval(() => {
+        if (child && Date.now() - lastLine > SILENT_S * 1000) child.kill();
+        else if (child && childBus === macBrain()) child.kill();  // a Mac brain started or stopped: restart with/without bus
+      }, 1000).unref();
       server.middlewares.use("/api/a7z/stream", (req, res) => {
         res.writeHead(200, {"Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive"});
         res.write(`data: ${JSON.stringify({history, host, link: child ? "open" : "connecting"})}\n\n`);

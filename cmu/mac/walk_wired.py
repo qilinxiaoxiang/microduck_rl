@@ -54,6 +54,7 @@ of 10 ticks or body tilt over --max-tilt deg (30) switches to stand mode; a sing
 """
 import argparse
 import collections
+import fcntl
 import glob
 import json
 import math
@@ -88,6 +89,22 @@ def imu_frame_ok(f):
         return False
     return 0.9 < math.sqrt(sum(x * x for x in quat)) < 1.1 and all(abs(g) < 35.0 for g in gyro) and 0.0 <= age < 5.0
 PERIOD = 0.02
+
+
+# The robot I/O lock: walk_wired.py holds it for its whole run; duck_sense.py (the read-only standby reader behind the
+# live page) holds it only while no brain process exists, and gives it up within 0.5 s of seeing one, so the two never
+# share the servo bus or the BNO085.
+HW_LOCK = "/tmp/duck-hw.lock"
+
+
+def take_hw_lock(path=HW_LOCK):
+    f = open(path, "a")
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print("waiting for duck_sense.py to hand over the servo bus and IMU", flush=True)
+        fcntl.flock(f, fcntl.LOCK_EX)
+    return f
 
 
 class Link:
@@ -297,6 +314,7 @@ def main():
 
     brain = Brain(args.models, compensation=args.compensation)
     guard = None if args.supply == "bench" else BatteryGuard(args.supply)
+    hw_lock = take_hw_lock()  # noqa: F841  (held until exit)
     link = Link(port, args.baud, args.imu_bus)
     # The bench rail (7.1-7.3 V) is above the servos' 7.0 V Max Voltage Limit, and with Shutdown 52 (D-014) every status
     # packet carries the Alert bit. The bench accepts those packets and watches Hardware Error Status once a second
