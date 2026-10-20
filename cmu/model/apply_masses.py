@@ -181,6 +181,9 @@ def write_scene(spec: mujoco.MjSpec, out: Path, assets_dir: Path = SCENE_XML.par
     out.parent.mkdir(parents=True, exist_ok=True)
     spec.modelfiledir = str(out.parent.resolve()) + os.sep
     spec.meshdir = os.path.relpath(assets_dir.resolve(), out.parent.resolve())
+    for mesh in spec.meshes:  # absolute paths (the CMU visual meshes) become relative to meshdir, so the scene travels
+        if os.path.isabs(mesh.file):
+            mesh.file = os.path.relpath(mesh.file, assets_dir.resolve())
     out.write_text(spec.to_xml())
     return out
 
@@ -217,6 +220,9 @@ def main(argv=None) -> int:
     print(f"  total mass {total_g:.2f} g; COM at {HOME_KEY} in trunk_base frame: "
           f"x {com_mm[0]:+.2f} y {com_mm[1]:+.2f} z {com_mm[2]:+.2f} mm")
     if args.out:
+        from visual import apply_visual_to_spec  # scenes draw the CMU robot as built; physics unchanged (test_visual.py)
+        apply_visual_to_spec(spec, "battery" if args.variant == "battery" else "")
+        model = _compile(spec)
         out = write_scene(spec, args.out)
         check = verify_scene(out, model)
         print(f"  wrote {out} ({check['nbody']} bodies, {check['ngeom']} geoms, {check['nsite']} sites, {check['nkey']} keys); "

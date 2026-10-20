@@ -47,6 +47,10 @@ def load(config):
     spec = mujoco.MjSpec.from_file(str(MODEL_DIR/'scene.xml'))
     if config.get('scene'):
         spec = mujoco.MjSpec.from_file(str(Path(config['scene']).resolve()))
+    # Draw the CMU robot as built (microduck_rl/cmu/model/visual.py): visual geoms only, physics unchanged.
+    sys.path.insert(0, str(MODEL_DIR.parents[3] / 'cmu/model'))
+    from visual import apply_visual_to_spec
+    apply_visual_to_spec(spec)
     if config.get('geometry_manifest'):
         manifest=json.loads(Path(config['geometry_manifest']).read_text())
         for g in list(spec.geoms):

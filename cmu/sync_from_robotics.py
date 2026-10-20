@@ -38,6 +38,8 @@ add(MAC, "mac", [
     "test_pickup.py", "test_pickup_modes.py", "test_stance_switch.py", "test_target_ground.py", "test_walk_wired_battery.py",
     "PICKUP.md", "CAMERA.md", "stance_poses.json", "stance_poses_big.json", "stance_poses_small.json",
     "brain-sim-check.json", "battery-stop-sim.json",
+    "duck_sound.py",  # walk_wired.py imports it (quack)
+    "test_teleop_modes.py", "teleop_sim_batch.py", "teleop-sim-check.json",
 ])
 add(f"{MAC}/jitter-20261018", "mac/jitter-20261018", ["jitter_sim.py", "compare.py", "osc_metrics.py", "band.py", "summ.sh"])
 add(f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016", [])  # filled below from the directory listing
@@ -61,7 +63,8 @@ add(f"{WHOLE}/dynamics/realgap-20261014", "whole/dynamics/realgap-20261014", [
 ])
 add(f"{WHOLE}/delay-repair-20260912", "whole/delay-repair-20260912", ["evaluate_delay.py", "compensation.py", "README.md"])
 add(f"{WHOLE}/runtime-overlay", "whole/runtime-overlay", ["source-lock.json"])  # README.md is a Pi-install note for the old community runtime, not copied
-add(f"{WHOLE}/runtime-overlay/models", "whole/runtime-overlay/models", ["walk61.onnx", "stand61.onnx", "groundpick61.onnx"])
+add(f"{WHOLE}/runtime-overlay/models", "whole/runtime-overlay/models", ["walk61.onnx", "stand61.onnx", "groundpick61.onnx",
+    "sitstand61.onnx", "kick_left61.onnx", "kick_right61.onnx"])  # the remote-control policies (Pollen's, source-lock.json)
 add(f"{WHOLE}/runtime-overlay/models-ft3-it999", "whole/runtime-overlay/models-ft3-it999", [])
 add(f"{WHOLE}/electrical", "whole/electrical", ["existing-model-mass-audit.json"])
 add("build-pack-20260913/procurement/feet-sole-20261018", "model/sole", ["README.md", "sole_thickness_sim.py", "sole_template.py"])

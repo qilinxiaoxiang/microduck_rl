@@ -29,6 +29,22 @@ Pickup additions (2026-10-16, walk_brain.py and jaw_ctl.py have the details):
                                           goals (monitor mode, torque on) instead of ramping to STAND from a crouch.
   "jaw": 20 | "open" | "grip", "jaw_torque": false, "jaw_mark": "closed" | "open"   the ID15 jaw (jaw_ctl.py)
 
+Remote-control additions (2026-10-20, walk_brain.py has the details):
+  {"mode": "kick", "foot": "left" | "right", "id": 7}   one kick per new id, from stand or walk mode: 25 ticks of
+                                          Pollen's kick policy at zero command, then this process rewrites the
+                                          control file to walk at zero command (stand61) if it still holds that kick.
+                                          The walk guards apply; a trip stops the kick and goes to stand.
+  {"mode": "sit"}                         Pollen's sitstand policy (flag 0 for 0.8 s, then 1); any stand or walk
+                                          command stands it up (flag 0 for 2 s) before running. --max-tilt-sit (30)
+                                          and the hard action limit guard it; a trip holds the last goals (monitor).
+  "quack": N                              any mode; a new value of the counter (start at 1) plays one random call
+                                          from --sounds through `aplay -q` on the ALSA default device (duck_sound.py,
+                                          off the control thread, a new call kills the old one) and, when the jaw is
+                                          calibrated and its torque is on (any jaw command enables it), opens it to
+                                          QUACK_JAW_DEG for QUACK_S, under the jaw limits. A gripping jaw stays shut.
+  Hold-to-walk: rewrite {"mode": "walk", "vx": 0.25, ..., "for_s": 0.6} every 0.3 s; every rewrite restarts for_s,
+  so the walk stops 0.6 s after the last one.
+
 Walk stops: {"mode": "walk", ..., "for_s": 7} sets zero velocity 7 s after the command arrived; walk61 brings its own
 stride to rest (torque on), the sequence brain_sim_check.py verifies on the as-built model. An action over 3.0 rad in 3
 of 10 ticks or body tilt over --max-tilt deg (30) switches to stand mode; a single tick over 3.0 rad is clipped to
@@ -55,6 +71,7 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "pi"))
 from walk_brain import IDS, NAMES, OBSERVATION_DOF_ORDER, STAND, WHOLE, Brain, Breakaway, read_cmd, to_model, to_tick  # noqa: E402
 import jaw_ctl  # noqa: E402
+from duck_sound import Voice  # noqa: E402
 from jaw_ctl import GOAL_CURRENT_MA, JAW_ID, POSE_JOINTS, JawCtl  # noqa: E402
 from dxl_fast import _packet  # noqa: E402
 from battery import (ADDR_HW_ERROR, ADDR_PRESENT_VOLTAGE, ADDR_SHUTDOWN, INPUT_VOLTAGE_BIT, STOP_MARKER,  # noqa: E402
@@ -76,8 +93,8 @@ PERIOD = 0.02
 class Link:
     """USB serial to openrb_dual_host: DYNAMIXEL status packets and Pi IMU frames arrive as whole units."""
 
-    def __init__(self, port):
-        self.ser = serial.Serial(port, 1_000_000, timeout=0.002)
+    def __init__(self, port, baud=1_000_000, imu_bus=None):
+        self.ser = serial.Serial(port, baud, timeout=0.002)
         self.status = collections.deque()
         self.imu = None  # (arrival perf_counter, payload tuple)
         self.imu_count = 0
@@ -86,6 +103,32 @@ class Link:
         self.alert_ok = False  # True once the battery guard is armed (battery.py); the bench stays strict
         self.lock = threading.Lock()
         threading.Thread(target=self._reader, daemon=True).start()
+        if imu_bus is not None:
+            threading.Thread(target=self._local_imu, args=(imu_bus,), daemon=True).start()
+
+    def _local_imu(self, bus):
+        """Onboard brain (A7Z): read the BNO085 on this host's I2C bus and fill self.imu with the same tuple a J12
+        frame carries (pi_imu_uart.py), so the control loop cannot tell the two paths apart."""
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pi"))
+        from pi_imu_uart import frame_age_s
+        from imu_reader import ThreadedIMUReader
+        reader = ThreadedIMUReader(i2c_bus=bus, frequency_hz=100)
+        reader.start()
+        seq, last_ts = 0, None
+        while True:
+            snap = reader.get_latest()
+            if snap.timestamp_s != last_ts:
+                last_ts = snap.timestamp_s
+                now = time.perf_counter()
+                f = (seq, *snap.quat, *snap.gyro, *snap.acc, frame_age_s(snap, now), 1 if snap.valid else 0)
+                seq += 1
+                if imu_frame_ok(f):
+                    with self.lock:
+                        self.imu = (now, f)
+                        self.imu_count += 1
+                else:
+                    self.imu_bad += 1
+            time.sleep(0.002)
 
     def _reader(self):
         buf = b""
@@ -182,6 +225,9 @@ def over_limit(amax, over, limit, ticks=OVER_LIMIT_TICKS, hard=HARD_MAX_ACTION):
 MAX_WALK_ACTION = 1.8  # Shawn 2026-10-15: the as-built simulation peaks at 1.64 rad in a normal 0.25 m/s gait
 MAX_TILT_DEG = 30.0
 MAX_TILT_GP_DEG = 55.0  # the ground-pick crouch pitches the trunk 35 deg in the as-built sim (2026-10-16)
+MAX_TILT_SIT_DEG = 30.0  # sit and stand-up peak at 10.3-11.4 deg in the plugged as-built sim at 7.0 V (2026-10-20)
+QUACK_JAW_DEG = 15.0  # jaw opening for a quack; jaw_limits still caps it by the head pose
+QUACK_S = 0.4
 GP_DONE_PHASE = 0.9  # inside the policy's standing rest segment: the rise is complete, hand back to stand61
 CMD_ALPHA = 0.2  # velocity command EMA per 20 ms tick, Pollen's robotd default
 # No IMU sample this long: the Brain holds its last goals (blind, so no policy step). 2026-10-15 the Pi Zero lost power
@@ -205,6 +251,9 @@ def write_cmd(path, want, why):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", default=None, help="default: the only /dev/cu.usbmodem* (Mac) or /dev/ttyACM* (A7Z)")
+    ap.add_argument("--baud", type=int, default=1_000_000, help="500000 for the A7Z J12 port /dev/ttyAS2")
+    ap.add_argument("--imu-bus", type=int, default=None,
+                    help="onboard brain: read the BNO085 on this I2C bus (A7Z: 7) instead of J12 frames from the OpenRB")
     ap.add_argument("--models", default=os.path.join(WHOLE, "runtime-overlay", "models"))
     # Off by default: wired sample ages are a few ms, where the V1.9 simulation passes 9/9 without it, and the
     # predict-to-apply variant hurt on the replayed Wi-Fi link (dynamics/v19-20261014).
@@ -223,6 +272,10 @@ def main():
     ap.add_argument("--jaw-kp", type=int, default=jaw_ctl.KP_JAW, help="ID15 position P gain in mode 5")
     ap.add_argument("--max-tilt-gp", type=float, default=MAX_TILT_GP_DEG,
                     help="ground pick holds its last goals above this trunk tilt, deg (the crouch itself is 35 deg in the as-built sim)")
+    ap.add_argument("--max-tilt-sit", type=float, default=MAX_TILT_SIT_DEG,
+                    help="sit mode holds its last goals above this trunk tilt, deg")
+    ap.add_argument("--sounds", default=os.path.join(HERE, "sounds"),
+                    help="folder of 16-bit WAV duck calls for the quack key (played with aplay -q, ALSA default device)")
     ap.add_argument("--breakaway", action="store_true",
                     help="Mac-side stiction compensation on the leg joints in stand mode (walk_brain.Breakaway, validated standing 2026-10-16)")
     ap.add_argument("--breakaway-walk", action="store_true",
@@ -244,12 +297,22 @@ def main():
 
     brain = Brain(args.models, compensation=args.compensation)
     guard = None if args.supply == "bench" else BatteryGuard(args.supply)
-    link = Link(port)
+    link = Link(port, args.baud, args.imu_bus)
     # The bench rail (7.1-7.3 V) is above the servos' 7.0 V Max Voltage Limit, and with Shutdown 52 (D-014) every status
     # packet carries the Alert bit. The bench accepts those packets and watches Hardware Error Status once a second
     # like the armed guard, so a fault other than the input-voltage flag still freezes the policy.
     link.alert_ok = guard is None or guard.armed
     log = open(args.log, "a")
+
+    def _sync_log():  # a brownout loses only what is not on the card: fsync every 50 ms, off the control thread
+        pause = threading.Event()  # a wall-clock wait, never the loop's (simulated) clock
+        while True:
+            pause.wait(0.05)
+            try:
+                os.fsync(log.fileno())
+            except (OSError, ValueError):
+                pass
+    threading.Thread(target=_sync_log, daemon=True).start()
     print(f"wired on {port}, compensation {brain.comp_cfg['delay_compensation']}", flush=True)
 
     pos, vel = [0] * 14, [0] * 14
@@ -259,12 +322,18 @@ def main():
                          if jaw.calibrated else "not calibrated (jaw_torque false, close by hand, jaw_mark closed, "
                          "open by hand, jaw_mark open)"), flush=True)
     jaw_warned = False
+    voice = Voice(args.sounds)
+    print(f"quack: {len(voice.files)} calls in {args.sounds}" if voice.files else
+          f"quack: no .wav calls in {args.sounds}, the quack key moves only the jaw", flush=True)
+    last_quack = 0  # "quack" counter value last acted on; a new value quacks once
+    quack_until, quack_prev, quack_hint = None, None, False
     torque_on, kp_now, last_cmd = False, None, None
     write_delay = 0.002  # measured below: read-midpoint to goal write
     last_print, n, misses, t_stat = 0.0, 0, 0, time.perf_counter()
     miss_by_id = {}  # servo ID -> sync reads it did not answer (since start)
     cmd_since = time.time()
     last_goal = None  # the goals most recently written to the servos
+    goal_written = None  # tick goals of the newest goal write, every mode (log only)
     last_step_t = float("-inf")  # last loop with a nonzero walk command
     diverging = None  # set when the policy output or the body tilt leaves the trained range
     imu_lost = False
@@ -297,6 +366,23 @@ def main():
             cmd_since = time.time()  # when this command arrived (the file's mtime is wall clock, not this loop's)
         last_cmd = new_cmd
         want = last_cmd[1]
+        if cmd_is_new and want.get("quack") is not None and want.get("quack") != last_quack:
+            last_quack = want.get("quack")
+            call = voice.quack()
+            if jaw.calibrated and jaw.on and jaw.goal_deg != "grip":
+                if quack_until is None:
+                    quack_prev = jaw.goal_deg
+                jaw.goal_deg, quack_until = QUACK_JAW_DEG, time.perf_counter() + QUACK_S
+            elif not quack_hint:
+                print("quack: jaw stays put (" + ("gripping" if jaw.goal_deg == "grip" else
+                      "not calibrated" if not jaw.calibrated else "torque off; any jaw command, e.g. \"jaw\": 2, "
+                      "enables it") + ")", flush=True)
+                quack_hint = True
+            print(f"quack {last_quack}: {os.path.basename(call) if call else 'no sound'}", flush=True)
+        if quack_until is not None and (time.perf_counter() >= quack_until or not jaw.on):
+            if jaw.on:
+                jaw.goal_deg = quack_prev if quack_prev is not None else 2.0  # back to the rest opening
+            quack_until = None
         if cmd_is_new:  # jaw keys act once per command; the jaw goal persists until the next jaw key
             if want.get("jaw_mark") in ("closed", "open"):
                 try:
@@ -309,6 +395,7 @@ def main():
                 jaw.release(link)
                 print("jaw torque off", flush=True)
             if "jaw" in want:
+                quack_until = None  # an explicit jaw command wins over a quack in progress
                 j = want["jaw"]
                 if j in ("grip", "open") or isinstance(j, (int, float)):
                     jaw.goal_deg = j
@@ -324,25 +411,30 @@ def main():
                 want["head"] = last_cmd[1]["head"]  # the head keeps looking where the walk command aimed it
             write_cmd(args.cmd, want, f"walk for_s {want_s(last_cmd)} elapsed")
             last_cmd, cmd_since = read_cmd(args.cmd, None), time.time()
-        if brain.mode == "walk" and diverging:
+        if brain.mode in ("walk", "kick") and diverging:
+            if brain.mode == "kick":
+                brain.end_kick(diverging)  # the stand ramp next tick starts from the last goals sent
             want = {"mode": "stand"}
             hard_hits.clear()  # a later walk starts with a clean window
             write_cmd(args.cmd, want, diverging)
             last_cmd, diverging, cmd_since = read_cmd(args.cmd, None), None, time.time()
-        elif brain.mode == "groundpick" and diverging:
-            # no open-loop ramp to STAND out of a crouch: hold the last goals (torque on) and wait for a command
+        elif brain.mode in ("groundpick", "sit") and diverging:
+            # no open-loop ramp to STAND out of a crouch or a seat: hold the last goals (torque on), wait for a command
             want = {"mode": "monitor"}
             hard_hits.clear()
-            write_cmd(args.cmd, want, "ground pick: " + diverging)
+            write_cmd(args.cmd, want, ("ground pick: " if brain.mode == "groundpick" else "sit: ") + diverging)
             last_cmd, diverging, cmd_since = read_cmd(args.cmd, None), None, time.time()
         now = time.perf_counter()
         if guard and guard.state == "stop":
-            want = stop_command(torque_on, brain.mode)
+            # a kick or a sit ends through the walk policy at zero command (the Brain stands a sit up first)
+            want = stop_command(torque_on, "walk" if brain.mode in ("kick", "sit") else brain.mode)
         if imu is None:
             quat, gyro, imu_valid, imu_age = (1.0, 0.0, 0.0, 0.0), (0.0, 0.0, 0.0), False, 1.0
+            acc, imu_seq = None, None
         else:
             arrival, f = imu
             quat, gyro, imu_valid = f[1:5], f[5:8], bool(f[12])
+            acc, imu_seq = [round(a, 4) for a in f[8:11]], f[0]
             imu_age = f[11] + (now - arrival) + write_delay  # Pi-side age + time on the Mac + until the write
         joint_age = (now - t_mid) + write_delay
         block = guard.torque_block(args.battery_marker) if guard and not torque_on else None
@@ -370,7 +462,8 @@ def main():
                     print(f"torque refused: {faults} report a hardware error (address 70) or did not answer; "
                           "power-cycle the robot", flush=True)
                 continue
-            link.sync_write(ADDR_GOAL, 4, dict(zip(IDS, pos)))  # hold where they are, then enable
+            goal_written = dict(zip(IDS, pos))
+            link.sync_write(ADDR_GOAL, 4, goal_written)  # hold where they are, then enable
             link.sync_write(ADDR_TORQUE, 1, {i: 1 for i in IDS})
             torque_on = True
             print("torque on at present positions", flush=True)
@@ -398,6 +491,12 @@ def main():
             if msg:
                 print(msg, flush=True)
         act = info.get("action")
+        # only while the file still holds that kick: a command written during the kick takes over instead
+        if info.get("kick_done") is not None and last_cmd[1].get("mode") == "kick" \
+                and last_cmd[1].get("id") == info["kick_done"]:
+            want = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
+            write_cmd(args.cmd, want, f"kick {info['kick_done']!r} done, stand61 takes over")
+            last_cmd, cmd_since = read_cmd(args.cmd, None), time.time()
         if brain.mode == "groundpick" and info.get("gp_phase", 0.0) >= GP_DONE_PHASE \
                 and float(want.get("phase", 0.0)) >= GP_DONE_PHASE:
             want = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
@@ -428,7 +527,7 @@ def main():
                     goal = {n: (brain.default[n] + max(-hard, min(hard, float(act[k])))
                                 if n in brain.default else goal[n]) for k, n in enumerate(OBSERVATION_DOF_ORDER)}
                     brain.goal = dict(goal)
-            max_tilt = args.max_tilt_gp if brain.mode == "groundpick" else args.max_tilt
+            max_tilt = {"groundpick": args.max_tilt_gp, "sit": args.max_tilt_sit}.get(brain.mode, args.max_tilt)
             if not diverging and info["gb"][2] > -math.cos(math.radians(max_tilt)):
                 diverging = f"body tilt over {max_tilt} deg"
             if diverging and last_goal is not None:
@@ -448,7 +547,8 @@ def main():
             # No goal low-pass here: a 2026-10-16 trial (EMA alpha 0.5 on the goals sent to the servos, policy
             # unchanged) left the walking-phase action jumps at 57-70 per 4 s, the same as unfiltered, and fell
             # once at the stop in three walks (unfiltered: 6 of 6 stood). Pollen trains the policies unfiltered.
-            link.sync_write(ADDR_GOAL, 4, {i: to_tick(nm, goal_out[nm]) for i, nm in zip(IDS, NAMES)})
+            goal_written = {i: to_tick(nm, goal_out[nm]) for i, nm in zip(IDS, NAMES)}
+            link.sync_write(ADDR_GOAL, 4, goal_written)
             write_delay = 0.8 * write_delay + 0.2 * (time.perf_counter() - t_mid)
         # the jaw: its own servo, its own torque; the body may be off (calibration, grip tests) or on
         if jaw.goal_deg is not None and not jaw.on:
@@ -495,6 +595,10 @@ def main():
             print(f"IMU LOST: no IMU sample for {imu_age:.2f} s, the policy holds its last goals; hold the robot. "
                   "Check the Pi: ping, systemctl status duck-imu, ~/duck/pwrlog.txt" if imu_lost else "IMU back",
                   flush=True)
+        # 50 Hz servo-rail record for brownout diagnosis: one servo's Present Input Voltage per tick, round robin, after the goal write
+        vid = IDS[n % len(IDS)]
+        vr = link.sync_read(ADDR_PRESENT_VOLTAGE, 2, [vid], timeout=0.003, allow_alert=True)
+        servo_v = (vid, struct.unpack("<H", vr[vid])[0] / 10) if vid in vr else (vid, None)
         loop_ms = (time.perf_counter() - t0) * 1000
         log.write(json.dumps(dict(info, t=time.time(), mode=brain.mode, fresh=fresh, quat=quat, gyro=gyro,
                                   imu_valid=imu_valid, imu_age=imu_age, joint_age=joint_age, loop_ms=loop_ms,
@@ -502,6 +606,10 @@ def main():
                                   battery=guard.state if guard else None,
                                   battery_signalled=guard.signalled if guard else None, hw_faults=hw_faults,
                                   missing=missing, read_ms=read_ms, late=link.late,
+                                  # raw record for later replay and system ID: accel (m/s2, IMU frame), IMU sample
+                                  # seq, servo present ticks and the goal ticks last written, the command in force
+                                  acc=acc, imu_seq=imu_seq, pos_tick=list(pos), vel_tick=list(vel),
+                                  goal_tick=goal_written, cmd=want, servo_v=servo_v,
                                   jaw_tick=jaw.last_tick, jaw_deg=None if jaw.opening_deg() is None else round(jaw.opening_deg(), 1),
                                   jaw_goal=jaw.goal_deg if jaw.on else None, jaw_clamps=jaw.clamps if jaw.on else [],
                                   jaw_holding=jaw.holding())) + "\n")

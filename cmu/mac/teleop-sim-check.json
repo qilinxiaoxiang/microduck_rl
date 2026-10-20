@@ -1,0 +1,705 @@
+{
+ "model": "asbuilt + microduck_rl/cmu/model/manifests/plugged.json",
+ "real_condition_args": [
+  "--volt",
+  "7.0",
+  "--drop",
+  "0.04"
+ ],
+ "seeds": [
+  0,
+  1,
+  2
+ ],
+ "stable": "tilt within 2 deg of the stance before the behaviour and |gyro| < 0.3 rad/s for 1 s, timed from the hand-back",
+ "cases": {
+  "kick_left_from_stand61": {
+   "args": [
+    "--walk-s",
+    "0",
+    "--kick-at",
+    "4",
+    "--kick-foot",
+    "left"
+   ],
+   "runs": [
+    {
+     "max_tilt": 7.0,
+     "max_action": 2.07,
+     "action_jumps": 11,
+     "end_mode": "walk",
+     "kick": {
+      "at": 4.0,
+      "foot": "left",
+      "started": 4.0,
+      "done": 4.48,
+      "peak_tilt": 7.0,
+      "stance_tilt": 0.6,
+      "foot_lift_m": 0.08,
+      "stable_after_s": 1.2
+     },
+     "seed": 0
+    },
+    {
+     "max_tilt": 9.2,
+     "max_action": 2.06,
+     "action_jumps": 14,
+     "end_mode": "walk",
+     "kick": {
+      "at": 4.0,
+      "foot": "left",
+      "started": 4.0,
+      "done": 4.5,
+      "peak_tilt": 9.2,
+      "stance_tilt": 0.6,
+      "foot_lift_m": 0.0797,
+      "stable_after_s": 1.3
+     },
+     "seed": 1
+    },
+    {
+     "max_tilt": 6.5,
+     "max_action": 1.99,
+     "action_jumps": 9,
+     "end_mode": "walk",
+     "kick": {
+      "at": 4.0,
+      "foot": "left",
+      "started": 4.0,
+      "done": 4.5,
+      "peak_tilt": 6.5,
+      "stance_tilt": 0.5,
+      "foot_lift_m": 0.0802,
+      "stable_after_s": 0.98
+     },
+     "seed": 2
+    }
+   ]
+  },
+  "kick_right_from_stand61": {
+   "args": [
+    "--walk-s",
+    "0",
+    "--kick-at",
+    "4",
+    "--kick-foot",
+    "right"
+   ],
+   "runs": [
+    {
+     "max_tilt": 8.2,
+     "max_action": 1.93,
+     "action_jumps": 8,
+     "end_mode": "walk",
+     "kick": {
+      "at": 4.0,
+      "foot": "right",
+      "started": 4.0,
+      "done": 4.48,
+      "peak_tilt": 8.2,
+      "stance_tilt": 0.6,
+      "foot_lift_m": 0.0848,
+      "stable_after_s": 0.2
+     },
+     "seed": 0
+    },
+    {
+     "max_tilt": 8.1,
+     "max_action": 1.93,
+     "action_jumps": 8,
+     "end_mode": "walk",
+     "kick": {
+      "at": 4.0,
+      "foot": "right",
+      "started": 4.0,
+      "done": 4.5,
+      "peak_tilt": 8.1,
+      "stance_tilt": 0.6,
+      "foot_lift_m": 0.0846,
+      "stable_after_s": 0.34
+     },
+     "seed": 1
+    },
+    {
+     "max_tilt": 8.2,
+     "max_action": 1.96,
+     "action_jumps": 10,
+     "end_mode": "walk",
+     "kick": {
+      "at": 4.0,
+      "foot": "right",
+      "started": 4.0,
+      "done": 4.5,
+      "peak_tilt": 8.2,
+      "stance_tilt": 0.5,
+      "foot_lift_m": 0.0834,
+      "stable_after_s": 0.32
+     },
+     "seed": 2
+    }
+   ]
+  },
+  "kick_left_from_STAND": {
+   "args": [
+    "--stand-s",
+    "4",
+    "--walk-s",
+    "0",
+    "--kick-at",
+    "4",
+    "--kick-foot",
+    "left"
+   ],
+   "runs": [
+    {
+     "max_tilt": 8.0,
+     "max_action": 2.14,
+     "action_jumps": 11,
+     "end_mode": "walk",
+     "kick": {
+      "at": 4.0,
+      "foot": "left",
+      "started": 4.0,
+      "done": 4.48,
+      "peak_tilt": 8.0,
+      "stance_tilt": 3.0,
+      "foot_lift_m": 0.0871,
+      "stable_after_s": 1.16
+     },
+     "seed": 0
+    },
+    {
+     "max_tilt": 8.3,
+     "max_action": 2.14,
+     "action_jumps": 13,
+     "end_mode": "walk",
+     "kick": {
+      "at": 4.0,
+      "foot": "left",
+      "started": 4.0,
+      "done": 4.5,
+      "peak_tilt": 8.3,
+      "stance_tilt": 3.0,
+      "foot_lift_m": 0.0871,
+      "stable_after_s": 1.04
+     },
+     "seed": 1
+    },
+    {
+     "max_tilt": 7.8,
+     "max_action": 2.14,
+     "action_jumps": 10,
+     "end_mode": "walk",
+     "kick": {
+      "at": 4.0,
+      "foot": "left",
+      "started": 4.0,
+      "done": 4.5,
+      "peak_tilt": 7.8,
+      "stance_tilt": 3.0,
+      "foot_lift_m": 0.0871,
+      "stable_after_s": 0.98
+     },
+     "seed": 2
+    }
+   ]
+  },
+  "kick_right_mid_walk_0.25": {
+   "args": [
+    "--vx",
+    "0.25",
+    "--walk-at",
+    "4",
+    "--walk-s",
+    "4",
+    "--kick-at",
+    "6",
+    "--kick-foot",
+    "right"
+   ],
+   "runs": [
+    {
+     "max_tilt": 7.7,
+     "max_action": 1.01,
+     "action_jumps": 5,
+     "end_mode": "walk",
+     "kick": {
+      "at": 6.0,
+      "foot": "right",
+      "started": 6.0,
+      "done": 6.48,
+      "peak_tilt": 7.7,
+      "stance_tilt": 3.8,
+      "foot_lift_m": 0.0118,
+      "stable_after_s": 1.9
+     },
+     "seed": 0
+    },
+    {
+     "max_tilt": 8.7,
+     "max_action": 1.21,
+     "action_jumps": 8,
+     "end_mode": "walk",
+     "kick": {
+      "at": 6.0,
+      "foot": "right",
+      "started": 6.0,
+      "done": 6.5,
+      "peak_tilt": 8.7,
+      "stance_tilt": 3.8,
+      "foot_lift_m": 0.0119,
+      "stable_after_s": 1.82
+     },
+     "seed": 1
+    },
+    {
+     "max_tilt": 6.2,
+     "max_action": 0.97,
+     "action_jumps": 3,
+     "end_mode": "walk",
+     "kick": {
+      "at": 6.0,
+      "foot": "right",
+      "started": 6.0,
+      "done": 6.48,
+      "peak_tilt": 6.0,
+      "stance_tilt": 3.9,
+      "foot_lift_m": 0.0104,
+      "stable_after_s": 1.86
+     },
+     "seed": 2
+    }
+   ]
+  },
+  "sit_stand_from_stand61": {
+   "args": [
+    "--walk-s",
+    "0",
+    "--sit-at",
+    "4",
+    "--unsit-at",
+    "10"
+   ],
+   "runs": [
+    {
+     "max_tilt": 10.6,
+     "max_action": 1.7,
+     "action_jumps": 5,
+     "end_mode": "walk",
+     "sit": {
+      "start": 4.0,
+      "flag1": 4.82,
+      "rise": 10.0,
+      "done": 12.0,
+      "min_trunk_z": 0.0559,
+      "seated_tilt": 0.8,
+      "seated_trunk_z": 0.0573,
+      "at": 4.0,
+      "unsit_at": 10.0,
+      "stance_tilt": 0.6,
+      "peak_tilt": 10.6,
+      "stable_after_s": 0.18,
+      "end_trunk_z": 0.1155
+     },
+     "seed": 0
+    },
+    {
+     "max_tilt": 10.3,
+     "max_action": 1.7,
+     "action_jumps": 3,
+     "end_mode": "walk",
+     "sit": {
+      "start": 4.0,
+      "flag1": 4.82,
+      "rise": 10.0,
+      "done": 12.0,
+      "min_trunk_z": 0.0561,
+      "seated_tilt": 0.9,
+      "seated_trunk_z": 0.0574,
+      "at": 4.0,
+      "unsit_at": 10.0,
+      "stance_tilt": 0.6,
+      "peak_tilt": 10.3,
+      "stable_after_s": 0.16,
+      "end_trunk_z": 0.1155
+     },
+     "seed": 1
+    },
+    {
+     "max_tilt": 10.4,
+     "max_action": 1.69,
+     "action_jumps": 5,
+     "end_mode": "walk",
+     "sit": {
+      "start": 4.0,
+      "flag1": 4.82,
+      "rise": 10.0,
+      "done": 12.0,
+      "min_trunk_z": 0.0558,
+      "seated_tilt": 0.9,
+      "seated_trunk_z": 0.0573,
+      "at": 4.0,
+      "unsit_at": 10.0,
+      "stance_tilt": 0.5,
+      "peak_tilt": 10.4,
+      "stable_after_s": 0.16,
+      "end_trunk_z": 0.1154
+     },
+     "seed": 2
+    }
+   ]
+  },
+  "sit_stand_from_STAND": {
+   "args": [
+    "--stand-s",
+    "4",
+    "--walk-s",
+    "0",
+    "--sit-at",
+    "4",
+    "--unsit-at",
+    "10"
+   ],
+   "runs": [
+    {
+     "max_tilt": 11.4,
+     "max_action": 1.7,
+     "action_jumps": 5,
+     "end_mode": "walk",
+     "sit": {
+      "start": 4.0,
+      "flag1": 4.82,
+      "rise": 10.0,
+      "done": 12.0,
+      "min_trunk_z": 0.056,
+      "seated_tilt": 0.9,
+      "seated_trunk_z": 0.0573,
+      "at": 4.0,
+      "unsit_at": 10.0,
+      "stance_tilt": 3.0,
+      "peak_tilt": 11.4,
+      "stable_after_s": 0.18,
+      "end_trunk_z": 0.1155
+     },
+     "seed": 0
+    },
+    {
+     "max_tilt": 11.0,
+     "max_action": 1.7,
+     "action_jumps": 4,
+     "end_mode": "walk",
+     "sit": {
+      "start": 4.0,
+      "flag1": 4.82,
+      "rise": 10.0,
+      "done": 12.0,
+      "min_trunk_z": 0.0563,
+      "seated_tilt": 0.8,
+      "seated_trunk_z": 0.0574,
+      "at": 4.0,
+      "unsit_at": 10.0,
+      "stance_tilt": 3.0,
+      "peak_tilt": 11.0,
+      "stable_after_s": 0.16,
+      "end_trunk_z": 0.1155
+     },
+     "seed": 1
+    },
+    {
+     "max_tilt": 10.8,
+     "max_action": 1.7,
+     "action_jumps": 5,
+     "end_mode": "walk",
+     "sit": {
+      "start": 4.0,
+      "flag1": 4.82,
+      "rise": 10.0,
+      "done": 12.0,
+      "min_trunk_z": 0.0558,
+      "seated_tilt": 0.9,
+      "seated_trunk_z": 0.0573,
+      "at": 4.0,
+      "unsit_at": 10.0,
+      "stance_tilt": 3.0,
+      "peak_tilt": 10.8,
+      "stable_after_s": 0.16,
+      "end_trunk_z": 0.1155
+     },
+     "seed": 2
+    }
+   ]
+  },
+  "groundpick_from_stand61": {
+   "args": [
+    "--walk-s",
+    "0",
+    "--gp-at",
+    "4",
+    "--gp-phase",
+    "0.33"
+   ],
+   "runs": [
+    {
+     "max_tilt": 35.5,
+     "max_action": 1.72,
+     "action_jumps": 2,
+     "end_mode": "walk",
+     "groundpick": {
+      "mouth_min_z": 0.02,
+      "mouth_at_min": [
+       0.0661,
+       0.0054
+      ],
+      "pose_at_min": {
+       "left_hip_yaw": 0.378,
+       "left_hip_roll": 0.152,
+       "left_hip_pitch": -1.38,
+       "left_knee": 0.56,
+       "left_ankle": 1.37,
+       "neck_pitch": -1.377,
+       "head_pitch": -0.289,
+       "head_yaw": -0.007,
+       "head_roll": 0.037,
+       "right_hip_yaw": -0.178,
+       "right_hip_roll": -0.09,
+       "right_hip_pitch": 1.335,
+       "right_knee": -0.609,
+       "right_ankle": -1.347
+      },
+      "tilt_at_min": 35.4,
+      "max_tilt": 35.54649283004619,
+      "phase_at_min": 0.33,
+      "trunk_z_at_min": 0.092,
+      "end_tilt": 0.7,
+      "stable_after_s": 0.68,
+      "stance_tilt": 0.6,
+      "at": 4.0,
+      "phase": 0.33,
+      "hold_s": 2.0,
+      "done_at": 10.5
+     },
+     "seed": 0
+    },
+    {
+     "max_tilt": 35.7,
+     "max_action": 1.66,
+     "action_jumps": 3,
+     "end_mode": "walk",
+     "groundpick": {
+      "mouth_min_z": 0.0197,
+      "mouth_at_min": [
+       0.0658,
+       0.005
+      ],
+      "pose_at_min": {
+       "left_hip_yaw": 0.379,
+       "left_hip_roll": 0.153,
+       "left_hip_pitch": -1.379,
+       "left_knee": 0.561,
+       "left_ankle": 1.366,
+       "neck_pitch": -1.379,
+       "head_pitch": -0.293,
+       "head_yaw": -0.007,
+       "head_roll": 0.033,
+       "right_hip_yaw": -0.186,
+       "right_hip_roll": -0.091,
+       "right_hip_pitch": 1.348,
+       "right_knee": -0.601,
+       "right_ankle": -1.35
+      },
+      "tilt_at_min": 35.6,
+      "max_tilt": 35.66274457091888,
+      "phase_at_min": 0.33,
+      "trunk_z_at_min": 0.0921,
+      "end_tilt": 0.8,
+      "stable_after_s": 0.62,
+      "stance_tilt": 0.6,
+      "at": 4.0,
+      "phase": 0.33,
+      "hold_s": 2.0,
+      "done_at": 10.5
+     },
+     "seed": 1
+    },
+    {
+     "max_tilt": 35.6,
+     "max_action": 1.66,
+     "action_jumps": 1,
+     "end_mode": "walk",
+     "groundpick": {
+      "mouth_min_z": 0.02,
+      "mouth_at_min": [
+       0.066,
+       0.0054
+      ],
+      "pose_at_min": {
+       "left_hip_yaw": 0.379,
+       "left_hip_roll": 0.153,
+       "left_hip_pitch": -1.379,
+       "left_knee": 0.56,
+       "left_ankle": 1.37,
+       "neck_pitch": -1.378,
+       "head_pitch": -0.291,
+       "head_yaw": -0.007,
+       "head_roll": 0.033,
+       "right_hip_yaw": -0.18,
+       "right_hip_roll": -0.089,
+       "right_hip_pitch": 1.337,
+       "right_knee": -0.608,
+       "right_ankle": -1.349
+      },
+      "tilt_at_min": 35.4,
+      "max_tilt": 35.60210183037843,
+      "phase_at_min": 0.33,
+      "trunk_z_at_min": 0.092,
+      "end_tilt": 0.8,
+      "stable_after_s": 0.56,
+      "stance_tilt": 0.5,
+      "at": 4.0,
+      "phase": 0.33,
+      "hold_s": 2.0,
+      "done_at": 10.5
+     },
+     "seed": 2
+    }
+   ]
+  },
+  "groundpick_from_STAND": {
+   "args": [
+    "--stand-s",
+    "4",
+    "--walk-s",
+    "0",
+    "--gp-at",
+    "4",
+    "--gp-phase",
+    "0.33"
+   ],
+   "runs": [
+    {
+     "max_tilt": 35.7,
+     "max_action": 1.71,
+     "action_jumps": 2,
+     "end_mode": "walk",
+     "groundpick": {
+      "mouth_min_z": 0.0204,
+      "mouth_at_min": [
+       0.0662,
+       0.0064
+      ],
+      "pose_at_min": {
+       "left_hip_yaw": 0.368,
+       "left_hip_roll": 0.155,
+       "left_hip_pitch": -1.396,
+       "left_knee": 0.551,
+       "left_ankle": 1.381,
+       "neck_pitch": -1.372,
+       "head_pitch": -0.289,
+       "head_yaw": -0.003,
+       "head_roll": -0.01,
+       "right_hip_yaw": -0.173,
+       "right_hip_roll": -0.084,
+       "right_hip_pitch": 1.331,
+       "right_knee": -0.607,
+       "right_ankle": -1.343
+      },
+      "tilt_at_min": 35.3,
+      "max_tilt": 35.68678056178186,
+      "phase_at_min": 0.33,
+      "trunk_z_at_min": 0.0919,
+      "end_tilt": 0.7,
+      "stable_after_s": 0.68,
+      "stance_tilt": 3.0,
+      "at": 4.0,
+      "phase": 0.33,
+      "hold_s": 2.0,
+      "done_at": 10.5
+     },
+     "seed": 0
+    },
+    {
+     "max_tilt": 35.8,
+     "max_action": 1.68,
+     "action_jumps": 3,
+     "end_mode": "walk",
+     "groundpick": {
+      "mouth_min_z": 0.0198,
+      "mouth_at_min": [
+       0.0658,
+       0.0061
+      ],
+      "pose_at_min": {
+       "left_hip_yaw": 0.37,
+       "left_hip_roll": 0.155,
+       "left_hip_pitch": -1.394,
+       "left_knee": 0.555,
+       "left_ankle": 1.375,
+       "neck_pitch": -1.377,
+       "head_pitch": -0.295,
+       "head_yaw": -0.003,
+       "head_roll": -0.012,
+       "right_hip_yaw": -0.179,
+       "right_hip_roll": -0.087,
+       "right_hip_pitch": 1.35,
+       "right_knee": -0.597,
+       "right_ankle": -1.348
+      },
+      "tilt_at_min": 35.6,
+      "max_tilt": 35.82995632147946,
+      "phase_at_min": 0.33,
+      "trunk_z_at_min": 0.0919,
+      "end_tilt": 0.8,
+      "stable_after_s": 0.62,
+      "stance_tilt": 3.0,
+      "at": 4.0,
+      "phase": 0.33,
+      "hold_s": 2.0,
+      "done_at": 10.5
+     },
+     "seed": 1
+    },
+    {
+     "max_tilt": 35.7,
+     "max_action": 1.68,
+     "action_jumps": 1,
+     "end_mode": "walk",
+     "groundpick": {
+      "mouth_min_z": 0.0201,
+      "mouth_at_min": [
+       0.066,
+       0.0062
+      ],
+      "pose_at_min": {
+       "left_hip_yaw": 0.369,
+       "left_hip_roll": 0.154,
+       "left_hip_pitch": -1.389,
+       "left_knee": 0.554,
+       "left_ankle": 1.371,
+       "neck_pitch": -1.375,
+       "head_pitch": -0.291,
+       "head_yaw": -0.003,
+       "head_roll": -0.011,
+       "right_hip_yaw": -0.175,
+       "right_hip_roll": -0.086,
+       "right_hip_pitch": 1.345,
+       "right_knee": -0.596,
+       "right_ankle": -1.343
+      },
+      "tilt_at_min": 35.5,
+      "max_tilt": 35.72342280460654,
+      "phase_at_min": 0.33,
+      "trunk_z_at_min": 0.092,
+      "end_tilt": 0.7,
+      "stable_after_s": 0.58,
+      "stance_tilt": 3.0,
+      "at": 4.0,
+      "phase": 0.33,
+      "hold_s": 2.0,
+      "done_at": 10.5
+     },
+     "seed": 2
+    }
+   ]
+  }
+ }
+}

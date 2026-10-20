@@ -1,0 +1,175 @@
+{
+ "about": "What is on the CMU robot today, on top of the assembly guide's whole-robot data (make_visual.py). Source: Shawn, 2026-10-20: torso shells and thighs are white, the back carries the two-converter box without its rear lid (bench supply), the ankles and feet are the V1.22 split ankle and slip-fit feet. Colours are the printed filament colours of colour scheme C (guide/print/colour-study-20261014/make_specs.py); the guide's own colours are display colours.",
+ "checked": "2026-10-20",
+ "not_fitted": [
+  "rear_lid",
+  "battery_backpack_*",
+  "bp_*",
+  "touch_*"
+ ],
+ "colour_overrides": {
+  "thigh": "white",
+  "right_thigh": "white",
+  "smallring": "black",
+  "right_smallring": "black"
+ },
+ "body_overrides": {
+  "amplifier": "jaw_soft",
+  "idler12": "trunk_base",
+  "idler_cap12": "trunk_base"
+ },
+ "body_override_reasons": {
+  "amplifier": "sits in the head beside the speaker; nearest official mesh is the head-yaw link 4 mm closer than the head",
+  "idler12": "motor 12 rides on the neck body, so its rear idler horn turns with the torso side like its output horn",
+  "idler_cap12": "same as idler12"
+ },
+ "palette": {
+  "orange": [
+   0.95,
+   0.45,
+   0.06,
+   1
+  ],
+  "yellow": [
+   1.0,
+   0.8,
+   0.1,
+   1
+  ],
+  "white": [
+   0.93,
+   0.93,
+   0.91,
+   1
+  ],
+  "black": [
+   0.11,
+   0.11,
+   0.12,
+   1
+  ],
+  "servo": [
+   0.17,
+   0.17,
+   0.18,
+   1
+  ],
+  "metal": [
+   0.72,
+   0.73,
+   0.74,
+   1
+  ],
+  "pcb_green": [
+   0.15,
+   0.4,
+   0.28,
+   1
+  ],
+  "pcb_blue": [
+   0.15,
+   0.3,
+   0.62,
+   1
+  ],
+  "dark": [
+   0.2,
+   0.2,
+   0.22,
+   1
+  ],
+  "light": [
+   0.9,
+   0.88,
+   0.82,
+   1
+  ],
+  "gold": [
+   0.8,
+   0.62,
+   0.25,
+   1
+  ]
+ },
+ "guide_colours": {
+  "#ff8000": "orange",
+  "#e99436": "orange",
+  "#ffff00": "yellow",
+  "#edc447": "yellow",
+  "#e9e7df": "white",
+  "#202020": "black",
+  "#292b30": "black",
+  "#40454b": "servo",
+  "#b7c4d0": "metal",
+  "#b7b7b5": "metal",
+  "#b0b0b0": "metal",
+  "#c9c9c9": "metal",
+  "#6d6d6d": "metal",
+  "#277d4a": "pcb_green",
+  "#3d7268": "pcb_green",
+  "#30645a": "pcb_green",
+  "#1f5f3a": "pcb_green",
+  "#3a6b35": "pcb_green",
+  "#2d6fb5": "pcb_blue",
+  "#1f3f8f": "pcb_blue",
+  "#2b4a8b": "pcb_blue",
+  "#2e5d8a": "pcb_blue",
+  "#30333a": "dark",
+  "#3b3b3b": "dark",
+  "#26282b": "dark",
+  "#55585e": "dark",
+  "#ddd7c5": "light",
+  "#e8e2d0": "light",
+  "#f2f2f2": "light",
+  "#d4af37": "gold",
+  "#c9a227": "gold",
+  "#c87533": "gold",
+  "#f2c14e": "gold",
+  "#ff8f00": "gold"
+ },
+ "part_files": {
+  "ankle": "guide/print/world/ankle_base_left.stl",
+  "right_ankle": "guide/print/world/ankle_base_right.stl",
+  "ankle_cheek": "guide/print/world/ankle_cheek_left.stl",
+  "right_ankle_cheek": "guide/print/world/ankle_cheek_right.stl",
+  "smallring": "guide/print/world/ankle_sleeve_left.stl",
+  "right_smallring": "guide/print/world/ankle_sleeve_right.stl",
+  "foot": "guide/print/world/foot_left.stl",
+  "right_foot": "guide/print/world/foot_right.stl"
+ },
+ "part_files_reason": "The guide data now carries the V1.24 two-half ankle (not printed). The robot wears the V1.22 split ankle (base on the horn, side with two M2 x 8 TAP, 10.4 mm black sleeve) and the V1.22 slip-fit feet: the world STLs of release-V1.22 (guide frame, mm).",
+ "jaw": {
+  "parts": [
+   "jaw_frame"
+  ],
+  "body": "jaw_soft",
+  "pivot_mm": [
+   26.1,
+   0.0,
+   118.6146
+  ],
+  "axis": [
+   0.0,
+   1.0,
+   0.0
+  ],
+  "open_positive": "a positive angle about axis swings the lip tip down (opens)",
+  "source": "guide/extension-20261012-neck-audio/neck-route/nr_lib.py JAW_PIVOT / JAW_AXIS (robot frame, mm), the hinge the jaw pose-cap study sweeps"
+ },
+ "variants": {
+  "battery": {
+   "about": "The 2S battery backpack (D-010, apply_masses variant battery): the bench converter box comes off, the backpack goes on.",
+   "remove": [
+    "rear_frame",
+    "rear_lid",
+    "xl4015_top",
+    "xl4015_mid",
+    "pd5991"
+   ],
+   "add": [
+    "battery_backpack_*",
+    "bp_*"
+   ]
+  }
+ }
+}

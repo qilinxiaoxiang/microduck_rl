@@ -156,6 +156,61 @@
     <mesh name="sole_right" file="sole_right.stl"/>
     <mesh name="power_support" file="power_support.stl"/>
     <mesh name="motor_support" file="motor_support.stl"/>
+    <mesh name="cmu_ankle_left__black" file="../../../../../cmu/model/visual/meshes/ankle_left__black.stl"/>
+    <mesh name="cmu_ankle_left__orange" file="../../../../../cmu/model/visual/meshes/ankle_left__orange.stl"/>
+    <mesh name="cmu_ankle_left__yellow" file="../../../../../cmu/model/visual/meshes/ankle_left__yellow.stl"/>
+    <mesh name="cmu_ankle_right__black" file="../../../../../cmu/model/visual/meshes/ankle_right__black.stl"/>
+    <mesh name="cmu_ankle_right__orange" file="../../../../../cmu/model/visual/meshes/ankle_right__orange.stl"/>
+    <mesh name="cmu_ankle_right__yellow" file="../../../../../cmu/model/visual/meshes/ankle_right__yellow.stl"/>
+    <mesh name="cmu_bearing_roll__black" file="../../../../../cmu/model/visual/meshes/bearing_roll__black.stl"/>
+    <mesh name="cmu_bearing_roll__metal" file="../../../../../cmu/model/visual/meshes/bearing_roll__metal.stl"/>
+    <mesh name="cmu_bearing_roll__servo" file="../../../../../cmu/model/visual/meshes/bearing_roll__servo.stl"/>
+    <mesh name="cmu_hip_l__black" file="../../../../../cmu/model/visual/meshes/hip_l__black.stl"/>
+    <mesh name="cmu_hip_l__orange" file="../../../../../cmu/model/visual/meshes/hip_l__orange.stl"/>
+    <mesh name="cmu_hip_l_2__black" file="../../../../../cmu/model/visual/meshes/hip_l_2__black.stl"/>
+    <mesh name="cmu_hip_l_2__orange" file="../../../../../cmu/model/visual/meshes/hip_l_2__orange.stl"/>
+    <mesh name="cmu_jaw_soft__black" file="../../../../../cmu/model/visual/meshes/jaw_soft__black.stl"/>
+    <mesh name="cmu_jaw_soft__dark" file="../../../../../cmu/model/visual/meshes/jaw_soft__dark.stl"/>
+    <mesh name="cmu_jaw_soft__gold" file="../../../../../cmu/model/visual/meshes/jaw_soft__gold.stl"/>
+    <mesh name="cmu_jaw_soft__light" file="../../../../../cmu/model/visual/meshes/jaw_soft__light.stl"/>
+    <mesh name="cmu_jaw_soft__metal" file="../../../../../cmu/model/visual/meshes/jaw_soft__metal.stl"/>
+    <mesh name="cmu_jaw_soft__orange" file="../../../../../cmu/model/visual/meshes/jaw_soft__orange.stl"/>
+    <mesh name="cmu_jaw_soft__pcb_blue" file="../../../../../cmu/model/visual/meshes/jaw_soft__pcb_blue.stl"/>
+    <mesh name="cmu_jaw_soft__pcb_green" file="../../../../../cmu/model/visual/meshes/jaw_soft__pcb_green.stl"/>
+    <mesh name="cmu_jaw_soft__servo" file="../../../../../cmu/model/visual/meshes/jaw_soft__servo.stl"/>
+    <mesh name="cmu_jaw_soft__white" file="../../../../../cmu/model/visual/meshes/jaw_soft__white.stl"/>
+    <mesh name="cmu_jaw_soft__yellow" file="../../../../../cmu/model/visual/meshes/jaw_soft__yellow.stl"/>
+    <mesh name="cmu_jaw_soft__jaw_yellow" file="../../../../../cmu/model/visual/meshes/jaw_soft__jaw_yellow.stl"/>
+    <mesh name="cmu_leg__black" file="../../../../../cmu/model/visual/meshes/leg__black.stl"/>
+    <mesh name="cmu_leg__metal" file="../../../../../cmu/model/visual/meshes/leg__metal.stl"/>
+    <mesh name="cmu_leg__servo" file="../../../../../cmu/model/visual/meshes/leg__servo.stl"/>
+    <mesh name="cmu_leg_2__black" file="../../../../../cmu/model/visual/meshes/leg_2__black.stl"/>
+    <mesh name="cmu_leg_2__metal" file="../../../../../cmu/model/visual/meshes/leg_2__metal.stl"/>
+    <mesh name="cmu_leg_2__servo" file="../../../../../cmu/model/visual/meshes/leg_2__servo.stl"/>
+    <mesh name="cmu_neck__orange" file="../../../../../cmu/model/visual/meshes/neck__orange.stl"/>
+    <mesh name="cmu_neck__servo" file="../../../../../cmu/model/visual/meshes/neck__servo.stl"/>
+    <mesh name="cmu_neck_pitch__black" file="../../../../../cmu/model/visual/meshes/neck_pitch__black.stl"/>
+    <mesh name="cmu_neck_pitch__orange" file="../../../../../cmu/model/visual/meshes/neck_pitch__orange.stl"/>
+    <mesh name="cmu_trunk_base__black" file="../../../../../cmu/model/visual/meshes/trunk_base__black.stl"/>
+    <mesh name="cmu_trunk_base__dark__battery" file="../../../../../cmu/model/visual/meshes/trunk_base__dark__battery.stl"/>
+    <mesh name="cmu_trunk_base__gold__battery" file="../../../../../cmu/model/visual/meshes/trunk_base__gold__battery.stl"/>
+    <mesh name="cmu_trunk_base__light" file="../../../../../cmu/model/visual/meshes/trunk_base__light.stl"/>
+    <mesh name="cmu_trunk_base__orange__battery" file="../../../../../cmu/model/visual/meshes/trunk_base__orange__battery.stl"/>
+    <mesh name="cmu_trunk_base__pcb_blue__battery" file="../../../../../cmu/model/visual/meshes/trunk_base__pcb_blue__battery.stl"/>
+    <mesh name="cmu_trunk_base__pcb_green__battery" file="../../../../../cmu/model/visual/meshes/trunk_base__pcb_green__battery.stl"/>
+    <mesh name="cmu_trunk_base__servo" file="../../../../../cmu/model/visual/meshes/trunk_base__servo.stl"/>
+    <mesh name="cmu_trunk_base__white" file="../../../../../cmu/model/visual/meshes/trunk_base__white.stl"/>
+    <mesh name="cmu_upper_leg_left__black" file="../../../../../cmu/model/visual/meshes/upper_leg_left__black.stl"/>
+    <mesh name="cmu_upper_leg_left__servo" file="../../../../../cmu/model/visual/meshes/upper_leg_left__servo.stl"/>
+    <mesh name="cmu_upper_leg_left__white" file="../../../../../cmu/model/visual/meshes/upper_leg_left__white.stl"/>
+    <mesh name="cmu_upper_leg_right__black" file="../../../../../cmu/model/visual/meshes/upper_leg_right__black.stl"/>
+    <mesh name="cmu_upper_leg_right__servo" file="../../../../../cmu/model/visual/meshes/upper_leg_right__servo.stl"/>
+    <mesh name="cmu_upper_leg_right__white" file="../../../../../cmu/model/visual/meshes/upper_leg_right__white.stl"/>
+    <mesh name="cmu_yaw2roll__black" file="../../../../../cmu/model/visual/meshes/yaw2roll__black.stl"/>
+    <mesh name="cmu_yaw2roll__metal" file="../../../../../cmu/model/visual/meshes/yaw2roll__metal.stl"/>
+    <mesh name="cmu_yaw2roll__servo" file="../../../../../cmu/model/visual/meshes/yaw2roll__servo.stl"/>
+    <mesh name="cmu_yaw_roll_motion__black" file="../../../../../cmu/model/visual/meshes/yaw_roll_motion__black.stl"/>
+    <mesh name="cmu_yaw_roll_motion__servo" file="../../../../../cmu/model/visual/meshes/yaw_roll_motion__servo.stl"/>
   </asset>
 
   <worldbody>
@@ -164,54 +219,50 @@
     <body name="trunk_base" childclass="microduck" pos="0 0 0.12">
       <inertial pos="-0.0320923 1.193e-05 0.00632828" quat="0.555083 0.444266 0.438778 0.549531" mass="0.26094" diaginertia="0.0002848 0.00025585 0.000138886"/>
       <joint name="trunk_base_freejoint" type="free" armature="0" frictionloss="0"/>
-      <geom class="visual" pos="0.006 0.0175 -0.005" quat="1 0 0 0" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
-      <geom class="visual" pos="0.004 -0.0005 -0.0175" quat="0.707107 0 0 0.707107" material="right_shell_material" mesh="right_shell"/>
-      <geom class="visual" pos="0.0042 0 -0.0175215" quat="0.707107 0 0 0.707107" material="banana_pcb_locker_material" mesh="banana_pcb_locker"/>
-      <geom class="visual" pos="0.004 0 -0.0175" quat="0.707107 0 0 0.707107" material="trunk_base_material" mesh="trunk_base"/>
-      <geom class="visual" pos="0.006 0.0175 0.0115" quat="0 -0.707107 0 -0.707107" material="xl330_material" mesh="xl330"/>
-      <geom class="visual" pos="0.004 0 -0.0175215" quat="0.707107 0 0 0.707107" material="power_support_material" mesh="power_support"/>
       <geom class="self_collision_only" pos="0.004 0 -0.0175215" quat="0.707107 0 0 0.707107" type="mesh" material="power_support_material" mesh="power_support"/>
-      <geom class="visual" pos="-0.0359693 0 -0.00385049" quat="0.00617059 0.70708 -0.70708 -0.00617059" material="np_f970_material" mesh="np_f970"/>
       <geom class="collision" pos="-0.0359693 0 -0.00385049" quat="0.00617059 0.70708 -0.70708 -0.00617059" type="mesh" material="np_f970_material" mesh="np_f970"/>
-      <geom class="visual" pos="0.006 -0.0175 0.0115" quat="0 -0.707107 0 -0.707107" material="xl330_material" mesh="xl330"/>
-      <geom class="visual" pos="0.004 0 -0.0175785" quat="0.707107 0 0 0.707107" material="left_shell_material" mesh="left_shell"/>
-      <geom class="visual" pos="0.006 -0.0175 -0.005" quat="1 0 0 0" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
+      <geom name="cmu_trunk_base__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_trunk_base__black"/>
+      <geom name="cmu_trunk_base__dark__battery" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.2 0.2 0.22 1" mesh="cmu_trunk_base__dark__battery"/>
+      <geom name="cmu_trunk_base__gold__battery" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.8 0.62 0.25 1" mesh="cmu_trunk_base__gold__battery"/>
+      <geom name="cmu_trunk_base__light" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.9 0.88 0.82 1" mesh="cmu_trunk_base__light"/>
+      <geom name="cmu_trunk_base__orange__battery" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_trunk_base__orange__battery"/>
+      <geom name="cmu_trunk_base__pcb_blue__battery" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.15 0.3 0.62 1" mesh="cmu_trunk_base__pcb_blue__battery"/>
+      <geom name="cmu_trunk_base__pcb_green__battery" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.15 0.4 0.28 1" mesh="cmu_trunk_base__pcb_green__battery"/>
+      <geom name="cmu_trunk_base__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_trunk_base__servo"/>
+      <geom name="cmu_trunk_base__white" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.93 0.93 0.91 1" mesh="cmu_trunk_base__white"/>
       <site name="imu" pos="-0.021 6.64098e-05 -0.0146984" group="3"/>
       <body name="yaw2roll" pos="0.006 0.0175 -0.005" quat="0 -0.707107 -0.707107 0">
         <inertial pos="-0.000524522 -0.00027619 0.0160584" quat="0.994008 -0.0833025 0.0474327 -0.0525221" mass="0.0285711" diaginertia="5.88696e-06 4.9247e-06 3.77241e-06"/>
         <joint name="left_hip_yaw" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-0.436332 0.523599"/>
-        <geom class="visual" pos="-0.0175 -0.002 0.0125" quat="0 1 0 0" material="yaw2roll_material" mesh="yaw2roll"/>
-        <geom class="visual" pos="0 0 0.0125" quat="0 -0.707107 0.707107 0" material="xl330_material" mesh="xl330"/>
-        <geom class="visual" pos="0 0.0165 0.0125" quat="0.5 0.5 0.5 -0.5" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
-        <geom class="visual" pos="-0.0175 -0.002 0.0125" quat="0 -1 0 0" material="bearing_roll_material" mesh="bearing_roll"/>
+        <geom name="cmu_yaw2roll__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_yaw2roll__black"/>
+        <geom name="cmu_yaw2roll__metal" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.72 0.73 0.74 1" mesh="cmu_yaw2roll__metal"/>
+        <geom name="cmu_yaw2roll__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_yaw2roll__servo"/>
         <body name="hip_l" pos="0 0.0165 0.0125" quat="0.707107 -0.707107 0 0">
           <inertial pos="0.0131352 -0.000663642 -0.00751032" quat="0.928576 0.00238454 -0.360372 -0.0887249" mass="0.00744516" diaginertia="1.56015e-06 1.50048e-06 4.99994e-07"/>
           <joint name="left_hip_roll" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-0.383972 0.383972"/>
-          <geom class="visual" pos="0.021 0 -0.0185" quat="0.5 0.5 0.5 0.5" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
-          <geom class="visual" pos="-0.0175 0 -0.0185" quat="0.707107 -0.707107 0 0" material="hip_l_material" mesh="hip_l"/>
           <geom class="collision" pos="-0.0175 0 -0.0185" quat="0.707107 -0.707107 0 0" type="mesh" material="hip_l_material" mesh="hip_l"/>
+          <geom name="cmu_hip_l__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_hip_l__black"/>
+          <geom name="cmu_hip_l__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_hip_l__orange"/>
           <body name="upper_leg_left" pos="0.025 0 -0.0185" quat="0.5 -0.5 0.5 -0.5">
             <inertial pos="0.00779698 0.0238436 0.0137568" quat="0.555233 0.267188 -0.65979 0.430121" mass="0.0558344" diaginertia="2.32076e-05 2.16689e-05 9.78371e-06"/>
             <joint name="left_hip_pitch" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-            <geom class="visual" pos="0 0 -0.0425" quat="0.5 -0.5 -0.5 -0.5" material="upper_leg_left_material" mesh="upper_leg_left"/>
-            <geom class="visual" pos="0.022 0.0357771 0.0125" quat="0 0.707107 0 0.707107" material="xl330_material" mesh="xl330"/>
-            <geom class="visual" pos="0 0 -0.0425" quat="0.5 -0.5 -0.5 -0.5" material="upper_leg_rigidity_plate_material" mesh="upper_leg_rigidity_plate"/>
-            <geom class="visual" pos="0.022 0.0357771 -0.004" quat="0 0 0 1" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
-            <geom class="visual" pos="0 0 0.0125" quat="0.5 0.5 -0.5 0.5" material="xl330_material" mesh="xl330"/>
+            <geom name="cmu_upper_leg_left__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_upper_leg_left__black"/>
+            <geom name="cmu_upper_leg_left__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_upper_leg_left__servo"/>
+            <geom name="cmu_upper_leg_left__white" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.93 0.93 0.91 1" mesh="cmu_upper_leg_left__white"/>
             <body name="leg" pos="0.022 0.0357771 -0.004" quat="0 0.707107 0.707107 0">
               <inertial pos="0.00133012 0.0296297 -0.00882175" quat="0.68615 0.500577 -0.303508 0.431861" mass="0.024247" diaginertia="7.43093e-06 7.28706e-06 2.86324e-06"/>
               <joint name="left_knee" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-              <geom class="visual" pos="-0.022 0.0357771 0.0385" quat="0.5 0.5 0.5 -0.5" material="leg_material" mesh="leg"/>
               <geom class="collision" pos="-0.022 0.0357771 0.0385" quat="0.5 0.5 0.5 -0.5" type="mesh" material="leg_material" mesh="leg"/>
-              <geom class="visual" pos="0 0.042 -0.0115" quat="0.5 -0.5 -0.5 -0.5" material="xl330_material" mesh="xl330"/>
+              <geom name="cmu_leg__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_leg__black"/>
+              <geom name="cmu_leg__metal" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.72 0.73 0.74 1" mesh="cmu_leg__metal"/>
+              <geom name="cmu_leg__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_leg__servo"/>
               <body name="ankle_left" pos="0 0.042 -0.026" quat="0 -1 0 0">
                 <inertial pos="-0.00615742 -0.0137483 -0.0156585" quat="0.474723 0.505182 0.517427 0.501696" mass="0.0300246" diaginertia="1.11623e-05 7.7432e-06 5.90334e-06"/>
                 <joint name="left_ankle" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-                <geom class="visual" pos="-0.022 0.00622291 -0.0647" quat="0.5 -0.5 -0.5 -0.5" material="sole_left_material" mesh="sole_left"/>
                 <geom name="left_foot_collision" class="collision" pos="-0.022 0.00622291 -0.0647" quat="0.5 -0.5 -0.5 -0.5" type="mesh" material="sole_left_material" mesh="sole_left"/>
-                <geom class="visual" pos="-0.022 0.00622291 -0.0647" quat="0.5 -0.5 -0.5 -0.5" material="foot_left_material" mesh="foot_left"/>
-                <geom class="visual" pos="0 0 -0.0322" quat="0 0 0 1" material="seeed_bearing__configuration_default_material" mesh="seeed_bearing__configuration_default"/>
-                <geom class="visual" pos="-0.022 0.00622291 -0.0647" quat="0.5 -0.5 -0.5 -0.5" material="ankle_left_material" mesh="ankle_left"/>
+                <geom name="cmu_ankle_left__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_ankle_left__black"/>
+                <geom name="cmu_ankle_left__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_ankle_left__orange"/>
+                <geom name="cmu_ankle_left__yellow" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="1 0.8 0.1 1" mesh="cmu_ankle_left__yellow"/>
                 <site name="left_foot" pos="0 -0.0238146 -0.0140852" quat="0 0 -0.707107 -0.707107" group="3"/>
               </body>
             </body>
@@ -221,44 +272,36 @@
       <body name="neck" pos="0.026 0.0145 0.0324215" quat="0 0 0.707107 -0.707107">
         <inertial pos="-0.000462959 -0.0249615 0.0154664" quat="0.703184 0.703317 -0.0744843 0.0730068" mass="0.0414917" diaginertia="1.91345e-05 1.69635e-05 5.2857e-06"/>
         <joint name="neck_pitch" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.0472"/>
-        <geom class="visual" pos="0.022 0.05 0.028" quat="0.5 0.5 0.5 -0.5" material="neck_material" mesh="neck"/>
-        <geom class="visual" pos="0 0 0.0145" quat="0.5 -0.5 -0.5 -0.5" material="xl330_material" mesh="xl330"/>
-        <geom class="visual" pos="0 -0.05 0.0145" quat="0.5 0.5 -0.5 0.5" material="xl330_material" mesh="xl330"/>
-        <geom class="visual" pos="0.022 0.05 0.003" quat="0.5 0.5 0.5 -0.5" material="neck_material" mesh="neck"/>
+        <geom name="cmu_neck__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_neck__orange"/>
+        <geom name="cmu_neck__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_neck__servo"/>
         <body name="neck_pitch" pos="0 -0.05 0" quat="0 1 0 0">
           <inertial pos="0.00169167 0.00744211 -0.0183004" quat="0.980322 -0.108562 -0.0580264 -0.154325" mass="0.011849" diaginertia="2.91419e-06 2.71846e-06 1.53104e-06"/>
           <joint name="head_pitch" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-          <geom class="visual" pos="0 0.0287931 -0.0145" quat="0.5 -0.5 -0.5 -0.5" material="neck_pitch_material" mesh="neck_pitch"/>
-          <geom class="visual" pos="0 0.0207931 -0.0145" quat="0.707107 0.707107 0 0" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
+          <geom name="cmu_neck_pitch__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_neck_pitch__black"/>
+          <geom name="cmu_neck_pitch__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_neck_pitch__orange"/>
           <body name="yaw_roll_motion" pos="0 0.0186931 -0.0145" quat="0 0 -0.707107 -0.707107">
             <inertial pos="-0.000662563 -0.00449347 0.0182996" quat="0.208355 0.690888 -0.0625975 0.689451" mass="0.0539567" diaginertia="1.12705e-05 9.28245e-06 8.1778e-06"/>
             <joint name="head_yaw" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-2.96706 2.96706"/>
-            <geom class="visual" pos="0 0 0.01" quat="0.707107 0 0 0.707107" material="yaw_roll_motion_material" mesh="yaw_roll_motion"/>
-            <geom class="visual" pos="0 0 0.0145" quat="0.5 -0.5 -0.5 -0.5" material="xl330_material" mesh="xl330"/>
-            <geom class="visual" pos="-0.016 0 0.0145" quat="0.707107 0 -0.707107 0" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
-            <geom class="visual" pos="0.018 0 0.0145" quat="0.707107 0 -0.707107 0" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
+            <geom name="cmu_yaw_roll_motion__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_yaw_roll_motion__black"/>
+            <geom name="cmu_yaw_roll_motion__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_yaw_roll_motion__servo"/>
             <body name="jaw_soft" pos="-0.0179 0 0.0145" quat="0.707107 0 -0.707107 0">
               <inertial pos="0.00654032 0.000640347 -0.0293377" quat="0.999757 0.0158708 -0.0133948 0.00733626" mass="0.215485" diaginertia="0.000341003 0.000281584 0.000163292"/>
               <joint name="head_roll" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-0.436332 0.436332"/>
-              <geom class="visual" pos="0.0155 -9.13778e-05 -0.05548" quat="0.5 -0.5 0.5 -0.5" material="lens_material" mesh="lens"/>
-              <geom class="visual" pos="-0.0045 -9.13778e-05 -0.0178" quat="0.5 0.5 0.5 0.5" material="face_part_material" mesh="face_part"/>
-              <geom class="visual" pos="0.003 0.0255 -0.018" quat="0.707107 0 0 -0.707107" material="xl330_material" mesh="xl330"/>
-              <geom class="visual" pos="-0.0046 0 -0.0179996" quat="0.5 0.5 0.5 0.5" material="jaw_soft_material" mesh="jaw_soft"/>
-              <geom class="visual" pos="-0.0045 0 -0.018" quat="0.5 0.5 0.5 0.5" material="motor_support_material" mesh="motor_support"/>
-              <geom class="visual" pos="-0.0045 0 -0.018" quat="0.5 0.5 0.5 0.5" material="top_head_shell_material" mesh="top_head_shell"/>
               <geom class="collision" pos="-0.0045 0 -0.018" quat="0.5 0.5 0.5 0.5" type="mesh" material="top_head_shell_material" mesh="top_head_shell"/>
-              <geom class="visual" pos="0 0 0.0145" quat="0.5 -0.5 -0.5 -0.5" material="xl330_material" mesh="xl330"/>
-              <geom class="visual" pos="0.0032 -0.04 -0.018" quat="0.5 -0.5 0.5 0.5" material="seeed_bearing__configuration_default_material" mesh="seeed_bearing__configuration_default"/>
-              <geom class="visual" pos="0.02694 0.0289936 -0.0519" quat="0.707107 0 0 -0.707107" material="elec_rpi_robot_hat_pcb_material" mesh="elec_rpi_robot_hat_pcb"/>
-              <geom class="visual" pos="-0.00420071 1.7776e-08 -0.0180814" quat="0.5 0.5 0.5 0.5" material="soft_mouth_top_material" mesh="soft_mouth_top"/>
-              <geom class="visual" pos="-0.0045 -9.13778e-05 -0.0178" quat="0.5 0.5 0.5 0.5" material="noenoeil_material" mesh="noenoeil"/>
-              <geom class="visual" pos="-0.0045 0 -0.018" quat="0.5 0.5 0.5 0.5" material="jaw_material" mesh="jaw"/>
               <geom class="collision" pos="-0.0045 0 -0.018" quat="0.5 0.5 0.5 0.5" type="mesh" material="jaw_material" mesh="jaw"/>
-              <geom class="visual" pos="-0.0043 0 -0.018" quat="0.5 0.5 0.5 0.5" material="bottom_head_shell_material" mesh="bottom_head_shell"/>
               <geom class="collision" pos="-0.0043 0 -0.018" quat="0.5 0.5 0.5 0.5" type="mesh" material="bottom_head_shell_material" mesh="bottom_head_shell"/>
-              <geom class="visual" pos="0.0155 -9.13778e-05 -0.05558" quat="0.5 -0.5 0.5 -0.5" material="m12_lens_holder_material" mesh="m12_lens_holder"/>
-              <geom class="visual" pos="0.015435 -1.13778e-05 -0.06001" quat="0.5 -0.5 -0.5 0.5" material="pcb__raspberry_pi_zero_2_w_material" mesh="pcb__raspberry_pi_zero_2_w"/>
-              <geom class="visual" pos="0.01 -0.016786 0.0260226" quat="0.5 0.5 0.5 0.5" material="speaker_material" mesh="speaker"/>
+              <geom name="cmu_jaw_soft__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_jaw_soft__black"/>
+              <geom name="cmu_jaw_soft__dark" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.2 0.2 0.22 1" mesh="cmu_jaw_soft__dark"/>
+              <geom name="cmu_jaw_soft__gold" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.8 0.62 0.25 1" mesh="cmu_jaw_soft__gold"/>
+              <geom name="cmu_jaw_soft__light" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.9 0.88 0.82 1" mesh="cmu_jaw_soft__light"/>
+              <geom name="cmu_jaw_soft__metal" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.72 0.73 0.74 1" mesh="cmu_jaw_soft__metal"/>
+              <geom name="cmu_jaw_soft__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_jaw_soft__orange"/>
+              <geom name="cmu_jaw_soft__pcb_blue" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.15 0.3 0.62 1" mesh="cmu_jaw_soft__pcb_blue"/>
+              <geom name="cmu_jaw_soft__pcb_green" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.15 0.4 0.28 1" mesh="cmu_jaw_soft__pcb_green"/>
+              <geom name="cmu_jaw_soft__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_jaw_soft__servo"/>
+              <geom name="cmu_jaw_soft__white" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.93 0.93 0.91 1" mesh="cmu_jaw_soft__white"/>
+              <geom name="cmu_jaw_soft__yellow" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="1 0.8 0.1 1" mesh="cmu_jaw_soft__yellow"/>
+              <geom name="cmu_jaw_soft__jaw_yellow" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="1 0.8 0.1 1" mesh="cmu_jaw_soft__jaw_yellow"/>
               <site name="head_camera" pos="0.0155 -9.13778e-05 -0.0733" quat="0.707107 0 0.707107 0" group="3"/>
               <site name="tof" pos="0.0135 0.0224086 -0.0733" quat="0.707107 0 0.707107 0" group="3"/>
               <site name="head_imu" pos="0.0152323 0.000111069 -0.05106" group="3"/>
@@ -271,38 +314,35 @@
       <body name="bearing_roll" pos="0.006 -0.0175 -0.005" quat="0 -0.707107 -0.707107 0">
         <inertial pos="0.000351282 -0.000200032 0.0161159" quat="0.995871 -0.0738291 -0.0422663 0.0316884" mass="0.0282361" diaginertia="5.84372e-06 4.83803e-06 3.69536e-06"/>
         <joint name="right_hip_yaw" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-0.523599 0.436332"/>
-        <geom class="visual" pos="-0.0175 -0.002 0.0125" quat="0 1 0 0" material="yaw2roll_material" mesh="yaw2roll"/>
-        <geom class="visual" pos="0 0 0.0125" quat="0 -0.707107 0.707107 0" material="xl330_material" mesh="xl330"/>
-        <geom class="visual" pos="-0.0175 -0.002 0.0125" quat="0 1 0 0" material="bearing_roll_material" mesh="bearing_roll"/>
-        <geom class="visual" pos="0 0.0165 0.0125" quat="0.5 0.5 0.5 -0.5" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
+        <geom name="cmu_bearing_roll__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_bearing_roll__black"/>
+        <geom name="cmu_bearing_roll__metal" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.72 0.73 0.74 1" mesh="cmu_bearing_roll__metal"/>
+        <geom name="cmu_bearing_roll__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_bearing_roll__servo"/>
         <body name="hip_l_2" pos="0 0.0165 0.0125" quat="0 0 0.707107 0.707107">
           <inertial pos="0.0131352 0.000663669 -0.00751032" quat="0.928577 -0.00238461 -0.360372 0.0887217" mass="0.00744516" diaginertia="1.56015e-06 1.50048e-06 4.99994e-07"/>
           <joint name="right_hip_roll" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-0.383972 0.383972"/>
-          <geom class="visual" pos="-0.0175 0 -0.0185" quat="0.707107 -0.707107 0 0" material="hip_l_material" mesh="hip_l"/>
           <geom class="collision" pos="-0.0175 0 -0.0185" quat="0.707107 -0.707107 0 0" type="mesh" material="hip_l_material" mesh="hip_l"/>
-          <geom class="visual" pos="0.025 0 -0.0185" quat="0.5 0.5 -0.5 -0.5" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
+          <geom name="cmu_hip_l_2__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_hip_l_2__black"/>
+          <geom name="cmu_hip_l_2__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_hip_l_2__orange"/>
           <body name="upper_leg_right" pos="0.025 0 -0.0185" quat="0.5 -0.5 0.5 -0.5">
             <inertial pos="-0.00721429 0.0235502 0.0136191" quat="0.429082 0.638002 -0.300525 0.564382" mass="0.0547926" diaginertia="2.19286e-05 2.07874e-05 9.34852e-06"/>
             <joint name="right_hip_pitch" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-            <geom class="visual" pos="-0.022 0.0357771 0.0125" quat="0.707107 0 -0.707107 0" material="xl330_material" mesh="xl330"/>
-            <geom class="visual" pos="-0.022 0.0357771 0" quat="0 1 0 0" material="seeed_bearing__configuration__22x16x4_material" mesh="seeed_bearing__configuration__22x16x4"/>
-            <geom class="visual" pos="0 0 0.0435" quat="0.5 -0.5 0.5 0.5" material="upper_leg_rigidity_plate_material" mesh="upper_leg_rigidity_plate"/>
-            <geom class="visual" pos="0 0 -0.0425" quat="0.5 -0.5 0.5 0.5" material="upper_leg_right_material" mesh="upper_leg_right"/>
-            <geom class="visual" pos="0 0 0.0125" quat="0.5 0.5 -0.5 0.5" material="xl330_material" mesh="xl330"/>
+            <geom name="cmu_upper_leg_right__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_upper_leg_right__black"/>
+            <geom name="cmu_upper_leg_right__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_upper_leg_right__servo"/>
+            <geom name="cmu_upper_leg_right__white" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.93 0.93 0.91 1" mesh="cmu_upper_leg_right__white"/>
             <body name="leg_2" pos="-0.022 0.0357771 -0.004" quat="0 1 0 0">
               <inertial pos="-0.0290865 -0.00141959 -0.0094882" quat="0.707588 0.292812 0.521836 0.375855" mass="0.0252887" diaginertia="7.80284e-06 7.13457e-06 2.89297e-06"/>
               <joint name="right_knee" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-              <geom class="visual" pos="-0.042 0 -0.0115" quat="0.707107 0 -0.707107 0" material="xl330_material" mesh="xl330"/>
-              <geom class="visual" pos="-0.0357771 -0.022 0.0385" quat="0.707107 0 0.707107 0" material="leg_material" mesh="leg"/>
               <geom class="collision" pos="-0.0357771 -0.022 0.0385" quat="0.707107 0 0.707107 0" type="mesh" material="leg_material" mesh="leg"/>
+              <geom name="cmu_leg_2__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_leg_2__black"/>
+              <geom name="cmu_leg_2__metal" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.72 0.73 0.74 1" mesh="cmu_leg_2__metal"/>
+              <geom name="cmu_leg_2__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_leg_2__servo"/>
               <body name="ankle_right" pos="-0.042 0 -0.026" quat="0 -0.707107 -0.707107 0">
                 <inertial pos="0.00615539 -0.0137482 -0.0156566" quat="0.517424 0.501653 0.474682 0.505266" mass="0.0300251" diaginertia="1.11622e-05 7.74321e-06 5.90344e-06"/>
                 <joint name="right_ankle" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
-                <geom class="visual" pos="0.022 0.00622291 -0.0647" quat="0.5 -0.5 0.5 0.5" material="ankle_right_material" mesh="ankle_right"/>
-                <geom class="visual" pos="0.022 0.00622291 -0.0647" quat="0.5 -0.5 0.5 0.5" material="sole_right_material" mesh="sole_right"/>
                 <geom name="right_foot_collision" class="collision" pos="0.022 0.00622291 -0.0647" quat="0.5 -0.5 0.5 0.5" type="mesh" material="sole_right_material" mesh="sole_right"/>
-                <geom class="visual" pos="0 0 -0.0292" quat="0 -1 0 0" material="seeed_bearing__configuration_default_material" mesh="seeed_bearing__configuration_default"/>
-                <geom class="visual" pos="0.022 0.00622291 -0.0647" quat="0.5 -0.5 0.5 0.5" material="foot_right_material" mesh="foot_right"/>
+                <geom name="cmu_ankle_right__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_ankle_right__black"/>
+                <geom name="cmu_ankle_right__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_ankle_right__orange"/>
+                <geom name="cmu_ankle_right__yellow" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="1 0.8 0.1 1" mesh="cmu_ankle_right__yellow"/>
                 <site name="right_foot" pos="0 -0.0238146 -0.0140852" quat="0.707107 -0.707107 0 0" group="3"/>
               </body>
             </body>

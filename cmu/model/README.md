@@ -1,4 +1,4 @@
-# CMU robot mass models
+# CMU robot model: masses and looks
 
 Pollen's MJCF describes Pollen's duck. Our robot carries a head computer, a bench power box or a battery backpack, cables, printed parts and screws that the official bodies do not. This directory turns the measured and estimated extras into signed point masses on the official bodies, so the simulation and the training variants use the robot that exists. All positions are in the official MJCF body frames (metres); all numbers are read from the files named below, never from memory.
 
@@ -9,8 +9,19 @@ Pollen's MJCF describes Pollen's duck. Our robot carries a head computer, a benc
 - `make_variants.py`: writes `manifests/plugged.json` and `manifests/battery.json` (same schema as the base manifest: a `parts` list, a `build` string that names the variant and the derivation, a `derived` block with the removed and added ids and grams) and prints the mass and centre of mass of the four models.
 - `manifests/*.json`: generated, committed; what teammates and the training variants load.
 - `scenes/scene_plugged.xml` and `scenes/scene_battery.xml`: standalone MJCF scenes written by the CLI for any MuJoCo tool (viewer, `mujoco.MjModel.from_xml_path`). They start from `src/mjlab_microduck/robot/microduck/scene.xml`, which includes `robot_groundcontact.xml` (the curated floor-contact collision set) and the INIT, STAND, SIT and FOLD keyframes; collision geoms, the 7 sites and the keyframes are untouched. The `head_camera` and `mouth_tip` sites live only in `robot_allcollisions.xml` and are not in these scenes. The mesh directory is written relative to the scene file, so the files load from this checkout without copying assets.
+- `visual/`, `fitted.json`, `make_visual.py`, `visual.py`, `export_web.py`, `test_visual.py`: the robot's looks (section below).
 - `sole/`: the foot sole study and the 1:1 wrap template (its own README).
 - `../../src/mjlab_microduck/tasks/cmu_asbuilt.py`: the task hook. It wraps the velocity robot's `spec_fn` so the variant parts are applied before mjlab compiles; observations, rewards, DR and actuators stay Pollen's. Registered at the end of `tasks/__init__.py`.
+
+## How the robot looks (one model everywhere)
+
+Every simulator draws the CMU robot as it is today, never Pollen's duck: our printed parts in their filament colours (colour scheme C), the A7Z head, the rear converter box without its lid, the V1.22 split ankles and slip-fit feet. Only visual geoms change; collision geoms, inertials, joints, sites and keyframes stay Pollen's, and `test_visual.py` checks that masses, inertias, contact geoms and a 2 s rollout are bit-identical with and without the swap.
+
+- `fitted.json`: what is on the robot now, on top of the assembly guide's whole-robot data (`guide/data/guide-data.json` in the robotics checkout): parts not fitted, colours that differ from the guide (thighs white), prints that differ from the guide's current revision (`part_files`: the V1.22 ankle and feet world STLs while the guide carries the unprinted V1.24 halves), the jaw hinge, and the `battery` variant (backpack on, bench box off). Edit this file when the robot changes, then rerun the two scripts below.
+- `make_visual.py` (cad venv: `/tmp/microduck-cad-venv/bin/python cmu/model/make_visual.py`): assigns every guide part to the official body whose meshes lie closest at the zero pose, moves it into that body frame, merges per body and colour, and writes `visual/meshes/*.stl` and `visual/visual.json`. Meshes that differ in the battery variant get a `__battery` file; the rest are shared.
+- `visual.py`: `apply_visual_to_spec(spec, variant="")` swaps the official visual geoms for ours in any `MjSpec`. Used by `apply_masses.py --out` (the `scenes/` files), `whole/delay-repair-20260912/evaluate_delay.py::load` and `whole/dynamics/evaluate.py::load` (so `brain_sim_check.py`, `pickup_sim.py` and the sim suite), and `mac/pose_snapshot.py`.
+- `export_web.py`: writes the same robot for the browser simulator, `microduck-simulator/app/public/robot/cmu/{kinematics.json,cmu.glb}` (official body tree, our meshes at a third of the density, linear-space colours, the jaw hinge). Every page of the app draws it; the browser physics keeps the official collision meshes like the Python sims.
+- Foot contact: the V1.22 slip-fit foot bottom lies within 0.16 mm of the official `sole_*` + `foot_*` collision surface over the bottom 3 mm (sim contacts reach 1.6 mm above the flat), so the official foot collision already is our foot and stays.
 
 ## Variants
 

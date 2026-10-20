@@ -54,7 +54,11 @@ def main():
     for n, ticks in args.display_fix:  # display-only correction for a servo whose EEPROM offset is pending
         q[n] = to_model(n, pos[NAMES.index(n)] + int(ticks))
 
-    m = mujoco.MjModel.from_xml_path(XML)
+    spec = mujoco.MjSpec.from_file(XML)
+    sys.path.insert(0, os.path.join(os.path.dirname(XML), "..", "..", "..", "..", "cmu", "model"))
+    from visual import apply_visual_to_spec  # the CMU robot as built; physics unchanged
+    apply_visual_to_spec(spec)
+    m = spec.compile()
     d = mujoco.MjData(m)
     for n in NAMES:
         d.qpos[m.jnt_qposadr[m.joint(n).id]] = q[n]

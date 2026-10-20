@@ -22,3 +22,7 @@ MOTOR_SIGN = {name: 1.0 for name in NAMES}
 MOTOR_SIGN.update(neck_pitch=-1.0, head_pitch=-1.0)
 MOTOR_OFFSET = {name: 0.0 for name in NAMES}
 MOTOR_OFFSET.update(right_knee=math.radians(45.0), left_knee=math.radians(-45.0))
+# Ankles refitted with the V1.22 feet on 2026-10-19 sit a quarter turn round (the horn's four screws fit every
+# 90 deg): Shawn posed the robot in its stand pose, torque off, and the ankles read right 2868 / left 1201 against
+# the old stand ticks 1753 / 2343, i.e. +98 / -100 deg, which is +-90 deg plus hand-pose error.
+MOTOR_OFFSET.update(right_ankle=math.radians(90.0), left_ankle=math.radians(-90.0))

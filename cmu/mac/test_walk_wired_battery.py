@@ -60,7 +60,7 @@ def make_link(world, clock, reads):
     class FakeLink:
         """sync_read / sync_write on the World; goal positions become present positions at once."""
 
-        def __init__(self, port):
+        def __init__(self, port, baud=None, imu_bus=None):
             self.ser = mock.Mock()
             self.status = collections.deque()
             self.lock = threading.Lock()
@@ -80,6 +80,7 @@ def make_link(world, clock, reads):
             if clock.t >= clock.end:
                 raise Done
             reads.append(addr)
+            world.read_ids = getattr(world, "read_ids", []) + [(addr, tuple(ids))]
             if clock.t < getattr(world, "imu_stop_at", float("inf")):  # the Pi stream stops (power cut)
                 self.imu = (clock.t, (0, *UPRIGHT_SENSOR_QUAT, 0.0, 0.0, 0.0, 0.0, 0.0, -9.8, 0.002, 1))
                 self.imu_count += 1
@@ -302,7 +303,11 @@ class WiredBattery(unittest.TestCase):
         w = World(shutdown=53, volts_dv=68)
         text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 64, {"mode": "stand"}, end=6.0,
                                                               supply="bench")
-        self.assertNotIn(ww.ADDR_PRESENT_VOLTAGE, reads)
+        # no battery-guard voltage read (all 14 servos); only the one-servo round-robin rail record per tick that
+        # the brownout logging added on 2026-10-20 (walk_wired.py servo_v)
+        volt_reads = [ids for addr, ids in w.read_ids if addr == ww.ADDR_PRESENT_VOLTAGE]
+        self.assertTrue(volt_reads)
+        self.assertTrue(all(len(ids) == 1 for ids in volt_reads))
         self.assertIsNone(marker)
         self.assertEqual(last_log["battery"], None)
 

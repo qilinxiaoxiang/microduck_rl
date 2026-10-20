@@ -24,6 +24,17 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
                                             0.375..0.425 is the lowest pose (mouth tip near the floor), 1.0
                                             rises and rests standing. walk_wired.py returns to walk mode
                                             (stand61) once the rise is complete.
+  {"mode": "kick", "foot": "left", "id": 7} Pollen's ball kick (kick_left61 / kick_right61.onnx), one shot per new id
+                                            and only from stand or walk mode: KICK_TICKS policy ticks (0.5 s) with an
+                                            all-zero command, then walk mode at zero command (stand61). The action
+                                            history carries across both switches, as in Pollen's robotd and simulator.
+                                            A re-read of the same id, or any command during the kick, starts nothing;
+                                            a command written during the kick takes over after it.
+  {"mode": "sit"}                           Pollen's sitstand policy (sitstand61.onnx) from stand or walk mode: the
+                                            posture flag in command slot vx is 0 for SIT_PREP_S, then 1 (sit). Any
+                                            other command stands it back up first: flag 0 for UNSIT_S (requests during
+                                            the SIT_SETTLE_S glide into the seat wait for it), then that command runs.
+                                            {"mode": "monitor"} holds the last goals at once.
 
 walk61/stand61 come from hardware-design-20260912/whole-robot-20260912/runtime-overlay: the community walk.onnx was
 trained for 7.5 V servos and falls within 0.6 s at 5 V in the whole-robot simulation; the 61-input policies pass at
@@ -68,6 +79,21 @@ GP_REST_PHASE = 0.80
 HEAD_JOINTS = ("neck_pitch", "head_pitch", "head_yaw", "head_roll")
 HEAD_RANGE = (1.10, 1.10, 1.40, 0.31)
 HEAD_ALPHA = 0.2
+# One-shot kick (kick_left61/kick_right61 = Pollen ball_kick_left/right.onnx): robotd runs a kick skill for a fixed
+# 0.5 s window with an all-zero command, head and body slots zero-padded, then hands straight back; the browser
+# simulator does the same with KICK_STEPS 25 (game.js triggerKick). KICK_MAX_S ends a kick whose policy ticks were
+# skipped (stale state), so a blind kick never holds the mode.
+KICK_TICKS = 25
+KICK_MAX_S = 0.8
+KICK_FEET = ("left", "right")
+# Sit/stand (sitstand61 = Pollen BEST_alpha_sitstand.onnx): posture flag in command slot vx, 1 = sit, 0 = stand. The
+# simulator (game.js setMode) holds flag 0 for 0.8 s under the sitstand policy before the sit ("the abrupt session
+# switch knocks the duck over") and, leaving a sit, sets flag 0 and switches after 2 s. robotd (control.rs) refuses
+# a stand-up during the ~2 s glide into the seat (sitstand_ramp_s 2.0); here such a request waits for it.
+SIT_PREP_S = 0.8
+SIT_SETTLE_S = 2.0
+UNSIT_S = 2.0
+WALK_ZERO = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
 WAIT_FOR_FRESH = True  # torque modes wait for a fresh sample before entry (tests flip it to show the 10-16 slam)
 STATE_FMT = "<4sId14i14i4f3f3f4fBf"
 CMD_FMT = "<4sIIH14i"
@@ -202,11 +228,12 @@ class Brain:
     or None to write nothing) and the P gain (0 = leave unchanged).
     """
 
-    POLICY_MODES = ("walk", "groundpick")  # modes driven by an ONNX policy at KP_RL
+    POLICY_MODES = ("walk", "groundpick", "kick", "sit")  # modes driven by an ONNX policy at KP_RL
     TORQUE_MODES = ("stand", "walk", "groundpick")  # modes that switch torque on
 
     def __init__(self, models, compensation=True, walk_ramp=0.0):
-        names = ["walk", "stand"] + (["groundpick"] if os.path.exists(os.path.join(models, "groundpick61.onnx")) else [])
+        names = ["walk", "stand"] + [k for k in ("groundpick", "sitstand", "kick_left", "kick_right")
+                                     if os.path.exists(os.path.join(models, k + "61.onnx"))]
         self.sessions = {k: ort.InferenceSession(os.path.join(models, k + "61.onnx")) for k in names}
         for k, sess in self.sessions.items():
             meta = sess.get_modelmeta().custom_metadata_map
@@ -224,6 +251,107 @@ class Brain:
         self.last_action = np.zeros(14, dtype=np.float32)
         self.gp_phase = 0.0  # ground-pick phase phi handed to the policy; follows want["phase"] at 1/GP_PERIOD per s
         self.head_cmd = np.zeros(4, dtype=np.float32)  # smoothed head pose deltas handed to walk61/stand61
+        self.base_want = {"mode": "monitor"}  # the command in force outside a kick (the last one accepted)
+        self.kick = None  # running kick: {"foot", "id", "ticks", "t0"}
+        self.kick_last_id = None  # the id of the newest kick request seen; a request with the same id starts nothing
+        self.sit = None  # in sit mode: {"phase": "prep" | "down" | "seated" | "rise", "t": phase start}
+        self.sit_next = None  # the command that takes over once a sit has stood back up
+        self._refused = None  # last refusal printed, so a refused command re-read every tick prints once
+
+    def _refuse(self, what, why):
+        if self._refused != (what, why):
+            print(f"{what} refused: {why}", flush=True)
+            self._refused = (what, why)
+
+    def kick_blocked(self, foot):
+        if foot not in KICK_FEET:
+            return f"foot must be left or right, not {foot!r}"
+        if "kick_" + foot not in self.sessions:
+            return f"no kick_{foot}61.onnx in the models directory"
+        if self.kick is not None:
+            return "a kick is running"
+        if self.mode not in ("walk", "stand"):
+            return f"only from stand or walk mode (now {self.mode})"
+        if self.ramp is not None or self.goal is None:
+            return "the stand ramp is still running"
+        return None
+
+    def sit_blocked(self):
+        if "sitstand" not in self.sessions:
+            return "no sitstand61.onnx in the models directory"
+        if self.mode not in ("walk", "stand"):
+            return f"only from stand or walk mode (now {self.mode})"
+        if self.ramp is not None or self.goal is None:
+            return "the stand ramp is still running"
+        return None
+
+    def end_kick(self, why=None):
+        """Finish (or, with why, abort) the running kick; the robot is handed to walk mode at zero command."""
+        k, self.kick = self.kick, None
+        if k is None:
+            return None
+        self.mode, self.ramp, self.heading, self.stepped = "walk", None, None, False
+        self.head_cmd[:] = 0
+        print(f"kick {k['id']!r} {'stopped: ' + why if why else 'done'} after {k['ticks']} policy ticks -> walk "
+              "(stand61 at zero command)", flush=True)
+        return k
+
+    def route(self, want, now):
+        """The command the mode logic acts on this tick: one-shot kicks by id, the sit/stand sequence, refusals."""
+        mode = asked = want.get("mode", "monitor")
+        if mode == "kick":
+            kid = want.get("id")
+            if kid is None:
+                self._refuse("kick", 'a kick command needs an "id" (a new value for every kick)')
+            elif kid != self.kick_last_id:
+                self.kick_last_id = kid
+                foot = want.get("foot")
+                why = self.kick_blocked(foot)
+                if why:
+                    print(f"kick {kid!r} refused: {why}", flush=True)
+                else:
+                    was_policy = self.mode in self.POLICY_MODES
+                    self.kick = {"foot": foot, "id": kid, "ticks": 0, "t0": now}
+                    self.mode, self.ramp = "kick", None
+                    if not was_policy:
+                        self.last_action[:] = 0
+                    self.base_want = dict(WALK_ZERO)  # what follows the kick unless a newer command arrives
+                    print(f"mode -> kick ({foot}, id {kid!r})", flush=True)
+            want, mode = self.base_want, self.base_want.get("mode", "monitor")
+        elif self.kick is not None:
+            self.base_want = want  # newest command, applied when the kick ends
+        if self.kick is not None:
+            return {"mode": "kick"}
+        if self.mode == "sit" and self.sit is not None:
+            s = self.sit
+            if s["phase"] == "prep" and now - s["t"] >= SIT_PREP_S:
+                s.update(phase="down", t=now)
+                print("sit: posture flag 1", flush=True)
+            elif s["phase"] == "down" and now - s["t"] >= SIT_SETTLE_S:
+                s.update(phase="seated", t=now)
+            leaving = mode != "sit"
+            if leaving:
+                self.sit_next = want
+            if mode == "monitor" or (leaving and s["phase"] == "prep"):
+                self.base_want = want
+                return want  # still standing (flag 0) or a hold: switch now
+            if leaving and s["phase"] == "seated":
+                s.update(phase="rise", t=now)
+                print(f"sit: standing up (posture flag 0) for {UNSIT_S} s", flush=True)
+            if s["phase"] == "rise" and now - s["t"] >= UNSIT_S:
+                nxt = self.sit_next or dict(WALK_ZERO)
+                self.base_want = nxt
+                return nxt
+            return {"mode": "sit"}
+        if mode == "sit" and self.mode != "sit":
+            why = self.sit_blocked()
+            if why:
+                self._refuse("sit", why)
+                return self.base_want
+        if asked != "kick":
+            self._refused = None
+        self.base_want = want
+        return want
 
     def head_target(self, want):
         """want["head"] = {joint: model rad} (absolute targets; missing joints keep the default) -> clipped deltas."""
@@ -248,6 +376,9 @@ class Brain:
                 "gb": grav_body.round(3).tolist(), "gyro_body": np.round(gyro_body, 3).tolist(), "action": None,
                 "age_used": None}
 
+        if self.kick is not None and now - self.kick["t0"] > KICK_MAX_S:
+            self.end_kick(f"window ran out ({KICK_MAX_S} s)")
+        want = self.route(want, now)
         if self.mode == "stand":  # joint overrides in model rad, e.g. {"mode": "stand", "head_pitch": 0.2}
             desired = dict(STAND, **{k: float(v) for k, v in want.items() if k in STAND})
             if self.ramp is None and self.goal is not None and \
@@ -268,6 +399,8 @@ class Brain:
             start = self.goal or q
             if self.mode == "groundpick" and "groundpick" not in self.sessions:
                 raise RuntimeError("no groundpick61.onnx in the models directory")
+            if self.mode != "sit":
+                self.sit = None
             if self.mode == "stand":
                 self.ramp = (now, dict(start), dict(STAND), 2.0)
             elif self.mode == "groundpick":
@@ -279,6 +412,13 @@ class Brain:
                 self.head_cmd[:] = 0
                 if not was_policy:
                     self.last_action[:] = 0
+            elif self.mode == "sit":
+                # from stand61/walk61 or STAND: hold the present pose, the sitstand policy takes over at the first
+                # fresh upright sample with the posture flag at 0 for SIT_PREP_S (route above)
+                self.ramp, self.goal = None, dict(start)
+                if not was_policy:
+                    self.last_action[:] = 0
+                self.sit, self.sit_next = {"phase": "prep", "t": now}, None
             elif self.mode == "walk":
                 if not was_policy:
                     self.last_action[:] = 0
@@ -296,7 +436,7 @@ class Brain:
             print(f"mode -> {self.mode}", flush=True)
 
         kp = 0
-        if self.mode not in ("stand", "walk", "groundpick"):
+        if self.mode not in ("stand",) + self.POLICY_MODES:
             return None, kp, info
         if self.ramp is not None:
             t0, a0, a1, dur = self.ramp
@@ -309,8 +449,8 @@ class Brain:
             return self.goal, kp, info
         kp = KP_RL if self.mode in self.POLICY_MODES else KP_DEFAULT
         upright = grav_body[2] < -0.5
-        if self.mode == "groundpick":
-            # the trunk pitches forward in the crouch: "upright" for the policy step means not fallen over
+        if self.mode in ("groundpick", "sit"):
+            # the trunk pitches in the crouch and the seat: "upright" for the policy step means not fallen over
             upright = grav_body[2] < -0.2
         if self.mode in self.POLICY_MODES and upright and imu_valid and joint_age is not None and \
                 max(joint_age, imu_age) <= MAX_AGE:
@@ -330,6 +470,16 @@ class Brain:
                 a = 2 * math.pi * self.gp_phase
                 command, head, policy = [math.cos(a), math.sin(a), 0.0], np.zeros(4, dtype=np.float32), "groundpick"
                 info["gp_phase"] = round(self.gp_phase, 4)
+            elif self.mode == "kick":
+                # robotd: a skill's twist is its own (zero for a kick) and the head/body slots are zero-padded
+                command, head = [0.0, 0.0, 0.0], np.zeros(4, dtype=np.float32)
+                policy = "kick_" + self.kick["foot"]
+            elif self.mode == "sit":
+                flag = 1.0 if self.sit["phase"] in ("down", "seated") else 0.0
+                command = [flag, 0.0, 0.0]
+                self.head_cmd += HEAD_ALPHA * (self.head_target(want) - self.head_cmd)  # eases back to the default
+                head, policy = self.head_cmd, "sitstand"
+                info["sit_phase"], info["sit_flag"] = self.sit["phase"], flag
             else:
                 vx, vy, vth = float(want.get("vx", 0)), float(want.get("vy", 0)), float(want.get("vtheta", 0))
                 if self.heading is None:
@@ -358,6 +508,11 @@ class Brain:
             self.goal = {n: self.default[n] + float(action[k]) if n in self.default else self.goal[n]
                          for k, n in enumerate(OBSERVATION_DOF_ORDER)}
             info["action"] = action.round(4).tolist()
+            if self.mode == "kick":
+                self.kick["ticks"] += 1
+                info["kick_tick"] = self.kick["ticks"]
+                if self.kick["ticks"] >= KICK_TICKS:
+                    info["kick_done"] = self.end_kick()["id"]
         # not upright, IMU invalid or state too old: keep the last goal, never release
         return self.goal, kp, info
 

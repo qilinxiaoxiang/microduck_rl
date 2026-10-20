@@ -7,6 +7,11 @@ gyro in that frame, and sample ages. Its goals go back through to_tick/to_model 
 Schedule: mode "stand" for --stand-s (starts feet flat at walk_brain.STAND, i.e. pi/stand_pose.py STAND_POSE, and holds it), then {"mode": "walk", "vx": 0} (stand61) until
 --walk-at, then vx for --walk-s, then zero velocity again (walk61 brings its stride to rest, walk_brain.Brain.stepped). Injected gaps as in dynamics/realgap-20261014/policy_test.py.
 
+--kick-at T sends {"mode": "kick", "foot": --kick-foot, "id": 1} at T and rewrites it to walk at zero command once the
+Brain reports the kick done, as walk_wired.py does. --sit-at T / --unsit-at T2 send {"mode": "sit"} from T and walk at
+zero command from T2 (the Brain stands the robot back up first). Each reports fell or not, peak tilt and the time
+from the hand-back to a stable stand (tilt within 2 deg of the stance before it and |gyro| < 0.3 rad/s for 1 s).
+
 --battery-stop-at T replaces the schedule from T s with pi/battery.py stop_command, exactly as walk_wired.py does after
 a battery stop, and runs --after-stop s past T (default 10). --stop-ramp also switches to stand mode (open-loop ramp
 to STAND) that many seconds after the stop, the sequence first planned and rejected after these runs.
@@ -112,6 +117,14 @@ def run(args):
     if stop_at is not None:
         T = max(T, stop_at + args.after_stop)
     settled_at, tilt_after_stop = None, 0.0
+    if args.kick_at is not None:
+        T = max(T, args.kick_at + 4.0)
+    if args.sit_at is not None:
+        T = max(T, (args.unsit_at if args.unsit_at is not None else args.sit_at + 6.0) + 6.0)
+    kick_done_t, kick_start_t, kick_foot_z0, kick_foot_max = None, None, None, None
+    sit = dict(start=None, flag1=None, rise=None, done=None, min_trunk_z=None, seated_tilt=None, seated_trunk_z=None)
+    hist = []  # (t, tilt, |gyro|, trunk z) every tick, for the stable-stand search
+    kick_geom = m.geom(f"{args.kick_foot}_foot_collision").id
     for tick in range(int(T / 0.02)):
         t = tick * 0.02
         # what the sensors report, in commanded (encoder) frame and the BNO's own frame
@@ -147,6 +160,10 @@ def run(args):
                     "vtheta": args.vtheta if walking else 0.0}
             if (args.head_yaw or args.head_pitch is not None) and t >= args.walk_at:
                 want["head"] = {"head_yaw": args.head_yaw, "head_pitch": args.head_pitch}
+            if args.kick_at is not None and t >= args.kick_at and kick_done_t is None:
+                want = {"mode": "kick", "foot": args.kick_foot, "id": 1}
+            if args.sit_at is not None and t >= args.sit_at and (args.unsit_at is None or t < args.unsit_at):
+                want = {"mode": "sit"}
         if stop_at is not None and t >= stop_at:
             want = stop_command(True, brain.mode)
             if args.stop_ramp is not None and t - stop_at >= args.stop_ramp:
@@ -155,6 +172,10 @@ def run(args):
         imu_age = age + (t - imu_t)
         fresh = rng.random() >= args.drop  # a dropped sync read (8 % on 10-15) leaves the brain holding its goal
         goal, kp, info = brain.tick(want, t, pos_t, vel_t, tuple(q_sensor), g_sensor, fresh, age, imu_age)
+        if info.get("kick_done") is not None and kick_done_t is None:
+            kick_done_t = round(t, 2)  # walk_wired.py rewrites the control file to walk at zero command here
+        if brain.mode == "kick" and kick_start_t is None:
+            kick_start_t = round(t, 2)
         if tick_log is not None:  # same row shape as the walk_wired log, for sim-vs-real statistics
             tick_log.write(json.dumps(dict(t=round(t, 3), mode=brain.mode, fresh=fresh, **info)) + "\n")
         if args.breakaway and goal is not None and kp:
@@ -181,6 +202,27 @@ def run(args):
         R = d.xmat[trunk].reshape(3, 3)
         tilt = math.degrees(math.acos(float(np.clip(R[2, 2], -1, 1))))
         maxtilt = max(maxtilt, tilt)
+        tz = float(d.xpos[trunk, 2])
+        hist.append((round(t, 2), tilt, float(np.linalg.norm(d.sensordata[gyro_adr:gyro_adr + 3])), tz))
+        if args.kick_at is not None:
+            fz = float(d.geom_xpos[kick_geom, 2])
+            if kick_start_t is None:
+                kick_foot_z0 = fz
+            elif kick_done_t is None or t <= kick_done_t + 0.2:
+                kick_foot_max = fz if kick_foot_max is None else max(kick_foot_max, fz)
+        if brain.mode == "sit":
+            ph = brain.sit["phase"] if brain.sit else None
+            if sit["start"] is None:
+                sit["start"] = round(t, 2)
+            if ph in ("down", "seated") and sit["flag1"] is None:
+                sit["flag1"] = round(t, 2)
+            if ph == "rise" and sit["rise"] is None:
+                sit["rise"] = round(t, 2)
+            sit["min_trunk_z"] = round(tz if sit["min_trunk_z"] is None else min(sit["min_trunk_z"], tz), 4)
+            if ph == "seated":
+                sit["seated_tilt"], sit["seated_trunk_z"] = round(tilt, 1), round(tz, 4)
+        elif sit["start"] is not None and sit["done"] is None:
+            sit["done"] = round(t, 2)
         if brain.mode == "groundpick":
             # mouth tip relative to the point on the floor midway between the feet, x forward along the trunk heading
             gp["max_tilt"] = max(gp["max_tilt"], tilt)
@@ -207,12 +249,51 @@ def run(args):
             yaw0 = _yaw(d.xquat[trunk])
         if tick % 25 == 0:
             rows.append((round(t, 1), brain.mode, info["gb"][0], round(float(d.xpos[trunk, 0]), 3), round(tilt, 1)))
-        if (tilt > (80 if brain.mode == "groundpick" else 45)) or d.xpos[trunk, 2] < 0.04:
+        low = brain.mode in ("groundpick", "sit")
+        if (tilt > (80 if low else 45)) or d.xpos[trunk, 2] < (0.03 if brain.mode == "sit" else 0.04):
             fell = round(t, 2)
             break
     if gp_at is not None:
         gp["end_tilt"] = round(tilt, 1)
+
+    def window(a, b):
+        return [h for h in hist if a <= h[0] < b]
+
+    def stable_after(t_ref, base_t):
+        """Seconds from t_ref to the start of the first 1 s window that stays within 2 deg of the stance tilt before
+        base_t with |gyro| < 0.3 rad/s; None if the run ends first."""
+        pre = window(base_t - 1.0, base_t)
+        if t_ref is None or not pre:
+            return None, None
+        base = float(np.median([h[1] for h in pre]))
+        after = [h for h in hist if h[0] >= t_ref]
+        for i, h in enumerate(after):
+            w = [x for x in after[i:] if x[0] < h[0] + 1.0]
+            if after[-1][0] < h[0] + 1.0:
+                break
+            if all(x[1] <= base + 2.0 and x[2] < 0.3 for x in w):
+                return round(h[0] - t_ref, 2), round(base, 1)
+        return None, round(base, 1)
+
+    if gp_at is not None:
+        gp["stable_after_s"], gp["stance_tilt"] = stable_after(gp_done_at, gp_at)
+    kick = None
+    if args.kick_at is not None:
+        stable_s, base = stable_after(kick_done_t, args.kick_at)
+        seg = window(args.kick_at, (kick_done_t or args.kick_at) + 3.0)
+        kick = dict(at=args.kick_at, foot=args.kick_foot, started=kick_start_t, done=kick_done_t,
+                    peak_tilt=round(max(h[1] for h in seg), 1) if seg else None, stance_tilt=base,
+                    foot_lift_m=None if kick_foot_max is None else round(kick_foot_max - kick_foot_z0, 4),
+                    stable_after_s=stable_s)
+    sitr = None
+    if args.sit_at is not None:
+        stable_s, base = stable_after(sit["done"], args.sit_at)
+        seg = window(args.sit_at, (sit["done"] or T) + 3.0)
+        sitr = dict(sit, at=args.sit_at, unsit_at=args.unsit_at, stance_tilt=base,
+                    peak_tilt=round(max(h[1] for h in seg), 1) if seg else None, stable_after_s=stable_s,
+                    end_trunk_z=round(hist[-1][3], 4) if hist else None)
     return dict(model=args.model, volt=args.volt, walk_ramp=args.walk_ramp, com_x_mm=args.com_x, zero=zero, imu_pitch=args.imu_pitch,
+                kick=kick, sit=sitr,
                 groundpick=None if gp_at is None else dict(gp, at=gp_at, phase=args.gp_phase, hold_s=args.gp_hold_s,
                                                            done_at=round(gp_done_at, 2)),
                 head=None if not (args.head_yaw or args.head_pitch is not None) else dict(head_yaw=args.head_yaw, head_pitch=args.head_pitch,
@@ -275,6 +356,10 @@ def main():
     ap.add_argument("--gp-hold-s", type=float, default=2.0, help="s to hold the low pose before the rise")
     ap.add_argument("--head-yaw", type=float, default=0.0, help="rad; head pose command in walk mode from --walk-at on")
     ap.add_argument("--head-pitch", type=float, default=None, help="rad; absolute head_pitch target with --head-yaw")
+    ap.add_argument("--kick-at", type=float, default=None, help="s; one kick command (id 1) at this time")
+    ap.add_argument("--kick-foot", choices=("left", "right"), default="left")
+    ap.add_argument("--sit-at", type=float, default=None, help="s; {\"mode\": \"sit\"} from here")
+    ap.add_argument("--unsit-at", type=float, default=None, help="s; walk at zero command from here (stands up first)")
     ap.add_argument("--trace", action="store_true")
     ap.add_argument("--bam-friction-scale", type=float, default=1.0, help="multiply BAM Coulomb/Stribeck/load friction (training DR range 0.9-1.1; measured real servos sit above it)")
     ap.add_argument("--tick-log", default=None, help="write one JSON row per 20 ms tick (q, dq, gb, gyro_body, action) like /tmp/duck_wired_log_*.jsonl")
