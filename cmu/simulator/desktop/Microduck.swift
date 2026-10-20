@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import WebKit
 
 struct Configuration: Decodable {
     let appDirectory: String
@@ -7,8 +8,10 @@ struct Configuration: Decodable {
     let port: Int
 }
 
-final class Launcher: NSObject, NSApplicationDelegate {
+final class Launcher: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var window: NSWindow!
+    // The robot monitor opens in this app's own window (WebKit), the simulator scenes in Chrome.
+    var liveWindow: NSWindow?, liveView: WKWebView?
     var config: Configuration!
     var service: Process?
     var output: FileHandle?
@@ -30,13 +33,14 @@ final class Launcher: NSObject, NSApplicationDelegate {
     var lastBoot: String?, resetNote = ""
     let linkStatus = NSTextField(labelWithString: "○ 正在连接 A7Z…")
     let healthText = NSTextField(wrappingLabelWithString: "")
-    let status = NSTextField(wrappingLabelWithString: "点击一个场景，自动启动并在 Chrome 中打开。")
+    let status = NSTextField(wrappingLabelWithString: "点击一个场景，自动启动并在 Chrome 中打开；真机监视在本应用的窗口里打开。")
     let quality = NSSegmentedControl(labels: ["流畅（默认）", "清晰"], trackingMode: .selectOne, target: nil, action: nil)
     var base: URL { URL(string: "http://127.0.0.1:\(config.port)")! }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         let menu = NSMenu(), applicationMenu = NSMenu(), item = NSMenuItem()
+        applicationMenu.addItem(withTitle: "关闭窗口", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         applicationMenu.addItem(withTitle: "退出 Microduck", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.submenu = applicationMenu; menu.addItem(item); NSApp.mainMenu = menu
         do {
@@ -70,7 +74,7 @@ final class Launcher: NSObject, NSApplicationDelegate {
         robot.font = .systemFont(ofSize: 16, weight: .semibold); stack.addArrangedSubview(robot)
         linkStatus.font = .systemFont(ofSize: 14, weight: .semibold); linkStatus.textColor = .secondaryLabelColor; stack.addArrangedSubview(linkStatus)
         healthText.font = .systemFont(ofSize: 12); stack.addArrangedSubview(healthText)
-        addScene("真机监视", detail: "温度、电压曲线和鸭子的实时姿态，在 Chrome 打开。", tag: 3, to: stack)
+        addScene("真机监视", detail: "温度、电压曲线、遥控和鸭子的实时姿态，在本应用的窗口里打开。", tag: 3, to: stack)
         shutdownButton = NSButton(title: "优雅关机 · A7Z 大脑", target: self, action: #selector(shutdownRobot(_:)))
         shutdownButton.bezelStyle = .rounded; shutdownButton.controlSize = .large; shutdownButton.font = .systemFont(ofSize: 16, weight: .medium)
         shutdownButton.heightAnchor.constraint(equalToConstant: 36).isActive = true; stack.addArrangedSubview(shutdownButton)
@@ -88,7 +92,13 @@ final class Launcher: NSObject, NSApplicationDelegate {
                 let view = self.window.contentView!, rep = view.bitmapImageRepForCachingDisplay(in: view.bounds)!
                 view.cacheDisplay(in: view.bounds, to: rep); n += 1
                 try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: "\(dir)/shot-\(n).png"))
+                let k = n  // WebKit draws out of process, so the monitor window needs its own snapshot call
+                self.liveView?.takeSnapshot(with: nil) { image, _ in
+                    guard let tiff = image?.tiffRepresentation, let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return }
+                    try? png.write(to: URL(fileURLWithPath: "\(dir)/live-\(k).png"))
+                }
             }
+            if ProcessInfo.processInfo.environment["MICRODUCK_OPEN_LIVE"] != nil { openScene(buttons[3]) }
         }
         #endif
     }
@@ -147,6 +157,11 @@ final class Launcher: NSObject, NSApplicationDelegate {
         }
     }
     func finishOpening() {
+        if let page = pendingPage, page.hasPrefix("/robot-live.html"), let url = URL(string: base.absoluteString + page) {
+            openLive(url)
+            starting = false; buttons.forEach { $0.isEnabled = true }; status.stringValue = "真机监视已在本应用的窗口里打开。"
+            return
+        }
         guard let page = pendingPage, let url = URL(string: base.absoluteString + page), let chrome = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.google.Chrome") else {
             fail("找不到 Google Chrome，请先安装 Chrome。"); return
         }
@@ -156,6 +171,22 @@ final class Launcher: NSObject, NSApplicationDelegate {
                 else { self.starting = false; self.buttons.forEach { $0.isEnabled = true }; self.status.stringValue = "已在 Chrome 打开。可随时回来切换场景。" }
             }
         }
+    }
+    func openLive(_ url: URL) {
+        if liveWindow == nil {
+            let view = WKWebView(frame: NSRect(x: 0, y: 0, width: 1280, height: 860), configuration: WKWebViewConfiguration())
+            let live = NSWindow(contentRect: view.frame, styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            live.title = "MicroDuck 真机监视"; live.isReleasedWhenClosed = false; live.contentView = view; live.delegate = self
+            live.contentMinSize = NSSize(width: 420, height: 500); live.center(); live.setFrameAutosaveName("MicroduckRobotLive")
+            liveWindow = live; liveView = view
+        }
+        // A window already showing the page is only brought forward, so its chart window and pose view stay as they are.
+        if liveWindow?.isVisible != true || liveView?.url?.path != url.path { liveView?.load(URLRequest(url: url)) }
+        liveWindow?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+    }
+    func windowWillClose(_ notification: Notification) {
+        // Closing the monitor ends its stream, so the service closes its SSH session and standby reader on the A7Z.
+        if (notification.object as? NSWindow) === liveWindow { liveView?.loadHTMLString("", baseURL: nil) }
     }
     @objc func shutdownRobot(_ sender: NSButton) {
         guard shutdownTask == nil, let script = Bundle.main.url(forResource: "duck-shutdown", withExtension: "sh") else { return }
