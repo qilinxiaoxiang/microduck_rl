@@ -41,6 +41,7 @@ add(MAC, "mac", [
     "duck_sound.py",  # walk_wired.py imports it (quack)
     "duck_sense.py",  # the live page's read-only standby reader on the A7Z
     "test_teleop_modes.py", "teleop_sim_batch.py", "teleop-sim-check.json",
+    "test_walk_wired_touch.py",  # Present Current and head touch pads in the tick log
 ])
 add(f"{MAC}/jitter-20261018", "mac/jitter-20261018", ["jitter_sim.py", "compare.py", "osc_metrics.py", "band.py", "summ.sh"])
 add(f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016", [])  # filled below from the directory listing
