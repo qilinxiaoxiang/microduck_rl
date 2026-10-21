@@ -170,7 +170,7 @@ class StartWithStand(WiredBattery):
             class FirstMiss(base):
                 def sync_read(self, addr, size, ids, timeout=0.01, allow_alert=None):
                     got = super().sync_read(addr, size, ids, timeout, allow_alert)
-                    if addr == ww.ADDR_VEL and not reads_seen:
+                    if addr == ww.ADDR_CUR and not reads_seen:
                         reads_seen.append(addr)
                         return {}  # the first position read misses every servo
                     return got
@@ -204,7 +204,7 @@ class StartWithStand(WiredBattery):
             class FirstMiss(base):
                 def sync_read(self, addr, size, ids, timeout=0.01, allow_alert=None):
                     got = super().sync_read(addr, size, ids, timeout, allow_alert)
-                    if addr == ww.ADDR_VEL and not reads_seen:
+                    if addr == ww.ADDR_CUR and not reads_seen:
                         reads_seen.append(addr)
                         return {}
                     return got

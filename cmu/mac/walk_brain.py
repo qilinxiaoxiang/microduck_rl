@@ -93,6 +93,11 @@ KICK_FEET = ("left", "right")
 SIT_PREP_S = 0.8
 SIT_SETTLE_S = 2.0
 UNSIT_S = 2.0
+# A seat folds both knees to about 1.3 rad (plugged as-built sim at 7.0 V: 1.33 / -1.36, trunk 58 mm lower). On the
+# robot on 2026-10-21 the legs never moved through 53 s of "seated" (knees 0.02 / -0.03 rad): the loaded leg servos did
+# not follow the policy's first small moves, so its closed-loop descent never started. A seat the timer declares is
+# therefore checked against the knees at the first policy tick after the glide; under this it is a stall, not a seat.
+SIT_KNEE_MIN = 0.6
 WALK_ZERO = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
 WAIT_FOR_FRESH = True  # torque modes wait for a fresh sample before entry (tests flip it to show the 10-16 slam)
 STATE_FMT = "<4sId14i14i4f3f3f4fBf"
@@ -364,7 +369,8 @@ class Brain:
                 nxt = self.sit_next or dict(WALK_ZERO)
                 self.base_want = nxt
                 return nxt
-            return {"mode": "sit"}
+            # a head command while seated reaches the sitstand policy (it was trained with one in both postures)
+            return {"mode": "sit", "head": want["head"]} if mode == "sit" and want.get("head") else {"mode": "sit"}
         if mode == "sit" and self.mode != "sit":
             why = self.sit_blocked()
             if why:
@@ -501,6 +507,15 @@ class Brain:
                 self.head_cmd += HEAD_ALPHA * (self.head_target(want) - self.head_cmd)  # eases back to the default
                 head, policy = self.head_cmd, "sitstand"
                 info["sit_phase"], info["sit_flag"] = self.sit["phase"], flag
+                if self.sit["phase"] == "seated" and "stalled" not in self.sit:
+                    self.sit["stalled"] = max(abs(q["left_knee"]), abs(q["right_knee"])) < SIT_KNEE_MIN
+                    if self.sit["stalled"]:
+                        print(f"sit: STALLED, still standing on the sitstand policy: knees {q['left_knee']:+.2f} / "
+                              f"{q['right_knee']:+.2f} rad {SIT_PREP_S + SIT_SETTLE_S:.1f} s after the sit command (a seat "
+                              "folds them to about 1.3); the leg servos did not follow the policy's first moves. Any stand "
+                              "or walk command stands it up as usual.", flush=True)
+                if "stalled" in self.sit:
+                    info["sit_stalled"] = self.sit["stalled"]
             else:
                 vx, vy, vth = float(want.get("vx", 0)), float(want.get("vy", 0)), float(want.get("vtheta", 0))
                 if self.heading is None:

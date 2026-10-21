@@ -291,13 +291,74 @@ class Teleop(unittest.TestCase):
         self.assertEqual(goals[-1], 1500 + round(5 * TICKS_PER_DEG))  # back to the opening it had
         self.assertEqual(last_log["jaw_goal"], 5)
 
-    def test_quack_without_jaw_torque_only_plays(self):
+    def test_quack_enables_an_unpowered_jaw_and_returns_it_to_rest(self):
         cal = {"closed_tick": 1500, "open_tick": 1700}
+        # end after the quack head move (QUACK_HEAD_S) is back: the jaw limits follow the head pose
         text, last_log, w, spawned, voice = self.run_quack(lambda d, p: [(1.0, write_cmd(p, dict(WALK0, quack=1)))],
-                                                           WALK0, end=2.0, cal=cal)
+                                                           WALK0, end=1.5 + ww.QUACK_HEAD_S, cal=cal)
         self.assertEqual(len([x for x in spawned if isinstance(x, list)]), 1)
-        self.assertIn("quack: jaw stays put (torque off", text)
-        self.assertNotIn(JAW, {i for addr, i, v in w.log if addr == jaw_ctl.ADDR_TORQUE})
+        self.assertNotIn("jaw stays put", text)
+        self.assertIn(JAW, {i for addr, i, v in w.log if addr == jaw_ctl.ADDR_TORQUE})
+        goals = [v for addr, i, v in w.log if i == JAW and addr == jaw_ctl.ADDR_GOAL]
+        self.assertIn(1500 + round(ww.QUACK_JAW_DEG * TICKS_PER_DEG), goals)
+        self.assertEqual(last_log["jaw_goal"], 2.0)  # the rest opening (the written tick follows jaw_ctl's closed zone)
+
+    def test_torque_off_releases_every_servo_and_reboots_latched_ones(self):
+        w = World(shutdown=52, hw_err=0, volts_dv=74)
+
+        def overload():
+            w.regs[4][70] = 0x20  # right_hip_roll: overload latched while standing
+
+        def hooks(d, p):
+            return [(1.5, overload), (2.0, write_cmd(p, {"mode": "off"}))]
+        text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, {"mode": "stand"}, end=3.0,
+                                                              supply="bench", hooks=hooks)
+        self.assertIn("torque on at present positions", text)
+        self.assertIn("torque off, rebooted ['right_hip_roll']", text)
+        torque = [(i, v) for a, i, v in w.log if a == ww.ADDR_TORQUE]
+        self.assertEqual({i for i, v in torque if v == 0}, set(ww.IDS))
+        self.assertEqual(last_log["torque"], False)
+        self.assertEqual(last_log["mode"], "monitor")
+        self.assertEqual(last_log["cmd"], {"mode": "monitor"})
+
+    def test_quack_head_tilt_is_a_smooth_bump(self):
+        ts = [k * 0.02 for k in range(int(ww.QUACK_HEAD_S / 0.02) + 2)]
+        share = [ww.quack_head_share(t) for t in ts]
+        self.assertEqual(share[0], 0.0)
+        self.assertEqual(share[-1], 0.0)
+        self.assertAlmostEqual(max(share), 1.0)
+        # raised cosine: the steepest tick moves pi/2 * 0.02 / QUACK_HEAD_RAMP_S of the move, never a step
+        self.assertLess(max(abs(b - a) for a, b in zip(share, share[1:])), math.pi / 2 * 0.02 / ww.QUACK_HEAD_RAMP_S + 0.01)
+
+    def test_quack_head_moves_wherever_a_policy_rebalances(self):
+        # 2026-10-21: quacks while seated and after a walk left the head still; only stand61 had the move
+        class B:
+            mode, stepped, sit = "walk", False, None
+        b = B()
+        self.assertIsNone(ww.quack_head_block(WALK0, b, 0.0))  # stand61
+        self.assertEqual(ww.quack_head_block(dict(WALK0, vx=0.25), b, None), "walking")
+        b.stepped = True  # walk61 at zero command after a walk
+        self.assertEqual(ww.quack_head_block(WALK0, b, ww.QUACK_REST_S - 0.5), "the stride is still coming to rest")
+        self.assertIsNone(ww.quack_head_block(WALK0, b, ww.QUACK_REST_S))
+        b.mode = "sit"
+        for phase, why in (("prep", "sitting down"), ("down", "sitting down"), ("seated", None)):
+            b.sit = {"phase": phase}
+            self.assertEqual(ww.quack_head_block({"mode": "sit"}, b, None), why)
+        b.sit = {"phase": "rise"}
+        self.assertEqual(ww.quack_head_block(WALK0, b, None), "standing up")
+        b.mode = "stand"
+        self.assertEqual(ww.quack_head_block({"mode": "stand"}, b, None), "open-loop stand mode cannot rebalance")
+        b.mode = "walk"
+        self.assertEqual(ww.quack_head_block(dict(WALK0, head={"head_yaw": 0.3}), b, 9.0), "a head command is active")
+
+    def test_seated_head_command_reaches_the_sit_policy(self):
+        # Brain.route used to return a bare {"mode": "sit"} while seated, which dropped want["head"]
+        brain = wb.Brain.__new__(wb.Brain)
+        brain.kick, brain.mode, brain.sit, brain.sit_next = None, "sit", {"phase": "seated", "t": 0.0}, None
+        brain.base_want, brain._refused = {"mode": "sit"}, None
+        head = {"head_yaw": 0.2}
+        self.assertEqual(brain.route({"mode": "sit", "head": head}, 10.0), {"mode": "sit", "head": head})
+        self.assertEqual(brain.route({"mode": "sit"}, 10.0), {"mode": "sit"})
 
     def test_hold_to_walk_keeps_walking_while_rewritten(self):
         w = World(shutdown=52, hw_err=0, volts_dv=74)

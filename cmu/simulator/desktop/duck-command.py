@@ -32,7 +32,7 @@ ONE_SHOT = ("jaw", "jaw_mark", "jaw_torque")
 RUN = os.path.expanduser("~/duck-run.sh")
 LOGS = os.path.expanduser("~/duck-logs")
 START_S = 20.0  # walk_wired.py loads six policies and opens the bus; its first tick came 2 s after start on 2026-10-21
-NOTE = re.compile(r"torque refused|HARDWARE ERROR|IMU LOST|IMU back|torque on")
+NOTE = re.compile(r"torque refused|HARDWARE ERROR|IMU LOST|IMU back|torque on|sit: STALLED")
 
 
 def cmd_path():
