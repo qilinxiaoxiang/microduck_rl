@@ -14,7 +14,15 @@ cpufreq time_in_state, the thermal cap (scaling_max_freq), the hardware top and 
 instantaneous scaling_cur_freq jumps between the lowest and highest step every few ms under ondemand, so one sample
 every 0.5 s says little. `mhz` is the little cluster's average (the launcher shows it), `mhz_cap`/`mhz_hw` its caps. The page leaves out `bus` while a brain on the Mac drives the servos over USB: through
 the OpenRB bridge either host's request takes the bus, and the Mac would lose replies.
+Touch pads (`touch`): the head's XIAO ESP32-S3 answers as I2C slave 0x2A on header pins 29 (PB2, SCL) and 31 (PB3, SDA).
+Those pins have no kernel I2C overlay yet, so a thread bit-bangs the bus through gpiochip0 lines 34/35 (open-drain,
+no root; same reader as extension-20261015-touch/firmware/touch_live_a7z.py) about 8 times a second and the newest
+block rides on every record: sequence number, the five counts (L1, R1, L2, R2, M), reads and failed reads. One read
+costs tens of ms of CPU, so the thread pauses while a brain runs; a kernel I2C overlay for PB2/PB3 removes that cost.
 """
+import ctypes
+import fcntl
+import struct
 import subprocess
 import threading
 import glob
@@ -121,6 +129,135 @@ class Standby:
 
 
 standby = Standby()
+
+
+class Touch:
+    """The XIAO touch block over bit-banged I2C, read by a thread; `state()` is the newest block or why there is none."""
+    CHIP, SDA, SCL, ADDR, PERIOD = "/dev/gpiochip0", 35, 34, 0x2A, 0.1
+    SATURATED = 0x3FFFFF  # touchRead's ceiling: that pad cannot charge (its lead touches metal, 2026-10-20 the XIAO can)
+
+    class Req(ctypes.Structure):
+        _fields_ = [("lineoffsets", ctypes.c_uint32 * 64), ("flags", ctypes.c_uint32),
+                    ("default_values", ctypes.c_uint8 * 64), ("consumer_label", ctypes.c_char * 32),
+                    ("lines", ctypes.c_uint32), ("fd", ctypes.c_int)]
+
+    class Data(ctypes.Structure):
+        _fields_ = [("values", ctypes.c_uint8 * 64)]
+
+    GET_HANDLE = (3 << 30) | (ctypes.sizeof(Req) << 16) | (0xB4 << 8) | 0x03
+    GET_VALUES = (3 << 30) | (ctypes.sizeof(Data) << 16) | (0xB4 << 8) | 0x08
+    SET_VALUES = (3 << 30) | (ctypes.sizeof(Data) << 16) | (0xB4 << 8) | 0x09
+
+    def __init__(self):
+        self.block, self.error, self.ok, self.bad, self.same_since, self.paused = None, None, 0, 0, None, False
+        threading.Thread(target=self.run, daemon=True).start()
+
+    def line(self, chip, off):
+        r = self.Req(); r.lineoffsets[0] = off; r.lines = 1; r.flags = (1 << 1) | (1 << 3)  # output, open drain
+        r.default_values[0] = 1; r.consumer_label = b"touch"
+        fcntl.ioctl(chip, self.GET_HANDLE, r)
+        return r.fd
+
+    def set(self, fd, v):
+        d = self.Data(); d.values[0] = v; fcntl.ioctl(fd, self.SET_VALUES, d)
+
+    def get(self, fd):
+        d = self.Data(); fcntl.ioctl(fd, self.GET_VALUES, d); return d.values[0]
+
+    # No sleeps between line changes: one ioctl from Python takes longer than the 5 us half period of 100 kHz.
+    def scl_high(self):
+        self.set(self.scl, 1); t0 = time.monotonic()
+        while not self.get(self.scl):  # the XIAO stretches the clock while it fills the block
+            if time.monotonic() - t0 > 0.05:
+                raise OSError("SCL held low")
+
+    def byte_out(self, b):
+        for i in range(8):
+            self.set(self.sda, (b >> (7 - i)) & 1); self.scl_high(); self.set(self.scl, 0)
+        self.set(self.sda, 1); self.scl_high(); ack = self.get(self.sda) == 0
+        self.set(self.scl, 0)
+        return ack
+
+    def byte_in(self, ack):
+        v = 0; self.set(self.sda, 1)
+        for _ in range(8):
+            self.scl_high(); v = (v << 1) | self.get(self.sda); self.set(self.scl, 0)
+        self.set(self.sda, 0 if ack else 1); self.scl_high(); self.set(self.scl, 0)
+        self.set(self.sda, 1)
+        return v
+
+    def read_block(self):
+        """The ESP32-S3 slave answers one byte late: a filler byte (0x55), then the block's first 23 bytes; the missing
+        last byte is the top byte of M, always 0. Exactly 24 bytes: reading more leaves filler queued for later blocks."""
+        sda, scl = self.sda, self.scl
+        self.set(sda, 1); self.scl_high(); self.set(sda, 0); self.set(scl, 0)
+        try:
+            if not self.byte_out((self.ADDR << 1) | 1):
+                return None
+            raw = bytes(self.byte_in(i < 23) for i in range(24))
+        finally:
+            self.set(sda, 0); self.scl_high(); self.set(sda, 1)
+        return struct.unpack("<6I", raw[1:] + b"\0")
+
+    def run(self):
+        while True:
+            try:
+                chip = os.open(self.CHIP, os.O_RDWR)
+                try:
+                    self.sda, self.scl = self.line(chip, self.SDA), self.line(chip, self.SCL)
+                finally:
+                    os.close(chip)
+            except OSError as e:  # EBUSY: touch_live_a7z.py or another reader holds the pins
+                self.error = f"pins 29/31: {e.strerror or e}"
+                time.sleep(2.0)
+                continue
+            self.error = None
+            last_seq, bad_run = None, 0
+            try:
+                while True:
+                    if self.paused:  # a brain runs: its 50 Hz loop gets the CPU (one read costs tens of ms of CPU)
+                        time.sleep(0.5)
+                        continue
+                    if bad_run >= 3:  # out of step with the slave: nine clocks and a STOP end any half-read byte
+                        for _ in range(9):
+                            self.set(self.scl, 0); self.set(self.scl, 1)
+                        self.set(self.sda, 0); self.scl_high(); self.set(self.sda, 1)
+                        bad_run = 0
+                    try:
+                        b = self.read_block()
+                    except OSError as e:
+                        b, self.error = None, str(e)
+                    if b is None or max(b[1:]) > self.SATURATED or (last_seq is not None and not 0 < b[0] - last_seq < 500):
+                        self.bad += 1
+                        bad_run += 1
+                        if b is None:
+                            last_seq = None
+                            self.error = self.error or "no answer at 0x2A"
+                    else:
+                        if self.block is None or b[1:] != self.block[1:]:
+                            self.same_since = time.time()
+                        last_seq, self.block, self.ok, self.error, bad_run = b[0], b, self.ok + 1, None, 0
+                    time.sleep(self.PERIOD)
+            except OSError as e:
+                self.error = str(e)
+                for fd in (self.sda, self.scl):
+                    os.close(fd)
+                time.sleep(2.0)
+
+    def state(self, now, brain_running):
+        self.paused = brain_running
+        if brain_running:
+            return {"paused": True, "ok": self.ok, "bad": self.bad}
+        if self.block is None:
+            return {"error": self.error or "no block yet", "ok": self.ok, "bad": self.bad}
+        out = {"seq": self.block[0], "v": list(self.block[1:]), "ok": self.ok, "bad": self.bad,
+               "stuck": self.SATURATED in self.block[1:] and now - self.same_since > 2.0}
+        if self.error:
+            out["error"] = self.error
+        return out
+
+
+touch = Touch() if "touch" in sys.argv[1:] else None
 
 
 def brain_state(now):
@@ -235,7 +372,10 @@ next_t = next_health = time.monotonic()
 while True:
     now = time.time()
     if time.monotonic() < next_health:
-        print(json.dumps({"t": round(now, 2), "brain": brain_state(now)}, separators=(",", ":")), flush=True)
+        fast = {"t": round(now, 2), "brain": brain_state(now)}
+        if touch:
+            fast["touch"] = touch.state(now, bool(fast["brain"].get("running")))
+        print(json.dumps(fast, separators=(",", ":")), flush=True)
         next_t += PERIOD
         time.sleep(max(0.0, next_t - time.monotonic()))
         continue
@@ -261,6 +401,8 @@ while True:
               "mhz_hw": first.get("hw_mhz"),
               "load": os.getloadavg()[0], "mem_mb": int(avail.group(1)) // 1024 if avail else None,
               "cpu_s": round(sum(os.times()[:2]) + standby.cpu_s(), 2), "brain": brain_state(now)}
+    if touch:
+        record["touch"] = touch.state(now, bool(record["brain"].get("running")))
     print(json.dumps(record, separators=(",", ":")), flush=True)
     next_t += PERIOD
     time.sleep(max(0.0, next_t - time.monotonic()))

@@ -7,6 +7,7 @@
 // duck_sense.py on the A7Z). It leaves that out while walk_wired.py runs on this Mac: a Mac brain drives the servos over
 // the OpenRB's USB port, and a request from the A7Z would take the bus away from it. The check runs once a second and
 // restarts the session when the answer changes.
+// `touch` adds the head's touch pads (the XIAO on header pins 29/31) to every record.
 //
 // Remote control: POST /api/a7z/cmd with {"op": "set", "cmd": {...}} or {"op": "merge", "patch": {...}} writes
 // walk_wired.py's control file through a second SSH session running desktop/duck-command.py (passed as base64 on the
@@ -32,7 +33,7 @@ export function a7zBridge({script, commandScript, host = process.env.MICRODUCK_R
         clearTimeout(retry);
         if (child || !clients.size) return;
         const bus = !macBrain();
-        const proc = spawn("ssh", [...SSH_OPTS, host, `exec nice -n 10 python3 -u - duck-telemetry fast${bus ? " bus" : ""}`],
+        const proc = spawn("ssh", [...SSH_OPTS, host, `exec nice -n 10 python3 -u - duck-telemetry fast touch${bus ? " bus" : ""}`],
           {stdio: ["pipe", "pipe", "pipe"]});
         child = proc; childBus = bus; lastLine = Date.now(); buffer = "";
         let stderr = "";

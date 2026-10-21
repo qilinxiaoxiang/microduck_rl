@@ -24,6 +24,37 @@ const JOINTS = {
   头颈: [["neck_pitch", "颈 pitch"], ["head_pitch", "头 pitch"], ["head_yaw", "头 yaw"], ["head_roll", "头 roll"]],
 };
 
+// ── Touch pads: the XIAO block on every record (duck-telemetry.py `touch`) ──
+const PADS = ["L1", "R1", "L2", "R2", "M"], TOUCH_FULL = 2000, SATURATED = 0x3FFFFF;
+let touchZero = null;
+const touchRows = PADS.map(name => {
+  const row = {name: Object.assign(document.createElement("b"), {textContent: name}), v: document.createElement("span"),
+               d: Object.assign(document.createElement("span"), {className: "d"}), bar: Object.assign(document.createElement("div"), {className: "bar"})};
+  row.bar.append(document.createElement("i"));
+  $("#touch").append(row.name, row.v, row.d, row.bar);
+  return row;
+});
+$("#touchZero").onclick = () => { touchZero = null; };
+
+function showTouch(t) {
+  const state = $("#touchState");
+  state.className = "";
+  if (t.paused) { state.textContent = "大脑在 A7Z 上运行，触摸暂停读取"; return; }
+  if (!t.v) { state.textContent = `读不到触摸板：${t.error}`; state.className = "bad"; return; }
+  if (!touchZero || touchZero.length !== t.v.length) touchZero = t.v.slice();
+  t.v.forEach((v, i) => {
+    const r = touchRows[i], full = v >= SATURATED, d = v - touchZero[i];
+    r.v.textContent = full ? "顶满" : v;
+    r.d.textContent = full ? "" : (d >= 0 ? "+" : "") + d;
+    r.bar.classList.toggle("full", full);
+    r.bar.firstChild.style.width = full ? "100%" : `${Math.max(0, Math.min(100, 100 * d / TOUCH_FULL))}%`;
+  });
+  const full = PADS.filter((_, i) => t.v[i] >= SATURATED);
+  if (t.stuck) { state.textContent = `${full.join("、")} 读数顶满，扫描卡住了，其他铜箔都不更新：查它的铜箔和引线有没有碰到金属（比如 XIAO 的金属壳）`; state.className = "bad"; }
+  else if (full.length) { state.textContent = `${full.join("、")} 读数顶满：铜箔或引线碰到了金属`; state.className = "bad"; }
+  else state.textContent = `读到 ${t.ok} 次，丢 ${t.bad} 次`;
+}
+
 function event(text, t = Date.now() / 1000) {
   const li = document.createElement("li");
   li.textContent = `${clock(t)}  ${text}`;
@@ -48,6 +79,7 @@ function ingest(record) {
     lostSince = null; cpuStart = null;
   }
   if (record.brain) lastBrain = record.brain;
+  if (record.touch) showTouch(record.touch);
   if (record.temps) {
     if (bootId && record.boot && record.boot !== bootId) event("A7Z 重启过（boot id 变了）", record.t);
     if (record.boot) bootId = record.boot;
