@@ -24,11 +24,11 @@ The status line turns red and the Dock icon bounces when no reading arrives for 
 
 The **遥控** card on `/robot-live.html` writes `walk_wired.py`'s control file on the A7Z (`/tmp/duck_cmd.json`, or the `--cmd` that `~/duck-run.sh` passes) through a second SSH session running [duck-command.py](duck-command.py), again piped and never installed. Buttons and keys:
 
-- **T** stand (torque on, stand pose). **W** or **↑** walk forward at 0.25 m/s while held: the page rewrites the command every 0.3 s with `for_s` 0.6, so the robot stops by itself 0.6 s after release, a window switch or a lost link.
+- **T** open-loop stand (torque on, fixed stand pose, no balancing). **Y** closed-loop stand (stand61 at zero command). **X** torque off (every servo, also clears a latched overload). **W** or **↑** walk forward at 0.25 m/s while held: the page rewrites the command every 0.3 s with `for_s` 0.6, so the robot stops by itself 0.6 s after release, a window switch or a lost link.
 - **Q** / **E** kick left / right (Pollen's kick policy, one 0.5 s shot; refused while W is held, because a kick mid-stride lifts the foot only about 1 cm in the sim). **R** sit, again to stand up. **G** bend to the ground-pick pose, again to rise.
 - **B** quack: one real duck call through `aplay` on the ALSA default device; the jaw also opens if it is calibrated and its torque is on. **Space** stop: zero velocity while walking or kicking, otherwise hold the present pose (`monitor`, torque on).
 
-The brain must run the remote-control version (`guide/firmware/a7z/install_teleop.sh`, then `~/duck-run.sh <suffix>`). The card shows the brain's mode and the command in force; with the A7Z offline every button is disabled.
+The brain is the remote-control version of `walk_wired.py` (`guide/firmware/a7z/install_teleop.sh` installs it). Every button except W works whenever the A7Z answers: nothing restarts the brain after an A7Z reboot, so when none runs the request asks duck-command.py to run `~/duck-run.sh app<MMDD-HHMMSS>` first (monitor mode, torque untouched, logs in `~/duck-logs`), wait for its first fresh tick (about 3.5 s on 2026-10-21), then write the command. W asks for a stand first. The bridge never starts an A7Z brain while `walk_wired.py` runs on this Mac, because that brain owns the servo bus over USB; the button then reports why. When stand, closed-loop stand or bend leaves torque off for 3 s, the card shows the brain's own reason from its stdout (a latched hardware error, which **X** clears, or a missing IMU). The card shows the brain's mode and the command in force; with the A7Z offline every button is disabled.
 
 ## Rebuild or relocate
 

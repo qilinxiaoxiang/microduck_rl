@@ -12,11 +12,13 @@
 // Remote control: POST /api/a7z/cmd with {"op": "set", "cmd": {...}} or {"op": "merge", "patch": {...}} writes
 // walk_wired.py's control file through a second SSH session running desktop/duck-command.py (passed as base64 on the
 // command line, nothing installed). The answer carries what was written, or the error. MICRODUCK_CMD_PATH overrides
-// the control-file path the writer finds on the A7Z.
+// the control-file path the writer finds on the A7Z. A set or merge with "start": true starts walk_wired.py on the A7Z
+// first when none runs there (duck-command.py; nothing restarts it after an A7Z reboot), unless walk_wired.py runs on
+// this Mac: that brain owns the servo bus over USB, and a second brain on the A7Z would fight it, so the request fails.
 import {spawn, spawnSync} from "node:child_process";
 import {readFileSync} from "node:fs";
 
-const HISTORY_S = 1800, SILENT_S = 3, ACK_S = 3;
+const HISTORY_S = 1800, SILENT_S = 3, ACK_S = 3, START_ACK_S = 30;  // START_ACK_S covers duck-command.py START_S
 const SSH_OPTS = ["-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "-o", "ServerAliveInterval=2", "-o", "ServerAliveCountMax=2"];
 
 export function a7zBridge({script, commandScript, host = process.env.MICRODUCK_ROBOT_HOST ?? "a7z",
@@ -27,7 +29,8 @@ export function a7zBridge({script, commandScript, host = process.env.MICRODUCK_R
     configureServer(server) {
       const clients = new Set(), history = [];
       let child = null, buffer = "", lastLine = 0, linger = null, retry = null, childBus = null;
-      const macBrain = () => spawnSync("pgrep", ["-f", "walk_wired\\.py"]).status === 0;
+      // a python process running walk_wired.py, not any command line that mentions it (a grep, an editor, a shell)
+      const macBrain = () => spawnSync("pgrep", ["-f", "^[^ ]*[Pp]ython[^ ]*( -[^ ]+)* ([^ ]*/)?walk_wired\\.py"]).status === 0;
       const send = message => { const text = `data: ${JSON.stringify(message)}\n\n`; for (const c of clients) c.write(text); };
       function start() {
         clearTimeout(retry);
@@ -107,12 +110,12 @@ export function a7zBridge({script, commandScript, host = process.env.MICRODUCK_R
         writer = w;
         return w;
       }
-      async function command(req) {
+      async function command(req, ackS = ACK_S) {
         const w = startWriter();
         await Promise.race([w.ready, new Promise((_, rej) => setTimeout(() => rej(new Error("A7Z did not answer in time")), ACK_S * 1000 + 4000))]);
         const n = ++seq;
         return new Promise(resolve => {
-          const timer = setTimeout(() => { w.pending.delete(n); resolve({ok: false, error: "no answer from the A7Z writer"}); }, ACK_S * 1000);
+          const timer = setTimeout(() => { w.pending.delete(n); resolve({ok: false, error: "no answer from the A7Z writer"}); }, ackS * 1000);
           w.pending.set(n, msg => { clearTimeout(timer); resolve(msg); });
           w.proc.stdin.write(JSON.stringify({...req, n}) + "\n");
         });
@@ -126,7 +129,10 @@ export function a7zBridge({script, commandScript, host = process.env.MICRODUCK_R
           try {
             const r = JSON.parse(body);
             if (!["set", "merge", "read"].includes(r.op)) throw new Error(`unknown op ${r.op}`);
-            answer = await command(r.op === "set" ? {op: "set", cmd: r.cmd} : r.op === "merge" ? {op: "merge", patch: r.patch} : {op: "read"});
+            const start = r.start === true && r.op !== "read";
+            if (start && macBrain()) throw new Error("walk_wired.py 在这台 Mac 上运行，A7Z 上不另起大脑");
+            const req = r.op === "set" ? {op: "set", cmd: r.cmd} : r.op === "merge" ? {op: "merge", patch: r.patch} : {op: "read"};
+            answer = await command(start ? {...req, start} : req, start ? START_ACK_S : ACK_S);
           } catch (e) {
             answer = {ok: false, error: e.message};
           }
