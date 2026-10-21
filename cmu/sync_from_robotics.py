@@ -52,6 +52,9 @@ add(PI, "pi", [
     "JAW-LIMIT.md", "hip_yaw_check.py", "set_shutdown.py", "check_voltage_limit.py", "joint_signs.py",
     "set_jaw_limit.py",  # imported by test_jaw_limits.py (its pure planning part is under test)
     "scan_bus.py",  # stand.py imports its ROLES table; test_battery.py imports stand.py with a mocked dynamixel_sdk
+    # A7Z head computer: 10 Hz temperature and per-cluster clock log, full-CPU load test, CPU setting test (2026-10-21)
+    "thermal_log.py", "a7z_load_test.sh", "a7z_cpu_compare.py", "A7Z-CPU-COMPARE.md", "test_thermal_log.py",
+    "test_a7z_cpu_compare.py",
 ])
 add(f"{PI}/microduck_rt", "pi/microduck_rt", ["constants.py", "imu_reader.py"])
 add(f"{WHOLE}/dynamics", "whole/dynamics", ["evaluate.py"])
