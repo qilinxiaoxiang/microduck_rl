@@ -175,6 +175,15 @@ Friction alone is not the missing piece. The next candidate in `cmu/SIM2REAL.md`
 to small commands, which would explain large actions on the robot where the sim stands still. The two cases stay
 stress, and the tilt test still sets the sole's coefficient.
 
+Update later on 2026-10-21. With `--foot-play 8` (+-8 deg below the ankle encoders, a proxy: the 10/19 logs show no
+such play) walk61 on `plugged` falls in 12 of 12 runs at mu 0.2-0.3 (0.3 m/s: forward 0.9-1.1 s after the walk
+command; 0.25 m/s: 2.6-3.2 s) and in 0 of 12 at mu 0.5-1.0. The `slip` fine-tune (`cmu/finetune/modal/finetune_worker.py`
+DELTA_SLIP: foot friction DR 0.2-1.3 plus the EMA velocity tracking, Kaggle slip1/slip2, seeds 1 and 2, 1000 iterations,
+plugged, $0) is rejected. Without play it walks where walk61 stands (mu 0.3 and 0.5 at 0.25 m/s: 1.7-2.3 m in 10 s, no
+fall), but still falls at mu 0.2 (slip1 6 of 6, slip2 2 of 6), and with play it falls at mu 0.2-0.3 like walk61 (slip1
+12 of 12, slip2 11 of 12). On the suite's real cases both are worse than walk61 on max_tilt (7.6-12.3 against
+4.5-10.1 deg) and action_jumps (4-30 against 0-5), the pattern ft3 showed before it fell on the robot.
+
 ## Closed-loop pickup harness (2026-10-19)
 
 `uv run --no-sync python cmu/mac/pickup_sim.py --obj 0.35 -0.60 --volt 7.0 --pitch-offset 4.75 --max-s 120`
