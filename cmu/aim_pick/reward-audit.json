@@ -1,0 +1,1190 @@
+{
+ "Mjlab-AimPick-Flat-MicroDuck": {
+  "time": "2026-10-21T03:00:37",
+  "seed": 1,
+  "envs": 256,
+  "steps": 300,
+  "wall_s": 613,
+  "policies": {
+   "groundpick61.onnx": "9852e1c75ca03d3cba52cf074d1603da",
+   "stand61.onnx": "275af7d366c53afde74fbd5e69c38d3a"
+  },
+  "torch_replica_max_err": 9.5367431640625e-07,
+  "landing": {
+   "tip_m": [
+    0.0703,
+    0.0052,
+    0.0312
+   ],
+   "sd_m": [
+    0.0063,
+    0.0054,
+    0.0034
+   ],
+   "box_height_m": 0.0462
+  },
+  "weights": {
+   "aim_reach": 3.0,
+   "aim_hold": 40.0,
+   "aim_progress": 5.0,
+   "object_displacement": -2.0
+  },
+  "hold_scale": 0.01,
+  "window_m": 0.05,
+  "scenarios": {
+   "measure": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 0,
+    "falls_per_env_minute": 0.0,
+    "first_episode_fell": 0,
+    "reward_per_s": 10.3396,
+    "terms_per_s": {
+     "upright": 0.1295,
+     "body_ang_vel": -0.0137,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0208,
+     "action_rate_l2": -0.0179,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.9223,
+     "ground_pick_return_pose_legs": 1.4754,
+     "ground_pick_return_pose_neck": 1.4741,
+     "return_upright": 1.0256,
+     "neck_vel_descent": -0.0469,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9842,
+     "feet_flat": -0.0211,
+     "neck_action_rate_l2": -0.0015,
+     "joint_torques_l2": -0.0008,
+     "self_collisions": 0.0,
+     "head_impact_penalty": -0.002,
+     "aim_reach": 0.7268,
+     "aim_hold": 1.4802,
+     "aim_progress": 0.2461,
+     "object_displacement": 0.0
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0703,
+      0.0052,
+      0.0312
+     ],
+     "sd": [
+      0.0063,
+      0.0054,
+      0.0034
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.021,
+     "median": 0.018,
+     "p90": 0.0376,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.009,
+     "median": 0.0092
+    },
+    "box_height_m": {
+     "min": 0.0401,
+     "max": 0.0899
+    }
+   },
+   "reach": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 0,
+    "falls_per_env_minute": 0.0,
+    "first_episode_fell": 0,
+    "reward_per_s": 12.1623,
+    "terms_per_s": {
+     "upright": 0.1295,
+     "body_ang_vel": -0.0137,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0208,
+     "action_rate_l2": -0.018,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.9223,
+     "ground_pick_return_pose_legs": 1.4753,
+     "ground_pick_return_pose_neck": 1.474,
+     "return_upright": 1.0256,
+     "neck_vel_descent": -0.0469,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9842,
+     "feet_flat": -0.0211,
+     "neck_action_rate_l2": -0.0015,
+     "joint_torques_l2": -0.0008,
+     "self_collisions": 0.0,
+     "head_impact_penalty": -0.002,
+     "aim_reach": 0.8847,
+     "aim_hold": 3.1103,
+     "aim_progress": 0.2812,
+     "object_displacement": 0.0
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0703,
+      0.0052,
+      0.0312
+     ],
+     "sd": [
+      0.0063,
+      0.0054,
+      0.0034
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.0085,
+     "median": 0.0082,
+     "p90": 0.0117,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.0038,
+     "median": 0.0036
+    },
+    "hold_err_by_offset": [
+     {
+      "offset_cm": [
+       0,
+       1
+      ],
+      "envs": 256,
+      "hold_err_m": 0.0085
+     }
+    ],
+    "box_height_m": {
+     "min": 0.0462,
+     "max": 0.0462
+    }
+   },
+   "blind": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 0,
+    "falls_per_env_minute": 0.0,
+    "first_episode_fell": 0,
+    "reward_per_s": 9.2464,
+    "terms_per_s": {
+     "upright": 0.1295,
+     "body_ang_vel": -0.0137,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0208,
+     "action_rate_l2": -0.018,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.9223,
+     "ground_pick_return_pose_legs": 1.4753,
+     "ground_pick_return_pose_neck": 1.4741,
+     "return_upright": 1.0256,
+     "neck_vel_descent": -0.0469,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9842,
+     "feet_flat": -0.0211,
+     "neck_action_rate_l2": -0.0015,
+     "joint_torques_l2": -0.0008,
+     "self_collisions": 0.0,
+     "head_impact_penalty": -0.002,
+     "aim_reach": 0.5654,
+     "aim_hold": 0.5493,
+     "aim_progress": 0.2469,
+     "object_displacement": -0.0013
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0703,
+      0.0053,
+      0.0312
+     ],
+     "sd": [
+      0.0063,
+      0.0054,
+      0.0034
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.0337,
+     "median": 0.0326,
+     "p90": 0.0511,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.028,
+     "median": 0.0273
+    },
+    "hold_err_by_offset": [
+     {
+      "offset_cm": [
+       0,
+       1
+      ],
+      "envs": 5,
+      "hold_err_m": 0.0098
+     },
+     {
+      "offset_cm": [
+       1,
+       2
+      ],
+      "envs": 52,
+      "hold_err_m": 0.0173
+     },
+     {
+      "offset_cm": [
+       2,
+       3
+      ],
+      "envs": 56,
+      "hold_err_m": 0.0269
+     },
+     {
+      "offset_cm": [
+       3,
+       4
+      ],
+      "envs": 54,
+      "hold_err_m": 0.0348
+     },
+     {
+      "offset_cm": [
+       4,
+       5
+      ],
+      "envs": 61,
+      "hold_err_m": 0.0455
+     },
+     {
+      "offset_cm": [
+       5,
+       8
+      ],
+      "envs": 28,
+      "hold_err_m": 0.0544
+     }
+    ],
+    "hold_err_slope_vs_offset": 0.914,
+    "box_height_m": {
+     "min": 0.0462,
+     "max": 0.0462
+    }
+   },
+   "blind_h": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 0,
+    "falls_per_env_minute": 0.0,
+    "first_episode_fell": 0,
+    "reward_per_s": 8.8965,
+    "terms_per_s": {
+     "upright": 0.1295,
+     "body_ang_vel": -0.0137,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0208,
+     "action_rate_l2": -0.0179,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.9223,
+     "ground_pick_return_pose_legs": 1.4754,
+     "ground_pick_return_pose_neck": 1.4741,
+     "return_upright": 1.0256,
+     "neck_vel_descent": -0.0469,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9842,
+     "feet_flat": -0.0211,
+     "neck_action_rate_l2": -0.0015,
+     "joint_torques_l2": -0.0008,
+     "self_collisions": 0.0,
+     "head_impact_penalty": -0.002,
+     "aim_reach": 0.504,
+     "aim_hold": 0.2897,
+     "aim_progress": 0.2176,
+     "object_displacement": -0.0013
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0703,
+      0.0052,
+      0.0312
+     ],
+     "sd": [
+      0.0063,
+      0.0054,
+      0.0034
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.0405,
+     "median": 0.0411,
+     "p90": 0.0575,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.0292,
+     "median": 0.0283
+    },
+    "hold_err_by_offset": [
+     {
+      "offset_cm": [
+       0,
+       1
+      ],
+      "envs": 5,
+      "hold_err_m": 0.028
+     },
+     {
+      "offset_cm": [
+       1,
+       2
+      ],
+      "envs": 52,
+      "hold_err_m": 0.0279
+     },
+     {
+      "offset_cm": [
+       2,
+       3
+      ],
+      "envs": 56,
+      "hold_err_m": 0.0335
+     },
+     {
+      "offset_cm": [
+       3,
+       4
+      ],
+      "envs": 54,
+      "hold_err_m": 0.041
+     },
+     {
+      "offset_cm": [
+       4,
+       5
+      ],
+      "envs": 61,
+      "hold_err_m": 0.0501
+     },
+     {
+      "offset_cm": [
+       5,
+       8
+      ],
+      "envs": 28,
+      "hold_err_m": 0.0579
+     }
+    ],
+    "hold_err_slope_vs_offset": 0.73,
+    "box_height_m": {
+     "min": 0.0401,
+     "max": 0.0899
+    }
+   },
+   "blind_1cm": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 0,
+    "falls_per_env_minute": 0.0,
+    "first_episode_fell": 0,
+    "reward_per_s": 11.517,
+    "terms_per_s": {
+     "upright": 0.1295,
+     "body_ang_vel": -0.0137,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0208,
+     "action_rate_l2": -0.018,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.9223,
+     "ground_pick_return_pose_legs": 1.4753,
+     "ground_pick_return_pose_neck": 1.4741,
+     "return_upright": 1.0256,
+     "neck_vel_descent": -0.0469,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9842,
+     "feet_flat": -0.0211,
+     "neck_action_rate_l2": -0.0015,
+     "joint_torques_l2": -0.0008,
+     "self_collisions": 0.0,
+     "head_impact_penalty": -0.002,
+     "aim_reach": 0.8442,
+     "aim_hold": 2.5087,
+     "aim_progress": 0.278,
+     "object_displacement": 0.0
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0703,
+      0.0052,
+      0.0312
+     ],
+     "sd": [
+      0.0063,
+      0.0054,
+      0.0034
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.011,
+     "median": 0.0107,
+     "p90": 0.0161,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.0058,
+     "median": 0.0048
+    },
+    "hold_err_by_offset": [
+     {
+      "offset_cm": [
+       0,
+       1
+      ],
+      "envs": 201,
+      "hold_err_m": 0.0106
+     },
+     {
+      "offset_cm": [
+       1,
+       2
+      ],
+      "envs": 55,
+      "hold_err_m": 0.0126
+     }
+    ],
+    "hold_err_slope_vs_offset": 0.532,
+    "box_height_m": {
+     "min": 0.0462,
+     "max": 0.0462
+    }
+   },
+   "stand": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 1,
+    "falls_per_env_minute": 0.039,
+    "first_episode_fell": 1,
+    "reward_per_s": 7.0939,
+    "terms_per_s": {
+     "upright": 0.1994,
+     "body_ang_vel": -0.0039,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0001,
+     "action_rate_l2": -0.0408,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.2274,
+     "ground_pick_return_pose_legs": 1.531,
+     "ground_pick_return_pose_neck": 1.1881,
+     "return_upright": 1.0361,
+     "neck_vel_descent": -0.0082,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9826,
+     "feet_flat": -0.0368,
+     "neck_action_rate_l2": -0.0035,
+     "joint_torques_l2": -0.0003,
+     "self_collisions": -0.0007,
+     "head_impact_penalty": -0.0032,
+     "aim_reach": 0.0439,
+     "aim_hold": 0.0,
+     "aim_progress": 0.0147,
+     "object_displacement": -0.0317
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0811,
+      -0.0008,
+      0.208
+     ],
+     "sd": [
+      0.0127,
+      0.0067,
+      0.0047
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.1654,
+     "median": 0.1661,
+     "p90": 0.1845,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.1589,
+     "median": 0.1591
+    },
+    "hold_err_by_offset": [
+     {
+      "offset_cm": [
+       0,
+       1
+      ],
+      "envs": 5,
+      "hold_err_m": 0.1541
+     },
+     {
+      "offset_cm": [
+       1,
+       2
+      ],
+      "envs": 52,
+      "hold_err_m": 0.1605
+     },
+     {
+      "offset_cm": [
+       2,
+       3
+      ],
+      "envs": 56,
+      "hold_err_m": 0.1658
+     },
+     {
+      "offset_cm": [
+       3,
+       4
+      ],
+      "envs": 54,
+      "hold_err_m": 0.1651
+     },
+     {
+      "offset_cm": [
+       4,
+       5
+      ],
+      "envs": 61,
+      "hold_err_m": 0.1675
+     },
+     {
+      "offset_cm": [
+       5,
+       8
+      ],
+      "envs": 28,
+      "hold_err_m": 0.1716
+     }
+    ],
+    "hold_err_slope_vs_offset": 0.235,
+    "box_height_m": {
+     "min": 0.0401,
+     "max": 0.0899
+    }
+   }
+  },
+  "audit": {
+   "over_reach": {
+    "blind": 0.76,
+    "blind_h": 0.731,
+    "blind_1cm": 0.947,
+    "stand": 0.583
+   },
+   "gated": [
+    "blind",
+    "blind_h",
+    "stand"
+   ],
+   "max_ratio": 0.8,
+   "verdict": "PASS",
+   "aim_pay_per_s": {
+    "measure": 2.4531,
+    "reach": 4.2762,
+    "blind": 1.3603,
+    "blind_h": 1.01,
+    "blind_1cm": 3.6309,
+    "stand": 0.0269
+   }
+  }
+ },
+ "Mjlab-AimPick-Flat-MicroDuck-CMU-Plugged": {
+  "time": "2026-10-21T03:00:39",
+  "seed": 1,
+  "envs": 256,
+  "steps": 300,
+  "wall_s": 614,
+  "policies": {
+   "groundpick61.onnx": "9852e1c75ca03d3cba52cf074d1603da",
+   "stand61.onnx": "275af7d366c53afde74fbd5e69c38d3a"
+  },
+  "torch_replica_max_err": 9.5367431640625e-07,
+  "landing": {
+   "tip_m": [
+    0.0666,
+    0.0075,
+    0.0274
+   ],
+   "sd_m": [
+    0.011,
+    0.0064,
+    0.0056
+   ],
+   "box_height_m": 0.0424
+  },
+  "weights": {
+   "aim_reach": 3.0,
+   "aim_hold": 40.0,
+   "aim_progress": 5.0,
+   "object_displacement": -2.0
+  },
+  "hold_scale": 0.01,
+  "window_m": 0.05,
+  "scenarios": {
+   "measure": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 2,
+    "falls_per_env_minute": 0.078,
+    "first_episode_fell": 2,
+    "reward_per_s": 9.9983,
+    "terms_per_s": {
+     "upright": 0.126,
+     "body_ang_vel": -0.0152,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0251,
+     "action_rate_l2": -0.0304,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.9189,
+     "ground_pick_return_pose_legs": 1.4538,
+     "ground_pick_return_pose_neck": 1.4557,
+     "return_upright": 1.0196,
+     "neck_vel_descent": -0.0491,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9835,
+     "feet_flat": -0.0238,
+     "neck_action_rate_l2": -0.002,
+     "joint_torques_l2": -0.001,
+     "self_collisions": -0.0,
+     "head_impact_penalty": -0.0045,
+     "aim_reach": 0.6957,
+     "aim_hold": 1.2523,
+     "aim_progress": 0.2438,
+     "object_displacement": 0.0
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0666,
+      0.0075,
+      0.0274
+     ],
+     "sd": [
+      0.011,
+      0.0064,
+      0.0056
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.0248,
+     "median": 0.0227,
+     "p90": 0.0436,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.0104,
+     "median": 0.0106
+    },
+    "box_height_m": {
+     "min": 0.0401,
+     "max": 0.0899
+    }
+   },
+   "reach": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 2,
+    "falls_per_env_minute": 0.078,
+    "first_episode_fell": 2,
+    "reward_per_s": 12.2395,
+    "terms_per_s": {
+     "upright": 0.126,
+     "body_ang_vel": -0.0153,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0251,
+     "action_rate_l2": -0.0306,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.9189,
+     "ground_pick_return_pose_legs": 1.4526,
+     "ground_pick_return_pose_neck": 1.455,
+     "return_upright": 1.0193,
+     "neck_vel_descent": -0.049,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9835,
+     "feet_flat": -0.0239,
+     "neck_action_rate_l2": -0.002,
+     "joint_torques_l2": -0.001,
+     "self_collisions": -0.0,
+     "head_impact_penalty": -0.0049,
+     "aim_reach": 0.8775,
+     "aim_hold": 3.2732,
+     "aim_progress": 0.2853,
+     "object_displacement": -0.0001
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0666,
+      0.0075,
+      0.0274
+     ],
+     "sd": [
+      0.011,
+      0.0064,
+      0.0056
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.0095,
+     "median": 0.0075,
+     "p90": 0.0122,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.0048,
+     "median": 0.0036
+    },
+    "hold_err_by_offset": [
+     {
+      "offset_cm": [
+       0,
+       1
+      ],
+      "envs": 256,
+      "hold_err_m": 0.0095
+     }
+    ],
+    "box_height_m": {
+     "min": 0.0424,
+     "max": 0.0424
+    }
+   },
+   "blind": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 2,
+    "falls_per_env_minute": 0.078,
+    "first_episode_fell": 2,
+    "reward_per_s": 9.2291,
+    "terms_per_s": {
+     "upright": 0.126,
+     "body_ang_vel": -0.0153,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0251,
+     "action_rate_l2": -0.0305,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.9189,
+     "ground_pick_return_pose_legs": 1.4526,
+     "ground_pick_return_pose_neck": 1.455,
+     "return_upright": 1.0193,
+     "neck_vel_descent": -0.049,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9835,
+     "feet_flat": -0.0239,
+     "neck_action_rate_l2": -0.002,
+     "joint_torques_l2": -0.001,
+     "self_collisions": -0.0,
+     "head_impact_penalty": -0.0048,
+     "aim_reach": 0.5676,
+     "aim_hold": 0.606,
+     "aim_progress": 0.2528,
+     "object_displacement": -0.0009
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0666,
+      0.0075,
+      0.0274
+     ],
+     "sd": [
+      0.011,
+      0.0064,
+      0.0056
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.0342,
+     "median": 0.0328,
+     "p90": 0.052,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.028,
+     "median": 0.0269
+    },
+    "hold_err_by_offset": [
+     {
+      "offset_cm": [
+       0,
+       1
+      ],
+      "envs": 24,
+      "hold_err_m": 0.0119
+     },
+     {
+      "offset_cm": [
+       1,
+       2
+      ],
+      "envs": 34,
+      "hold_err_m": 0.018
+     },
+     {
+      "offset_cm": [
+       2,
+       3
+      ],
+      "envs": 61,
+      "hold_err_m": 0.0287
+     },
+     {
+      "offset_cm": [
+       3,
+       4
+      ],
+      "envs": 49,
+      "hold_err_m": 0.0363
+     },
+     {
+      "offset_cm": [
+       4,
+       5
+      ],
+      "envs": 63,
+      "hold_err_m": 0.0464
+     },
+     {
+      "offset_cm": [
+       5,
+       8
+      ],
+      "envs": 25,
+      "hold_err_m": 0.0556
+     }
+    ],
+    "hold_err_slope_vs_offset": 0.911,
+    "box_height_m": {
+     "min": 0.0424,
+     "max": 0.0424
+    }
+   },
+   "blind_h": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 2,
+    "falls_per_env_minute": 0.078,
+    "first_episode_fell": 2,
+    "reward_per_s": 8.7797,
+    "terms_per_s": {
+     "upright": 0.126,
+     "body_ang_vel": -0.0152,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0251,
+     "action_rate_l2": -0.0304,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.9189,
+     "ground_pick_return_pose_legs": 1.4538,
+     "ground_pick_return_pose_neck": 1.4557,
+     "return_upright": 1.0196,
+     "neck_vel_descent": -0.0491,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9835,
+     "feet_flat": -0.0238,
+     "neck_action_rate_l2": -0.002,
+     "joint_torques_l2": -0.001,
+     "self_collisions": -0.0,
+     "head_impact_penalty": -0.0044,
+     "aim_reach": 0.4885,
+     "aim_hold": 0.2687,
+     "aim_progress": 0.2169,
+     "object_displacement": -0.0009
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0666,
+      0.0075,
+      0.0274
+     ],
+     "sd": [
+      0.011,
+      0.0064,
+      0.0056
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.0428,
+     "median": 0.0428,
+     "p90": 0.0604,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.0296,
+     "median": 0.0286
+    },
+    "hold_err_by_offset": [
+     {
+      "offset_cm": [
+       0,
+       1
+      ],
+      "envs": 24,
+      "hold_err_m": 0.0286
+     },
+     {
+      "offset_cm": [
+       1,
+       2
+      ],
+      "envs": 34,
+      "hold_err_m": 0.0302
+     },
+     {
+      "offset_cm": [
+       2,
+       3
+      ],
+      "envs": 61,
+      "hold_err_m": 0.0377
+     },
+     {
+      "offset_cm": [
+       3,
+       4
+      ],
+      "envs": 49,
+      "hold_err_m": 0.0438
+     },
+     {
+      "offset_cm": [
+       4,
+       5
+      ],
+      "envs": 63,
+      "hold_err_m": 0.0525
+     },
+     {
+      "offset_cm": [
+       5,
+       8
+      ],
+      "envs": 25,
+      "hold_err_m": 0.0596
+     }
+    ],
+    "hold_err_slope_vs_offset": 0.688,
+    "box_height_m": {
+     "min": 0.0401,
+     "max": 0.0899
+    }
+   },
+   "blind_1cm": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 2,
+    "falls_per_env_minute": 0.078,
+    "first_episode_fell": 2,
+    "reward_per_s": 11.5259,
+    "terms_per_s": {
+     "upright": 0.126,
+     "body_ang_vel": -0.0153,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0251,
+     "action_rate_l2": -0.0305,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.9189,
+     "ground_pick_return_pose_legs": 1.4526,
+     "ground_pick_return_pose_neck": 1.455,
+     "return_upright": 1.0193,
+     "neck_vel_descent": -0.049,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9835,
+     "feet_flat": -0.0239,
+     "neck_action_rate_l2": -0.002,
+     "joint_torques_l2": -0.001,
+     "self_collisions": -0.0,
+     "head_impact_penalty": -0.0049,
+     "aim_reach": 0.8372,
+     "aim_hold": 2.6028,
+     "aim_progress": 0.2823,
+     "object_displacement": -0.0001
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0666,
+      0.0075,
+      0.0274
+     ],
+     "sd": [
+      0.011,
+      0.0064,
+      0.0056
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.0121,
+     "median": 0.0103,
+     "p90": 0.0165,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.0065,
+     "median": 0.005
+    },
+    "hold_err_by_offset": [
+     {
+      "offset_cm": [
+       0,
+       1
+      ],
+      "envs": 209,
+      "hold_err_m": 0.0115
+     },
+     {
+      "offset_cm": [
+       1,
+       2
+      ],
+      "envs": 47,
+      "hold_err_m": 0.0144
+     }
+    ],
+    "hold_err_slope_vs_offset": 0.605,
+    "box_height_m": {
+     "min": 0.0424,
+     "max": 0.0424
+    }
+   },
+   "stand": {
+    "envs": 256,
+    "steps": 300,
+    "episodes": 256,
+    "falls": 2,
+    "falls_per_env_minute": 0.078,
+    "first_episode_fell": 2,
+    "reward_per_s": 7.0817,
+    "terms_per_s": {
+     "upright": 0.1992,
+     "body_ang_vel": -0.005,
+     "angular_momentum": -0.0,
+     "dof_pos_limits": -0.0002,
+     "action_rate_l2": -0.0516,
+     "soft_landing": -0.0,
+     "mouth_perpendicular_to_ground": 0.2258,
+     "ground_pick_return_pose_legs": 1.526,
+     "ground_pick_return_pose_neck": 1.1834,
+     "return_upright": 1.0354,
+     "neck_vel_descent": -0.0113,
+     "mouth_payload_force": 0.0,
+     "feet_grounded": 2.9816,
+     "feet_flat": -0.0379,
+     "neck_action_rate_l2": -0.0045,
+     "joint_torques_l2": -0.0004,
+     "self_collisions": -0.001,
+     "head_impact_penalty": -0.0056,
+     "aim_reach": 0.0441,
+     "aim_hold": 0.0,
+     "aim_progress": 0.0157,
+     "object_displacement": -0.012
+    },
+    "tip_at_hold_m": {
+     "mean": [
+      0.0791,
+      -0.0001,
+      0.2077
+     ],
+     "sd": [
+      0.015,
+      0.0057,
+      0.0056
+     ]
+    },
+    "hold_err_m": {
+     "mean": 0.1651,
+     "median": 0.1642,
+     "p90": 0.1845,
+     "envs": 256
+    },
+    "closest_approach_m": {
+     "mean": 0.1581,
+     "median": 0.1586
+    },
+    "hold_err_by_offset": [
+     {
+      "offset_cm": [
+       0,
+       1
+      ],
+      "envs": 24,
+      "hold_err_m": 0.1621
+     },
+     {
+      "offset_cm": [
+       1,
+       2
+      ],
+      "envs": 34,
+      "hold_err_m": 0.1598
+     },
+     {
+      "offset_cm": [
+       2,
+       3
+      ],
+      "envs": 61,
+      "hold_err_m": 0.1647
+     },
+     {
+      "offset_cm": [
+       3,
+       4
+      ],
+      "envs": 49,
+      "hold_err_m": 0.165
+     },
+     {
+      "offset_cm": [
+       4,
+       5
+      ],
+      "envs": 63,
+      "hold_err_m": 0.1667
+     },
+     {
+      "offset_cm": [
+       5,
+       8
+      ],
+      "envs": 25,
+      "hold_err_m": 0.1721
+     }
+    ],
+    "hold_err_slope_vs_offset": 0.188,
+    "box_height_m": {
+     "min": 0.0401,
+     "max": 0.0899
+    }
+   }
+  },
+  "audit": {
+   "over_reach": {
+    "blind": 0.754,
+    "blind_h": 0.717,
+    "blind_1cm": 0.942,
+    "stand": 0.579
+   },
+   "gated": [
+    "blind",
+    "blind_h",
+    "stand"
+   ],
+   "max_ratio": 0.8,
+   "verdict": "PASS",
+   "aim_pay_per_s": {
+    "measure": 2.1918,
+    "reach": 4.4359,
+    "blind": 1.4255,
+    "blind_h": 0.9732,
+    "blind_1cm": 3.7222,
+    "stand": 0.0478
+   }
+  }
+ }
+}

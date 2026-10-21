@@ -25,6 +25,9 @@ the open problems); the quickstarts are in the [top-level README](../README.md).
 - `real-logs/`: the 2026-10-18 robot tick logs and the real-versus-sim jitter numbers.
 - `finetune/`: the walk61 fine-tune pipeline (`modal/`, with the reward audit gate, tracking guard and cost caps) and
   its Kaggle launcher (`kaggle/`); `modal/FINETUNE-DELTA.md` is the run history.
+- `aim_pick/`: the aiming crouch (`Mjlab-AimPick-Flat-MicroDuck[-CMU-Plugged|-CMU-Battery]`, groundpick61's crouch
+  with an object the beak has to reach): its reward audit (`audit.py`, `reward-audit.json`), the literature recipe,
+  the cost estimate and what a run still needs (`README.md`).
 - `hardware/`: the battery backpack design materials (`battery-backpack/`: STL files, mating parts, envelopes, checks,
   masses, wiring page, parts list, CAD source) and the print pipeline for the RoboClub printers (`printing/`: profiles,
   slicer commands, orientation and brim rules, the ready V1.20 plate). `hardware/README.md` is the index.

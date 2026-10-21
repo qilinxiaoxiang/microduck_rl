@@ -282,3 +282,7 @@ for _task_id, _make_cfg, _kw, _rl_cfg, _robot_cfg in _BACKLASH_TASKS:
 # CMU as-built mass variants (cmu/model): the velocity recipe on the measured robot, -CMU-Plugged / -CMU-Battery.
 from .cmu_asbuilt import register_cmu_tasks
 register_cmu_tasks(MicroduckOnPolicyRunner)
+
+# CMU aiming crouch (cmu_aim_pick_env_cfg.py): the ground pick with an object the beak has to reach.
+from .cmu_aim_pick_env_cfg import register_aim_pick_tasks
+register_aim_pick_tasks(MicroduckOnPolicyRunner)
