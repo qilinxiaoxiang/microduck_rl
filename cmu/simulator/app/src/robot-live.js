@@ -39,7 +39,7 @@ $("#touchZero").onclick = () => { touchZero = null; };
 function showTouch(t) {
   const state = $("#touchState");
   state.className = "";
-  if (t.paused) { state.textContent = "大脑在 A7Z 上运行，触摸暂停读取"; return; }
+  if (t.paused) { state.textContent = "大脑在 A7Z 上运行，触摸暂停读取（程序拨针脚读太费 CPU；装上 TWI0 配置后不用暂停）"; return; }
   if (!t.v) { state.textContent = `读不到触摸板：${t.error}`; state.className = "bad"; return; }
   if (!touchZero || touchZero.length !== t.v.length) touchZero = t.v.slice();
   t.v.forEach((v, i) => {
@@ -52,7 +52,7 @@ function showTouch(t) {
   const full = PADS.filter((_, i) => t.v[i] >= SATURATED);
   if (t.stuck) { state.textContent = `${full.join("、")} 读数顶满，扫描卡住了，其他铜箔都不更新：查它的铜箔和引线有没有碰到金属（比如 XIAO 的金属壳）`; state.className = "bad"; }
   else if (full.length) { state.textContent = `${full.join("、")} 读数顶满：铜箔或引线碰到了金属`; state.className = "bad"; }
-  else state.textContent = `读到 ${t.ok} 次，丢 ${t.bad} 次`;
+  else state.textContent = `读到 ${t.ok} 次，丢 ${t.bad} 次（${t.bus === "gpio" ? "程序拨针脚读" : "内核 I2C " + t.bus}）`;
 }
 
 function event(text, t = Date.now() / 1000) {

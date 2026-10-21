@@ -15,10 +15,10 @@ instantaneous scaling_cur_freq jumps between the lowest and highest step every f
 every 0.5 s says little. `mhz` is the little cluster's average (the launcher shows it), `mhz_cap`/`mhz_hw` its caps. The page leaves out `bus` while a brain on the Mac drives the servos over USB: through
 the OpenRB bridge either host's request takes the bus, and the Mac would lose replies.
 Touch pads (`touch`): the head's XIAO ESP32-S3 answers as I2C slave 0x2A on header pins 29 (PB2, SCL) and 31 (PB3, SDA).
-Those pins have no kernel I2C overlay yet, so a thread bit-bangs the bus through gpiochip0 lines 34/35 (open-drain,
-no root; same reader as extension-20261015-touch/firmware/touch_live_a7z.py) about 8 times a second and the newest
-block rides on every record: sequence number, the five counts (L1, R1, L2, R2, M), reads and failed reads. One read
-costs tens of ms of CPU, so the thread pauses while a brain runs; a kernel I2C overlay for PB2/PB3 removes that cost.
+A thread reads it about 8 times a second through TWI0 (/dev/i2c-N, from guide/firmware/pi/duck-twi0-touch.dts) when
+that overlay is loaded, else by bit-banging gpiochip0 lines 34/35 (open-drain, no root; one read then costs tens of ms
+of CPU, so it pauses while a brain runs). The newest block rides on every record: sequence number, the five counts
+(L1, R1, L2, R2, M), reads, failed reads and the bus used.
 """
 import ctypes
 import fcntl
@@ -149,7 +149,7 @@ class Touch:
     SET_VALUES = (3 << 30) | (ctypes.sizeof(Data) << 16) | (0xB4 << 8) | 0x09
 
     def __init__(self):
-        self.block, self.error, self.ok, self.bad, self.same_since, self.paused = None, None, 0, 0, None, False
+        self.block, self.error, self.ok, self.bad, self.same_since, self.paused, self.bus = None, None, 0, 0, None, False, None
         threading.Thread(target=self.run, daemon=True).start()
 
     def line(self, chip, off):
@@ -187,8 +187,7 @@ class Touch:
         return v
 
     def read_block(self):
-        """The ESP32-S3 slave answers one byte late: a filler byte (0x55), then the block's first 23 bytes; the missing
-        last byte is the top byte of M, always 0. Exactly 24 bytes: reading more leaves filler queued for later blocks."""
+        """One bit-banged read of exactly 24 bytes: reading more leaves filler queued for later blocks."""
         sda, scl = self.sda, self.scl
         self.set(sda, 1); self.scl_high(); self.set(sda, 0); self.set(scl, 0)
         try:
@@ -197,16 +196,53 @@ class Touch:
             raw = bytes(self.byte_in(i < 23) for i in range(24))
         finally:
             self.set(sda, 0); self.scl_high(); self.set(sda, 1)
-        return struct.unpack("<6I", raw[1:] + b"\0")
+        return self.decode(raw)
+
+    def recover(self):
+        """Nine clocks and a STOP end any half-read byte when the reader is out of step with the slave."""
+        for _ in range(9):
+            self.set(self.scl, 0); self.set(self.scl, 1)
+        self.set(self.sda, 0); self.scl_high(); self.set(self.sda, 1)
+
+    @classmethod
+    def decode(cls, raw):
+        """The block from 24 read bytes. Bit-banged reads get a filler byte (0x55) first and lose the block's last byte,
+        the top byte of M, which is always 0. A read without the filler is the block as sent. The wrong alignment shifts
+        every count by 8 bits, putting them above 0x3FFFFF, so the right one is the one whose five counts all fit."""
+        for block in (raw[1:] + b"\0", raw):
+            b = struct.unpack("<6I", block)
+            if max(b[1:]) <= cls.SATURATED:
+                return b
+        return None
+
+    @staticmethod
+    def kernel_bus():
+        """/dev/i2c-N of TWI0 on PB2/PB3 once zz-duck-twi0-touch.dtbo is loaded (guide/firmware/pi/duck-twi0-touch.dts)."""
+        for node in glob.glob("/sys/bus/i2c/devices/i2c-*/of_node"):
+            if os.path.realpath(node).endswith("/twi@2510000"):
+                return "/dev/" + node.split("/")[-2]
+        return None
+
+    def open(self):
+        """(read, recover, close) for the kernel bus if there is one, else for the bit-banged GPIO lines."""
+        dev = self.kernel_bus()
+        if dev:
+            fd = os.open(dev, os.O_RDWR)
+            fcntl.ioctl(fd, 0x0703, self.ADDR)  # I2C_SLAVE
+            self.bus = dev
+            return (lambda: self.decode(os.read(fd, 24))), (lambda: None), (lambda: os.close(fd))
+        chip = os.open(self.CHIP, os.O_RDWR)
+        try:
+            self.sda, self.scl = self.line(chip, self.SDA), self.line(chip, self.SCL)
+        finally:
+            os.close(chip)
+        self.bus = "gpio"
+        return self.read_block, self.recover, (lambda: (os.close(self.sda), os.close(self.scl)))
 
     def run(self):
         while True:
             try:
-                chip = os.open(self.CHIP, os.O_RDWR)
-                try:
-                    self.sda, self.scl = self.line(chip, self.SDA), self.line(chip, self.SCL)
-                finally:
-                    os.close(chip)
+                read, recover, close = self.open()
             except OSError as e:  # EBUSY: touch_live_a7z.py or another reader holds the pins
                 self.error = f"pins 29/31: {e.strerror or e}"
                 time.sleep(2.0)
@@ -215,19 +251,17 @@ class Touch:
             last_seq, bad_run = None, 0
             try:
                 while True:
-                    if self.paused:  # a brain runs: its 50 Hz loop gets the CPU (one read costs tens of ms of CPU)
+                    if self.paused and self.bus == "gpio":  # a brain runs: a bit-banged read costs tens of ms of CPU
                         time.sleep(0.5)
                         continue
-                    if bad_run >= 3:  # out of step with the slave: nine clocks and a STOP end any half-read byte
-                        for _ in range(9):
-                            self.set(self.scl, 0); self.set(self.scl, 1)
-                        self.set(self.sda, 0); self.scl_high(); self.set(self.sda, 1)
+                    if bad_run >= 3:
+                        recover()
                         bad_run = 0
                     try:
-                        b = self.read_block()
-                    except OSError as e:
+                        b = read()
+                    except OSError as e:  # the kernel bus raises on a NACK (EREMOTEIO)
                         b, self.error = None, str(e)
-                    if b is None or max(b[1:]) > self.SATURATED or (last_seq is not None and not 0 < b[0] - last_seq < 500):
+                    if b is None or (last_seq is not None and not 0 < b[0] - last_seq < 500):
                         self.bad += 1
                         bad_run += 1
                         if b is None:
@@ -240,17 +274,16 @@ class Touch:
                     time.sleep(self.PERIOD)
             except OSError as e:
                 self.error = str(e)
-                for fd in (self.sda, self.scl):
-                    os.close(fd)
+                close()
                 time.sleep(2.0)
 
     def state(self, now, brain_running):
         self.paused = brain_running
-        if brain_running:
-            return {"paused": True, "ok": self.ok, "bad": self.bad}
+        if brain_running and self.bus == "gpio":
+            return {"paused": True, "ok": self.ok, "bad": self.bad, "bus": self.bus}
         if self.block is None:
-            return {"error": self.error or "no block yet", "ok": self.ok, "bad": self.bad}
-        out = {"seq": self.block[0], "v": list(self.block[1:]), "ok": self.ok, "bad": self.bad,
+            return {"error": self.error or "no block yet", "ok": self.ok, "bad": self.bad, "bus": self.bus}
+        out = {"seq": self.block[0], "v": list(self.block[1:]), "ok": self.ok, "bad": self.bad, "bus": self.bus,
                "stuck": self.SATURATED in self.block[1:] and now - self.same_since > 2.0}
         if self.error:
             out["error"] = self.error
