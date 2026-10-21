@@ -1,6 +1,6 @@
 # simcheck: judge a candidate policy before a robot test
 
-`sim_suite.py` runs the eight-case as-built simulation suite on a directory of ONNX policies and compares the
+`sim_suite.py` runs the ten-case as-built simulation suite on a directory of ONNX policies and compares the
 result with the recorded reference rows. It is the acceptance tool for a walking policy before it goes on the
 robot. It replaces the private `sim_suite.sh`, which read the robot's condition through a probe that is not in the
 fork; here the condition comes from `cmu/robot-condition.json`.
@@ -35,7 +35,9 @@ case's own flags come after and override the base.
 - real cases (the robot's condition, with perturbations the robot can have): `nominal` (0.3 m/s), `vx0.25`,
   `vx0.2`, `com+5` (whole-robot COM 5 mm forward), `imu_pitch4` (IMU mounted 4 deg off).
 - stress cases (harsher than the robot): `volt6.3` (below the 6.6 V battery stop), `drop8_imu35` and
-  `drop8_imu35_s1` (8 % dropped servo reads and a 35 Hz IMU, seeds 0 and 1).
+  `drop8_imu35_s1` (8 % dropped servo reads and a 35 Hz IMU, seeds 0 and 1), and `floor_mu_bare` and
+  `floor_mu_sole` (0.25 m/s at foot-floor friction 0.3 and 0.7, estimates until measured; see "Foot-floor friction"
+  below).
 
 ## How to judge
 
@@ -125,6 +127,54 @@ not destabilise it in the simulation. These are plan-mass estimates; refresh the
 
 Rerun the suite to refresh these rows after a model, mass manifest, or condition change, and record the date.
 
+Drift on 2026-10-21: the suite reproduces these walk61 rows exactly at commit 2da47f88, where they were recorded, but
+at 29a0bebb (after the 2026-10-20 Brain changes, among them one ONNX Runtime thread per policy) the rows move by up
+to 0.010 m in `dist_x` and 3 in `action_jumps` (drop8_imu35 1.511 against 1.521 m, drop8_imu35_s1 27 against 30
+jumps).
+Every verdict stays the same. The rows have not been refreshed.
+
+## Foot-floor friction (2026-10-21)
+
+`brain_sim_check.py --floor-mu MU` sets the sliding friction of the floor and of both foot geoms. All geoms share
+priority 0, so MuJoCo takes the larger of the two frictions and the foot-floor contact gets exactly MU. The default
+1.0 is the model's own value: the first eight cases give the same rows, field for field, with and without the flag
+(29a0bebb against this change, same environment). Rows now carry `floor_mu`, and `fall_dir` (forward, backward, left
+or right: the way the trunk leaned when `fell_at` was set; a 30 mm forward COM shift falls forward, a 30 mm backward
+shift backward).
+
+The suite cases `floor_mu_bare` (0.3) and `floor_mu_sole` (0.7) walk at 0.25 m/s, the robot's walking speed.
+Neither coefficient is measured: 0.3 is an estimate for the bare printed foot on a smooth floor, and 0.7 is the lower
+edge of the training range (foot friction randomised 0.7-1.3). Both cases are stress, report only. The measurement
+is a tilt test: foot or whole robot with torque off on the floor, the table and the silicone mat, tilted until it
+starts to slide, mu = tan of that angle. It goes into `microduck-sim/CURRENT-STATE.json` as `floor_mu_bare` and
+`floor_mu_sole` and is copied into `cmu/robot-condition.json`. A measured value replaces the estimate and makes that
+case real, so the verdict needs a reference row for it from the next suite run. walk61 on the as-built model, 10 s:
+`floor_mu_bare` walked 0.259 m with no fall, max tilt 11.7 deg, 111 action jumps, max action 1.63 rad;
+`floor_mu_sole` walked 1.103 m with no fall, 6.5 deg, 2 jumps, 0.92 rad.
+
+Bracket against the real trip. Robot (runs 1019f and 1019h in the private
+`microduck-sim/guide/firmware/mac/robot-runs-20261019-a7z/README.md`, not copied here): on a smooth floor with the
+bare V1.22 feet, walk61 at 0.25 m/s tripped forward 1.3 s and 1.2 s after the walk command (tilt 12-13 to 37 deg in
+0.1 s), with actions up to 2.69 rad; on the silicone mat (1019i) it walked clean.
+Sim: walk61, 0.25 m/s for 3 s as on the robot, `--volt 7.0 --drop 0.04` from `robot_state_check.py --print-sim-args`,
+seeds 0-2, on the as-built model and on `plugged` (the robot of 2026-10-19: A7Z head, bench box), one process at a
+time.
+
+- mu 1.0 (the mat stand-in): no fall in 6 of 6 runs; 0.26-0.31 m, max tilt 6.1-6.4 deg, max action 0.85-0.97 rad.
+- mu 0.7: no fall in 6 of 6; 0.24-0.29 m, 5.9-6.7 deg (`plugged` seed 0: the knees start moving about 0.5 s later
+  than at 1.0).
+- mu 0.5 and 0.4: no fall in 12 of 12; `plugged` never steps in the 3 s (0.002-0.003 m, 4.4 deg, 0.32-0.34 rad);
+  the as-built model steps in 2 of 3 seeds at each value (0.18-0.24 m).
+- mu 0.3: no fall in 6 of 6; only as-built seed 0 steps, late (0.08 m); the others stand.
+- mu 0.2 and 0.1: no fall in 12 of 12; no run steps (0.002-0.003 m, 3.7-4.3 deg, 0.28-0.31 rad).
+
+No friction between 0.1 and 1.0 reproduces the trip: no run falls, in any direction. Low friction makes walk61 start
+late or not at all. On the walk command the trunk pitch shifts by about 2 deg, the legs then stay still, and the
+actions stay at or below 0.36 rad, far from the 1.17 rad mean and 2.69 rad peak the robot produced before it tripped.
+Friction alone is not the missing piece. The next candidate in `cmu/SIM2REAL.md` order is the loaded servo's response
+to small commands, which would explain large actions on the robot where the sim stands still. The two cases stay
+stress, and the tilt test still sets the sole's coefficient.
+
 ## Closed-loop pickup harness (2026-10-19)
 
 `uv run --no-sync python cmu/mac/pickup_sim.py --obj 0.35 -0.60 --volt 7.0 --pitch-offset 4.75 --max-s 120`
@@ -136,6 +186,9 @@ circles and timed out at 120 s in phase `search`: `ok false`, 18 bursts, 0 guard
 object not lifted. This is the harness working end to end, not a successful pickup.
 
 ## Unit test status (2026-10-19)
+
+2026-10-21: `uv run --no-sync --with pytest pytest cmu/simcheck -q` runs `test_sim_suite.py` (the floor-friction cases,
+`--floor-mu` reaching the floor and foot geoms, `fall_dir`): 5 passed. `cmu/mac cmu/pi` now pass 210 tests.
 
 `uv run --no-sync --with pytest pytest cmu/mac cmu/pi -q` passes: 191 tests, 0 failures, 0 skipped, about 15 s on
 CPU. They use fake links and the stand pose; nothing needs a serial port or `/tmp` state. Two files had to be

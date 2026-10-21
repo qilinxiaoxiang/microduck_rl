@@ -43,6 +43,7 @@ from static_gap import cfg, feet_flat_rot, setup, sole_points  # noqa: E402
 from walk_brain import IMU_MOUNT_QUAT, MOUNT_FIX, NAMES, VEL_UNIT, SIGN, Brain, apply_inverse, Breakaway, qmul, to_model, to_tick  # noqa: E402
 from walk_brain import STAND as BRAIN_STAND  # noqa: E402
 from battery import stop_command, stop_settled  # noqa: E402
+from walk_wired import QUACK_HEAD_S, quack_head_block, quack_head_pose  # noqa: E402
 
 MODELS = os.path.join(WHOLE, "runtime-overlay", "models")
 
@@ -63,6 +64,9 @@ def rot_y(deg):
 def run(args):
     zero = {k: float(v) for k, v in args.zero}
     c0 = cfg(0.09, model=args.model, kp=200, voltage=args.volt)
+    # sliding friction of the floor and of every geom on both foot bodies: all geoms share priority 0, so MuJoCo takes
+    # the larger of the two and the foot-floor contact gets exactly this value (1.0 is the model's own)
+    c0["friction"] = args.floor_mu
     if args.manifest:  # another signed-part manifest on the same loader (the 90 g NP-F970 removal is still applied by the loader)
         c0["mass_manifest"] = os.path.abspath(args.manifest)
     if args.com_x:
@@ -97,11 +101,13 @@ def run(args):
     sub = round(0.02 / m.opt.timestep)
     aq = collections.deque([p0.copy()] * (args.action_delay + 1), maxlen=args.action_delay + 1)
     sq = collections.deque(maxlen=args.sensor_delay + 1)
-    fell, maxtilt, x0, rows, first_policy = None, 0.0, None, [], None
+    fell, fall_dir, maxtilt, x0, rows, first_policy = None, None, 0.0, None, [], None
     rng = np.random.default_rng(args.seed)
     imu_hold, imu_t = None, 0.0
     max_action, action_jumps, prev_action = 0.0, 0, None
     T = args.walk_at + args.walk_s + 3.0
+    if args.quack_at:
+        T = max(T, max(args.quack_at) + QUACK_HEAD_S + 1.0)
     gp_at = args.gp_at
     if gp_at is not None:
         # ground pick: stand61 until gp_at, phase gp_phase (descent at 1/4 per s) held gp_hold_s after it is reached,
@@ -123,6 +129,7 @@ def run(args):
         T = max(T, (args.unsit_at if args.unsit_at is not None else args.sit_at + 6.0) + 6.0)
     kick_done_t, kick_start_t, kick_foot_z0, kick_foot_max = None, None, None, None
     sit = dict(start=None, flag1=None, rise=None, done=None, min_trunk_z=None, seated_tilt=None, seated_trunk_z=None)
+    zero_t, quack_ok, quack_reach = None, {}, {}  # quack head moves: zero-command start, quack time -> ran to the end
     hist = []  # (t, tilt, |gyro|, trunk z) every tick, for the stable-stand search
     kick_geom = m.geom(f"{args.kick_foot}_foot_collision").id
     for tick in range(int(T / 0.02)):
@@ -164,6 +171,15 @@ def run(args):
                 want = {"mode": "kick", "foot": args.kick_foot, "id": 1}
             if args.sit_at is not None and t >= args.sit_at and (args.unsit_at is None or t < args.unsit_at):
                 want = {"mode": "sit"}
+            zero_t = None if walking else (t if zero_t is None else zero_t)
+            for qt in args.quack_at:  # walk_wired.py's quack head move: the same gate and profile
+                if qt <= t < qt + QUACK_HEAD_S:
+                    # gated at the quack and on every tick after it, as walk_wired.py does
+                    ok = quack_head_block(want, brain, None if zero_t is None else t - zero_t) is None
+                    quack_ok[qt] = quack_ok.get(qt, ok) and ok
+                    if quack_ok[qt]:
+                        want["head"] = quack_head_pose({"head_roll": args.quack_roll, "head_yaw": args.quack_yaw,
+                                                        "head_pitch": args.quack_pitch}, t - qt, brain)
         if stop_at is not None and t >= stop_at:
             want = stop_command(True, brain.mode)
             if args.stop_ramp is not None and t - stop_at >= args.stop_ramp:
@@ -199,6 +215,13 @@ def run(args):
         for _ in range(sub):
             c.update()
             mujoco.mj_step(m, d)
+        for qt in quack_ok:  # largest head joint excursion from the policy default during each quack move
+            if qt <= t < qt + QUACK_HEAD_S + 0.5:
+                rq = quack_reach.setdefault(qt, {})
+                for k, n in enumerate(names):
+                    if n in ("head_roll", "head_yaw", "head_pitch"):
+                        dv = float(d.qpos[qa[k]] - z0[k]) - brain.default[n]
+                        rq[n] = dv if abs(dv) > abs(rq.get(n, 0.0)) else rq.get(n, 0.0)
         R = d.xmat[trunk].reshape(3, 3)
         tilt = math.degrees(math.acos(float(np.clip(R[2, 2], -1, 1))))
         maxtilt = max(maxtilt, tilt)
@@ -251,7 +274,7 @@ def run(args):
             rows.append((round(t, 1), brain.mode, info["gb"][0], round(float(d.xpos[trunk, 0]), 3), round(tilt, 1)))
         low = brain.mode in ("groundpick", "sit")
         if (tilt > (80 if low else 45)) or d.xpos[trunk, 2] < (0.03 if brain.mode == "sit" else 0.04):
-            fell = round(t, 2)
+            fell, fall_dir = round(t, 2), _lean_dir(R)
             break
     if gp_at is not None:
         gp["end_tilt"] = round(tilt, 1)
@@ -293,13 +316,15 @@ def run(args):
                     peak_tilt=round(max(h[1] for h in seg), 1) if seg else None, stable_after_s=stable_s,
                     end_trunk_z=round(hist[-1][3], 4) if hist else None)
     return dict(model=args.model, volt=args.volt, walk_ramp=args.walk_ramp, com_x_mm=args.com_x, zero=zero, imu_pitch=args.imu_pitch,
-                kick=kick, sit=sitr,
+                kick=kick, sit=sitr, quack_head_ran={str(k): v for k, v in quack_ok.items()},
+                quack_head_reached={str(k): {n: round(v, 3) for n, v in r.items()} for k, r in quack_reach.items()},
+                quack_peak_tilt={str(k): round(max(h[1] for h in window(k, k + QUACK_HEAD_S + 1.0)), 1) for k in quack_ok},
                 groundpick=None if gp_at is None else dict(gp, at=gp_at, phase=args.gp_phase, hold_s=args.gp_hold_s,
                                                            done_at=round(gp_done_at, 2)),
                 head=None if not (args.head_yaw or args.head_pitch is not None) else dict(head_yaw=args.head_yaw, head_pitch=args.head_pitch,
                                                          final={n: round(float(d.qpos[qa[k]] - z0[k]), 3) for k, n in enumerate(names) if "head" in n or "neck" in n}),
                 compensation=args.compensation, first_policy_tick_s=first_policy, max_action=round(max_action, 2), action_jumps=action_jumps,
-                drop=args.drop, imu_hz=args.imu_hz, fell_at=fell,
+                drop=args.drop, imu_hz=args.imu_hz, floor_mu=args.floor_mu, fell_at=fell, fall_dir=fall_dir,
                 max_tilt=round(maxtilt, 1), battery_stop_at=stop_at, stop_ramp=args.stop_ramp, settled_s=settled_at, end_mode=brain.mode,
                 max_tilt_after_stop=round(tilt_after_stop, 1) if stop_at is not None else None,
                 dist_x=None if x0 is None else round(float(d.xpos[trunk, 0] - x0), 3),
@@ -314,6 +339,17 @@ def _yaw(q):
     """Heading (rad) of a MuJoCo wxyz quaternion."""
     w, x, y, z = (float(v) for v in q)
     return math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
+
+
+def _lean_dir(R):
+    """Way the trunk's up axis leans in its own heading frame (x forward): forward, backward, left or right."""
+    fwd = R[:, 0].copy()
+    fwd[2] = 0
+    fwd /= np.linalg.norm(fwd)
+    f, l = float(R[:, 2] @ fwd), float(R[:, 2] @ np.array([-fwd[1], fwd[0], 0.0]))
+    if abs(f) >= abs(l):
+        return "forward" if f > 0 else "backward"
+    return "left" if l > 0 else "right"
 
 
 def main():
@@ -356,12 +392,19 @@ def main():
     ap.add_argument("--gp-hold-s", type=float, default=2.0, help="s to hold the low pose before the rise")
     ap.add_argument("--head-yaw", type=float, default=0.0, help="rad; head pose command in walk mode from --walk-at on")
     ap.add_argument("--head-pitch", type=float, default=None, help="rad; absolute head_pitch target with --head-yaw")
+    ap.add_argument("--quack-at", type=float, nargs="*", default=[],
+                    help="s; walk_wired.py quack head tilts (QUACK_HEAD_S raised-cosine profile) starting at these times")
+    ap.add_argument("--quack-roll", type=float, default=0.18, help="rad; head_roll delta of the --quack-at tilts")
+    ap.add_argument("--quack-yaw", type=float, default=0.25, help="rad; head_yaw delta of the --quack-at tilts")
+    ap.add_argument("--quack-pitch", type=float, default=0.0, help="rad; head_pitch delta of the --quack-at moves")
     ap.add_argument("--kick-at", type=float, default=None, help="s; one kick command (id 1) at this time")
     ap.add_argument("--kick-foot", choices=("left", "right"), default="left")
     ap.add_argument("--sit-at", type=float, default=None, help="s; {\"mode\": \"sit\"} from here")
     ap.add_argument("--unsit-at", type=float, default=None, help="s; walk at zero command from here (stands up first)")
     ap.add_argument("--trace", action="store_true")
     ap.add_argument("--bam-friction-scale", type=float, default=1.0, help="multiply BAM Coulomb/Stribeck/load friction (training DR range 0.9-1.1; measured real servos sit above it)")
+    ap.add_argument("--floor-mu", type=float, default=1.0,
+                    help="foot-floor sliding friction (tilt test: tan of the slide angle); 1.0 = the model's own, training randomised 0.7-1.3")
     ap.add_argument("--tick-log", default=None, help="write one JSON row per 20 ms tick (q, dq, gb, gyro_body, action) like /tmp/duck_wired_log_*.jsonl")
     args = ap.parse_args()
     global tick_log

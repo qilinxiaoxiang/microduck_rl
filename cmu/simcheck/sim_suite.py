@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Eight-case simulation suite for a candidate MicroDuck policy directory, at the robot's current condition.
+"""Ten-case simulation suite for a candidate MicroDuck policy directory, at the robot's current condition.
 
   uv run --no-sync python cmu/simcheck/sim_suite.py <models-dir> <out.jsonl> [--walk-s 10] [--variant asbuilt|plugged|battery]
         [--condition cmu/robot-condition.json] [--reference cmu/simcheck/reference-walk61.jsonl] [--compare other.jsonl]
@@ -16,9 +16,11 @@ MuJoCo model) with the base flags derived from robot-condition.json, then the ca
   --imu-hz <imu_rate_hz>           only when the rate is below 49 Hz (otherwise every tick is fresh, the default)
   --sensor-delay 1 + round(imu_added_delay_ms / 20)   only when the added delay is above 0 ms
 
-Cases and classes (same as sim_suite.sh):
+Cases and classes (the first eight as in sim_suite.sh):
   real    nominal (0.3 m/s), vx0.25, vx0.2, com+5 (COM 5 mm forward), imu_pitch4 (IMU mounted 4 deg off)
   stress  volt6.3 (below walk_wired's 6.6 V stop), drop8_imu35 seed 0 and seed 1 (8 % dropped reads, 35 Hz IMU)
+  stress  floor_mu_bare, floor_mu_sole (0.25 m/s at the foot-floor friction of the bare printed foot and of the sole;
+          estimates until the condition file carries the measured floor_mu_bare / floor_mu_sole, which make them real)
 
 Real cases are the robot's condition: the verdict compares them with the reference rows (walk61 by default). Stress
 rows are harsher than the robot and are printed as "stress, report only"; they never accept or reject a policy.
@@ -52,7 +54,12 @@ CASES = [  # (class, name, extra flags)
     ("stress", "drop8_imu35", ["--drop", "0.08", "--imu-hz", "35", "--seed", "0"]),
     ("stress", "drop8_imu35_s1", ["--drop", "0.08", "--imu-hz", "35", "--seed", "1"]),
 ]
-SUMMARY_KEYS = ("dist_x", "fell_at", "max_tilt", "action_jumps", "max_action")
+# Foot-floor friction (2026-10-21). bare: the printed V1.22 foot on a smooth floor, where the robot tripped forward at
+# 1.2-1.3 s on 2026-10-19; sole: the inner-tube sole. Neither is measured yet: a tilt test (mu = tan of the slide
+# angle) goes into CURRENT-STATE.json and robot-condition.json as floor_mu_bare / floor_mu_sole. Until then the cases
+# run on these estimates and are stress; 0.7 is the lower edge of the training range (foot friction DR 0.7-1.3).
+FLOOR_MU_ESTIMATE = (("bare", 0.3), ("sole", 0.7))
+SUMMARY_KEYS = ("dist_x", "fell_at", "fall_dir", "max_tilt", "action_jumps", "max_action")
 
 # Verdict thresholds for a real case against its reference row (a candidate "matches or beats" the reference):
 TILT_SLACK_DEG = 2.0      # max_tilt may exceed the reference by this much
@@ -70,6 +77,18 @@ def base_flags(condition_path):
     if delay_ms > 0:
         flags += ["--sensor-delay", str(1 + round(delay_ms / 20))]
     return flags
+
+
+def floor_mu_cases(condition_path):
+    """floor_mu_bare and floor_mu_sole at the robot's 0.25 m/s: real with a measured coefficient in the condition file,
+    stress on the estimate."""
+    facts = json.load(open(condition_path))["facts"]
+    cases = []
+    for kind, estimate in FLOOR_MU_ESTIMATE:
+        fact = facts.get(f"floor_mu_{kind}")
+        mu = estimate if fact is None else float(fact["value"])
+        cases.append(("stress" if fact is None else "real", f"floor_mu_{kind}", ["--vx", "0.25", "--floor-mu", str(mu)]))
+    return cases
 
 
 def variant_flags(variant):
@@ -141,7 +160,7 @@ def main():
     print(f"sim_suite: models {a.models}, variant {a.variant}, walk {a.walk_s} s, base flags from {a.condition}: {' '.join(base)}")
     rows = []
     with open(a.out, "w") as out, open(a.out + ".err", "w") as err:
-        for cls, name, extra in CASES:
+        for cls, name, extra in CASES + floor_mu_cases(a.condition):
             row = run_case(a.models, a.walk_s, base, cls, name, extra, err, a.variant)
             out.write(json.dumps(row) + "\n")
             out.flush()
