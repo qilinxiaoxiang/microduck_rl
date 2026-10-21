@@ -116,7 +116,7 @@ def load(config):
     if 'friction' in config:
         floor=m.geom('floor').id;m.geom_friction[floor,0]=config['friction']
         for i in range(m.ngeom):
-            if m.body(m.geom_bodyid[i]).name in ('ankle_left','ankle_right'):
+            if m.body(m.geom_bodyid[i]).name in ('ankle_left','ankle_right','foot_play_left','foot_play_right'):  # foot_play moves the foot geoms to these
                 m.geom_friction[i,0]=config['friction']
     mass_parts=copy.deepcopy(config.get('mass_parts',[]))
     if config.get('mass_manifest'):
@@ -231,7 +231,7 @@ def run(config, out):
             if 'floor' in n:
                 other=ids[1] if n[0]=='floor' else ids[0]
                 body=m.body(m.geom_bodyid[other]).name
-                if body not in ('ankle_left','ankle_right'):bad_contact+=1
+                if body not in ('ankle_left','ankle_right','foot_play_left','foot_play_right'):bad_contact+=1
                 contact_pairs.append(body)
         rows.append({'time':round(t+.02,4),'qpos':d.qpos.tolist(),'x':float(d.xpos[trunk,0]),'y':float(d.xpos[trunk,1]),
                      'height':float(d.xpos[trunk,2]),'tilt_deg':tilt,'command':cmd[:3].tolist(),

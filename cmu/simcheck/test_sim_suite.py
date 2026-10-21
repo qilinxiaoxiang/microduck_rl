@@ -68,7 +68,8 @@ def test_floor_mu_sets_the_foot_floor_contact(monkeypatch):
         raise Loaded
 
     monkeypatch.setattr(b.ev, "load", load)
-    for flags, mu in (([], 1.0), (["--floor-mu", "0.35"], 0.35)):
+    # --foot-play moves the foot geoms to child bodies; the friction must follow them there
+    for flags, mu in (([], 1.0), (["--floor-mu", "0.35"], 0.35), (["--floor-mu", "0.35", "--foot-play", "8"], 0.35)):
         monkeypatch.setattr(sys, "argv", ["brain_sim_check.py", "--model", "asbuilt", "--volt", "7.0"] + flags)
         with pytest.raises(Loaded):
             b.main()
