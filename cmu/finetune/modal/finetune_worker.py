@@ -135,7 +135,14 @@ DELTA_STAGED = dict(
 # about one stride) with the std tightened to sqrt(0.05). Measured on the walk61 traces (FINETUNE-DELTA.md, ft3):
 # at the 0.25 m/s command the term pays walking 1.37/s vs standing 0.57/s (raw: 1.23 vs 1.07).
 DELTA_LOWCMD = dict(DELTA_STAGED, track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)))
-DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD}
+# slip (2026-10-21): walk61 on a slippery floor. The robot tripped forward at 1.2-1.3 s on a smooth floor with bare
+# printed feet and walked clean on a silicone mat; the as-built sim with --floor-mu reproduces it (mu 0.2 at 0.3 m/s:
+# forward fall 0.8-0.9 s after the walk command in 2 of 3 seeds, actions up to 3.4 rad), while walk61 walks at mu 1.0.
+# walk61 was trained with foot friction DR 0.7-1.3; Pollen's earlier range was (0.3, 1.2) ("narrowed" note in
+# microduck_velocity_env_cfg.py). Only two changes from Pollen's recipe: the foot friction range, and ft3's EMA velocity
+# tracking, without which a fine-tune of walk61 drifts to standing (ft1/ft2). Actuator, voltage and noise stay Pollen's.
+DELTA_SLIP = dict(foot_friction=(0.2, 1.3), track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)))
+DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP}
 
 
 def track_linear_velocity_ema(env, std: float, command_name: str, tau_s: float = 0.5, asset_cfg=None):
@@ -162,19 +169,26 @@ def track_linear_velocity_ema(env, std: float, command_name: str, tau_s: float =
 def apply_delta(env_cfg, delta: dict):
     from mjlab.utils.noise import UniformNoiseCfg as Unoise
 
-    robot = env_cfg.scene.entities["robot"]
-    act = robot.articulation.actuators[0]
-    act2 = dataclasses.replace(act, vin_range=tuple(delta["vin_range"]), vin_drop_gain_range=tuple(delta["vin_drop_gain"]), vin_min=delta["vin_min"])
-    env_cfg.scene.entities["robot"] = dataclasses.replace(robot, articulation=dataclasses.replace(robot.articulation, actuators=(act2,)))
+    # a key left out of the delta keeps Pollen's value (DELTA_SLIP sets only two)
+    if "vin_range" in delta:
+        robot = env_cfg.scene.entities["robot"]
+        act = robot.articulation.actuators[0]
+        act2 = dataclasses.replace(act, vin_range=tuple(delta["vin_range"]), vin_drop_gain_range=tuple(delta["vin_drop_gain"]), vin_min=delta["vin_min"])
+        env_cfg.scene.entities["robot"] = dataclasses.replace(robot, articulation=dataclasses.replace(robot.articulation, actuators=(act2,)))
     if delta.get("yaw_push"):
         env_cfg.events["push_robot"].params["velocity_range"]["yaw"] = (-delta["yaw_push"], delta["yaw_push"])
-    env_cfg.events["randomize_joint_friction"].params["scale_range"] = tuple(delta["joint_friction"])
-    g, jv = delta["gyro_noise"], delta["joint_vel_noise"]
-    env_cfg.observations["actor"].terms["base_ang_vel"].noise = Unoise(n_min=-g, n_max=g)
-    env_cfg.observations["actor"].terms["joint_vel"].noise = Unoise(n_min=-jv, n_max=jv)
-    env_cfg.rewards["action_rate_l2"].weight = delta["action_rate"]
-    stages = env_cfg.curriculum["action_rate_weight"].params["weight_stages"]
-    stages[-1]["weight"] = delta["action_rate"]
+    if "joint_friction" in delta:
+        env_cfg.events["randomize_joint_friction"].params["scale_range"] = tuple(delta["joint_friction"])
+    if "foot_friction" in delta:
+        env_cfg.events["foot_friction"].params["ranges"] = tuple(delta["foot_friction"])
+    if "gyro_noise" in delta:
+        g, jv = delta["gyro_noise"], delta["joint_vel_noise"]
+        env_cfg.observations["actor"].terms["base_ang_vel"].noise = Unoise(n_min=-g, n_max=g)
+        env_cfg.observations["actor"].terms["joint_vel"].noise = Unoise(n_min=-jv, n_max=jv)
+    if "action_rate" in delta:
+        env_cfg.rewards["action_rate_l2"].weight = delta["action_rate"]
+        stages = env_cfg.curriculum["action_rate_weight"].params["weight_stages"]
+        stages[-1]["weight"] = delta["action_rate"]
     if delta.get("track_lin_vel"):
         term = env_cfg.rewards["track_linear_velocity"]  # weight 2.0 unchanged: same reward mass, filtered velocity
         term.func = track_linear_velocity_ema
