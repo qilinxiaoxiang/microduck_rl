@@ -67,6 +67,25 @@ def load(config):
                 parent.add_geom(name=f'new_collision_{i}',type=mujoco.mjtGeom.mjGEOM_BOX,
                                 pos=box['position'],size=box['half_size'],mass=0,
                                 contype=1,conaffinity=1,group=3)
+    if config.get('foot_play'):
+        # Sim-ID 2026-10-21: free play between each ankle servo horn and its foot, about the ankle axis. The foot's
+        # collision geom moves to a child body on a hinge with a +-deg stop, a weak centring spring and damping; the ankle
+        # encoder (the servo) does not see this rotation, as on the robot where the body rocked with every leg encoder still.
+        fp = config['foot_play']
+        for side in ('left', 'right'):
+            ankle = spec.body(f'ankle_{side}')
+            src = spec.geom(f'{side}_foot_collision')
+            foot = ankle.add_body(name=f'foot_play_{side}', pos=[0, 0, 0], mass=fp.get('mass', 0.002),
+                                  inertia=[1e-7, 1e-7, 1e-7], explicitinertial=True)
+            r = math.radians(fp['deg'])
+            foot.add_joint(name=f'{side}_foot_play', type=mujoco.mjtJoint.mjJNT_HINGE, axis=fp.get('axis', {}).get(side, [0, 0, 1]),
+                           range=[-r, r], limited=True, stiffness=fp.get('stiffness', 0.05),
+                           damping=fp.get('damping', 0.002))
+            keep = dict(type=src.type, meshname=src.meshname, pos=list(src.pos), quat=list(src.quat),
+                        contype=src.contype, conaffinity=src.conaffinity, condim=src.condim, friction=list(src.friction),
+                        solref=list(src.solref), solimp=list(src.solimp), priority=src.priority, group=src.group)
+            spec.delete(src)
+            foot.add_geom(name=f'{side}_foot_collision', mass=0, **keep)
     bam = load_model(motor_name='xl330', model='m6')
     bam.actuator.kp = config.get('kp', 200)
     bam.actuator.vin = config.get('voltage', 5.0)

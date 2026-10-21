@@ -40,7 +40,7 @@ sys.path.insert(0, os.path.join(WHOLE, "dynamics", "realgap-20261014"))
 sys.path.insert(0, os.path.join(WHOLE, "delay-repair-20260912"))
 import evaluate_delay as ev  # noqa: E402
 from static_gap import cfg, feet_flat_rot, setup, sole_points  # noqa: E402
-from walk_brain import IMU_MOUNT_QUAT, MOUNT_FIX, NAMES, VEL_UNIT, SIGN, Brain, apply_inverse, Breakaway, qmul, to_model, to_tick  # noqa: E402
+from walk_brain import IDS, IMU_MOUNT_QUAT, MOUNT_FIX, NAMES, VEL_UNIT, SIGN, Brain, apply_inverse, Breakaway, qmul, to_model, to_tick  # noqa: E402
 from walk_brain import STAND as BRAIN_STAND  # noqa: E402
 from battery import stop_command, stop_settled  # noqa: E402
 from walk_wired import QUACK_HEAD_S, quack_head_block, quack_head_pose  # noqa: E402
@@ -50,6 +50,14 @@ MODELS = os.path.join(WHOLE, "runtime-overlay", "models")
 
 def conj(q):
     return (q[0], -q[1], -q[2], -q[3])
+
+
+# --foot-play axes in each ankle body's frame: the ankle joint axis (local z), and world forward / world up at the Brain's
+# stand pose with the feet flat (computed 2026-10-21 from the as-built model: world x -> left [-1, 0.002, 0], right [1, 0.002, 0];
+# world z -> left [0.002, 0.996, -0.087], right [-0.002, 0.996, -0.088]).
+FOOT_PLAY_AXES = {"pitch": {"left": [0, 0, 1], "right": [0, 0, 1]},
+                  "roll": {"left": [-1, 0.002, 0], "right": [1, 0.002, 0]},
+                  "yaw": {"left": [0.002, 0.996, -0.087], "right": [-0.002, 0.996, -0.088]}}
 
 
 def apply(q, v):
@@ -67,6 +75,9 @@ def run(args):
     # sliding friction of the floor and of every geom on both foot bodies: all geoms share priority 0, so MuJoCo takes
     # the larger of the two and the foot-floor contact gets exactly this value (1.0 is the model's own)
     c0["friction"] = args.floor_mu
+    if args.foot_play:  # sim-ID 2026-10-21: free play between ankle horn and foot (deg, centring stiffness N m/rad, damping)
+        fp = args.foot_play + [0.05, 0.002][len(args.foot_play) - 1:]
+        c0["foot_play"] = dict(deg=fp[0], stiffness=fp[1], damping=fp[2], axis=FOOT_PLAY_AXES[args.foot_play_axis])
     if args.manifest:  # another signed-part manifest on the same loader (the 90 g NP-F970 removal is still applied by the loader)
         c0["mass_manifest"] = os.path.abspath(args.manifest)
     if args.com_x:
@@ -79,6 +90,10 @@ def run(args):
             prm = getattr(bam, pname, None)
             if prm is not None:
                 prm.value = prm.value * args.bam_friction_scale
+    if args.sole_solref:  # compliant sole (sim-ID 2026-10-21): the foot-floor contact's timeconst/dampratio, foot side dominant
+        for g in ("left_foot_collision", "right_foot_collision"):
+            m.geom_solref[m.geom(g).id] = args.sole_solref
+            m.geom_solmix[m.geom(g).id] = 1e3
     idx = {n: names.index(n) for n in NAMES}  # Brain order (servo IDs 1..14) -> model actuator order
     z0 = np.array([math.radians(zero.get(n, 0)) for n in names])
     p0 = np.array([BRAIN_STAND[n] for n in names])  # the Brain's stand pose (pi/stand_pose.py), not static_gap.STAND
@@ -193,7 +208,11 @@ def run(args):
         if brain.mode == "kick" and kick_start_t is None:
             kick_start_t = round(t, 2)
         if tick_log is not None:  # same row shape as the walk_wired log, for sim-vs-real statistics
-            tick_log.write(json.dumps(dict(t=round(t, 3), mode=brain.mode, fresh=fresh, **info)) + "\n")
+            row = dict(t=round(t, 3), mode=brain.mode, fresh=fresh, pos_tick=pos_t, **info)
+            if goal is not None:
+                row["goal_tick"] = {str(i): to_tick(n, goal[n]) for i, n in zip(IDS, NAMES)}
+                row["kp"] = kp
+            tick_log.write(json.dumps(row) + "\n")
         if args.breakaway and goal is not None and kp:
             goal = comp.apply(goal, {n: to_model(n, tk) for n, tk in zip(NAMES, pos_t)}, kp)
         if info["action"] is not None:
@@ -405,6 +424,12 @@ def main():
     ap.add_argument("--bam-friction-scale", type=float, default=1.0, help="multiply BAM Coulomb/Stribeck/load friction (training DR range 0.9-1.1; measured real servos sit above it)")
     ap.add_argument("--floor-mu", type=float, default=1.0,
                     help="foot-floor sliding friction (tilt test: tan of the slide angle); 1.0 = the model's own, training randomised 0.7-1.3")
+    ap.add_argument("--foot-play", type=float, nargs="+", default=None, metavar="DEG [STIFF DAMP]",
+                    help="free play about the ankle axis between servo horn and foot, +-DEG (sim-ID 2026-10-21)")
+    ap.add_argument("--foot-play-axis", choices=sorted(FOOT_PLAY_AXES), default="pitch",
+                    help="axis of --foot-play: pitch (the ankle axis), roll (forward) or yaw (vertical), at the stand pose")
+    ap.add_argument("--sole-solref", type=float, nargs=2, default=None, metavar=("TIMECONST", "DAMPRATIO"),
+                    help="foot-floor contact softness (MuJoCo solref; the model's own is 0.02 1): a compliant sole")
     ap.add_argument("--tick-log", default=None, help="write one JSON row per 20 ms tick (q, dq, gb, gyro_body, action) like /tmp/duck_wired_log_*.jsonl")
     args = ap.parse_args()
     global tick_log
