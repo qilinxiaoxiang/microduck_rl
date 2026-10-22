@@ -11,8 +11,8 @@ installed). Reads requests on stdin and answers each on stdout:
   {"n": 3, "op": "read"}                                return the command in force, plus `notes`: the brain's last
                                                         torque refusal, hardware error or IMU loss lines from its stdout
 
-A set or merge with "start": true first starts the brain when no walk_wired.py runs on the A7Z (after a reboot nothing
-starts it): ~/duck-run.sh app<MMDD-HHMMSS>, which writes {"mode": "monitor"} and starts walk_wired.py in monitor mode
+A set or merge with "start": true first starts the brain when no walk_wired.py runs on the A7Z (duck-brain.service
+starts one at boot; this covers a brain that was stopped or quit): ~/duck-run.sh app<MMDD-HHMMSS>, which writes {"mode": "monitor"} and starts walk_wired.py in monitor mode
 with torque untouched, then waits until its tick log is fresh (START_S) and writes the command; the answer carries
 "started". The bridge sends "start" only when no walk_wired.py runs on the Mac, whose brain owns the bus over USB.
 
