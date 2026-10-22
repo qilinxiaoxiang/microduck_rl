@@ -5,6 +5,8 @@ talks to the servos. Protocol, acceptance and what to record: A7Z-CPU-COMPARE.md
 
   python3 ~/duck/a7z_cpu_compare.py check                                   # read-only: clusters, clocks, trips, brain
   python3 ~/duck/a7z_cpu_compare.py run default --head closed               # baseline: nothing changed
+  python3 ~/duck/a7z_cpu_compare.py run default --head closed --soak-min 55 \
+      --burn "/home/radxa/.venvs/duck-policy/bin/python /home/radxa/duck/policy_burn.py"   # one-hour soak under policy load
   python3 ~/duck/a7z_cpu_compare.py run cap --cap-mhz 1400 --head closed    # big policy scaling_max_freq <= 1400 MHz
   python3 ~/duck/a7z_cpu_compare.py run offline --head closed               # big-cluster CPUs offline
   python3 ~/duck/a7z_cpu_compare.py compare ~/duck-logs/cpu_compare_*.json  # verdicts side by side and the pick
@@ -21,7 +23,7 @@ loop_ms p50/p90/p99 and ticks per second inside the window, over rows where a po
 rows. Acceptance (2026-10-21 cooling study): at least 500 policy rows, policy-row loop p90 <= 18 ms and >= 49 ticks/s.
 thermal.log (thermal_log.py) adds the hottest zone and each cluster's clocks over the same window.
 """
-import argparse, glob, gzip, json, math, os, re, signal, subprocess, time
+import argparse, glob, gzip, json, math, os, re, shlex, signal, subprocess, time
 
 P90_MAX_MS = 18.0
 TICKS_MIN = 49.0
@@ -437,10 +439,16 @@ def cmd_run(a):
                   brain_pids=pids, brain_cpus_allowed={p: cpus_allowed(p) for p in pids},
                   t_start=t_start, window=[t_win, t_end], soak_min=a.soak_min, window_min=a.window_min)
     offsets = {}
+    burn = None
     try:
         result["applied"] = apply(a, a.condition, big, cap_khz)
         progress(a, f"{a.condition}: {result['applied']}; soak {a.soak_min} min, window {a.window_min} min, "
                     f"start hottest zone {result['start_hottest_c']} C, uptime {uptime / 60:.0f} min")
+        if a.burn:  # policy-shaped load for the soak (policy_burn.py); ended when the window opens
+            burn_out = open(os.path.join(a.logs, "policy_burn.out"), "a")
+            burn = subprocess.Popen(shlex.split(a.burn), stdout=burn_out, stderr=subprocess.STDOUT, start_new_session=True)
+            result["burn"] = dict(cmd=a.burn, pid=burn.pid, started=time.time())
+            progress(a, f"burn started: pid {burn.pid} `{a.burn}` (output {burn_out.name})")
         last_min = -1
         while True:
             now = time.time()
@@ -449,6 +457,10 @@ def cmd_run(a):
             if now >= t_win - 10 and not offsets:  # read positions just before the window; rows are filtered by t
                 th = os.path.join(a.logs, "thermal.log")
                 offsets = {p: size(p) for p in brain_logs(a.logs) + [th]}
+                if burn is not None and burn.poll() is None:
+                    burn.terminate()
+                    result["burn"]["stopped"] = time.time()
+                    progress(a, f"burn stopped before the window (pid {burn.pid})")
                 progress(a, f"WINDOW {time.strftime('%H:%M:%S', time.localtime(t_win))}-"
                             f"{time.strftime('%H:%M:%S', time.localtime(t_end))}: run the stand61 or walk trial in it; "
                             "the acceptance reads policy rows")
@@ -458,13 +470,23 @@ def cmd_run(a):
                 logs = brain_logs(a.logs)
                 age = time.time() - mtime(logs[-1]) if logs else None
                 hot = max(zone_temps(a.sysfs).values() or [float("nan")])
+                burn_state = "" if burn is None else (", burn running" if burn.poll() is None else f", burn ENDED (exit {burn.returncode})")
                 progress(a, f"min {minute}: hottest {hot:.1f} C, clocks {clocks(a)}, online {online(a.sysfs)}, "
                             + (tail_stats(logs[-1]) + (f", log age {age:.1f} s" + (" BRAIN LOG STALLED" if age > 5 else ""))
-                               if logs else "no brain log"))
+                               if logs else "no brain log") + burn_state)
             time.sleep(min(1.0, max(0.0, t_end - time.time())))
     finally:
         for s in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):  # a second Ctrl-C must not cut the restore short
             signal.signal(s, signal.SIG_IGN)
+        if burn is not None:
+            if burn.poll() is None:
+                burn.terminate()
+                try:
+                    burn.wait(5)
+                except subprocess.TimeoutExpired:
+                    burn.kill()
+                    burn.wait()
+            result["burn"]["exit"] = burn.returncode
         result["restore"] = restore(a, saved)
         print("restore:", "; ".join(result["restore"]), flush=True)
         signal.signal(signal.SIGINT, signal.default_int_handler)
@@ -572,6 +594,9 @@ def main(argv=None):
     r.add_argument("--soak-min", type=float, default=35)
     r.add_argument("--window-min", type=float, default=5)
     r.add_argument("--note", default="")
+    r.add_argument("--burn", default=None,
+                   help="command (shlex) run as policy-shaped load during the soak and ended when the window opens, e.g. "
+                        "'/home/radxa/.venvs/duck-policy/bin/python /home/radxa/duck/policy_burn.py'; its output goes to <logs>/policy_burn.out")
     r.add_argument("--no-brain-check", action="store_true", help="tests only")
     c = sub.add_parser("compare")
     c.add_argument("results", nargs="+")

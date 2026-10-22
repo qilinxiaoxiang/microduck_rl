@@ -191,7 +191,7 @@ def run(args):
     trunk = m.body("trunk_base").id
     gyro_adr = m.sensor("imu_ang_vel").adr[0]
     c.q_target = p0 + z0
-    brain = Brain(args.models, compensation=args.compensation, walk_ramp=args.walk_ramp)
+    brain = Brain(args.models, compensation=args.compensation, walk_ramp=args.walk_ramp, yaw_trim_file=args.yaw_trim_file)
     comp = Breakaway(first=args.ba_first, ramp=args.ba_ramp, cap=args.ba_cap, min_err_ticks=args.ba_min_err, stuck_ticks=args.ba_stuck, cap_ticks=args.ba_cap_ticks)
     Rimu = rot_y(args.imu_pitch)
     Mq = qmul(IMU_MOUNT_QUAT, (1, 0, 0, 0))
@@ -199,6 +199,7 @@ def run(args):
     aq = collections.deque([p0.copy()] * (args.action_delay + 1), maxlen=args.action_delay + 1)
     sq = collections.deque(maxlen=args.sensor_delay + 1)
     fell, fall_dir, maxtilt, x0, rows, first_policy = None, None, 0.0, None, [], None
+    yaw_walk, yaw_prev, turns = 0.0, None, []
     rng = np.random.default_rng(args.seed)
     imu_hold, imu_t = None, 0.0
     max_action, action_jumps, prev_action = 0.0, 0, None
@@ -367,6 +368,11 @@ def run(args):
             target = aq[-1].copy()
         aq.append(target.copy())
         c.q_target = aq[0] + z0
+        # --yaw-torque: a steady turn about the vertical on the trunk while walking, a stand-in for whatever turns the
+        # real robot left (10/21-22: +22 to +42 deg/s at vx 0.25, cause not isolated)
+        d.xfrc_applied[trunk, 5] = args.yaw_torque if args.walk_at <= t < args.walk_at + args.walk_s else 0.0
+        if args.walk_at <= t < args.walk_at + args.walk_s and "turn" in info:
+            turns.append(info["turn"])
         for k_sub in range(sub):
             hand.apply(t + k_sub * m.opt.timestep)
             c.update()
@@ -440,7 +446,11 @@ def run(args):
                 settled_at = round(t, 2)
         if t >= args.walk_at and x0 is None:
             x0 = float(d.xpos[trunk, 0])
-            yaw0 = _yaw(d.xquat[trunk])
+            yaw0 = yaw_prev = _yaw(d.xquat[trunk])
+        if x0 is not None and t < args.walk_at + args.walk_s:  # heading change over the walk window, unwrapped
+            yaw_now = _yaw(d.xquat[trunk])
+            yaw_walk += (yaw_now - yaw_prev + math.pi) % (2 * math.pi) - math.pi
+            yaw_prev = yaw_now
         if tick % 25 == 0:
             rows.append((round(t, 1), brain.mode, info["gb"][0], round(float(d.xpos[trunk, 0]), 3), round(tilt, 1)))
         low = brain.mode in ("groundpick", "sit")
@@ -502,6 +512,8 @@ def run(args):
                 max_tilt_after_stop=round(tilt_after_stop, 1) if stop_at is not None else None,
                 dist_x=None if x0 is None else round(float(d.xpos[trunk, 0] - x0), 3),
                 yaw_deg=None if x0 is None else round(math.degrees((_yaw(d.xquat[trunk]) - yaw0 + math.pi) % (2 * math.pi) - math.pi), 1),
+                yaw_walk_deg=None if x0 is None else round(math.degrees(yaw_walk), 1),
+                turn_mean=round(float(np.mean(turns)), 3) if turns else None, yaw_trim=round(brain.yaw_trim, 3),
                 trace=rows)
 
 
@@ -617,6 +629,8 @@ def main():
     ap.add_argument("--walk-s", type=float, default=10.0)
     ap.add_argument("--vx", type=float, default=0.3)
     ap.add_argument("--vtheta", type=float, default=0.0, help="rad/s yaw rate command while walking")
+    ap.add_argument("--yaw-torque", type=float, default=0.0, help="N m about world up on the trunk while walking (+ = left)")
+    ap.add_argument("--yaw-trim-file", default=None, help="walk_brain yaw trim file, read at start and updated after the walk")
     ap.add_argument("--sensor-delay", type=int, default=1)
     ap.add_argument("--action-delay", type=int, default=1)
     ap.add_argument("--battery-stop-at", type=float, default=None, help="s; apply the battery stop sequence from here")

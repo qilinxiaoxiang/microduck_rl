@@ -486,6 +486,8 @@ def main():
     # predict-to-apply variant hurt on the replayed Wi-Fi link (dynamics/v19-20261014).
     ap.add_argument("--compensation", action="store_true")
     ap.add_argument("--cmd", default="/tmp/duck_cmd.json")
+    ap.add_argument("--yaw-trim-file", default=os.path.expanduser("~/.duck_yaw_trim.json"),
+                    help="walk_brain's learned straight-walk yaw trim, read at start and updated after each forward walk")
     ap.add_argument("--log", default="/tmp/duck_wired_log.jsonl")
     ap.add_argument("--supply", choices=("auto", "bench", "battery"), default="auto",
                     help="battery guard: auto arms at 7.2 V (2S pack), battery from the start, bench off")
@@ -528,7 +530,8 @@ def main():
     if port is None:
         sys.exit("no OpenRB USB port")
 
-    brain = Brain(args.models, compensation=args.compensation)
+    brain = Brain(args.models, compensation=args.compensation, yaw_trim_file=args.yaw_trim_file)
+    print(f"yaw trim {brain.yaw_trim:+.3f} rad/s from {args.yaw_trim_file}", flush=True)
     guard = None if args.supply == "bench" else BatteryGuard(args.supply)
     hw_lock = take_hw_lock()  # noqa: F841  (held until exit)
     link = Link(port, args.baud, args.imu_bus)

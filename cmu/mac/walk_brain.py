@@ -99,6 +99,18 @@ UNSIT_S = 2.0
 # therefore checked against the knees at the first policy tick after the glide; under this it is a stall, not a seat.
 SIT_KNEE_MIN = 0.6
 WALK_ZERO = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
+# Straight walking whatever turns the robot (2026-10-21/22: +22 to +42 deg/s to the left at vx 0.25, mostly while the
+# left foot carries the load; cause not isolated). A walk holds the heading it started with: yaw-rate command
+# turn = trim + HEADING_KP * error + HEADING_KI * integral, within walk61's trained range (Pollen velocity env ang_vel_z
+# (-1.0, 1.0)). The trim is the robot's own feed-forward: after every walk of TRIM_MIN_S or more without a manual turn
+# it moves TRIM_RATE of the way to that walk's mean turn command and is kept in the yaw trim file, so the next walk
+# starts already turning against the drift. A manual turn adds the trim too, so left and right arcs stay symmetric.
+TURN_MAX = 1.0
+HEADING_KP = 2.0
+HEADING_KI = 1.0
+HEADING_I_MAX = 0.5  # rad s
+TRIM_MIN_S = 1.0
+TRIM_RATE = 0.5
 WAIT_FOR_FRESH = True  # torque modes wait for a fresh sample before entry (tests flip it to show the 10-16 slam)
 STATE_FMT = "<4sId14i14i4f3f3f4fBf"
 CMD_FMT = "<4sIIH14i"
@@ -238,6 +250,15 @@ def yaw_of(q):
     return math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
 
 
+def load_yaw_trim(path):
+    """The yaw trim (rad/s) kept in path, 0 when there is none yet."""
+    try:
+        with open(path) as f:
+            return float(np.clip(float(json.load(f)["yaw_trim"]), -TURN_MAX, TURN_MAX))
+    except (TypeError, OSError, ValueError, KeyError):
+        return 0.0
+
+
 def read_cmd(path, last):
     try:
         mt = os.path.getmtime(path)
@@ -258,7 +279,7 @@ class Brain:
     POLICY_MODES = ("walk", "groundpick", "kick", "sit")  # modes driven by an ONNX policy at KP_RL
     TORQUE_MODES = ("stand", "walk", "groundpick")  # modes that switch torque on
 
-    def __init__(self, models, compensation=True, walk_ramp=0.0):
+    def __init__(self, models, compensation=True, walk_ramp=0.0, yaw_trim_file=None):
         names = ["walk", "stand"] + [k for k in ("groundpick", "sitstand", "kick_left", "kick_right")
                                      if os.path.exists(os.path.join(models, k + "61.onnx"))]
         self.sessions = {k: ort.InferenceSession(os.path.join(models, k + "61.onnx"), session_options()) for k in names}
@@ -273,6 +294,9 @@ class Brain:
                          "prediction_fraction": 1.0, "predict_heading": True}
         self.walk_ramp = walk_ramp
         self.mode, self.goal, self.ramp, self.heading = "monitor", None, None, None
+        self.heading_i, self.turn_t, self.walk_seg = 0.0, None, None  # heading integral, last turn tick, current walk
+        self.yaw_trim_file = yaw_trim_file
+        self.yaw_trim = load_yaw_trim(yaw_trim_file)
         self.waiting = False  # a torque mode was asked for before any fresh sample
         self.stepped = False  # walk61 has run in this walk mode: a zero command then stays on walk61
         self.last_action = np.zeros(14, dtype=np.float32)
@@ -312,12 +336,26 @@ class Brain:
             return "the stand ramp is still running"
         return None
 
+    def learn_yaw_trim(self, seg):
+        """After a walk without a manual turn: move the trim toward the mean turn that walk needed, and keep it."""
+        if seg["manual"] or seg["t"] - seg["t0"] < TRIM_MIN_S:
+            return
+        old = self.yaw_trim
+        self.yaw_trim = float(np.clip(old + TRIM_RATE * (seg["sum"] / seg["n"] - old), -TURN_MAX, TURN_MAX))
+        print(f"yaw trim {old:+.3f} -> {self.yaw_trim:+.3f} rad/s after a {seg['t'] - seg['t0']:.1f} s walk "
+              f"(mean turn {seg['sum'] / seg['n']:+.3f})", flush=True)
+        if self.yaw_trim_file:
+            tmp = self.yaw_trim_file + ".tmp"
+            with open(tmp, "w") as f:
+                json.dump({"yaw_trim": round(self.yaw_trim, 4), "updated": time.strftime("%Y-%m-%dT%H:%M:%S%z")}, f)
+            os.replace(tmp, self.yaw_trim_file)
+
     def end_kick(self, why=None):
         """Finish (or, with why, abort) the running kick; the robot is handed to walk mode at zero command."""
         k, self.kick = self.kick, None
         if k is None:
             return None
-        self.mode, self.ramp, self.heading, self.stepped = "walk", None, None, False
+        self.mode, self.ramp, self.heading, self.stepped, self.walk_seg = "walk", None, None, False, None
         self.head_cmd[:] = 0
         print(f"kick {k['id']!r} {'stopped: ' + why if why else 'done'} after {k['ticks']} policy ticks -> walk "
               "(stand61 at zero command)", flush=True)
@@ -458,7 +496,7 @@ class Brain:
                     # hold the present pose; stand61/walk61 take over at the first fresh upright sample and move
                     # the robot to their own pose in closed loop (as-built sim from STAND: walks 1.17 m)
                     self.ramp, self.goal = None, dict(start)
-                self.heading = None
+                self.heading, self.walk_seg = None, None
                 self.stepped = False
             print(f"mode -> {self.mode}", flush=True)
 
@@ -523,15 +561,29 @@ class Brain:
                     info["sit_stalled"] = self.sit["stalled"]
             else:
                 vx, vy, vth = float(want.get("vx", 0)), float(want.get("vy", 0)), float(want.get("vtheta", 0))
-                if self.heading is None:
-                    self.heading = yaw
+                dt = 0.02 if self.turn_t is None else min(0.1, max(0.0, now - self.turn_t))
+                self.turn_t = now
+                moving = math.hypot(vx, vy) > 1e-3
                 if abs(vth) > 1e-3:  # manual turn wins; releasing it keeps the reached direction
-                    self.heading, turn = yaw, float(np.clip(vth, -0.8, 0.8))
-                elif math.hypot(vx, vy) > 1e-3:
+                    self.heading, self.heading_i = yaw, 0.0
+                    turn = float(np.clip(vth + self.yaw_trim, -TURN_MAX, TURN_MAX))
+                elif moving:
+                    if self.heading is None:  # the walk starts: hold the heading it starts with
+                        self.heading, self.heading_i = yaw, 0.0
                     err = math.atan2(math.sin(self.heading - yaw), math.cos(self.heading - yaw))
-                    turn = float(np.clip(2.0 * err, -0.8, 0.8))
+                    self.heading_i = float(np.clip(self.heading_i + err * dt, -HEADING_I_MAX, HEADING_I_MAX))
+                    turn = float(np.clip(self.yaw_trim + HEADING_KP * err + HEADING_KI * self.heading_i,
+                                         -TURN_MAX, TURN_MAX))
                 else:
-                    turn = 0.0
+                    turn, self.heading = 0.0, None
+                if moving or abs(vth) > 1e-3:
+                    seg = self.walk_seg = self.walk_seg or {"t0": now, "sum": 0.0, "n": 0, "manual": False}
+                    seg["sum"], seg["n"], seg["manual"] = seg["sum"] + turn, seg["n"] + 1, seg["manual"] or abs(vth) > 1e-3
+                    seg["t"] = now
+                elif self.walk_seg is not None:
+                    self.learn_yaw_trim(self.walk_seg)
+                    self.walk_seg = None
+                info["turn"], info["yaw_trim"] = round(turn, 3), round(self.yaw_trim, 3)
                 command = [vx, vy, turn]
                 self.head_cmd += HEAD_ALPHA * (self.head_target(want) - self.head_cmd)
                 head = self.head_cmd

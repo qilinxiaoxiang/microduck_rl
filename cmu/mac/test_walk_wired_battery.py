@@ -110,6 +110,7 @@ class WiredBattery(unittest.TestCase):
                     json.dump({"volts": 6.5}, fh)
             clock = FakeClock(world, profile, end, hooks(d, cmd_path))
             argv = ["walk_wired.py", "--port", "fake", "--cmd", cmd_path, "--log", os.path.join(d, "log.jsonl"),
+                    "--yaw-trim-file", os.path.join(d, "yaw_trim.json"),
                     "--battery-marker", marker, "--supply", supply] + list(extra_args)
             out = io.StringIO()
             with mock.patch.object(ww, "time", clock), mock.patch.object(ww, "Link", make_link(world, clock, reads)), \

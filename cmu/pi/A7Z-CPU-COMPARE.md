@@ -33,7 +33,7 @@ path, study Q3 b). `compare` flags runs that started more than 5 °C apart or wi
 ```
 cd ~/code/robotics/microduck-sim
 guide/firmware/a7z/install_teleop.sh      # the brain with the one-thread onnxruntime fix (walk_brain.py)
-scp guide/firmware/pi/thermal_log.py guide/firmware/pi/a7z_load_test.sh guide/firmware/pi/a7z_cpu_compare.py a7z:duck/
+scp guide/firmware/pi/thermal_log.py guide/firmware/pi/a7z_load_test.sh guide/firmware/pi/a7z_cpu_compare.py guide/firmware/pi/policy_burn.py a7z:duck/
 ssh a7z 'sudo -n systemctl restart duck-thermal-log.service; sleep 2; tail -2 ~/duck-logs/thermal.log'
 ssh a7z 'python3 ~/duck/a7z_cpu_compare.py check'
 ```
@@ -59,6 +59,37 @@ Keep its output with the results.
 
 Run `default` first. If it passes, no setting is needed. Otherwise run `cap` and `offline`, then
 `python3 ~/duck/a7z_cpu_compare.py compare ~/duck-logs/cpu_compare_*.json`.
+
+## The one-hour closed-head soak (D-021, 2026-10-22)
+
+Shawn's order after the 6530B heatsink was dropped: one hour closed-head with the software as installed, then the A76
+cap and the big cores offline, then the 15 x 15 x 5 mm copper heatsink; the board stays in the head or moves to the
+torso on these results. Differences from the 40-minute run above:
+
+- `--soak-min 55` (55 min soak plus the 5 min window: one hour).
+- `--burn "/home/radxa/.venvs/duck-policy/bin/python /home/radxa/duck/policy_burn.py"`: a policy-shaped load during
+  the soak. The brain in monitor mode only reads the bus; the 10/19 resets and the 10/21 slow-down came with a policy
+  running. `policy_burn.py` runs stand61.onnx at 50 Hz with one thread, as the brain does, touching neither servos
+  nor IMU; the run ends it when the window opens, so the window measures the real brain alone. Its minute lines go to
+  `~/duck-logs/policy_burn.out` (a rising run time there is the throttling seen from inside the policy).
+- The ONNX Runtime one-thread fix must be the code on the board: after `install_teleop.sh`,
+  `ssh a7z grep -n intra_op_num_threads ~/rt/microduck-sim/guide/firmware/mac/walk_brain.py` prints the line.
+- Two clusters: `thermal_log.py` (the service) logs every zone and both policies' clocks; `check` lists the trips.
+- 5 V: the A7Z exposes no PMIC input voltage in sysfs (`a7z_load_test.sh vin` printed "-" on 2026-10-21), so the rail
+  is read outside the board. Multimeter with MIN/MAX on the XL4015 #2 output terminals (the 5 V pair's screw terminal,
+  reachable with the rear box open) for the whole hour; note MIN. A reset with MIN above 4.75 V points at heat, a
+  MIN below 4.5 V at the supply. After any reset, first `journalctl --list-boots` and `journalctl -b -1 -n 80` on the
+  A7Z (crash versus thermal shutdown message), before anything else is started.
+- Copy afterwards: `cpu_compare_*`, `cpu_compare_progress.log`, `policy_burn.out`, `thermal.log` and the tick logs.
+
+```
+nohup python3 ~/duck/a7z_cpu_compare.py run default --head closed --soak-min 55 \
+  --burn "/home/radxa/.venvs/duck-policy/bin/python /home/radxa/duck/policy_burn.py" \
+  > ~/duck-logs/cpu_compare_default.out 2>&1 &
+```
+
+Then `cap --cap-mhz 1400` and `offline` the same way, each from a cold board. The copper heatsink goes on only after
+the software runs, so its effect is measured on its own.
 
 If the board resets during a run, the defaults are back after the boot; `check` names the unfinished run and
 `cpu_compare_progress.log` holds its last minute. That reset is itself a result for the 5 V question in the study.

@@ -117,6 +117,23 @@ class Tree(unittest.TestCase):
         self.assertEqual(C.online(self.sys), list(range(8)))
         self.assertIn("CPUs [6, 7] offline", out)
 
+    def test_burn_runs_in_the_soak_and_is_ended_before_the_window(self):
+        marker = f"{self.logs}/burn_alive"
+        burn = f"{sys.executable} -c \"import time,os\nopen('{marker}','w').write(str(os.getpid()))\ntime.sleep(60)\""
+        p = self.start("default", "--burn", burn, soak="0.2")       # 12 s soak: the window branch (10 s ahead) fires after 2 s
+        out, _ = p.communicate(timeout=30)
+        self.assertEqual(p.returncode, 0, out)
+        self.assertTrue(os.path.exists(marker), "the burn command never ran")
+        pid = int(open(marker).read())
+        with self.assertRaises(ProcessLookupError):                  # ended by the run, not left behind
+            os.kill(pid, 0)
+        self.assertIn("burn started", out)
+        self.assertIn("burn stopped before the window", out)
+        res = load(next(os.path.join(self.logs, f) for f in os.listdir(self.logs) if f.startswith("cpu_compare_default_")))
+        self.assertEqual(res["burn"]["pid"], pid)
+        self.assertIsNotNone(res["burn"].get("stopped"))
+        self.assertTrue(os.path.exists(f"{self.logs}/policy_burn.out"))
+
     def test_compare_reads_the_result_glob(self):
         """`compare ~/duck-logs/cpu_compare_*.json` as the runbook writes it: the state file is not a result."""
         p = self.start("default")
