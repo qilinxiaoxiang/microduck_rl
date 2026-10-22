@@ -54,7 +54,7 @@ export function createRemote({root, state, log}) {
     const {online, brain} = state();
     if (!online) { last.textContent = `没发出「${label}」：A7Z 不在线`; return null; }
     start = start && !brain?.running;
-    if (start) last.textContent = `大脑没在运行：先在 A7Z 上启动 walk_wired.py，再写入「${label}」…`;
+    if (start) last.textContent = `正在 A7Z 上启动大脑，约 5 秒后执行「${label}」，不用再点…`;
     try {
       const r = await fetch("/api/a7z/cmd", {method: "POST", headers: {"Content-Type": "application/json"},
         body: JSON.stringify(start ? {...body, start} : body)});
@@ -119,13 +119,14 @@ export function createRemote({root, state, log}) {
   }
 
   async function act(id) {
-    if (busy) return;
+    if (busy) { last.textContent = "上一条命令还在执行，等它完成再点"; return; }
     if ((id === "kickL" || id === "kickR") && walkTimer) {
       // In the as-built sim a kick sent mid-stride lifts the foot only about 1 cm (teleop-sim-check.json): kick from standing.
       last.textContent = "先松开前进再踢：走动中踢腿脚只抬 1 厘米左右";
       return;
     }
     busy = true;
+    root.classList.add("busy");
     const mode = state().brain?.running ? state().brain?.mode : undefined;
     let sent = null;
     try {
@@ -149,6 +150,7 @@ export function createRemote({root, state, log}) {
       if (sent && TORQUE_ACTS.has(id)) await checkTorque(buttons.get(id).querySelector("span").textContent);
     } finally {
       busy = false;
+      root.classList.remove("busy");
     }
   }
 

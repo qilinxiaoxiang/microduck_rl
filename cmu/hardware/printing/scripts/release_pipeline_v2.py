@@ -7,7 +7,8 @@ its exact bytes, so it stays frozen. Differences from v1:
 - prepare() writes each object's settings into Metadata/model_settings.config; preparation.json records them per part.
 - first_layer() measures brim per object (Orca prints brim outside the object labels; it is assigned to the nearest object).
 - a row may set `colourOnlyReprint` (a reason) to reprint the exact stock STL of the instances it replaces in another colour;
-  preparation.json counts those in reprintUnchangedStockQuantity. Every other row still needs changed geometry.
+  `damageReprint` (a reason) does the same in the same colour for a printed part that broke or bent. preparation.json counts
+  both in reprintUnchangedStockQuantity. Every other row still needs changed geometry.
 - brim_review() fails a part with an unplanned brim, a planned brim that is missing or of another width than planned, or brim
   inside its own convex outline (an open opening filled with brim); package() requires it to pass on every plate.
 - source_receipt() runs wall_check.check() on every part in its print frame: a wall under 1.2 mm over 2 mm2 or more stops
@@ -165,9 +166,10 @@ def source_receipt(manifest_path):
   assert len(ids)<=row['quantity'],'More replaced instances than replacement quantity'
   # A colour-only reprint names the exact stock STL of every instance it replaces and says why the colour changes;
   # every other row must bring changed geometry.
-  colour_only=str(row.get('colourOnlyReprint','')).strip()
-  if colour_only:
-   assert row['decision']=='replacement' and all(stock[x]['sha256']==row['sha256']for x in ids),f'{row["key"]}: a colour-only reprint must be the exact stock STL of each replaced instance'
+  colour_only=str(row.get('colourOnlyReprint','')).strip();damage=str(row.get('damageReprint','')).strip()
+  assert not(colour_only and damage),f'{row["key"]}: colourOnlyReprint and damageReprint are exclusive'
+  if colour_only or damage:
+   assert row['decision']=='replacement' and all(stock[x]['sha256']==row['sha256']for x in ids),f'{row["key"]}: a colour-only or damage reprint must be the exact stock STL of each replaced instance'
    unchanged+=row['quantity']
   else:assert row['sha256'] not in stock_hashes,'Unchanged 89-stock STL requested for reprint'
   # A source-bound prior audit or explicit change reason describes a genuine
@@ -181,7 +183,7 @@ def source_receipt(manifest_path):
   assert bottom>0,f'{row["key"]}: no real planar contact within 0.01 mm'
   assert bottom>=float(row['flatContact']['minimumAreaMm2']),f'{row["key"]}: intended bottom missing'
   b=mesh.bounds.tolist();tip=tip_angle(mesh);settings,settings_source=object_settings(row,tip)
-  parts.append(dict(key=row['key'],source=ref(source),quantity=row['quantity'],color=row['color'],decision=row['decision'],replacesStockIds=ids,changeReason=row['changeReason'],incrementalEvidence=ref(evidence),sourceToPrint=T.tolist(),dropToBedMm=float(delta[2]),flatContactAreaMm2=bottom,bounds=b,vertexCount=len(mesh.vertices),triangleCount=len(mesh.faces),tipAngleDeg=round(tip,2),objectSettings=settings,objectSettingsSource=settings_source,**({'colourOnlyReprint':colour_only}if colour_only else {}),**hull_allowance(row),**support_brim(row),wallCheck=wall_result(row,mesh,legacy)))
+  parts.append(dict(key=row['key'],source=ref(source),quantity=row['quantity'],color=row['color'],decision=row['decision'],replacesStockIds=ids,changeReason=row['changeReason'],incrementalEvidence=ref(evidence),sourceToPrint=T.tolist(),dropToBedMm=float(delta[2]),flatContactAreaMm2=bottom,bounds=b,vertexCount=len(mesh.vertices),triangleCount=len(mesh.faces),tipAngleDeg=round(tip,2),objectSettings=settings,objectSettingsSource=settings_source,**({'colourOnlyReprint':colour_only}if colour_only else {}),**({'damageReprint':damage}if damage else {}),**hull_allowance(row),**support_brim(row),wallCheck=wall_result(row,mesh,legacy)))
  assert parts
  # The brim is a per-part decision in v2; a plate-wide brim would reach every object that lacks its own value.
  for k,v in m.get('processOverrides',{}).items():
