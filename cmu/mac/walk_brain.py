@@ -475,6 +475,11 @@ class Brain:
                 self.ramp = None
             return self.goal, kp, info
         kp = KP_RL if self.mode in self.POLICY_MODES else KP_DEFAULT
+        # graded hold (hold.py): in walk mode want["hold"] = {"s": policy authority, "kp": {joint: P gain}}; the gains
+        # apply on every tick, also while the policy step is skipped (carried past 60 deg), the authority below
+        hold = want.get("hold") if self.mode == "walk" else None
+        if hold and hold.get("kp"):
+            kp = {n: int(hold["kp"][n]) for n in NAMES}
         upright = grav_body[2] < -0.5
         if self.mode in ("groundpick", "sit"):
             # the trunk pitches in the crouch and the seat: "upright" for the policy step means not fallen over
@@ -540,6 +545,12 @@ class Brain:
             sess = self.sessions[policy]
             info["policy"] = policy
             action = sess.run(None, {sess.get_inputs()[0].name: obs[None]})[0][0]
+            if hold is not None:
+                # goal = default + s * action: the held robot eases toward the default stance instead of fighting the
+                # hand; the observed last action is the applied one, so the policy sees what the servos were given
+                info["action_raw"] = action.round(4).tolist()
+                action = action * float(np.clip(hold.get("s", 1.0), 0.0, 1.0))
+                info["hold_s"] = round(float(hold.get("s", 1.0)), 3)
             self.last_action = action.astype(np.float32)
             self.goal = {n: self.default[n] + float(action[k]) if n in self.default else self.goal[n]
                          for k, n in enumerate(OBSERVATION_DOF_ORDER)}

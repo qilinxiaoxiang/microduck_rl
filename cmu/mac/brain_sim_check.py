@@ -16,6 +16,17 @@ from the hand-back to a stable stand (tilt within 2 deg of the stance before it 
 a battery stop, and runs --after-stop s past T (default 10). --stop-ramp also switches to stand mode (open-loop ramp
 to STAND) that many seconds after the stop, the sequence first planned and rejected after these runs.
 
+Lifted by the head (hold.py, 2026-10-22): --grip-at T --release-at T2 covers the head pads L1, R1 and M (synthetic raw
+counts, full level) from T to T2; --lift-at T --lower-at T2 pulls the head body (jaw_soft, which carries head_roll) with a
+spring-damper hand toward a point that rises --lift-height over 0.6 s at T and returns to the start height over 0.8 s at
+T2; the hand lets go at --release-at (or 1.2 s after --lower-at without a grip). hold.HoldEstimator runs every tick on the
+pad counts and the foot-floor load share (normal contact force / m g); --hold passes its estimate to the Brain as
+want["hold"] (policy authority s and per-joint P gains, which reach the simulated servos as a 14-element kp), without
+it the estimate is only logged (shadow, today's behaviour). The fall check (tilt > 45 deg) pauses while the hand carries
+the robot. --wired-guards adds walk_wired.py's walk-mode stops: an action over 3.0 rad in 3 of 10 ticks or tilt over
+30 deg holds the last goals and switches to stand mode for the rest of the run, a single tick over 3.0 is clipped; with
+--hold the tilt stop is skipped while the grip engagement e > 0.3, and the checks use the applied (scaled) action.
+
   ~/.venvs/microduck-dyn/bin/python brain_sim_check.py [--volt 5.0] [--walk-ramp 0] [--com-x 5] [--zero left_hip_pitch -8 ...]
 """
 import argparse
@@ -43,7 +54,10 @@ from static_gap import cfg, feet_flat_rot, setup, sole_points  # noqa: E402
 from walk_brain import IDS, IMU_MOUNT_QUAT, MOUNT_FIX, NAMES, VEL_UNIT, SIGN, Brain, apply_inverse, Breakaway, qmul, to_model, to_tick  # noqa: E402
 from walk_brain import STAND as BRAIN_STAND  # noqa: E402
 from battery import stop_command, stop_settled  # noqa: E402
+from walk_wired import HARD_MAX_ACTION, HARD_WINDOW, MAX_TILT_DEG, OVER_LIMIT_TICKS  # noqa: E402
 from walk_wired import QUACK_HEAD_S, quack_head_block, quack_head_pose  # noqa: E402
+import walk_brain  # noqa: E402
+from hold import PAD_HI, PADS, HoldEstimator  # noqa: E402
 
 MODELS = os.path.join(WHOLE, "runtime-overlay", "models")
 
@@ -67,6 +81,74 @@ def apply(q, v):
 def rot_y(deg):
     a = math.radians(deg)
     return np.array([[math.cos(a), 0, math.sin(a)], [0, 1, 0], [-math.sin(a), 0, math.cos(a)]])
+
+
+GRIP_PADS = ("L1", "R1", "M")  # a palm over the head top: the two large side pads and the middle one
+PAD_BASE = 1000.0  # synthetic rest count of every pad
+
+
+def smooth(x):
+    x = min(1.0, max(0.0, x))
+    return x * x * (3 - 2 * x)
+
+
+class Hand:
+    """Spring-damper hand on the head body: vertical to a rising and falling target height, horizontal to the start point."""
+
+    def __init__(self, m, d, args):
+        self.m, self.d, self.a = m, d, args
+        self.head = m.body("jaw_soft").id
+        assert m.body(m.jnt_bodyid[m.joint("head_roll").id]).name == "jaw_soft"
+        self.p0, self.R0 = None, None
+        self.off_at = args.release_at if args.release_at is not None and args.lower_at is not None \
+            and args.release_at > args.lower_at else (None if args.lower_at is None else args.lower_at + 1.2)
+        self.v6 = np.zeros(6)
+
+    def active(self, t):
+        return self.a.lift_at is not None and t >= self.a.lift_at and (self.off_at is None or t < self.off_at)
+
+    def target_z(self, t):
+        a = self.a
+        if a.lower_at is not None and t >= a.lower_at:
+            return self.p0[2] + a.lift_height * (1.0 - smooth((t - a.lower_at) / 0.8))
+        return self.p0[2] + a.lift_height * smooth((t - a.lift_at) / 0.6)
+
+    def apply(self, t):
+        d = self.d
+        if not self.active(t):
+            d.xfrc_applied[self.head] = 0
+            return
+        p = d.xipos[self.head].copy()
+        if self.p0 is None:
+            self.p0 = p.copy()
+        mujoco.mj_objectVelocity(self.m, d, mujoco.mjtObj.mjOBJ_BODY, self.head, self.v6, 0)
+        w, v = self.v6[:3], self.v6[3:]
+        a = self.a
+        f = np.zeros(6)
+        f[:2] = a.hand_kxy * (self.p0[:2] - p[:2]) - a.hand_cxy * v[:2]
+        f[2] = a.hand_k * (self.target_z(t) - p[2]) - a.hand_c * v[2]
+        if self.R0 is None:
+            self.R0 = d.xmat[self.head].reshape(3, 3).copy()
+        # --hand-krot 0 (default): the palm only damps rotation, the head pivots in the hand; > 0: the grip holds the
+        # head's orientation at the lift with this angular stiffness
+        rv = np.zeros(3)
+        if a.hand_krot:
+            qe = np.zeros(4)
+            mujoco.mju_mat2Quat(qe, (d.xmat[self.head].reshape(3, 3) @ self.R0.T).ravel())
+            mujoco.mju_quat2Vel(rv, qe, 1.0)
+        f[3:] = -a.hand_krot * rv - a.hand_crot * w
+        d.xfrc_applied[self.head] = f
+
+
+def foot_load(m, d, floor, foot_geoms):
+    """Summed normal force (N) of the foot-floor contacts."""
+    f6, tot = np.zeros(6), 0.0
+    for i in range(d.ncon):
+        g1, g2 = d.contact[i].geom1, d.contact[i].geom2
+        if (g1 == floor and g2 in foot_geoms) or (g2 == floor and g1 in foot_geoms):
+            mujoco.mj_contactForce(m, d, i, f6)
+            tot += float(f6[0])
+    return tot
 
 
 def run(args):
@@ -147,6 +229,22 @@ def run(args):
     zero_t, quack_ok, quack_reach = None, {}, {}  # quack head moves: zero-command start, quack time -> ran to the end
     hist = []  # (t, tilt, |gyro|, trunk z) every tick, for the stable-stand search
     kick_geom = m.geom(f"{args.kick_foot}_foot_collision").id
+    # lifted by the head (hold.py): scripted grip, spring-damper hand, the estimator every tick
+    scen = args.grip_at is not None or args.lift_at is not None
+    T = max(T, args.until)
+    est = HoldEstimator(kp_rl=walk_brain.KP_RL)
+    hand = Hand(m, d, args)
+    floor = m.geom("floor").id
+    foot_bodies = {m.body(b).id for b in ("ankle_left", "ankle_right") if m.body(b) is not None}
+    foot_bodies |= {i for i in range(m.nbody) if m.body(i).name.startswith("foot_play_")}
+    foot_geoms = {g for g in range(m.ngeom) if m.geom_bodyid[g] in foot_bodies}
+    mg = float(m.body_subtreemass[0]) * 9.81
+    act_id = {n: m.actuator(n).id for n in names}
+    leg_names = [n for n in names if n not in ("neck_pitch", "head_pitch", "head_yaw", "head_roll")]
+    hrows = []  # per tick: t, load, est record, raw/applied action, neck torques, leg q, tilt, gyro, hand force, feet z
+    guard = dict(stop=None, why=None, hard_hits=collections.deque(maxlen=HARD_WINDOW), last_goal=None, clipped=0,
+                 tilt_skipped=0)
+    load_now = 1.0
     for tick in range(int(T / 0.02)):
         t = tick * 0.02
         # what the sensors report, in commanded (encoder) frame and the BNO's own frame
@@ -199,10 +297,46 @@ def run(args):
             want = stop_command(True, brain.mode)
             if args.stop_ramp is not None and t - stop_at >= args.stop_ramp:
                 want = {"mode": "stand"}
+        # the hold estimate: pad counts of a palm on L1 + R1 + M while gripped, foot load share from the floor contacts
+        level = 1.0 if args.grip_at is not None and args.grip_at <= t and (args.release_at is None or t < args.release_at) else 0.0
+        counts = [PAD_BASE + (level * PAD_HI if p in GRIP_PADS else 0.0) for p in PADS]
+        # --hold-uncal: no load share, as walk_wired before hold_session.py calibrates the leg currents (grip only)
+        est.update(0.02, counts=counts, age=0.0, load=None if args.hold_uncal else load_now)
+        if guard["stop"] is not None:  # walk_wired wrote stand to the control file: it holds until a new command
+            want = {"mode": "stand"}
+        if args.hold and want.get("mode") == "walk":
+            want["hold"] = {"s": est.s, "kp": est.gains()}
         age = args.sensor_delay * 0.02 + 0.004
         imu_age = age + (t - imu_t)
         fresh = rng.random() >= args.drop  # a dropped sync read (8 % on 10-15) leaves the brain holding its goal
         goal, kp, info = brain.tick(want, t, pos_t, vel_t, tuple(q_sensor), g_sensor, fresh, age, imu_age)
+        if args.wired_guards:  # walk_wired.py's walk-mode stops, checked on the applied action before the goals go out
+            if brain.mode not in Brain.POLICY_MODES:
+                guard["hard_hits"].clear()
+            elif guard["stop"] is None:
+                act, why = info.get("action"), None
+                if act is not None:
+                    amax = max(abs(a) for a in act)
+                    guard["hard_hits"].append(amax > HARD_MAX_ACTION)
+                    if sum(guard["hard_hits"]) >= OVER_LIMIT_TICKS:
+                        why = f"action over {HARD_MAX_ACTION} rad in {sum(guard['hard_hits'])} of {len(guard['hard_hits'])} ticks"
+                    elif amax > HARD_MAX_ACTION:
+                        goal = {n: (brain.default[n] + max(-HARD_MAX_ACTION, min(HARD_MAX_ACTION, float(act[k])))
+                                    if n in brain.default else goal[n]) for k, n in enumerate(walk_brain.OBSERVATION_DOF_ORDER)}
+                        brain.goal = dict(goal)
+                        guard["clipped"] += 1
+                if why is None and info["gb"][2] > -math.cos(math.radians(MAX_TILT_DEG)):
+                    if args.hold and est.e > 0.3:
+                        guard["tilt_skipped"] += 1
+                    else:
+                        why = f"body tilt over {MAX_TILT_DEG} deg"
+                if why is not None:
+                    guard["stop"], guard["why"] = round(t, 2), why
+                    if guard["last_goal"] is not None:
+                        goal = dict(guard["last_goal"])
+                        brain.goal = dict(guard["last_goal"])
+            if goal is not None:
+                guard["last_goal"] = dict(goal)
         if info.get("kick_done") is not None and kick_done_t is None:
             kick_done_t = round(t, 2)  # walk_wired.py rewrites the control file to walk at zero command here
         if brain.mode == "kick" and kick_start_t is None:
@@ -225,15 +359,33 @@ def run(args):
         if goal is not None:
             target = np.array([ev.HOME[i] for i in range(14)])  # placeholder shape
             target = np.array([goal[n] for n in names]) if all(n in goal for n in names) else target
-            if kp:
+            if isinstance(kp, dict):  # graded hold: one P gain per joint, in the model's actuator order
+                bam.actuator.kp = np.array([float(kp[n]) for n in names])
+            elif kp:
                 bam.actuator.kp = kp
         else:
             target = aq[-1].copy()
         aq.append(target.copy())
         c.q_target = aq[0] + z0
-        for _ in range(sub):
+        for k_sub in range(sub):
+            hand.apply(t + k_sub * m.opt.timestep)
             c.update()
             mujoco.mj_step(m, d)
+        load_now = min(1.0, max(0.0, foot_load(m, d, floor, foot_geoms) / mg))
+        if scen:
+            Rh = d.xmat[trunk].reshape(3, 3)
+            raw = info.get("action_raw", info.get("action"))
+            hrows.append(dict(t=round(t, 2), load=load_now, est=est.record(), h_load=est.h_load,
+                              raw=None if raw is None else list(raw),
+                              act=None if info.get("action") is None else list(info["action"]),
+                              tau={n: float(d.actuator_force[act_id[n]]) for n in ("neck_pitch", "head_pitch")},
+                              legq=[float(d.qpos[qa[names.index(n)]]) for n in leg_names],
+                              legdq=[float(d.qvel[va[names.index(n)]]) for n in leg_names],
+                              tilt=math.degrees(math.acos(float(np.clip(Rh[2, 2], -1, 1)))),
+                              gyro=float(np.linalg.norm(d.sensordata[gyro_adr:gyro_adr + 3])),
+                              hand=hand.active(t), fz=float(d.xfrc_applied[hand.head, 2]),
+                              feet_z=float(min(d.geom_xpos[g, 2] for g in feet)), mode=brain.mode,
+                              kp_applied=None if kp is None else (dict(kp) if isinstance(kp, dict) else int(kp))))
         for qt in quack_ok:  # largest head joint excursion from the policy default during each quack move
             if qt <= t < qt + QUACK_HEAD_S + 0.5:
                 rq = quack_reach.setdefault(qt, {})
@@ -292,7 +444,8 @@ def run(args):
         if tick % 25 == 0:
             rows.append((round(t, 1), brain.mode, info["gb"][0], round(float(d.xpos[trunk, 0]), 3), round(tilt, 1)))
         low = brain.mode in ("groundpick", "sit")
-        if (tilt > (80 if low else 45)) or d.xpos[trunk, 2] < (0.03 if brain.mode == "sit" else 0.04):
+        carried = hand.active(t)  # the hand holds it up: a tilt is the hang, not a fall
+        if (tilt > (80 if low else 45) and not carried) or d.xpos[trunk, 2] < (0.03 if brain.mode == "sit" else 0.04):
             fell, fall_dir = round(t, 2), _lean_dir(R)
             break
     if gp_at is not None:
@@ -334,8 +487,9 @@ def run(args):
         sitr = dict(sit, at=args.sit_at, unsit_at=args.unsit_at, stance_tilt=base,
                     peak_tilt=round(max(h[1] for h in seg), 1) if seg else None, stable_after_s=stable_s,
                     end_trunk_z=round(hist[-1][3], 4) if hist else None)
+    holdr = hold_summary(args, hrows, hand, guard, stable_after, leg_names) if scen else None
     return dict(model=args.model, volt=args.volt, walk_ramp=args.walk_ramp, com_x_mm=args.com_x, zero=zero, imu_pitch=args.imu_pitch,
-                kick=kick, sit=sitr, quack_head_ran={str(k): v for k, v in quack_ok.items()},
+                kick=kick, sit=sitr, hold=holdr, quack_head_ran={str(k): v for k, v in quack_ok.items()},
                 quack_head_reached={str(k): {n: round(v, 3) for n, v in r.items()} for k, r in quack_reach.items()},
                 quack_peak_tilt={str(k): round(max(h[1] for h in window(k, k + QUACK_HEAD_S + 1.0)), 1) for k in quack_ok},
                 groundpick=None if gp_at is None else dict(gp, at=gp_at, phase=args.gp_phase, hold_s=args.gp_hold_s,
@@ -349,6 +503,80 @@ def run(args):
                 dist_x=None if x0 is None else round(float(d.xpos[trunk, 0] - x0), 3),
                 yaw_deg=None if x0 is None else round(math.degrees((_yaw(d.xquat[trunk]) - yaw0 + math.pi) % (2 * math.pi) - math.pi), 1),
                 trace=rows)
+
+
+def hold_summary(args, rows, hand, guard, stable_after, leg_names):
+    """Numbers for the lifted-by-the-head scenario (see the module docstring)."""
+    r3 = lambda x: None if x is None else round(float(x), 3)  # noqa: E731
+    t_ref = min(x for x in (args.grip_at, args.lift_at) if x is not None)
+    ref = [r for r in rows if t_ref - 1.0 <= r["t"] < t_ref]
+    if args.lift_at is not None:
+        win = (args.lift_at, (args.lower_at if args.lower_at is not None else rows[-1]["t"]) + 0.8)
+    else:
+        win = (args.grip_at, args.release_at if args.release_at is not None else rows[-1]["t"])
+    lw = [r for r in rows if win[0] <= r["t"] < win[1]]
+    air = [r for r in rows if r["hand"] and r["load"] < 0.05]
+    hand_off = args.release_at if args.grip_at is not None and args.release_at is not None else hand.off_at
+    amax = lambda key, rs: max((max(abs(a) for a in r[key]) for r in rs if r[key] is not None), default=None)  # noqa: E731
+
+    def jump(key, rs):
+        best, prev = None, None
+        for r in rs:
+            if r[key] is not None and prev is not None:
+                j = max(abs(a - b) for a, b in zip(r[key], prev))
+                best = j if best is None or j > best else best
+            prev = r[key] if r[key] is not None else prev
+        return best
+
+    def torque(rs, n):
+        v = [abs(r["tau"][n]) for r in rs]
+        return None if not v else dict(peak=r3(max(v)), mean=r3(np.mean(v)))
+
+    out = dict(hold_set={k: v for k, v in args.hold_set}, hold_uncal=bool(args.hold_uncal), hand_krot=args.hand_krot, grip_at=args.grip_at, release_at=args.release_at, lift_at=args.lift_at, lower_at=args.lower_at,
+               lift_height=args.lift_height, hold_on=bool(args.hold), hand_off_at=hand_off, lift_window=list(win),
+               wired_guards=bool(args.wired_guards), guard_stop_at=guard["stop"], guard_why=guard["why"],
+               guard_clipped_ticks=guard["clipped"], guard_tilt_skipped_ticks=guard["tilt_skipped"],
+               max_raw_action_lift=r3(amax("raw", lw)), max_applied_action_lift=r3(amax("act", lw)),
+               min_s=r3(min(r["est"]["s"] for r in rows)), max_e=r3(max(r["est"]["e"] for r in rows)),
+               min_load=r3(min(r["load"] for r in rows)), min_kp_leg=min(r["est"]["kp_leg"] for r in rows),
+               max_kp_neck=max(r["est"]["kp_neck"] for r in rows),
+               torque_standing={n: torque(ref, n) for n in ("neck_pitch", "head_pitch")})
+    if air:
+        a0, a1 = air[0]["t"], air[-1]["t"]
+        q = np.array([r["legq"] for r in air])
+        dq = np.array([r["legdq"] for r in air])
+        rng_ = q.max(0) - q.min(0)
+        # the struggle once the legs had 0.5 s to settle into the hang
+        late = np.array([r["legq"] for r in air if r["t"] >= a0 + 0.5]) if a1 - a0 > 0.6 else None
+        out.update(air_from=a0, air_to=a1, air_s=round(a1 - a0 + 0.02, 2),
+                   feet_clearance_m=r3(max(r["feet_z"] for r in air) - np.mean([r["feet_z"] for r in ref])),
+                   torque_hang={n: torque(air, n) for n in ("neck_pitch", "head_pitch")},
+                   max_tilt_carried=round(max(r["tilt"] for r in rows if r["hand"]), 1),
+                   leg_range_air_rad=r3(rng_.max()), leg_range_air_joint=leg_names[int(rng_.argmax())],
+                   leg_range_air_after_0p5s_rad=None if late is None or not len(late) else r3((late.max(0) - late.min(0)).max()),
+                   leg_rms_speed_air=r3(np.sqrt(np.mean(dq ** 2))),
+                   max_raw_action_air=r3(amax("raw", air)), max_applied_action_air=r3(amax("act", air)),
+                   action_ticks_air=sum(r["act"] is not None for r in air))
+    if hand_off is not None:
+        post = [r for r in rows if hand_off <= r["t"] < hand_off + 0.3]
+        prev = [r for r in rows if r["t"] < hand_off][-1:]
+        s_back = next((r["t"] for r in rows if r["t"] >= hand_off and r["est"]["s"] >= 0.999), None)
+        stable_s, base = stable_after(hand_off, t_ref)
+        after = [r for r in rows if r["t"] >= hand_off]
+        out.update(stable_after_release_s=stable_s, stance_tilt=base,
+                   max_action_jump_0p3s_after_release=r3(jump("act", prev + post)),
+                   max_raw_action_jump_0p3s_after_release=r3(jump("raw", prev + post)),
+                   max_applied_action_after_release=r3(amax("act", after)),
+                   s_back_to_1_after_release_s=None if s_back is None else round(s_back - hand_off, 2),
+                   max_tilt_after_release=round(max(r["tilt"] for r in after), 1) if after else None)
+    out["trace"] = [dict(t=r["t"], load=r3(r["load"]), s=r["est"]["s"], e=r["est"]["e"], h_load=r3(r["h_load"]),
+                         kp_leg=r["est"]["kp_leg"], kp_neck=r["est"]["kp_neck"], tilt=round(r["tilt"], 1), mode=r["mode"],
+                         raw=r3(None if r["raw"] is None else max(abs(a) for a in r["raw"])),
+                         act=r3(None if r["act"] is None else max(abs(a) for a in r["act"])),
+                         tau_neck=r3(r["tau"]["neck_pitch"]), tau_head=r3(r["tau"]["head_pitch"]), fz=r3(r["fz"]),
+                         feet_z=round(r["feet_z"], 4))
+                    for r in rows[::5]]
+    return out
 
 
 tick_log = None
@@ -430,6 +658,23 @@ def main():
                     help="axis of --foot-play: pitch (the ankle axis), roll (forward) or yaw (vertical), at the stand pose")
     ap.add_argument("--sole-solref", type=float, nargs=2, default=None, metavar=("TIMECONST", "DAMPRATIO"),
                     help="foot-floor contact softness (MuJoCo solref; the model's own is 0.02 1): a compliant sole")
+    ap.add_argument("--grip-at", type=float, default=None, help="s; head pads L1, R1, M covered from here (hold.py estimator input)")
+    ap.add_argument("--release-at", type=float, default=None, help="s; the hand leaves the pads (and lets go of the head)")
+    ap.add_argument("--lift-at", type=float, default=None, help="s; the hand lifts the head --lift-height over 0.6 s from here")
+    ap.add_argument("--lower-at", type=float, default=None, help="s; the hand lowers the head back to its start height over 0.8 s")
+    ap.add_argument("--lift-height", type=float, default=0.04, help="m; rise of the hand's target height")
+    ap.add_argument("--hand-k", type=float, default=2000.0, help="N/m; vertical stiffness of the hand (0.84 kg sags ~4 mm)")
+    ap.add_argument("--hand-c", type=float, default=60.0, help="N s/m; vertical damping of the hand")
+    ap.add_argument("--hand-kxy", type=float, default=500.0, help="N/m; horizontal stiffness holding the head where it was lifted")
+    ap.add_argument("--hand-cxy", type=float, default=20.0, help="N s/m; horizontal damping")
+    ap.add_argument("--hand-crot", type=float, default=0.02, help="N m s/rad; angular damping of the palm on the head")
+    ap.add_argument("--hand-krot", type=float, default=0.0, help="N m/rad; grip holding the head's orientation (0 = head pivots in the hand)")
+    ap.add_argument("--hold", action="store_true", help="pass hold.HoldEstimator's s and gains to the Brain (else shadow only)")
+    ap.add_argument("--hold-uncal", action="store_true", help="feed the estimator no load share (uncalibrated legs: the grip term alone)")
+    ap.add_argument("--hold-set", nargs=2, action="append", default=[], metavar=("NAME", "VALUE"),
+                    help="override a hold.py module constant for this run (sensitivity study), e.g. --hold-set UP_RATE 2")
+    ap.add_argument("--wired-guards", action="store_true", help="walk_wired.py's walk-mode stops (3.0 rad hard limit, 30 deg tilt)")
+    ap.add_argument("--until", type=float, default=0.0, help="s; run at least this long")
     ap.add_argument("--tick-log", default=None, help="write one JSON row per 20 ms tick (q, dq, gb, gyro_body, action) like /tmp/duck_wired_log_*.jsonl")
     args = ap.parse_args()
     global tick_log
@@ -441,6 +686,10 @@ def main():
     if args.kp_rl:
         import walk_brain as _wb
         _wb.KP_RL = args.kp_rl
+    import hold as _hold
+    for name, val in args.hold_set:
+        assert hasattr(_hold, name) and name.isupper(), name
+        setattr(_hold, name, type(getattr(_hold, name))(float(val)))
     out = run(args)
     out["manifest"] = args.manifest  # as given on the command line (None = the model's own manifest)
     if not args.trace:

@@ -59,6 +59,13 @@ read in the same sync read as velocity and position), and jaw_cur_ma; touch, the
 R2, M, with touch_seq (the XIAO's scan number), touch_age (s since that scan arrived) and touch_bad (failed reads so far),
 read on their own thread when the A7Z's TWI0 bus exists (--touch-bus), null otherwise.
 
+Graded hold (hold.py, 2026-10-21): every tick estimates from the head pads and the leg current how much a person has
+taken over the robot and logs it (hold, legs_ma). While --hold-file (/tmp/duck_hold.json) says {"on": true} with the
+leg currents calibrated and walk mode runs at zero command, the estimate scales stand61/walk61's actions toward the
+default stance (s), softens the leg gains and stiffens the neck as the feet unload, and hands everything back within
+0.1 s of the hand leaving (hold_on true in the log). With the grip engaged (e > HOLD_TILT_E) the tilt stop does not fire: being carried tilted
+is not a fall. The file is re-read when it changes; hold-20261022/hold_session.py writes it.
+
 Walk stops: {"mode": "walk", ..., "for_s": 7} sets zero velocity 7 s after the command arrived; walk61 brings its own
 stride to rest (torque on), the sequence brain_sim_check.py verifies on the as-built model. An action over 3.0 rad in 3
 of 10 ticks or body tilt over --max-tilt deg (30) switches to stand mode; a single tick over 3.0 rad is clipped to
@@ -86,7 +93,9 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "pi"))
 from walk_brain import IDS, NAMES, OBSERVATION_DOF_ORDER, STAND, WHOLE, Brain, Breakaway, read_cmd, to_model, to_tick  # noqa: E402
 import jaw_ctl  # noqa: E402
+import walk_brain  # noqa: E402
 from duck_sound import Voice  # noqa: E402
+from hold import DOWN_RATE, HOLD_FILE, KP_STEP, UP_RATE, HoldEstimator, legs_current_ma, read_hold_file  # noqa: E402
 from jaw_ctl import GOAL_CURRENT_MA, JAW_ID, POSE_JOINTS, JawCtl  # noqa: E402
 from dxl_fast import _packet  # noqa: E402
 from battery import (ADDR_HW_ERROR, ADDR_PRESENT_VOLTAGE, ADDR_SHUTDOWN, INPUT_VOLTAGE_BIT, STOP_MARKER,  # noqa: E402
@@ -413,6 +422,44 @@ CMD_ALPHA = 0.2  # velocity command EMA per 20 ms tick, Pollen's robotd default
 # No IMU sample this long: the Brain holds its last goals (blind, so no policy step). 2026-10-15 the Pi Zero lost power
 # 0.85 s into a walk, the stream stopped, the robot froze mid-stride and fell with nothing on the console.
 IMU_LOST_S = 0.25
+HOLD_TILT_E = 0.3  # grip engagement over which the tilt stop stays off while the hold is applied
+HOLD_FILE_CHECK_S = 0.5
+# A P-gain packet is never acknowledged (sync write): while the hold has changed the gains within the last
+# HOLD_REFRESH_WINDOW_S, the whole gain set is written again every HOLD_REFRESH_S, so a lost restore cannot leave a
+# leg at P 80 under a robot that walks again.
+HOLD_REFRESH_S = 1.0
+HOLD_REFRESH_WINDOW_S = 5.0
+
+
+def p_gain_writes(kp, kp_now, settled=False, step=KP_STEP):
+    """{servo ID: gain} to write for the Brain's kp (one int for every joint, or {joint name: int} from the hold) given
+    the gains last written (kp_now, {joint name: int} or None). A whole-robot gain is written exactly; per-joint hold
+    gains when they moved `step`, reached KP_RL, or stopped changing (settled: the same wish as the tick before), so a
+    slow soften costs a few writes and its end value is always reached."""
+    if not kp:
+        return {}
+    want = kp if isinstance(kp, dict) else {nm: kp for nm in NAMES}
+    if kp_now is None:
+        return {i: want[nm] for i, nm in zip(IDS, NAMES)}
+    tol = step if isinstance(kp, dict) and not settled else 1
+    return {i: want[nm] for i, nm in zip(IDS, NAMES)
+            if want[nm] != kp_now[nm] and (abs(want[nm] - kp_now[nm]) >= tol or want[nm] == walk_brain.KP_RL)}
+
+
+def hold_allowed(want, brain, zero_s):
+    """The hold acts on stand61, or walk61 once its stride has come to rest, never on a gait, a kick, a sit (also not
+    while a sit stands up under a walk command), a crouch or the open-loop stand. zero_s as in quack_head_block."""
+    if want.get("mode") != "walk" or brain.mode != "walk" or zero_s is None:
+        return False
+    return not brain.stepped or zero_s >= QUACK_REST_S
+
+
+def kp_for_log(kp_now):
+    """One number when every joint has the same gain (as before the hold), else {joint name: gain}."""
+    if kp_now is None:
+        return None
+    vals = set(kp_now.values())
+    return vals.pop() if len(vals) == 1 else dict(kp_now)
 
 
 def want_s(cmd):
@@ -467,6 +514,9 @@ def main():
     ap.add_argument("--touch-bus", default="auto",
                     help="head touch pads (XIAO at I2C 0x2A): auto = the kernel bus of the A7Z's TWI0 when it exists, "
                          "N = /dev/i2c-N, a device path, or none")
+    ap.add_argument("--hold-file", default=HOLD_FILE,
+                    help='graded hold switch and calibration, {"on": bool, "cal": {...}} (hold.py); missing = off, '
+                         "the estimate is still logged")
     args = ap.parse_args()
     if args.kp_rl:
         import walk_brain as _wb
@@ -512,6 +562,14 @@ def main():
             print(f"touch: pads {'/'.join(TOUCH_PADS)} on {touch_path} (XIAO 0x{TOUCH_ADDR:02X}), read every "
                   f"{TOUCH_PERIOD * 1000:.0f} ms off the control thread", flush=True)
             touch = TouchPads(read_touch)
+    hold_cfg = read_hold_file(args.hold_file)
+    est = HoldEstimator(hold_cfg["cal"], kp_rl=walk_brain.KP_RL)
+    hold_mtime, next_hold_check, hold_t = None, 0.0, None
+    hold_s = 1.0  # the authority actually handed to the Brain: ramps at UP_RATE / DOWN_RATE across on/off edges too
+    hold_kp_prev, hold_gain_t, next_refresh = None, float("-inf"), 0.0
+    print(f"hold: {'ON' if hold_cfg['on'] and est.legs_range else 'off (estimate logged only)'} ({args.hold_file}), "
+          f"{'calibrated' if est.legs_range else 'leg load not calibrated: it stays off until hold_session.py calibrates'}",
+          flush=True)
 
     pos, vel = [0] * 14, [0] * 14
     cur, jaw_cur = [None] * 14, None  # mA; a servo that has not answered yet has none
@@ -563,6 +621,27 @@ def main():
         with link.lock:
             imu = link.imu
         touch_counts, touch_seq, touch_age = touch.latest(time.perf_counter()) if touch else (None, None, None)
+        t_hold = time.perf_counter()
+        if t_hold >= next_hold_check:
+            next_hold_check = t_hold + HOLD_FILE_CHECK_S
+            try:
+                mt = os.stat(args.hold_file).st_mtime
+            except OSError:
+                mt = None
+            if mt != hold_mtime:
+                hold_mtime, was = mt, hold_cfg["on"]
+                hold_cfg = read_hold_file(args.hold_file)
+                if hold_cfg["error"]:
+                    print(f"hold: {hold_cfg['error']}", flush=True)
+                est.set_cal(hold_cfg["cal"])
+                if hold_cfg["on"] != was or mt is not None:
+                    print(f"hold: {'ON' if hold_cfg['on'] and est.legs_range else 'off'}, "
+                          f"{'leg load calibrated' if est.legs_range else 'leg load not calibrated, so it stays off'}",
+                          flush=True)
+        legs_ma = legs_current_ma(cur, NAMES)
+        hold_dt = 0.02 if hold_t is None else min(0.1, t_hold - hold_t)
+        est.update(hold_dt, touch_counts, touch_age, legs_ma)
+        hold_t = t_hold
         new_cmd = read_cmd(args.cmd, last_cmd)
         cmd_is_new = new_cmd is not last_cmd
         if cmd_is_new:
@@ -725,6 +804,14 @@ def main():
                 quack_head = quack_head_t0 = None
             else:
                 want_b["head"] = quack_head_pose(quack_head, tq, brain)
+        # only with the leg load calibrated (the hand term alone fell once in the sim, hold.py) and where hold_allowed;
+        # the authority handed over ramps across every on/off edge (a switch, a new walk command), never a step
+        hold_on = hold_cfg["on"] and est.legs_range is not None and \
+            hold_allowed(want_b, brain, None if zero_t is None else time.perf_counter() - zero_t)
+        target = est.s if hold_on else 1.0
+        hold_s = max(target, hold_s - DOWN_RATE * hold_dt) if target < hold_s else min(target, hold_s + UP_RATE * hold_dt)
+        if hold_on or hold_s < 1.0:
+            want_b["hold"] = {"s": hold_s, "kp": est.gains() if hold_on else None}
         goal, kp, info = brain.tick(want_b, time.time(), pos, vel, quat, gyro, imu_valid and fresh,
                                     joint_age, imu_age)
         # after the tick, so the stop command has reached the Brain and any ramp to STAND has started
@@ -774,22 +861,30 @@ def main():
                                 if n in brain.default else goal[n]) for k, n in enumerate(OBSERVATION_DOF_ORDER)}
                     brain.goal = dict(goal)
             max_tilt = {"groundpick": args.max_tilt_gp, "sit": args.max_tilt_sit}.get(brain.mode, args.max_tilt)
-            if not diverging and info["gb"][2] > -math.cos(math.radians(max_tilt)):
+            carried = hold_on and est.e > HOLD_TILT_E  # tilted in a hand, not falling
+            if not diverging and not carried and info["gb"][2] > -math.cos(math.radians(max_tilt)):
                 diverging = f"body tilt over {max_tilt} deg"
             if diverging and last_goal is not None:
                 goal = dict(last_goal)  # hold the last goal sent; the stand ramp next tick starts from it
                 brain.goal = dict(last_goal)
         if torque_on and goal is not None:
             last_goal = dict(goal)
-            if kp and kp != kp_now:
-                link.sync_write(ADDR_P_GAIN, 2, {i: kp for i in IDS})
-                kp_now = kp
+            writes = p_gain_writes(kp, kp_now, settled=kp == hold_kp_prev)
+            hold_kp_prev = kp if isinstance(kp, dict) else None
+            if isinstance(kp, dict) or (kp_now and len(set(kp_now.values())) > 1):
+                hold_gain_t = now
+            if now - hold_gain_t < HOLD_REFRESH_WINDOW_S and now >= next_refresh and kp_now:
+                next_refresh = now + HOLD_REFRESH_S
+                writes = {**{i: kp_now[nm] for i, nm in zip(IDS, NAMES)}, **writes}  # the full set again
+            if writes:
+                link.sync_write(ADDR_P_GAIN, 2, writes)
+                kp_now = dict(kp_now or {}, **{NAMES[IDS.index(i)]: v for i, v in writes.items()})
             goal_out = goal
             # 2026-10-16 02:30: with the push on in walk mode, stand61 (kp 200) diverged in 0.4 s and the duck fell,
             # while the same policy had stood 165 s at kp 200 without it; stand mode (open loop, kp 400) is where the
             # push is validated (E3e). Walk mode gets it only on explicit request.
             if args.breakaway and kp_now and (brain.mode != "walk" or args.breakaway_walk):
-                goal_out = comp.apply(goal, {nm: to_model(nm, t) for nm, t in zip(NAMES, pos)}, kp_now)
+                goal_out = comp.apply(goal, {nm: to_model(nm, t) for nm, t in zip(NAMES, pos)}, kp_now["left_knee"])
             # No goal low-pass here: a 2026-10-16 trial (EMA alpha 0.5 on the goals sent to the servos, policy
             # unchanged) left the walking-phase action jumps at 57-70 per 4 s, the same as unfiltered, and fell
             # once at the stop in three walks (unfiltered: 6 of 6 stood). Pollen trains the policies unfiltered.
@@ -848,7 +943,7 @@ def main():
         loop_ms = (time.perf_counter() - t0) * 1000
         log.write(json.dumps(dict(info, t=time.time(), mode=brain.mode, fresh=fresh, quat=quat, gyro=gyro,
                                   imu_valid=imu_valid, imu_age=imu_age, joint_age=joint_age, loop_ms=loop_ms,
-                                  torque=torque_on, kp=kp_now, battery_dv=guard.dv if guard else None,
+                                  torque=torque_on, kp=kp_for_log(kp_now), battery_dv=guard.dv if guard else None,
                                   battery=guard.state if guard else None,
                                   battery_signalled=guard.signalled if guard else None, hw_faults=hw_faults,
                                   missing=missing, read_ms=read_ms, late=link.late,
@@ -857,7 +952,8 @@ def main():
                                   acc=acc, imu_seq=imu_seq, pos_tick=list(pos), vel_tick=list(vel),
                                   cur_ma=list(cur), goal_tick=goal_written, cmd=want, servo_v=servo_v,
                                   touch=touch_counts, touch_seq=touch_seq, touch_age=touch_age,
-                                  touch_bad=touch.bad if touch else None, jaw_cur_ma=jaw_cur,
+                                  touch_bad=touch.bad if touch else None, hold=est.record(), hold_on=hold_on,
+                                  legs_ma=legs_ma, jaw_cur_ma=jaw_cur,
                                   jaw_tick=jaw.last_tick, jaw_deg=None if jaw.opening_deg() is None else round(jaw.opening_deg(), 1),
                                   jaw_goal=jaw.goal_deg if jaw.on else None, jaw_clamps=jaw.clamps if jaw.on else [],
                                   jaw_holding=jaw.holding())) + "\n")
@@ -873,6 +969,9 @@ def main():
                   + (f" | gp phase {info['gp_phase']:.2f}" if info.get("gp_phase") is not None else "")
                   + (f" | jaw {jaw.opening_deg():.1f} deg -> {jaw.goal_deg}{' HOLDING' if jaw.holding() else ''}"
                      f"{' clamp ' + ','.join(jaw.clamps) if jaw.clamps else ''}" if jaw.on and jaw.opening_deg() is not None else "")
+                  + (f" | hold {'ON' if hold_on else 'off'} grip {est.e:.2f} load "
+                     f"{'?' if est.load_f is None else f'{est.load_f:.2f}'} s {est.s:.2f}"
+                     if hold_cfg["on"] or est.e > 0.1 else "")
                   + (f" | {guard.describe()}" if guard else "")
                   + (f" | missed by ID {dict(sorted(miss_by_id.items()))} late replies {link.late}" if miss_by_id else ""),
                   flush=True)

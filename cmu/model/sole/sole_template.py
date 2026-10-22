@@ -7,7 +7,10 @@ WRAP_H mm above the flat, developed along rays from the foot centre: for each di
 arc length along the surface from the centre to the point where the surface is WRAP_H above the flat. Corners get
 a narrow V dart (the wrapped corner is doubly curved; the excess at 45 deg of normal tilt is only about 1 mm).
 
-Prints at 100 % scale on US Letter; the 50 mm bar checks the printer did not scale the page.
+Prints at 100 % scale on US Letter; the 50 mm bar checks the printer did not scale the page. The PDF carries
+/PrintScaling /None so viewers that honour it open the print dialog at actual size. CampusPrinting (PaperCut
+AirPrint, imageable area 4 mm in from each Letter edge) printed the bar at 48 mm (2026-10-21) whether Chrome's Scale was
+Default or Custom 100: the server side fits the whole page into its imageable area, (612 - 2 x 11.34) / 612 = 96.3 %.
 
   /opt/homebrew/bin/python3 sole_template.py   -> sole_template.pdf (+ .png preview)
 """
@@ -149,7 +152,7 @@ def main():
         "dashed line = flat region (%.0f x %.0f mm). Cut on the outer line. Corner darts are %.0f mm wide." % (
             flat[:, 0].max() - flat[:, 0].min(), flat[:, 1].max() - flat[:, 1].min(), DART_W),
         "",
-        "1. Print this page at 100 %. Check the 50 mm bar.",
+        "1. Print at 100 % and check the 50 mm bar. CampusPrinting shrinks to 96 % (48 mm): Chrome Scale > Custom 104 there.",
         "2. Cut a template, tape it to the rubber (butyl inner tube: slit open, lay flat, wash the talc off, dry).",
         "3. Cut the rubber on the outer line and the four darts. Rough the PLA bottom with the sandpaper, wipe with alcohol.",
         "4. Stick thin double-sided tape (<= 0.2 mm, PET carrier or transfer tape, not foam) on the rubber first, trim to the rubber.",
@@ -161,8 +164,19 @@ def main():
         ax.text(15, 100 - 5 * k, s, fontsize=6.5, family="DejaVu Sans", va="top")
     out = HERE / "sole_template.pdf"
     fig.savefig(out, format="pdf")
+    mark_actual_size(out)
     fig.savefig(HERE / "sole_template.png", dpi=150)
     print("wrote", out)
+
+
+def mark_actual_size(path):
+    """Set /ViewerPreferences /PrintScaling /None: viewers that honour it default to actual size, not fit to page."""
+    from pypdf import PdfReader, PdfWriter
+    from pypdf.generic import NameObject, DictionaryObject
+    w = PdfWriter(clone_from=PdfReader(path))
+    w._root_object[NameObject("/ViewerPreferences")] = DictionaryObject({NameObject("/PrintScaling"): NameObject("/None")})
+    with open(path, "wb") as f:
+        w.write(f)
 
 
 if __name__ == "__main__":
