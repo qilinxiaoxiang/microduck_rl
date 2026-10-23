@@ -128,7 +128,10 @@ WALK_ZERO = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
 # trim + PI loop follows it, with vtheta as feed-forward. With the trim alone the arcs depended on how far the trim
 # matched the drift of the moment: robot 2026-10-23 right arcs -15 and about -3 deg/s, a left arc +8 deg/s, for +-0.8;
 # as-built sim with the 0.020 N m drift +50 and -7 deg/s. The heading may lead the robot by at most ARC_LEAD rad, so a
-# turn the robot cannot follow does not wind up; releasing the turn holds the direction reached.
+# turn the robot cannot follow does not wind up; releasing the turn holds the direction reached. The integral keeps the
+# drift it learned on straight walking through an arc and stops growing while the command sits at TURN_MAX: on the robot
+# 2026-10-23 (run app1023-225437) a right arc pinned at -2.0 wound it up, and the left arc after it kept the command at
+# -1.7 to -2.0 for 1.5 s (run app1023-223352: the whole 3.7 s arc, +3 deg/s), then overshot to +1.9.
 TURN_MAX = 2.0
 ARC_LEAD = 0.35
 # Gains 2026-10-23: with KP 2, KI 1 and the integral capped at 0.5 rad s the integral could not cover a steady drift, so
@@ -618,7 +621,11 @@ class Brain:
                         self.heading = yaw
                     self.turning = abs(vth) > 1e-3
                     err = math.atan2(math.sin(self.heading - yaw), math.cos(self.heading - yaw))
-                    self.heading_i = float(np.clip(self.heading_i + err * dt, -HEADING_I_MAX, HEADING_I_MAX))
+                    if not self.turning:  # the integral learns the drift on straight walks only, never into the limit
+                        i_new = float(np.clip(self.heading_i + err * dt, -HEADING_I_MAX, HEADING_I_MAX))
+                        u_new = self.yaw_trim + HEADING_KP * err + HEADING_KI * i_new
+                        if abs(u_new) < TURN_MAX or abs(i_new) < abs(self.heading_i):
+                            self.heading_i = i_new
                     turn = float(np.clip(self.yaw_trim + vth + HEADING_KP * err + HEADING_KI * self.heading_i,
                                          -TURN_MAX, TURN_MAX))
                 else:

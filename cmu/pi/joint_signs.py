@@ -28,3 +28,7 @@ MOTOR_OFFSET.update(right_knee=math.radians(45.0), left_knee=math.radians(-45.0)
 # 2026-10-21 Shawn refitted the right ankle a quarter turn back: with +90 the stand pose held its toe straight up, so
 # the right ankle is at 0 again (stand tick 1753); the left ankle keeps -90.
 MOTOR_OFFSET.update(right_ankle=0.0, left_ankle=math.radians(-90.0))
+# 2026-10-23 Shawn refitted the right hip pitch (ID3) horn a quarter turn round to take out free play at the hip: with
+# the horn off, ID3 turned its bare shaft clockwise from 2350 (the stand pose) to 1310, the horn went back on with the
+# leg in its old orientation, so the same leg pose now reads 1040 ticks lower.
+MOTOR_OFFSET.update(right_hip_pitch=-1040 * 2 * math.pi / 4096)

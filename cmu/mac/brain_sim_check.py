@@ -284,8 +284,12 @@ def run(args):
             want = {"mode": "groundpick", "phase": args.gp_phase if t < gp_rise_at else 1.0}
         else:
             walking = args.walk_at <= t < args.walk_at + args.walk_s
+            vth = args.vtheta
+            for at, v in args.vtheta_seq:  # the last step at or before this walk time wins
+                if t - args.walk_at >= at:
+                    vth = v
             want = {"mode": "walk", "vx": args.vx if walking else 0.0, "vy": 0.0,
-                    "vtheta": args.vtheta if walking else 0.0}
+                    "vtheta": vth if walking else 0.0}
             if (args.head_yaw or args.head_pitch is not None) and t >= args.walk_at:
                 want["head"] = {"head_yaw": args.head_yaw, "head_pitch": args.head_pitch}
             if args.kick_at is not None and t >= args.kick_at and kick_done_t is None:
@@ -670,6 +674,8 @@ def main():
     ap.add_argument("--walk-s", type=float, default=10.0)
     ap.add_argument("--vx", type=float, default=0.3)
     ap.add_argument("--vtheta", type=float, default=0.0, help="rad/s yaw rate command while walking")
+    ap.add_argument("--vtheta-seq", nargs=2, type=float, action="append", default=[], metavar=("S", "VTHETA"),
+                    help="from S seconds into the walk, command this vtheta (repeatable; e.g. a right arc then a left arc)")
     ap.add_argument("--yaw-torque", type=float, default=0.0, help="N m about world up on the trunk while walking (+ = left)")
     ap.add_argument("--yaw-trim-file", default=None, help="walk_brain yaw trim file, read at start and updated after the walk")
     ap.add_argument("--sensor-delay", type=int, default=1)
