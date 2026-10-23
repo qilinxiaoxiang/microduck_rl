@@ -46,6 +46,7 @@ POCKET_HY = 16.4                                                      # the rela
 SW_BODY_T = 11.5                                                      # switch body thickness through the panel (world x), measured by Shawn 2026-10-17; REV STEP body 10.3
 PANEL = 3.0; SW_CUT = (12.3, 27.5)                                    # x, y: Swann 40-family cutout 27.4 x 12.3 (catalogue); the Swann 39 body measured 11.5 thick (Shawn, 2026-10-17)
 DFR = dict(w=26.0, h=30.0, t=8.0, pcb=1.6, back=X_IN - 2.2, z0=10.5)  # PCB back plane x -49.2, power pads at z 10.5
+ARM_Y = DFR['w'] / 2 + 0.5; RIB_Y = ARM_Y - 0.9; LIP_DEPTH = 0.8                # clip arms 0.5 off the board edge, lips 0.3 over it
 SCREW = dict(r_col=2.8, bore_r=2.2, clear_r=1.15, floor=3.0, pilot_r=0.8, len=8.0)   # 3.0 mm head floor + M2 x 8 (2026-10-15, the V1.17 box cap's 1.0 mm floors tore): same tip as 1.0 + M2 x 6
 CAP_SCREWS = [(27.0, 24.0), (-27.0, 24.0), (0.0, -26.5)]
 WINDOW = dict(y=12.0, z=(4.6, 9.4))
@@ -115,16 +116,18 @@ def build():
     # (non-manifold edge, 2026-10-17); the band z 29.0..29.5 lies inside the cover plate, so this overlap adds no outside material
     backing = backing + P.box((X_IN - 1.2, -15.5, 29.0), (X_IN + 0.5, 15.5, 29.5))
     frame_parts.append(backing)
-    # DFR: standoff ribs on the pad-free 30 mm edges, flexure lips, VIN-corner stop
+    # DFR: standoff ribs on the pad-free 30 mm edges, flexure lips, VIN-corner stop. 2026-10-23: the V1.20 frame did not take
+    # the board: arm 0.2 from the board edge and 0.2 from the rib, which prints shut so the arm cannot bend. Now the arms sit
+    # 0.5 from the board edge (27.0 between them), the ribs end 0.9 inside the arms, the lips reach 0.3 over the board.
     pcb_front = DFR['back'] - DFR['pcb']; dz0, dz1 = DFR['z0'], DFR['z0'] + DFR['h']
     for s in (1, -1):
-        lo, hi = sorted([s * 11.5, s * 13.0])
+        lo, hi = sorted([s * (RIB_Y - 1.5), s * RIB_Y])
         frame_parts.append(P.box((DFR['back'], lo, dz0 + 1.5), (X_IN + 0.5, hi, 29.3)))                   # on the cover
         frame_parts.append(P.box((DFR['back'], lo, 29.0), (X_IN - 1.1, hi, dz1)))                         # on the backing plate
-        flo, fhi = sorted([s * 13.2, s * 14.0])
+        flo, fhi = sorted([s * ARM_Y, s * (ARM_Y + 0.8)])
         for (fz0, fz1, root) in ((12.5, 22.0, X_IN + 0.5), (30.0, 39.5, X_IN - 1.1)):                      # flexures (cover, backing)
             frame_parts.append(P.box((pcb_front - 1.5, flo, fz0), (root, fhi, fz1)))
-            frame_parts.append(lip_prism(s, pcb_front - 0.1, pcb_front - 1.3, fz0 + 0.3, fz1 - 0.3, 13.2, 0.45, 0.45))
+            frame_parts.append(lip_prism(s, pcb_front - 0.1, pcb_front - 1.3, fz0 + 0.3, fz1 - 0.3, ARM_Y, LIP_DEPTH, 0.9))  # 42 deg lead-in
     frame_parts.append(P.box((pcb_front, 12.4, dz0 - 0.9), (X_IN + 0.5, 13.2, dz0 - 0.1)))              # VIN-end corner stop
     # cap screw bosses in the frame (from the rim forward); the bottom one lies inside the floor block
     pilots = []

@@ -7,7 +7,7 @@
   "replacesStockIds": [],
   "supersedes": "nothing: an alternative to the rear converter box (rear_frame + rear_lid), swapped on the same four cover screws",
   "path": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/battery_backpack_frame-world.stl",
-  "sha256": "dd1366714547b4102cf4e6fe5d3532cacd32559d43f010265b848701ead863e5",
+  "sha256": "21931cdb57d5a0a6056ae7d77b3a1be1ea3cb34c44510555193b7101df749540",
   "sourceToPrint": [
    [
     0,
@@ -36,7 +36,7 @@
   ],
   "flatContactMinimumMm2": 641,
   "poseOrigin": "back-plate/battery-backpack-20261015/bp_checks.json printPoses.frame: rim-down as rear_frame, the frame rim (robot x -67.05, the cap seam) on the bed, x' = y, y' = z, z' = x; 712.7 mm2 bed contact (the wall ring, the solid narrow-tier floor and the two upper cap-screw bosses), height 22.05 mm. The front plate is a ceiling 19.35 mm above the bed and the cover flap below the box floor overhangs, as on rear_frame: tree support from the Orange profiles; the DFR1202 standoff ribs and clip lips hang from that ceiling and print on support.",
-  "changeReason": "D-010 battery backpack (back-plate/battery-backpack-20261015/README.md): the V1.8 cover outline and its four holes, a box 27.45 mm deep behind it (bench box 20.1) with the bench box width, top and step, a flush floor pocket and 3 mm panel for the REV-31-1387 switch (rocker down), the battery floor, two standoff ribs, four clip lips and a corner stop for the DFR1202, a backing plate above the cover top, a window under the DFR1202 into the pack channel and two upper cap-screw bosses; the lower cap screw goes into the floor block. Volume 15211.3 mm3, watertight, one body.",
+  "changeReason": "D-010 battery backpack (back-plate/battery-backpack-20261015/README.md): the V1.8 cover outline and its four holes, a box 27.45 mm deep behind it (bench box 20.1) with the bench box width, top and step, a flush floor pocket and 3 mm panel for the REV-31-1387 switch (rocker down), the battery floor, two standoff ribs, four clip lips and a corner stop for the DFR1202, a backing plate above the cover top, a window under the DFR1202 into the pack channel and two upper cap-screw bosses; the lower cap screw goes into the floor block. Volume 15217.0 mm3, watertight, one body.",
   "incrementalEvidence": "microduck-sim/guide/print/back-plate/battery-backpack-20261015/bp_checks.json",
   "evidenceAlso": [
    "microduck-sim/guide/print/back-plate/battery-backpack-20261015/build/build.json",

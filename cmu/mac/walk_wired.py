@@ -28,8 +28,9 @@ Pickup additions (2026-10-16, walk_brain.py and jaw_ctl.py have the details):
                                           the lowest pose: as-built sim 2026-10-16, mouth tip 22 mm over the floor,
                                           69 mm ahead of the feet, trunk 35 deg); "phase": 1.0 rises; once the rise
                                           is complete this process writes walk mode at zero command (stand61). Only
-                                          the hard action limit and --max-tilt-gp guard it; a trip holds the last
-                                          goals (monitor mode, torque on) instead of ramping to STAND from a crouch.
+                                          the hard action limit and --max-tilt-gp guard it; a trip holds the legs'
+                                          last goals (monitor mode, torque on) instead of ramping to STAND from a
+                                          crouch; the head joints hold their positions at the trip.
   "jaw": 20 | "open" | "grip", "jaw_torque": false, "jaw_mark": "closed" | "open"   the ID15 jaw (jaw_ctl.py)
 
 Remote-control additions (2026-10-20, walk_brain.py has the details):
@@ -39,7 +40,9 @@ Remote-control additions (2026-10-20, walk_brain.py has the details):
                                           The walk guards apply; a trip stops the kick and goes to stand.
   {"mode": "sit"}                         Pollen's sitstand policy (flag 0 for 0.8 s, then 1); any stand or walk
                                           command stands it up (flag 0 for 2 s) before running. --max-tilt-sit (30)
-                                          and the hard action limit guard it; a trip holds the last goals (monitor).
+                                          and the hard action limit guard it; a trip holds the legs' last goals
+                                          (monitor) and the head holds where it is. Policy goals stay within the
+                                          trained joint ranges (walk_brain.JOINT_RANGE).
   "quack": N                              any mode; a new value of the counter (start at 1) plays one random call
                                           from --sounds through `aplay -q` on the ALSA default device (duck_sound.py,
                                           off the control thread, a new call kills the old one) and, when the jaw is
@@ -60,7 +63,7 @@ R2, M, with touch_seq (the XIAO's scan number), touch_age (s since that scan arr
 read on their own thread when the A7Z's TWI0 bus exists (--touch-bus), null otherwise.
 
 Graded hold (hold.py, 2026-10-21): every tick estimates from the head pads and the leg current how much a person has
-taken over the robot and logs it (hold, legs_ma). While --hold-file (/tmp/duck_hold.json) says {"on": true} with the
+taken over the robot and logs it (hold, legs_ma). While --hold-file (~/.duck_hold.json) says {"on": true} with the
 leg currents calibrated and walk mode runs at zero command, the estimate scales stand61/walk61's actions toward the
 default stance (s), softens the leg gains and stiffens the neck as the feet unload, and hands everything back within
 0.1 s of the hand leaving (hold_on true in the log). With the grip engaged (e > HOLD_TILT_E) the tilt stop does not fire: being carried tilted
@@ -446,12 +449,61 @@ def p_gain_writes(kp, kp_now, settled=False, step=KP_STEP):
             if want[nm] != kp_now[nm] and (abs(want[nm] - kp_now[nm]) >= tol or want[nm] == walk_brain.KP_RL)}
 
 
-def hold_allowed(want, brain, zero_s):
+def hold_allowed(want, brain, zero_s, grip_stopped=False):
     """The hold acts on stand61, or walk61 once its stride has come to rest, never on a gait, a kick, a sit (also not
-    while a sit stands up under a walk command), a crouch or the open-loop stand. zero_s as in quack_head_block."""
-    if want.get("mode") != "walk" or brain.mode != "walk" or zero_s is None:
+    while a sit stands up under a walk command), a crouch or the open-loop stand. zero_s as in quack_head_block.
+    A walk stopped by a grip on the head (GripStop) holds at once: the hand is already on the robot, and a lift
+    mid-stride must not leave walk61 stepping in the air while the command ramps down and the stride settles."""
+    if want.get("mode") != "walk" or brain.mode != "walk":
+        return False
+    if grip_stopped:
+        return True
+    if zero_s is None:
         return False
     return not brain.stepped or zero_s >= QUACK_REST_S
+
+
+GRIP_STOP_E = 0.3  # grip engagement that stops a walk (as HOLD_TILT_E: a palm on the head, not a brushing finger)
+GRIP_STOP_HELD_S = 0.05  # applied authority at or below which a grip-stopped robot counts as fully held
+
+
+class GripStop:
+    """A hand gripping the head stops a walk (Shawn 2026-10-23: a held head means stop). While the hold is on and
+    calibrated, a walk command meeting grip engagement e > GRIP_STOP_E is latched: its velocities read as zero, so the
+    usual command ramp brings walk61 to a stop and hold_allowed lets the hold act at once. The latch stays after the
+    hand leaves, so a robot set down stands where it is; it clears when the control file's command is zero or leaves
+    walk mode, so walking again takes releasing the stick and pushing it again."""
+
+    def __init__(self):
+        self.on = False
+
+    def update(self, want, ready, e):
+        """want: the control file's command; ready: hold on and calibrated. Returns 'stop' on the tick it latches,
+        'clear' on the tick it releases, else None."""
+        moving = want.get("mode") == "walk" and any(float(want.get(k, 0)) for k in ("vx", "vy", "vtheta"))
+        if not moving:
+            if self.on:
+                self.on = False
+                return "clear"
+            return None
+        if not self.on and ready and e > GRIP_STOP_E:
+            self.on = True
+            return "stop"
+        return None
+
+    def apply(self, want):
+        return dict(want, vx=0.0, vy=0.0, vtheta=0.0) if self.on else want
+
+    def settle(self, brain, s):
+        """Once the hold has the whole authority after a grip stop (applied s <= GRIP_STOP_HELD_S), the legs are at the
+        default stance, not mid-stride: walk61's stepped latch is cleared so the set-down runs stand61. walk61 at zero
+        command set down 14-22 deg tilted from a pivoting hand fell in 2 of 4 seeds (as-built sim, 2026-10-23); the swap
+        happens while the actions are scaled to nothing, so stand61 starts from the stance and the applied (zero) last
+        action, unlike the mid-stride swap that threw 1.93 rad on 2026-10-15. True on the tick it clears."""
+        if self.on and s <= GRIP_STOP_HELD_S and brain.mode == "walk" and brain.stepped:
+            brain.stepped = False
+            return True
+        return False
 
 
 def kp_for_log(kp_now):
@@ -589,6 +641,7 @@ def main():
     quack_until, quack_prev, quack_hint = None, None, False
     quack_head, quack_head_t0 = None, None
     zero_t = None  # perf_counter time since which the walk velocity command has been all zero
+    grip_stop = GripStop()
     rng = np.random.default_rng()
     torque_on, kp_now, last_cmd = False, None, None
     write_delay = 0.002  # measured below: read-midpoint to goal write
@@ -651,6 +704,11 @@ def main():
             cmd_since = time.time()  # when this command arrived (the file's mtime is wall clock, not this loop's)
         last_cmd = new_cmd
         want = last_cmd[1]
+        gs = grip_stop.update(want, hold_cfg["on"] and est.legs_range is not None, est.e)
+        if gs:
+            print("hold: head gripped while walking, stopped (walking again needs the stick released and pushed again)"
+                  if gs == "stop" else "hold: grip stop cleared by a zero or non-walk command", flush=True)
+        want = grip_stop.apply(want)
         if want.get("mode") == "off":
             link.sync_write(ADDR_TORQUE, 1, {i: 0 for i in IDS})
             if jaw.on:
@@ -734,7 +792,9 @@ def main():
             write_cmd(args.cmd, want, diverging)
             last_cmd, diverging, cmd_since = read_cmd(args.cmd, None), None, time.time()
         elif brain.mode in ("groundpick", "sit") and diverging:
-            # no open-loop ramp to STAND out of a crouch or a seat: hold the last goals (torque on), wait for a command
+            # no open-loop ramp to STAND out of a crouch or a seat: the legs hold the last goals (torque on) and wait
+            # for a command; the head holds where it is instead of a runaway goal (2026-10-23 head pressed on the floor)
+            brain.hold_head()
             want = {"mode": "monitor"}
             hard_hits.clear()
             write_cmd(args.cmd, want, ("ground pick: " if brain.mode == "groundpick" else "sit: ") + diverging)
@@ -810,11 +870,13 @@ def main():
         # only with the leg load calibrated (the hand term alone fell once in the sim, hold.py) and where hold_allowed;
         # the authority handed over ramps across every on/off edge (a switch, a new walk command), never a step
         hold_on = hold_cfg["on"] and est.legs_range is not None and \
-            hold_allowed(want_b, brain, None if zero_t is None else time.perf_counter() - zero_t)
+            hold_allowed(want_b, brain, None if zero_t is None else time.perf_counter() - zero_t, grip_stop.on)
         target = est.s if hold_on else 1.0
         hold_s = max(target, hold_s - DOWN_RATE * hold_dt) if target < hold_s else min(target, hold_s + UP_RATE * hold_dt)
         if hold_on or hold_s < 1.0:
             want_b["hold"] = {"s": hold_s, "kp": est.gains() if hold_on else None}
+        if grip_stop.settle(brain, hold_s):
+            print("hold: fully held after the grip stop, the set-down runs stand61", flush=True)
         goal, kp, info = brain.tick(want_b, time.time(), pos, vel, quat, gyro, imu_valid and fresh,
                                     joint_age, imu_age)
         # after the tick, so the stop command has reached the Brain and any ramp to STAND has started
@@ -860,8 +922,9 @@ def main():
                 diverging = (f"policy action over {hard} rad in {over} of the last {len(hard_hits)} ticks "
                              f"(last {amax:.2f})" if over >= OVER_LIMIT_TICKS else None)
                 if amax > hard and not diverging:
-                    goal = {n: (brain.default[n] + max(-hard, min(hard, float(act[k])))
-                                if n in brain.default else goal[n]) for k, n in enumerate(OBSERVATION_DOF_ORDER)}
+                    goal = walk_brain.clamp_goal({n: (brain.default[n] + max(-hard, min(hard, float(act[k])))
+                                                      if n in brain.default else goal[n])
+                                                  for k, n in enumerate(OBSERVATION_DOF_ORDER)})
                     brain.goal = dict(goal)
             max_tilt = {"groundpick": args.max_tilt_gp, "sit": args.max_tilt_sit}.get(brain.mode, args.max_tilt)
             carried = hold_on and est.e > HOLD_TILT_E  # tilted in a hand, not falling
@@ -956,7 +1019,7 @@ def main():
                                   cur_ma=list(cur), goal_tick=goal_written, cmd=want, servo_v=servo_v,
                                   touch=touch_counts, touch_seq=touch_seq, touch_age=touch_age,
                                   touch_bad=touch.bad if touch else None, hold=est.record(), hold_on=hold_on,
-                                  legs_ma=legs_ma, jaw_cur_ma=jaw_cur,
+                                  grip_stop=grip_stop.on, legs_ma=legs_ma, jaw_cur_ma=jaw_cur,
                                   jaw_tick=jaw.last_tick, jaw_deg=None if jaw.opening_deg() is None else round(jaw.opening_deg(), 1),
                                   jaw_goal=jaw.goal_deg if jaw.on else None, jaw_clamps=jaw.clamps if jaw.on else [],
                                   jaw_holding=jaw.holding())) + "\n")

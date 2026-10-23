@@ -41,10 +41,10 @@
    ],
    "bedContactMm2": 712.7,
    "heightMm": 22.05,
-   "overhangOver60degFromVerticalMm2": 3349.9,
+   "overhangOver60degFromVerticalMm2": 3370.1,
    "watertight": true,
    "bodies": 1,
-   "volumeMm3": 15211.3
+   "volumeMm3": 15217.0
   },
   "cap": {
    "toPrint": [
@@ -103,7 +103,7 @@
    "atMm": null
   },
   "dfr1202_in_along_plus_x_clips_only": {
-   "maxOverlapMm3": 7.787,
+   "maxOverlapMm3": 5.006,
    "atMm": 0.0
   },
   "switch_up_from_below_outside_panel": {

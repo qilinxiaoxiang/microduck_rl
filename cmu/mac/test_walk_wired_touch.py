@@ -5,6 +5,7 @@ link and simulated clock of test_walk_wired_battery (real Brain and policies), f
 """
 import contextlib
 import io
+import json
 import os
 import struct
 import sys
@@ -108,11 +109,20 @@ def release(pads):
     return hook(pads, {"pressed": set()}, lambda p, n, f: any(c == p.REST for c in p.served[n:]))
 
 
+def write_cmd(path, cmd):
+    def go():
+        with open(path, "w") as fh:
+            json.dump(cmd, fh)
+    return go
+
+
 class WiredRun(unittest.TestCase):
     run_wired = twb.WiredBattery.run_wired
 
-    def run_loop(self, w, cmd, end, touch_args=("--touch-bus", "none"), pads=None, hooks=(), link=None, sysfs=None):
-        """run_wired with the touch bus patched to `pads` (opened paths in self.opened); returns stdout."""
+    def run_loop(self, w, cmd, end, touch_args=("--touch-bus", "none"), pads=None, hooks=(), link=None, sysfs=None,
+                 cmd_hooks=()):
+        """run_wired with the touch bus patched to `pads` (opened paths in self.opened); returns stdout. cmd_hooks:
+        (t, command) pairs written to the control file at t."""
         self.opened, patches = [], []
         if pads:
             patches.append(mock.patch.object(ww, "open_touch_bus",
@@ -126,7 +136,8 @@ class WiredRun(unittest.TestCase):
                 stack.enter_context(p)
             try:
                 text, *_ = self.run_wired(w, lambda t: 74, cmd, end=end, supply="bench",
-                                          hooks=lambda d, cmd_path: list(hooks),
+                                          hooks=lambda d, cmd_path: list(hooks) + [
+                                              (t, write_cmd(cmd_path, c)) for t, c in cmd_hooks],
                                           extra_args=NO_LIMITS + tuple(touch_args))
             finally:
                 if pads:

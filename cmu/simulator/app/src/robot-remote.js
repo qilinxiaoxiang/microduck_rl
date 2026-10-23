@@ -15,11 +15,11 @@
 import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
 
 const WALK_VX = 0.25, WALK_REPEAT_MS = 300, WALK_FOR_S = 0.6;
-// Arc yaw rate, rad/s, positive = left. walk_brain clips vtheta to +-0.8. As-built sim 2026-10-22 (brain_sim_check.py
-// --model asbuilt --volt 7.4 --drop 0.04 --vx 0.25 --walk-s 4): +0.8 turned 153 deg left, -0.8 183 deg right, no fall,
-// tilt under 8.2 deg. walk_brain adds its learned yaw trim to this, so left and right arcs stay symmetric on a robot
-// that drifts by itself; W alone holds the heading it started with (walk_brain.TURN_MAX, HEADING_KP).
-const ARC_VTHETA = 0.8;
+// Arc yaw rate, rad/s, positive = left: the rate walk_brain holds with the IMU (the held heading turns at vtheta and its
+// trim + PI loop follows, turn command within +-TURN_MAX 2.0). 0.3 is the fastest rate both ways under the robot's
+// 2026-10-23 left drift: as-built sim with the 0.020 N m yaw torque that reproduces it, +-0.3 gave +15 / -19 deg/s, while
+// +-0.5 gave +25 / -18 and +-0.8 +45 / -19 (right arcs pinned at -2.0). Without drift +-0.5 gave +30 / -27.
+const ARC_VTHETA = 0.3;
 const WALK_IDS = {walk: 0, left: 1, right: -1}; // held id -> sign of the arc
 const GP_LOW = 0.33, GP_UP = 1.0; // ground pick: lowest pose (as-built sim 2026-10-16), then rise and rest standing
 const WALK_ZERO = {mode: "walk", vx: 0, vy: 0, vtheta: 0};

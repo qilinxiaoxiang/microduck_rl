@@ -158,7 +158,7 @@
   "robot A7Z lead (from the neck)": 24.1
  },
  "volumesMm3": {
-  "frame": 15211.3,
+  "frame": 15217.0,
   "cap": 7628.4
  },
  "bounds": {
@@ -217,11 +217,11 @@
    "cap": 0.0
   },
   "dfr1202": {
-   "frame": 7.79,
+   "frame": 5.01,
    "cap": 0.0
   },
   "dfr_pads": {
-   "frame": 0.02,
+   "frame": 0.03,
    "cap": 0.0
   },
   "plugs": {

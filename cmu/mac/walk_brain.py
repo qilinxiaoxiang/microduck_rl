@@ -34,7 +34,8 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
                                             posture flag in command slot vx is 0 for SIT_PREP_S, then 1 (sit). Any
                                             other command stands it back up first: flag 0 for UNSIT_S (requests during
                                             the SIT_SETTLE_S glide into the seat wait for it), then that command runs.
-                                            {"mode": "monitor"} holds the last goals at once.
+                                            {"mode": "monitor"} holds the last goals at once; after a guard trip
+                                            the head joints hold where they are (hold_head).
 
 walk61/stand61 come from hardware-design-20260912/whole-robot-20260912/runtime-overlay: the community walk.onnx was
 trained for 7.5 V servos and falls within 0.6 s at 5 V in the whole-robot simulation; the 61-input policies pass at
@@ -98,17 +99,45 @@ UNSIT_S = 2.0
 # not follow the policy's first small moves, so its closed-loop descent never started. A seat the timer declares is
 # therefore checked against the knees at the first policy tick after the glide; under this it is a stall, not a seat.
 SIT_KNEE_MIN = 0.6
+# Trained joint ranges (model rad): the hinge ranges of Pollen's MJCF (microduck-rl-contribution robot_groundcontact.xml),
+# which no policy saw exceeded. Every policy goal is clamped to them. 2026-10-23 a sitstand61 rise ran away on the robot
+# (body pitch past 10 deg, then the neck action -0.3 -> -3.75 rad in 0.3 s): the neck was driven to -2.5 rad, 0.93 rad
+# past its -1.57 stop, and the head hit the floor (robot-runs-20261023-a7z/sit-headbump/findings.md).
+JOINT_RANGE = {
+    "left_hip_yaw": (-0.4363, 0.5236), "left_hip_roll": (-0.384, 0.384), "left_hip_pitch": (-1.5708, 1.5708),
+    "left_knee": (-1.5708, 1.5708), "left_ankle": (-1.5708, 1.5708), "neck_pitch": (-1.5708, 1.0472),
+    "head_pitch": (-1.5708, 1.5708), "head_yaw": (-2.9671, 2.9671), "head_roll": (-0.4363, 0.4363),
+    "right_hip_yaw": (-0.5236, 0.4363), "right_hip_roll": (-0.384, 0.384), "right_hip_pitch": (-1.5708, 1.5708),
+    "right_knee": (-1.5708, 1.5708), "right_ankle": (-1.5708, 1.5708)}
+# After a sit or ground-pick guard trip (monitor, torque on) the legs hold their last goals and the head joints hold
+# the positions measured at the trip: on 2026-10-23 the held runaway goal kept pressing the head into the floor. Not a
+# glide to STAND: with the robot's logged runaway injected into the as-built sim the head lands on the floor, and
+# raising it levers the trunk forward (fell at 8.84-8.86 s, 2 seeds; holding the head stood until the stand command).
+HEAD_JOINTS = ("neck_pitch", "head_pitch", "head_yaw", "head_roll")
 WALK_ZERO = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
 # Straight walking whatever turns the robot (2026-10-21/22: +22 to +42 deg/s to the left at vx 0.25, mostly while the
 # left foot carries the load; cause not isolated). A walk holds the heading it started with: yaw-rate command
-# turn = trim + HEADING_KP * error + HEADING_KI * integral, within walk61's trained range (Pollen velocity env ang_vel_z
-# (-1.0, 1.0)). The trim is the robot's own feed-forward: after every walk of TRIM_MIN_S or more without a manual turn
+# turn = trim + HEADING_KP * error + HEADING_KI * integral, within +-TURN_MAX. walk61 was trained on (-1.0, 1.0) (Pollen
+# velocity env ang_vel_z), but on 2026-10-23 the robot drifted left with the command pinned at -1.0 (+30 deg in 11 s). In
+# the as-built sim with a yaw torque that reproduces that pinned drift (0.020 N m: limit 1.0 turns +99 deg in 8 s), limit
+# 2.0 holds +7 to +11 deg over three seeds and 0.024 N m +18 deg, no fall, max tilt 7 deg as without it; with no torque the
+# command never leaves (-1, 1), so ordinary walking is unchanged. The trim is the robot's own feed-forward: after every walk of TRIM_MIN_S or more without a manual turn
 # it moves TRIM_RATE of the way to that walk's mean turn command and is kept in the yaw trim file, so the next walk
-# starts already turning against the drift. A manual turn adds the trim too, so left and right arcs stay symmetric.
-TURN_MAX = 1.0
-HEADING_KP = 2.0
-HEADING_KI = 1.0
-HEADING_I_MAX = 0.5  # rad s
+# starts already turning against the drift.
+# A manual turn (vtheta) is a wanted yaw rate held by the IMU too: the held heading advances at vtheta and the same
+# trim + PI loop follows it, with vtheta as feed-forward. With the trim alone the arcs depended on how far the trim
+# matched the drift of the moment: robot 2026-10-23 right arcs -15 and about -3 deg/s, a left arc +8 deg/s, for +-0.8;
+# as-built sim with the 0.020 N m drift +50 and -7 deg/s. The heading may lead the robot by at most ARC_LEAD rad, so a
+# turn the robot cannot follow does not wind up; releasing the turn holds the direction reached.
+TURN_MAX = 2.0
+ARC_LEAD = 0.35
+# Gains 2026-10-23: with KP 2, KI 1 and the integral capped at 0.5 rad s the integral could not cover a steady drift, so
+# the heading settled left of the start (robot: +40 deg in 3 s, then +10 deg in 8 s). As-built sim, yaw torque 0.020 N m,
+# 8 s walks, mean heading over seconds 3-7: KP 2 / KI 1 / cap 0.5 +16.9 and +6.1 deg (trim -0.47 / -0.96); KP 3 / KI 2 /
+# cap 1.5 +2.2 and +2.7 deg; with no torque -0.3 deg; no fall, tilt unchanged.
+HEADING_KP = 3.0
+HEADING_KI = 2.0
+HEADING_I_MAX = 1.5  # rad s
 TRIM_MIN_S = 1.0
 TRIM_RATE = 0.5
 WAIT_FOR_FRESH = True  # torque modes wait for a fresh sample before entry (tests flip it to show the 10-16 slam)
@@ -295,6 +324,7 @@ class Brain:
         self.walk_ramp = walk_ramp
         self.mode, self.goal, self.ramp, self.heading = "monitor", None, None, None
         self.heading_i, self.turn_t, self.walk_seg = 0.0, None, None  # heading integral, last turn tick, current walk
+        self.turning = False  # the last walk tick had a manual turn
         self.yaw_trim_file = yaw_trim_file
         self.yaw_trim = load_yaw_trim(yaw_trim_file)
         self.waiting = False  # a torque mode was asked for before any fresh sample
@@ -307,6 +337,8 @@ class Brain:
         self.kick_last_id = None  # the id of the newest kick request seen; a request with the same id starts nothing
         self.sit = None  # in sit mode: {"phase": "prep" | "down" | "seated" | "rise", "t": phase start}
         self.sit_next = None  # the command that takes over once a sit has stood back up
+        self.q = None  # the newest joint positions (model rad)
+        self.head_hold = None  # head joint goals to write once in monitor mode after a guard trip
         self._refused = None  # last refusal printed, so a refused command re-read every tick prints once
 
     def _refuse(self, what, why):
@@ -428,9 +460,16 @@ class Brain:
                 out[k] = float(np.clip(float(head[n]) - self.default[n], -HEAD_RANGE[k], HEAD_RANGE[k]))
         return out
 
+    def hold_head(self):
+        """Called on a sit or ground-pick guard trip: once the Brain is in monitor mode the head joints get their
+        present positions as goals instead of the runaway goal; the legs keep the last goals."""
+        if self.q is not None:
+            self.head_hold = {n: self.q[n] for n in HEAD_JOINTS}
+
     def tick(self, want, now, pos_t, vel_t, quat, gyro, imu_valid, joint_age, imu_age):
         """joint_age / imu_age: predicted sample ages (s) at the moment the returned goals reach the servos."""
         q = {n: to_model(n, t) for n, t in zip(NAMES, pos_t)}
+        self.q = q
         dq = {n: v * VEL_UNIT * SIGN[n] for n, v in zip(NAMES, vel_t)}
         q_body = body_quat(quat)
         grav_body = apply_inverse(q_body, [0.0, 0.0, -1.0])  # upright -> [0, 0, -1]; what the 61-input policy sees
@@ -498,8 +537,13 @@ class Brain:
                     self.ramp, self.goal = None, dict(start)
                 self.heading, self.walk_seg = None, None
                 self.stepped = False
+            if self.mode != "monitor":
+                self.head_hold = None
             print(f"mode -> {self.mode}", flush=True)
 
+        if self.mode == "monitor" and self.head_hold is not None and self.goal is not None:
+            self.goal, self.head_hold = dict(self.goal, **self.head_hold), None
+            return self.goal, 0, info  # written once; kp 0: the gains in force stay
         kp = 0
         if self.mode not in ("stand",) + self.POLICY_MODES:
             return None, kp, info
@@ -564,18 +608,21 @@ class Brain:
                 dt = 0.02 if self.turn_t is None else min(0.1, max(0.0, now - self.turn_t))
                 self.turn_t = now
                 moving = math.hypot(vx, vy) > 1e-3
-                if abs(vth) > 1e-3:  # manual turn wins; releasing it keeps the reached direction
-                    self.heading, self.heading_i = yaw, 0.0
-                    turn = float(np.clip(vth + self.yaw_trim, -TURN_MAX, TURN_MAX))
-                elif moving:
+                if moving or abs(vth) > 1e-3:
                     if self.heading is None:  # the walk starts: hold the heading it starts with
                         self.heading, self.heading_i = yaw, 0.0
+                    if abs(vth) > 1e-3:  # the held heading turns at the wanted rate, at most ARC_LEAD ahead
+                        lead = math.atan2(math.sin(self.heading + vth * dt - yaw), math.cos(self.heading + vth * dt - yaw))
+                        self.heading = yaw + float(np.clip(lead, -ARC_LEAD, ARC_LEAD))
+                    elif self.turning:  # a turn was released: hold the direction reached
+                        self.heading = yaw
+                    self.turning = abs(vth) > 1e-3
                     err = math.atan2(math.sin(self.heading - yaw), math.cos(self.heading - yaw))
                     self.heading_i = float(np.clip(self.heading_i + err * dt, -HEADING_I_MAX, HEADING_I_MAX))
-                    turn = float(np.clip(self.yaw_trim + HEADING_KP * err + HEADING_KI * self.heading_i,
+                    turn = float(np.clip(self.yaw_trim + vth + HEADING_KP * err + HEADING_KI * self.heading_i,
                                          -TURN_MAX, TURN_MAX))
                 else:
-                    turn, self.heading = 0.0, None
+                    turn, self.heading, self.turning = 0.0, None, False
                 if moving or abs(vth) > 1e-3:
                     seg = self.walk_seg = self.walk_seg or {"t0": now, "sum": 0.0, "n": 0, "manual": False}
                     seg["sum"], seg["n"], seg["manual"] = seg["sum"] + turn, seg["n"] + 1, seg["manual"] or abs(vth) > 1e-3
@@ -604,8 +651,8 @@ class Brain:
                 action = action * float(np.clip(hold.get("s", 1.0), 0.0, 1.0))
                 info["hold_s"] = round(float(hold.get("s", 1.0)), 3)
             self.last_action = action.astype(np.float32)
-            self.goal = {n: self.default[n] + float(action[k]) if n in self.default else self.goal[n]
-                         for k, n in enumerate(OBSERVATION_DOF_ORDER)}
+            self.goal = clamp_goal({n: self.default[n] + float(action[k]) if n in self.default else self.goal[n]
+                                    for k, n in enumerate(OBSERVATION_DOF_ORDER)})
             info["action"] = action.round(4).tolist()
             if self.mode == "kick":
                 self.kick["ticks"] += 1
@@ -614,6 +661,11 @@ class Brain:
                     info["kick_done"] = self.end_kick()["id"]
         # not upright, IMU invalid or state too old: keep the last goal, never release
         return self.goal, kp, info
+
+
+def clamp_goal(goal):
+    """Policy goals (model rad) within the trained joint ranges."""
+    return {n: min(JOINT_RANGE[n][1], max(JOINT_RANGE[n][0], v)) if n in JOINT_RANGE else v for n, v in goal.items()}
 
 
 def main():

@@ -160,9 +160,33 @@ class WiredBattery(unittest.TestCase):
         self.assertTrue(all(ln["action"] is None for ln in self.log_lines if ln["t"] - 1e9 > 3.0 + ww.IMU_LOST_S))
 
     def test_runaway_action_stops_into_stand(self):
+        # The fake world has no physics (a goal becomes the position), so the policies used to run away here on their
+        # own; with the goals clamped to the trained joint ranges (2026-10-23) they no longer do. The runaway is now
+        # a policy output: 1 s into the walk the left knee asks 3.5 rad, over the 3.0 rad hard limit.
+        class Runaway:
+            def __init__(self, real):
+                self.real, self.calls = real, 0
+
+            def __getattr__(self, name):
+                return getattr(self.real, name)
+
+            def run(self, outputs, feeds):
+                out = self.real.run(outputs, feeds)
+                self.calls += 1
+                if self.calls > 50:
+                    out[0][0][ww.OBSERVATION_DOF_ORDER.index("left_knee")] = 3.5
+                return out
+
+        class RunawayBrain(ww.Brain):
+            def __init__(self, *a, **k):
+                super().__init__(*a, **k)
+                for key in ("walk", "stand"):
+                    self.sessions[key] = Runaway(self.sessions[key])
+
         w = World(shutdown=52, hw_err=0, volts_dv=74)
-        text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, {"mode": "walk", "vx": 0.3}, end=10.0,
-                                                              supply="bench", extra_args=())
+        with mock.patch.object(ww, "Brain", RunawayBrain):
+            text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, {"mode": "walk", "vx": 0.3},
+                                                                  end=10.0, supply="bench", extra_args=())
         self.assertIn("STOP -> stand: policy action", text)
         self.assertEqual(last_log["mode"], "stand")
         self.assertEqual({v for a, i, v in w.log if a == ww.ADDR_TORQUE}, {1})
