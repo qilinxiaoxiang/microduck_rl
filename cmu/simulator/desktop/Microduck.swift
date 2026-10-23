@@ -8,10 +8,11 @@ struct Configuration: Decodable {
     let port: Int
 }
 
-final class Launcher: NSObject, NSApplicationDelegate, NSWindowDelegate {
+final class Launcher: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUIDelegate {
     var window: NSWindow!
     // The robot monitor opens in this app's own window (WebKit), the simulator scenes in Chrome.
     var liveWindow: NSWindow?, liveView: WKWebView?
+    var debugWindow: NSWindow?, debugView: WKWebView?
     var config: Configuration!
     var service: Process?
     var output: FileHandle?
@@ -75,6 +76,7 @@ final class Launcher: NSObject, NSApplicationDelegate, NSWindowDelegate {
         linkStatus.font = .systemFont(ofSize: 14, weight: .semibold); linkStatus.textColor = .secondaryLabelColor; stack.addArrangedSubview(linkStatus)
         healthText.font = .systemFont(ofSize: 12); stack.addArrangedSubview(healthText)
         addScene("真机监视", detail: "温度、电压曲线、遥控和鸭子的实时姿态，在本应用的窗口里打开。", tag: 3, to: stack)
+        addScene("排查工具", detail: "一排按钮，每个带一行可改的命令：看断电原因、日志、大脑、IMU、回退版本。输出就在窗口里。", tag: 4, to: stack)
         shutdownButton = NSButton(title: "优雅关机 · A7Z 大脑", target: self, action: #selector(shutdownRobot(_:)))
         shutdownButton.bezelStyle = .rounded; shutdownButton.controlSize = .large; shutdownButton.font = .systemFont(ofSize: 16, weight: .medium)
         shutdownButton.heightAnchor.constraint(equalToConstant: 36).isActive = true; stack.addArrangedSubview(shutdownButton)
@@ -93,12 +95,20 @@ final class Launcher: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 view.cacheDisplay(in: view.bounds, to: rep); n += 1
                 try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: "\(dir)/shot-\(n).png"))
                 let k = n  // WebKit draws out of process, so the monitor window needs its own snapshot call
+                self.debugView?.takeSnapshot(with: nil) { image, _ in
+                    guard let tiff = image?.tiffRepresentation, let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return }
+                    try? png.write(to: URL(fileURLWithPath: "\(dir)/debug-\(k).png"))
+                }
                 self.liveView?.takeSnapshot(with: nil) { image, _ in
                     guard let tiff = image?.tiffRepresentation, let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return }
                     try? png.write(to: URL(fileURLWithPath: "\(dir)/live-\(k).png"))
                 }
             }
             if ProcessInfo.processInfo.environment["MICRODUCK_OPEN_LIVE"] != nil { openScene(buttons[3]) }
+            if ProcessInfo.processInfo.environment["MICRODUCK_OPEN_DEBUG"] != nil { openScene(buttons[4]) }
+            if let js = ProcessInfo.processInfo.environment["MICRODUCK_DEBUG_JS"] {  // run once the page has loaded
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4) { self.debugView?.evaluateJavaScript(js) }
+            }
         }
         #endif
     }
@@ -113,7 +123,7 @@ final class Launcher: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     @objc func openScene(_ sender: NSButton) {
         guard !starting else { return }
-        let pages = ["/?boot=1", "/ground-pick.html?controller=learned", "/household-pick.html?object=pen", "/robot-live.html?live=1"]
+        let pages = ["/?boot=1", "/ground-pick.html?controller=learned", "/household-pick.html?object=pen", "/robot-live.html?live=1", "/debug.html?tool=1"]
         pendingPage = pages[sender.tag] + "&quality=" + (quality.selectedSegment == 0 ? "fast" : "sharp")
         starting = true; buttons.forEach { $0.isEnabled = false }; status.stringValue = "正在准备仿真…"
         probe { ready in
@@ -157,6 +167,11 @@ final class Launcher: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
     func finishOpening() {
+        if let page = pendingPage, page.hasPrefix("/debug.html"), let url = URL(string: base.absoluteString + page) {
+            openDebug(url)
+            starting = false; buttons.forEach { $0.isEnabled = true }; status.stringValue = "排查工具已在本应用的窗口里打开。"
+            return
+        }
         if let page = pendingPage, page.hasPrefix("/robot-live.html"), let url = URL(string: base.absoluteString + page) {
             openLive(url)
             starting = false; buttons.forEach { $0.isEnabled = true }; status.stringValue = "真机监视已在本应用的窗口里打开。"
@@ -183,6 +198,29 @@ final class Launcher: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // A window already showing the page is only brought forward, so its chart window and pose view stay as they are.
         if liveWindow?.isVisible != true || liveView?.url?.path != url.path { liveView?.load(URLRequest(url: url)) }
         liveWindow?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+    }
+    // 排查工具: its own window, so it can stay open beside the monitor. The page runs commands through the service's
+    // /api/shell; its 重启/关机 buttons ask through confirm(), which a WKWebView shows only with a UI delegate.
+    func openDebug(_ url: URL) {
+        if debugWindow == nil {
+            let view = WKWebView(frame: NSRect(x: 0, y: 0, width: 1400, height: 900), configuration: WKWebViewConfiguration())
+            view.uiDelegate = self
+            let win = NSWindow(contentRect: view.frame, styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            win.title = "MicroDuck 排查工具"; win.isReleasedWhenClosed = false; win.contentView = view
+            win.contentMinSize = NSSize(width: 520, height: 500); win.center(); win.setFrameAutosaveName("MicroduckDebug")
+            debugWindow = win; debugView = view
+        }
+        if debugWindow?.isVisible != true || debugView?.url?.path != url.path { debugView?.load(URLRequest(url: url)) }
+        debugWindow?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+    }
+    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo,
+                 completionHandler: @escaping (Bool) -> Void) {
+        let alert = NSAlert(); alert.messageText = message; alert.addButton(withTitle: "确定"); alert.addButton(withTitle: "取消")
+        completionHandler(alert.runModal() == .alertFirstButtonReturn)
+    }
+    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo,
+                 completionHandler: @escaping () -> Void) {
+        let alert = NSAlert(); alert.messageText = message; alert.runModal(); completionHandler()
     }
     func windowWillClose(_ notification: Notification) {
         // Closing the monitor ends its stream, so the service closes its SSH session and standby reader on the A7Z.

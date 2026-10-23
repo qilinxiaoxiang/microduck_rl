@@ -14,7 +14,7 @@ const fmt = (v, d = 1) => v == null || Number.isNaN(v) ? "–" : v.toFixed(d);
 
 // ── Data ────────────────────────────────────────────────────────────────
 const health = [];            // 2 Hz records with temps, clock, voltages
-let latest = null, lastBrain = null, lastArrival = 0, lastT = 0, online = false, lostSince = null, bootId = null;
+let latest = null, latestAt = 0, lastBrain = null, lastArrival = 0, lastT = 0, online = false, lostSince = null, bootId = null;
 let windowS = 600, hoverT = null, cpuStart = null;
 
 const ZONES = [["cpub", "大核"], ["cpul", "小核"], ["gpu", "GPU"], ["ddr", "内存"]];
@@ -84,7 +84,7 @@ function ingest(record) {
     if (bootId && record.boot && record.boot !== bootId) event("A7Z 重启过（boot id 变了）", record.t);
     if (record.boot) bootId = record.boot;
     if (!cpuStart) cpuStart = record;
-    latest = record; health.push(record);
+    latest = record; latestAt = Date.now(); health.push(record);
     while (health.length && health[0].t < record.t - 1800) health.shift();
     drawCharts(); showNow();
   }
@@ -347,7 +347,7 @@ connect();
 setInterval(watch, 250);
 requestAnimationFrame(frame);
 loadModel().catch(e => { $("#poseNote").textContent = "模型加载失败：" + e.message; console.error(e); });
-const remote = createRemote({root: $("#remote"), state: () => ({online, brain: lastBrain}), log: event});
+const remote = createRemote({root: $("#remote"), state: () => ({online, brain: lastBrain, health: latest, healthAge: (Date.now() - latestAt) / 1000}), log: event});
 setInterval(() => remote.refresh(), 250);
 
 window.robotLive = {ingest, get latest() { return latest; }, get brain() { return lastBrain; }, get health() { return health.length; }, get online() { return online; }};

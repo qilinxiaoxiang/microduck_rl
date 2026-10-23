@@ -60,6 +60,11 @@ boot_id = read("/proc/sys/kernel/random/boot_id")
 log_path, log_offset, next_glob = None, 0, 0.0
 last_row = None
 servo_v = {}  # servo ID -> (volts, time read), from the brain's round-robin voltage reads
+# Tick times ("t" of every row) from the last TICK_WINDOW_S, for the brain's real control rate. walk61 is trained at
+# 50 Hz; on 2026-10-23 a walk at 35.7 Hz (SoC 86 C, both clusters capped at 416 MHz) flailed within 0.4 s.
+TICK_WINDOW_S = 2.0
+TICK_T = re.compile(rb'"t": ([0-9.]+)')
+ticks = []
 
 
 class Standby:
@@ -312,6 +317,7 @@ def brain_log(now):
         if newest != log_path:
             log_path, log_offset, last_row = newest, 0, None
             servo_v.clear()
+            ticks.clear()
     if log_path is None:
         return {"running": False}
     try:
@@ -325,10 +331,15 @@ def brain_log(now):
         return out
     # Read only what was appended since the last look (at most 64 KB, about 0.7 s of 50 Hz ticks).
     start = max(log_offset, st.st_size - 65536)
+    if start > log_offset:  # rows were skipped: a rate from what is left would read low
+        ticks.clear()
     with open(log_path, "rb") as f:
         f.seek(start)
         chunk = f.read(st.st_size - start)
     log_offset = start + len(chunk)
+    ticks.extend(float(t) for t in TICK_T.findall(chunk))
+    if ticks:
+        del ticks[:next((i for i, t in enumerate(ticks) if t > ticks[-1] - TICK_WINDOW_S), len(ticks))]
     for sid, volts in SERVO_V.findall(chunk):
         servo_v[int(sid)] = (float(volts), now)
     for line in reversed(chunk.rsplit(b"\n", 2)[-2:]):  # the newest complete row; the last piece may be partial
@@ -348,7 +359,9 @@ def brain_log(now):
                joints={n: round(v, 4) for n, v in zip(NAMES, q)},  # rad, the simulator's joint convention
                jaw_deg=row.get("jaw_deg"),
                servo_v_min=min(recent) if recent else None, servo_v_max=max(recent) if recent else None,
-               servo_v_count=len(recent))
+               servo_v_count=len(recent),
+               # ticks per second over the last TICK_WINDOW_S of the log; None until it spans 1 s
+               tick_hz=round((len(ticks) - 1) / (ticks[-1] - ticks[0]), 1) if len(ticks) > 1 and ticks[-1] - ticks[0] >= 1.0 else None)
     return out
 
 

@@ -54,6 +54,7 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 .remote-grid button.held,.remote-grid button:active:not(:disabled){background:var(--text);color:var(--surface)}
 .remote-grid button.held small,.remote-grid button:active:not(:disabled) small{color:var(--surface)}
 .remote-grid button:disabled{opacity:.45;cursor:not-allowed}
+.remote-heat{margin:8px 0 0;padding:8px 10px;border-radius:6px;background:color-mix(in srgb,var(--bad) 13%,transparent);color:var(--bad);font-size:14px;font-weight:600}
 .busy .remote-grid button{opacity:.6;cursor:progress}
 #remote.off .remote-status [data-mode]{color:var(--warn)}
 .remote-status,.remote-last{font-size:12px;color:var(--text-2);margin:8px 0 0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
@@ -73,6 +74,7 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 <header>
   <h1>MicroDuck 真机</h1>
   <div id="link" class="wait">正在连接 A7Z…</div>
+  <a href="/debug.html" style="font-weight:600;color:var(--s1)">排查工具 →</a>
   <div class="range" role="group" aria-label="时间范围">
     <button data-s="120">2 分钟</button><button data-s="600" aria-pressed="true">10 分钟</button><button data-s="1800">30 分钟</button>
   </div>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MicroDuck 排查工具</title>
+<style>
+:root{color-scheme:light;--surface:#fcfcfb;--panel:#fff;--border:#e2e1dc;--text:#0b0b0b;--text-2:#52514e;--muted:#8a8984;--accent:#2a78d6;--bad:#c62828;--good:#1a7f37;--code:#f4f3ef}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--text);font:15px/1.5 system-ui,-apple-system,"PingFang SC",sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:12px 20px;border-bottom:1px solid var(--border)}
+h1{font-size:20px;margin:0}
+header a{color:var(--accent);font-weight:600}
+header .hint{color:var(--muted);font-size:13px}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;padding:16px 20px;max-width:1700px;margin:0 auto}
+@media (max-width:1000px){main{grid-template-columns:1fr}}
+.groups{display:flex;flex-direction:column;gap:12px;min-width:0}
+section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+section h2{font-size:14px;margin:0 0 6px;color:var(--text-2)}
+.row{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:6px;align-items:start;margin:5px 0}
+.row button.name{font:inherit;font-size:14px;font-weight:600;text-align:left;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--text)}
+.row button.name:hover{border-color:var(--accent)}
+.row button.name.danger{color:var(--bad)}
+.row textarea{font:13px/1.4 ui-monospace,Menlo,monospace;width:100%;min-height:34px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--code);color:var(--text);resize:vertical;field-sizing:content}
+.row textarea.edited{border-color:#eda100}
+.row .reset{font-size:12px;border:none;background:none;color:var(--muted);cursor:pointer;padding:6px 2px}
+.row small{grid-column:2/4;color:var(--muted);font-size:12px;margin-top:-3px}
+.out{position:sticky;top:12px;align-self:start;display:flex;flex-direction:column;gap:8px;height:calc(100vh - 90px);min-width:0}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bar button{font:inherit;font-size:14px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel);cursor:pointer}
+.bar #stop{color:var(--bad)}
+.bar #stop:disabled{opacity:.4;cursor:default}
+#state{font-size:13px;color:var(--text-2);overflow-wrap:anywhere}
+#log{flex:1;overflow:auto;margin:0;padding:10px 12px;background:#111;color:#e8e8e3;border-radius:10px;font:12.5px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+#log .cmd{color:#7fb7ff}#log .end{color:#9bd88f}#log .fail{color:#ff8a80}
+</style></head>
+<body>
+<header>
+  <h1>MicroDuck 排查工具</h1>
+  <a href="/robot-live.html?live=1">← 真机监视</a>
+  <span class="hint">点左边按钮就运行右边那行命令。命令可以直接改，改过的框变黄，↺ 恢复原样。Ctrl/⌘+Enter 也能运行。命令在这台 Mac 的 microduck-sim 目录下执行。</span>
+</header>
+<main>
+  <div class="groups" id="groups"></div>
+  <div class="out">
+    <div class="bar"><button id="stop" disabled>停止</button><button id="clear">清空输出</button><span id="state">还没运行命令</span></div>
+    <pre id="log"></pre>
+  </div>
+</main>
+<script>
+const S = "ssh -q -o ConnectTimeout=5 a7z";
+const DIAG = "microduck-simulator/desktop/duck-diag.py";
+const GROUPS = [
+  ["断电 / 复位", [
+    ["板子在线吗", `${S} 'uptime; echo 最近几次开机:; journalctl --list-boots -q | tail -n 6'`, "开机多久、最近几次开机的起止时间。时间很短的那几次就是断电或复位"],
+    ["ping 板子", "ping -c 3 -t 6 100.75.239.56", "SSH 连不上时先看网络通不通"],
+    ["上次怎么断的", `${S} python3 - lastboot 1 < ${DIAG}`, "黑匣子里上次开机最后 10 行、卡住的地方、最后的内核日志。改成 lastboot 2 看再前一次"],
+    ["上次最后的系统日志", `${S} 'sudo -n journalctl -b -1 -n 30 --no-pager -o short-precise'`, "正常关机结尾是 systemd 的关机行；断电或看门狗复位就在半截停住"],
+    ["温度和频率", `${S} python3 - temps < ${DIAG}`, ""],
+    ["实时温度", `${S} 'tail -n 3 -f ~/duck-logs/thermal.log'`, "一直跟着输出，按停止结束"],
+    ["实时内核日志", `${S} 'sudo -n dmesg -w -T | grep -v -i hdmi'`, "边动板子边看。断电时输出会突然停住"],
+  ]],
+  ["大脑 walk_wired", [
+    ["大脑在跑吗", `${S} 'pgrep -af walk_wired || echo 没有大脑在跑; echo 控制文件:; cat /tmp/duck_cmd.json; echo'`, ""],
+    ["启动大脑（监视，不上力）", `${S} '~/duck-run.sh app$(date +%m%d-%H%M%S); sleep 3; pgrep -af walk_wired || echo 没起来，看大脑最新输出'`, ""],
+    ["停大脑", `${S} 'pkill -f walk_wired.py; sleep 1; pgrep -af walk_wired || echo 已停'`, "舵机保持最后的目标，直到断电"],
+    ["大脑最新输出", `${S} 'f=$(ls -t ~/duck-logs/duck_wired_*.out | head -n 1); echo $f; tail -n 40 $f'`, ""],
+    ["实时大脑输出", `${S} 'tail -n 20 -f $(ls -t ~/duck-logs/duck_wired_*.out | head -n 1)'`, "按停止结束"],
+    ["开机自启项", `${S} 'systemctl list-unit-files | grep -i duck; echo; systemctl --no-pager --type=service --state=running | grep -i duck'`, "duck-brain 应该不存在（开机不自动站）"],
+  ]],
+  ["传感器 / 舵机", [
+    ["IMU + 舵机读 3 秒", `${S} 'pgrep -f walk_wired >/dev/null && echo 大脑在跑，先停大脑 && exit; cd ~/rt/microduck-sim/guide/firmware/mac && timeout 3 ~/.venvs/duck-policy/bin/python -u duck_sense.py | tail -n 3'`, "只读不写。gb 是重力方向，imu_age 是 IMU 数据新旧（秒），missing 是没回话的舵机"],
+    ["舵机扫描", `${S} 'pgrep -f walk_wired >/dev/null && echo 大脑在跑，先停大脑 && exit; cd ~/duck && python3 scan_bus.py --port /dev/ttyAS2 --baud 500000'`, "15 个舵机的 ID、型号、电压"],
+    ["I2C 总线", `${S} 'ls /dev/i2c-*; sudo -n dmesg | grep -i -E "twi|i2c" | tail -n 10'`, "IMU 在 i2c-7"],
+  ]],
+  ["日志", [
+    ["日志占用", `${S} 'df -h / | tail -n 1; du -sh ~/duck-logs ~/duck-logs/blackbox; ls -lt ~/duck-logs | head -n 12'`, ""],
+    ["清理板子旧日志", `${S} 'cd ~/duck-logs && ls -t duck_wired_*.out duck_wired_log_*.jsonl 2>/dev/null | tail -n +13 | xargs -r rm -v; sudo -n find blackbox -type f -mmin +180 -delete -print; tail -n 20000 thermal.log > t.tmp && mv t.tmp thermal.log; du -sh ~/duck-logs'`, "留最近 6 次大脑日志、3 小时内的黑匣子、温度日志最后 2 万行"],
+    ["拉日志到 Mac", "rsync -a --info=stats1 a7z:duck-logs/ ~/duck-logs-a7z/ && du -sh ~/duck-logs-a7z", "存到 ~/duck-logs-a7z，清理前先拉"],
+    ["本工具运行记录", "tail -n 20 ~/duck-logs-mac/debug-runs.jsonl", ""],
+  ]],
+  ["开机启动项 / 系统回退", [
+    ["开机启动项", `${S} 'echo 开机会启动的 duck 服务:; systemctl list-unit-files --no-pager | grep -i duck; echo; echo 服务文件和改动时间:; ls -l --time-style=+%m-%d_%H:%M /etc/systemd/system/duck-* /etc/systemd/system/*.wants/duck-* 2>/dev/null'`, ""],
+    ["启动项改动记录", `${S} 'sudo -n journalctl --no-pager -o short-iso -q | grep -E "COMMAND=.*(systemctl (enable|disable|mask|unmask)|install .*/etc/systemd|extlinux|dtbo)" | grep -v journalctl | tail -n 25'`, "谁在什么时候启用、禁用、装了哪个服务，改了哪个启动配置"],
+    ["一天内改过的系统文件", `${S} 'sudo -n find /etc /boot -xdev -type f -newermt "-1 day" -printf "%TF %TH:%TM  %p\\n" 2>/dev/null | sort | tail -n 40'`, "把 -1 day 改成 -3 hours 之类"],
+    ["禁用一个启动项", `${S} 'sudo -n systemctl disable --now duck-brain.service; systemctl list-unit-files --no-pager | grep -i duck'`, "把 duck-brain.service 换成要关掉的服务名"],
+    ["启用一个启动项", `${S} 'sudo -n systemctl enable --now duck-blackbox.service; systemctl list-unit-files --no-pager | grep -i duck'`, "把服务名换成要打开的"],
+    ["存一份系统快照", `${S} 'mkdir -p ~/sys-snapshots && f=~/sys-snapshots/sys-$(date +%m%d-%H%M%S).tgz && sudo -n tar czf $f /etc/systemd/system /boot/extlinux /boot/dtbo /etc/fstab 2>&1 | grep -v "Removing leading" ; sudo -n chown radxa $f; ls -lh ~/sys-snapshots'`, "存开机启动项、启动配置 extlinux、设备树覆盖 dtbo、fstab。改系统前点一次"],
+    ["看有哪些快照", `${S} 'ls -lh ~/sys-snapshots 2>/dev/null || echo 还没有快照; echo; echo 启动配置备份:; ls -l /boot/extlinux/'`, ""],
+    ["回退到快照", `${S} 'f=~/sys-snapshots/把这里换成快照文件名.tgz; test -f $f || { echo 找不到 $f; exit 1; }; sudo -n find /etc/systemd/system -name "duck-*" -exec rm -v {} +; sudo -n tar xzf $f -C / && sudo -n systemctl daemon-reload && echo 已回退，重启板子后生效; systemctl list-unit-files --no-pager | grep -i duck'`, "先删掉现在所有 duck 服务，再从快照恢复启动项和启动配置。文件名从上面看", true],
+    ["回退启动配置 extlinux", `${S} 'b=/boot/extlinux/extlinux.conf.bak-20261018-twi7; sudo -n cp /boot/extlinux/extlinux.conf /boot/extlinux/extlinux.conf.before-rollback-$(date +%m%d-%H%M%S) && sudo -n cp $b /boot/extlinux/extlinux.conf && echo 已换成 $b，重启后生效; grep -n -E "fdtoverlays|append" /boot/extlinux/extlinux.conf | head'`, "换成备份文件名。现在的配置会先另存一份", true],
+    ["系统软件安装记录", `${S} 'grep -h -E "^(Start-Date|Commandline|Install|Upgrade|Remove)" /var/log/apt/history.log | tail -n 30'`, "apt 最近装、升级、删了什么"],
+  ]],
+  ["电源", [
+    ["重启板子", `${S} 'sync; sudo -n systemctl reboot'`, "", true],
+    ["关机", "microduck-simulator/desktop/duck-shutdown.sh a7z", "先停程序、刷盘，再关机，等到板子不回话", true],
+  ]],
+  ["自定义", [["运行", `${S} 'uptime'`, "随便写一行命令"]]],
+];
+
+const log = document.getElementById("log"), state = document.getElementById("state"), stop = document.getElementById("stop");
+let ctrl = null;
+const store = (k, v) => { try { v === undefined ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
+const load = k => { try { return localStorage.getItem(k); } catch { return null; } };
+function line(text, cls) { const s = document.createElement("span"); if (cls) s.className = cls; s.textContent = text; log.append(s); log.scrollTop = log.scrollHeight; }
+
+async function run(name, cmd) {
+  if (ctrl) ctrl.abort();
+  const mine = ctrl = new AbortController();
+  line(`\n$ ${cmd}\n`, "cmd");
+  state.textContent = `正在运行：${name}`; stop.disabled = false;
+  try {
+    const r = await fetch("/api/shell", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({cmd}), signal: mine.signal});
+    if (!r.ok) { line(`请求失败 ${r.status} ${await r.text()}\n`, "fail"); return; }
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    for (;;) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      const text = dec.decode(value, {stream: true});
+      const m = text.match(/\n\[退出码 (\S+) · 用时 [^\]]+\]\n$/);
+      if (m) { line(text.slice(0, m.index)); line(m[0], m[1] === "0" ? "end" : "fail"); } else line(text);
+    }
+    state.textContent = `完成：${name}`;
+  } catch (e) {
+    if (e.name === "AbortError") { line("\n[已停止]\n", "fail"); state.textContent = `已停止：${name}`; }
+    else { line(`\n[出错：${e.message}，排查工具的服务可能没在跑]\n`, "fail"); state.textContent = "出错"; }
+  } finally { if (ctrl === mine) { ctrl = null; stop.disabled = true; } }
+}
+stop.onclick = () => ctrl?.abort();
+document.getElementById("clear").onclick = () => { log.textContent = ""; };
+
+const root = document.getElementById("groups");
+for (const [title, rows] of GROUPS) {
+  const sec = document.createElement("section");
+  sec.innerHTML = `<h2></h2>`; sec.querySelector("h2").textContent = title;
+  for (const [name, cmd, help, danger] of rows) {
+    const row = document.createElement("div"); row.className = "row";
+    const b = document.createElement("button"); b.className = "name" + (danger ? " danger" : ""); b.textContent = name;
+    const ta = document.createElement("textarea"); ta.spellcheck = false; ta.rows = 1;
+    const key = "debug-cmd:" + title + ":" + name;
+    ta.value = load(key) ?? cmd;
+    const mark = () => ta.classList.toggle("edited", ta.value !== cmd);
+    mark();
+    ta.oninput = () => { ta.value === cmd ? store(key) : store(key, ta.value); mark(); };
+    const reset = document.createElement("button"); reset.className = "reset"; reset.textContent = "↺"; reset.title = "恢复原命令";
+    reset.onclick = () => { ta.value = cmd; store(key); mark(); };
+    const go = () => { if (danger && !confirm(`确定要${name}？`)) return; run(name, ta.value.trim()); };
+    b.onclick = go;
+    ta.onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); go(); } };
+    row.append(b, ta, reset);
+    if (help) { const s = document.createElement("small"); s.textContent = help; row.append(s); }
+    sec.append(row);
+  }
+  root.append(sec);
+}
+</script>
+</body></html>

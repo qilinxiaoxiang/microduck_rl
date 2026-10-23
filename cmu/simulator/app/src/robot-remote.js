@@ -9,6 +9,10 @@
 // Every other button works whenever the A7Z is online: with no brain running (nothing restarts walk_wired.py after an
 // A7Z reboot) the request carries "start", and the A7Z starts it in monitor mode before writing the command. A torque
 // command that leaves torque off after TORQUE_WAIT_MS shows the brain's own reason (a latched hardware error, no IMU).
+// While the A7Z is too hot or too slow for a 50 Hz policy (robot-thermal.js) the policy buttons are disabled with the
+// reason shown, their keys are refused, and a held walk is stopped.
+
+import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
 
 const WALK_VX = 0.25, WALK_REPEAT_MS = 300, WALK_FOR_S = 0.6;
 // Arc yaw rate, rad/s, positive = left. walk_brain clips vtheta to +-0.8. As-built sim 2026-10-22 (brain_sim_check.py
@@ -43,11 +47,18 @@ export function createRemote({root, state, log}) {
     <div class="remote-grid">${ACTIONS.map(a => `
       <button type="button" data-act="${a.id}" title="${a.hint}"><kbd>${a.key}</kbd><span>${a.label}</span><small>${a.hint}</small></button>`).join("")}
     </div>
+    <p class="remote-heat" data-heat hidden></p>
     <p class="remote-status" aria-live="polite"><span data-mode>大脑：–</span> · <span data-file>控制文件：–</span></p>
     <p class="remote-last" data-last>还没有发过命令。</p>`;
   const buttons = new Map([...root.querySelectorAll("button")].map(b => [b.dataset.act, b]));
   const last = root.querySelector("[data-last]");
-  let walkTimer = null, busy = false;
+  const heatEl = root.querySelector("[data-heat]");
+  let walkTimer = null, busy = false, gate = {blocked: false, reasons: []};
+  const refused = id => {
+    if (!POLICY_ACTS.has(id) || !gate.blocked) return false;
+    last.textContent = `过热保护，没发出：${gate.reasons.join("；")}`;
+    return true;
+  };
   const held = new Set(); // walk ids held now
 
   async function post(body, label, start = true) {
@@ -95,7 +106,7 @@ export function createRemote({root, state, log}) {
       label: turn > 0 ? "左转" : turn < 0 ? "右转" : "前进"};
   }
   function walkStart(id) {
-    if (held.has(id)) return;
+    if (held.has(id) || refused(id)) return;
     if (!state().brain?.running) { last.textContent = "大脑没在运行：先按「开环站立」或「闭环站立」（会先启动大脑），站稳再走"; return; }
     held.add(id);
     buttons.get(id).classList.add("held");
@@ -120,6 +131,7 @@ export function createRemote({root, state, log}) {
 
   async function act(id) {
     if (busy) { last.textContent = "上一条命令还在执行，等它完成再点"; return; }
+    if (refused(id)) return;
     if ((id === "kickL" || id === "kickR") && walkTimer) {
       // In the as-built sim a kick sent mid-stride lifts the foot only about 1 cm (teleop-sim-check.json): kick from standing.
       last.textContent = "先松开前进再踢：走动中踢腿脚只抬 1 厘米左右";
@@ -183,12 +195,23 @@ export function createRemote({root, state, log}) {
       fileEl.textContent = `控制文件 ${path ?? "?"}：${current ? JSON.stringify(current) : "（空）"}`;
     },
     refresh() {
-      const {online, brain} = state();
+      const {online, brain, health, healthAge} = state();
       const running = online && brain?.running;
+      const was = gate.blocked;
+      gate = online ? thermalGate({health, healthAge, brain, wasBlocked: was}) : {blocked: false, reasons: []};
+      if (gate.blocked && held.size) { walkStop(); last.textContent = `过热保护，已停步：${gate.reasons.join("；")}`; }
+      if (gate.blocked !== was) log(gate.blocked ? `过热保护：${gate.reasons.join("；")}` : "过热保护解除");
+      heatEl.hidden = !gate.blocked;
+      heatEl.textContent = gate.blocked ? `过热保护：${gate.reasons.join("；")}。前进、转向、闭环站立、踢、坐、弯腰暂停；`
+        + "停、开环站立、停扭矩、叫一声照常可用。" : "";
       modeEl.textContent = !online ? "大脑：A7Z 不在线" : !brain?.running ? "大脑：没在运行（按站立等按钮会先启动 walk_wired.py）"
         : `大脑：${MODE_NAMES[brain.mode] ?? brain.mode} · 扭矩${brain.torque ? "开" : "关"}`;
       root.classList.toggle("off", !running);
-      for (const b of buttons.values()) b.disabled = !online;
+      for (const [id, b] of buttons) {
+        const hot = gate.blocked && POLICY_ACTS.has(id);
+        b.disabled = !online || hot;
+        b.title = hot ? `过热保护：${gate.reasons.join("；")}` : ACTIONS.find(a => a.id === id).hint;
+      }
       if (!online) walkStop();
     },
   };
