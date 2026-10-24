@@ -131,3 +131,7 @@ at the frame bottom (the real camera, 9 deg lower, sees nearer).
   crouch policy trained with the object in view would remove the lottery.
 - Not run on the robot since the two walking falls (Shawn stopped robot work on 2026-10-16); the sim says the new
   walking (0.25 m/s only, head up while walking, arcs instead of turns in place) holds, the robot has not.
+- Correction 2026-10-24: walk61 does turn in place. The 2026-10-16 check measured translation (1-2 mm), not yaw. As-built
+  sim with the current brain at vx 0: vtheta 0.5 -> 172 deg in 6 s with 0.7 cm drift, 1.0 -> about 55 deg/s, no fall
+  (`brain_sim_check.py --model asbuilt --volt 7.0 --vx 0 --vtheta 0.5 --walk-s 6`). Not yet tried on the robot. This file
+  and pickup.py still describe the Mac-hosted brain and the Pi camera; the robot now runs the brain on the A7Z.

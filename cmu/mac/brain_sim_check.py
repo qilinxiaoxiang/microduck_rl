@@ -205,6 +205,7 @@ def run(args):
     sq = collections.deque(maxlen=args.sensor_delay + 1)
     fell, fall_dir, maxtilt, x0, rows, first_policy = None, None, 0.0, None, [], None
     yaw_walk, yaw_prev, turns = 0.0, None, []
+    path_m, path_xy = 0.0, None  # trunk path over the walk window, sampled every 0.5 s (stride sway averages out)
     rng = np.random.default_rng(args.seed)
     imu_hold, imu_t = None, 0.0
     max_action, action_jumps, prev_action = 0.0, 0, None
@@ -490,6 +491,11 @@ def run(args):
             yaw_now = _yaw(d.xquat[trunk])
             yaw_walk += (yaw_now - yaw_prev + math.pi) % (2 * math.pi) - math.pi
             yaw_prev = yaw_now
+            if tick % 25 == 0:
+                xy = (float(d.xpos[trunk, 0]), float(d.xpos[trunk, 1]))
+                if path_xy is not None:
+                    path_m += math.hypot(xy[0] - path_xy[0], xy[1] - path_xy[1])
+                path_xy = xy
         if tick % 25 == 0:
             rows.append((round(t, 1), brain.mode, info["gb"][0], round(float(d.xpos[trunk, 0]), 3), round(tilt, 1)))
         low = brain.mode in ("groundpick", "sit")
@@ -558,6 +564,7 @@ def run(args):
                 dist_x=None if x0 is None else round(float(d.xpos[trunk, 0] - x0), 3),
                 yaw_deg=None if x0 is None else round(math.degrees((_yaw(d.xquat[trunk]) - yaw0 + math.pi) % (2 * math.pi) - math.pi), 1),
                 yaw_walk_deg=None if x0 is None else round(math.degrees(yaw_walk), 1),
+                path_m=None if x0 is None else round(path_m, 3),
                 turn_mean=round(float(np.mean(turns)), 3) if turns else None, yaw_trim=round(brain.yaw_trim, 3),
                 trace=rows)
 
