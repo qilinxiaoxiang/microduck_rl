@@ -153,6 +153,14 @@ class DuckKin:
             return None
         return float(o[0] + t * d[0]), float(o[1] + t * d[1])
 
+    def horizon_v(self, u, q, gb=UPRIGHT, img_w=None, img_h=None):
+        """Image row of the horizon at column u: pixels below it (larger v) look down at the floor."""
+        K = self.K.scaled(img_w or self.K.width, img_h or self.K.height)
+        R = self.camera_pose(q, gb)[1]
+        if abs(R[2, 2]) < 1e-6:
+            return None
+        return float(K.cy + K.fy * (R[2, 0] - R[2, 1] * (u - K.cx) / K.fx) / R[2, 2])
+
     def ground_to_pixel(self, x, y, q, gb=UPRIGHT, img_w=None, img_h=None, z=0.0):
         """Pixel (u, v) of the foot-frame point; None if it is behind the camera (it may lie outside the image)."""
         K = self.K.scaled(img_w or self.K.width, img_h or self.K.height)

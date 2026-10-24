@@ -25,17 +25,25 @@ MIN_AREA = 80
 KERNEL = np.ones((5, 5), np.uint8)
 
 
-def detect(frame_bgr, hsv_lo=HSV_LO, hsv_hi=HSV_HI, min_area=MIN_AREA, mask=False):
+def detect(frame_bgr, hsv_lo=HSV_LO, hsv_hi=HSV_HI, min_area=MIN_AREA, mask=False, accept=None):
+    """Largest in-range blob; accept(x, y, w, h) -> bool, when given, skips blobs it rejects (e.g. above the horizon)."""
     hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
     mk = cv2.inRange(hsv, tuple(hsv_lo), tuple(hsv_hi))
     mk = cv2.morphologyEx(mk, cv2.MORPH_OPEN, KERNEL)
     n, lab, stats, cents = cv2.connectedComponentsWithStats(mk)
     if n < 2:
         return None
-    k = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
-    area = int(stats[k, cv2.CC_STAT_AREA])
-    if area < min_area:
+    k = None
+    for j in 1 + np.argsort(-stats[1:, cv2.CC_STAT_AREA]):
+        if stats[j, cv2.CC_STAT_AREA] < min_area:
+            break
+        if accept is None or accept(*(int(stats[j, i]) for i in (cv2.CC_STAT_LEFT, cv2.CC_STAT_TOP,
+                                                                   cv2.CC_STAT_WIDTH, cv2.CC_STAT_HEIGHT))):
+            k = int(j)
+            break
+    if k is None:
         return None
+    area = int(stats[k, cv2.CC_STAT_AREA])
     x, y, w, h = (int(stats[k, i]) for i in (cv2.CC_STAT_LEFT, cv2.CC_STAT_TOP, cv2.CC_STAT_WIDTH, cv2.CC_STAT_HEIGHT))
     # base_cx: centre column of the blob's lowest rows (the object's footprint); the whole-blob centroid of a tall
     # object seen from above sits outward of its base, which put a 9 cm box 4 cm off in y at 15 cm (sim, 2026-10-16)

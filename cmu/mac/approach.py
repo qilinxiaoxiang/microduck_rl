@@ -41,9 +41,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "pi"))
 
-NAMES = ("left_hip_yaw", "left_hip_roll", "left_hip_pitch", "left_knee", "left_ankle", "neck_pitch", "head_pitch",
-         "head_yaw", "head_roll", "right_hip_yaw", "right_hip_roll", "right_hip_pitch", "right_knee", "right_ankle")
-
 VX = 0.25            # walk61 steps only at 0.25 (as-built sim and robot)
 V_REAL = 0.11        # m/s the trunk actually moves at vx 0.25 once stepping (as-built sim path speed 0.10-0.12)
 V_ONSET_S = 1.0      # the gait needs about a second to get going; the estimate assumes half speed meanwhile
@@ -82,6 +79,18 @@ ALPHA_WALK, ALPHA_STAND = 0.5, 0.8   # filter gain of a new detection
 MIN_AREA = 60
 
 
+def below_horizon(kin, st, w, h):
+    """accept(x, y, bw, bh) for orange_target.detect: an object on the floor is lower than the camera, so all of it lies
+    below the horizon; a blob reaching above it (shelves, walls, people) is something else."""
+    if st is None:
+        return None
+
+    def accept(x, y, bw, bh):
+        v = kin.horizon_v(x + bw / 2.0, st["q"], st["gb"], w, h)
+        return v is None or y > v
+    return accept
+
+
 def wrap(a):
     return math.atan2(math.sin(a), math.cos(a))
 
@@ -96,7 +105,8 @@ class Approach:
     """The controller; camera, state and commands are injected so it runs in the sim and on fakes as on the robot.
 
     latest_frame() -> (frame_bgr, t_capture, index) or None; state() -> newest state dict or None; state_at(t) -> the
-    state logged nearest to t; send(cmd) writes the control file; detect(frame) -> detection dict or None (orange_target).
+    state logged nearest to t; send(cmd) writes the control file; detect(frame, accept) -> detection dict or None
+    (orange_target; accept drops blobs that reach above the horizon).
     A state dict has t, mode, torque, gb, q (dict by joint), yaw (IMU heading, rad)."""
 
     def __init__(self, kin, latest_frame, state, state_at, send, detect, now=time.time, log=print, obj_radius=0.02):
@@ -178,12 +188,12 @@ class Approach:
         if idx == self.last_idx or self.now() - t_cap > FRAME_MAX_AGE_S:
             return None
         self.last_idx = idx
-        det = self.detect(frame)
+        sc = self.state_at(t_cap) or st
+        h, w = frame.shape[:2]
+        det = self.detect(frame, below_horizon(self.kin, sc, w, h))
         if det is None:
             self.trace.append(dict(t=self.now(), phase=self.phase, frame=idx, det=None))
             return None
-        sc = self.state_at(t_cap) or st
-        h, w = frame.shape[:2]
         p = self.project(det, sc, w, h)
         if p is None or p[0] < 0.03:  # the duck's own orange parts project under the body
             return None
@@ -419,7 +429,7 @@ class LogTail:
 
 
 def parse_state(row):
-    from walk_brain import body_quat, yaw_of
+    from walk_brain import NAMES, body_quat, yaw_of  # the log's q is in walk_brain.NAMES (servo ID) order
     return dict(t=row["t"], mode=row["mode"], torque=row.get("torque"), gb=row["gb"], q=dict(zip(NAMES, row["q"])),
                 yaw=yaw_of(body_quat(row["quat"])) if row.get("quat") else 0.0)
 
@@ -454,10 +464,11 @@ def calibrate(kin, cam, tail, detect, distance, samples=15):
         fr, st = cam.latest(), tail.latest()
         if fr and st and fr[2] != last:
             last = fr[2]
-            det = detect(fr[0])
+            s = tail.at(fr[1]) or st
+            det = detect(fr[0], below_horizon(kin, s, FRAME_W, FRAME_H))
             if det:
                 x0, y0, bw, bh = det["bbox"]
-                rows.append((tail.at(fr[1]) or st, det.get("base_cx", det["cx"]), y0 + bh))
+                rows.append((s, det.get("base_cx", det["cx"]), y0 + bh))
         time.sleep(0.05)
     if not rows:
         return None
@@ -503,7 +514,7 @@ def main():
             off = 0.0
     kin = DuckKin(pitch_offset_deg=off)
     lo, hi = (tuple(int(v) for v in a.split(",")) for a in (args.hsv_lo, args.hsv_hi))
-    detect = lambda f: orange_target.detect(f, lo, hi, MIN_AREA)  # noqa: E731
+    detect = lambda f, accept=None: orange_target.detect(f, lo, hi, MIN_AREA, accept=accept)  # noqa: E731
     tail = LogTail(log_path)
     cam = GstCamera()
     print(f"log {log_path}, pitch offset {off:+.2f} deg, vtheta max {VTH_MAX}", flush=True)
@@ -527,8 +538,8 @@ def main():
             end = time.time() + args.observe
             while time.time() < end:
                 fr, st = cam.latest(), tail.latest()
-                det = detect(fr[0]) if fr else None
                 s = tail.at(fr[1]) if fr else None
+                det = detect(fr[0], below_horizon(kin, s, FRAME_W, FRAME_H)) if fr else None
                 xy = None
                 if det and s:
                     x0, y0, bw, bh = det["bbox"]

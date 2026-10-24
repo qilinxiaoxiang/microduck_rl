@@ -138,7 +138,7 @@ def run(obj, obj_h=0.06, obj_r=0.02, volt=7.0, pitch_offset=0.0, max_s=90.0, qui
     if vth_max is not None:
         apc.VTH_MAX = vth_max
     ctl = apc.Approach(kin, duck.latest_frame, duck.full_state, duck.state_at, duck.send,
-                       lambda f: detect(f, min_area=apc.MIN_AREA), now=lambda: duck.t, log=log, obj_radius=obj_r)
+                       lambda f, accept=None: detect(f, min_area=apc.MIN_AREA, accept=accept), now=lambda: duck.t, log=log, obj_radius=obj_r)
     path, last, t0 = 0.0, None, duck.t
     while ctl.phase not in ("done", "failed") and duck.t - t0 < max_s:
         for _ in range(2):

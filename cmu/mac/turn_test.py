@@ -21,8 +21,7 @@ import os
 import subprocess
 import time
 
-NAMES = ("left_hip_yaw", "left_hip_roll", "left_hip_pitch", "left_knee", "left_ankle", "neck_pitch", "head_pitch",
-         "head_yaw", "head_roll", "right_hip_yaw", "right_hip_roll", "right_hip_pitch", "right_knee", "right_ankle")
+from walk_brain import NAMES  # the log's q order (servo ID order)
 
 
 def find_log():

@@ -54,7 +54,7 @@ class FakeDuck:
         dx, dy = self.obj[0] - self.X, self.obj[1] - self.Y
         return apc.rotate(dx, dy, self.th)
 
-    def detect(self, frame):
+    def detect(self, frame, accept=None):
         x, y = self.obj_robot()
         r = math.hypot(x, y)
         if r < 0.05:
@@ -140,3 +140,9 @@ def test_stop_goes_out_at_once():
         ctl.step()
     t, c = duck.sent[-1]
     assert ctl.phase == "settle" and t == round(duck.t, 2) and not c["vx"] and not c["vtheta"] and "for_s" not in c
+
+
+def test_log_rows_parse_in_walk_brain_order():
+    import walk_brain
+    row = dict(t=1.0, mode="walk", torque=True, gb=[0.0, 0.0, -1.0], q=[STAND[n] for n in walk_brain.NAMES])
+    assert apc.parse_state(row)["q"] == STAND
