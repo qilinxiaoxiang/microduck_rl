@@ -4,6 +4,8 @@ Everything that is specific to our MicroDuck, in one directory on top of Pollen'
 Start with [ROBOT.md](ROBOT.md) (the robot as built and the runtime) and [SIM2REAL.md](SIM2REAL.md) (the gap and
 the open problems); the quickstarts are in the [top-level README](../README.md).
 
+The physical build (parts list, printed parts, wiring, assembly guide, bring-up and the runtime as it stood on 2026-10-23) is published separately at https://github.com/qilinxiaoxiang/cmu-microduck; project page https://shawnxiang.com/microduck.
+
 ## Layout
 
 - `robot-condition.json`: the current measured facts the sim needs (servo rail, IMU rate, added delay, dropped
