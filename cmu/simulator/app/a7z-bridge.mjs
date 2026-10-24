@@ -17,17 +17,15 @@
 // this Mac: that brain owns the servo bus over USB, and a second brain on the A7Z would fight it, so the request fails.
 //
 // Head camera: GET /api/a7z/camera is an MJPEG stream (multipart/x-mixed-replace) of the Radxa Camera 13M 214 on the
-// A7Z's CSI port. A third SSH session runs CAMERA_PIPELINE there only while a page shows it and stops 2 s after the
-// last viewer leaves (the scaling and JPEG encoding cost A7Z CPU next to the brain). The pipeline uses Radxa's verified
-// full-sensor mode, /dev/video1 at 4208x3120 NV12 with en-awisp=1 en-largemode=1
-// (docs.radxa.com/en/cubie/a7z/accessories/camera-13m-214): the 1080p mode on /dev/video0 crops the sensor to 91 % of
-// its long side and 69 % of its short side (feature match, 2026-10-23), and the short side is the picture's width once
-// turned upright. The A7Z keeps every third frame (8 fps), scales to 640x480 and turns it a quarter clockwise (the
-// sensor sits on its side in the head; upright duck -> upright 480x640 picture). rawvideoparse re-reads each buffer as
-// plain NV12: the bytes are a correct frame, but the chroma plane offset v4l2src attaches makes videoscale and jpegenc
-// read the wrong chroma (grey picture with pink and green blocks; 2026-10-23).
-// Never open /dev/video0 while this runs: both nodes drive the one sensor, and a second open wedges the vin driver
-// ("video1 cannot be close", "__vin_set_fmt device busy") until the A7Z reboots (2026-10-23).
+// A7Z's CSI port. The camera itself stays open in a7z_cam.py on the A7Z (robotics guide/firmware/mac/a7z_cam.py,
+// started with the brain by ~/duck-run.sh; one owner, so approach.py and this window share it and no reader waits ~3 s
+// of near-black auto-exposure frames). A third SSH session runs CAMERA_PIPELINE, `a7z_cam.py --mjpeg`, only while a
+// page shows it and stops 2 s after the last viewer leaves (the JPEG encoding costs A7Z CPU next to the brain); it
+// starts the daemon if it is not running. The daemon uses Radxa's verified full-sensor mode, /dev/video1 at 4208x3120
+// NV12 with en-awisp=1 en-largemode=1 (docs.radxa.com/en/cubie/a7z/accessories/camera-13m-214), keeps every third
+// frame (8 fps), scales to 640x480 and turns it a quarter clockwise (upright duck -> upright 480x640 picture).
+// Never open /dev/video0 or /dev/video1 beside it: a second open wedges the vin driver ("video1 cannot be close",
+// "__vin_set_fmt device busy") until the A7Z reboots (2026-10-23).
 // The frame rate and the error of a failed start reach the pages as {camera: {...}} on /api/a7z/stream.
 // /api/a7z/camera?stab=1 is the same stream after desktop/duck-stabilize.py (optical-flow roll and shift correction on
 // this Mac, started while such a viewer is open); its once-a-second motion figures arrive as camera.stab.
@@ -38,14 +36,11 @@ import {homedir} from "node:os";
 
 const HISTORY_S = 1800, SILENT_S = 3, ACK_S = 3, START_ACK_S = 30;  // START_ACK_S covers duck-command.py START_S
 const CAMERA_LINGER_S = 2, CAMERA_SILENT_S = 6, BOUNDARY = "duckframe";
-// gst runs in the background and the shell waits on it, so its own exit (and error) ends the session; a second
+// the reader runs in the background and the shell waits on it, so its own exit (and error) ends the session; a second
 // background job reads this session's stdin (kept as fd 3: a background job's own stdin is /dev/null), and when SSH drops (a closed page, a Vite restart, a lost link) it sees
-// EOF and ends gst, which otherwise lingers when the sensor stops delivering.
-const CAMERA_PIPELINE = "exec 3<&0; nice -n 10 gst-launch-1.0 -q v4l2src device=/dev/video1 en-awisp=1 en-largemode=1" +
-  " ! video/x-raw,format=NV12,width=4208,height=3120,framerate=24/1 ! videorate drop-only=true ! video/x-raw,framerate=8/1" +
-  " ! rawvideoparse use-sink-caps=false format=nv12 width=4208 height=3120 framerate=8/1" +
-  " ! videoscale ! video/x-raw,width=640,height=480 ! videoflip method=clockwise ! jpegenc quality=70" +
-  ` ! multipartmux boundary=${BOUNDARY} ! fdsink fd=1 & g=$!; (cat <&3 >/dev/null; kill $g) >/dev/null 2>&1 & wait $g`;
+// EOF and ends the reader.
+const CAMERA_PIPELINE = "exec 3<&0; nice -n 10 ~/.venvs/duck-policy/bin/python ~/rt/microduck-sim/guide/firmware/mac/a7z_cam.py" +
+  ` --mjpeg & g=$!; (cat <&3 >/dev/null; kill $g) >/dev/null 2>&1 & wait $g`;
 const SSH_OPTS = ["-T","-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "-o", "ServerAliveInterval=2", "-o", "ServerAliveCountMax=2"];
 
 export function a7zBridge({script, commandScript, stabilizeScript,
@@ -216,7 +211,7 @@ export function a7zBridge({script, commandScript, stabilizeScript,
           if (cam === c) cam = null;
           const error = c.stderr.trim().split("\n").filter(l => !/quantum|store now|upgraded/.test(l)).pop() ?? "";
           if (!viewers.size) return camSend({state: "off", fps: 0});
-          camSend({state: "closed", fps: 0, error: error || `gst-launch exited ${code}`});
+          camSend({state: "closed", fps: 0, error: error || `a7z_cam --mjpeg exited ${code}`});
           camRetry = setTimeout(startCamera, 3000);
         });
       }

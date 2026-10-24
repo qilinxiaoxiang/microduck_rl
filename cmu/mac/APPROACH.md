@@ -58,26 +58,40 @@ walk61 at zero command after a walk, is not measured. `approach_sim.py --drift-w
 
 `approach_sim.py --suite`: 11 cases (seven placements in front, two of them moved at 3 s; two far to the side;
 one moved 15 cm sideways once the robot is close; one behind). Pass: arrived with the true object 5-17 cm away within
-25 deg, no fall, no guard trip; behind: not found, no walking. Per-case traces and the suite outputs are in
-`approach-sim-20261024-v3/` (code md5 in `code-md5.txt`).
+25 deg, no fall, no guard trip; behind: not found, no walking. Current code (cut-blob range bound, V_REAL 0.15 on the
+robot and 0.11 in the sim): `approach-sim-20261024-v4/` (code md5 in `code-md5.txt`).
 
-- No drift, no trim: 11 of 11. True stop 9.3-13.5 cm, within 13 deg, measured to 1-4.5 cm, 14-25 s, tilt at most
-  9.3 deg.
-- Robot drift 0.015 N m and trim -1.108, drift while walking forward only: 10 of 11, stop 7.0-14.0 cm within 18 deg.
-  The miss is the object moved 15 cm sideways when the robot was 20 cm away: the robot walked past it (it ended 72 deg
-  to the side, outside the scan) and reported "not found" without a false arrival.
-- Same drift, also while turning in place and standing on walk61: 1 of 11 (only the object behind). Turns in place
-  to the right are not followed (-2 to -3 deg/s) and the IMU check stops the run every time; no fall, no runaway.
-- Stress, drift 0.020 forward only (report only): 5 of 11. Four runs stop on the IMU check (a right arc turning
-  left). One reported arrived after overshooting to 6.5 cm with the object 6 cm to the side of the beak.
+- No drift, no trim: 11 of 11. True stop 11-16.7 cm, within 14 deg.
+- Robot drift 0.015 N m and trim -1.108, drift while walking forward only (the robot's case, step 2 below measured
+  0 deg/s at zero command): 9 of 11, stop 8-15.5 cm within 18 deg. The two misses stop about 10 cm away 23-28 deg
+  to the side and report "not arrived" (no fall, no false arrival).
+- Before the robot runs (`approach-sim-20261024-v3/`): the same drift also while turning in place and standing gave
+  1 of 11, every miss stopped by the IMU check; stress drift 0.020 gave 5 of 11 (report only).
 
-So the controller works when the robot does not drift in place, and fails safe when it does. Robot test step 2
-measures which it is.
+## Robot runs (2026-10-24 evening, on the floor, brain run cc1024-v3)
 
-## Robot test (Shawn runs the commands, the robot guarded; I read the results)
+- Primitives, all without a guard trip: in place vtheta -0.5 / +0.5 -> -19.6 / +23.8 deg/s; zero command on walk61
+  after them 0.0 deg/s, not stepping (so the sim's `--drift-when forward` holds, the 10 of 11 case); arcs at vx 0.25,
+  vtheta -0.3 / +0.3 -> -12.1 / +17.7 deg/s; head pitch 1.0 commanded while walking straight reached 0.76 (in the
+  approach run it reached 1.03-1.05), tilt at most 13.4 deg.
+- One test walk hit an obstacle: the path had not been checked. Now every walk starts only after the camera picture
+  shows clear floor.
+- Approach (trace `approach_1024-224735`): it turned and walked toward the object in the right direction and stepped
+  onto it. Two causes. The last frames had the blob cut by the picture's bottom edge, and the cut blob projects to
+  the edge's floor distance (0.16-0.18 m) while the object was nearer; approach.py now takes a cut blob's range only
+  as an upper bound. And the robot walks about 0.15 m/s at vx 0.25, not the sim's 0.11 (CURRENT-STATE
+  walk_speed_vx025), so dead reckoning under the picture ran short; V_REAL is now 0.15 on the robot.
+- Range beyond 0.5 m is not usable yet: the first reading was 1.29 m where the pixel area says about 1.0, and while
+  walking the projection jumped 1.0 -> 0.43 m in one frame. The camera pitch calibration (step 4) is left for the 720p
+  USB camera (Shawn, 2026-10-24: direction is right, range control is the small part).
+- The first frames after a camera open are near black for about 3 s (auto exposure), and the reddish floor then reads
+  as orange. The camera now stays open in `a7z_cam.py` (started by `~/duck-run.sh`, shared memory
+  `/dev/shm/a7z_cam.bgr`); approach.py and the app's camera window (`a7z_cam.py --mjpeg`) read it.
 
-Before: robot powered, brain started from the app and standing in walk mode at zero command (stand61), the app's
-camera window closed (two openers of the camera wedge its driver until a reboot), 1.5 m of clear floor, a hand near the
+## Robot test (the robot guarded; results read from the logs)
+
+Before: robot powered, brain started from the app and standing in walk mode at zero command (stand61), 1.5 m of clear
+floor checked in the camera picture (`a7z_cam.py --snap /tmp/snap.jpg`), a hand near the
 robot for the first steps, an orange object 4-9 cm tall. In open-loop stand the servos keep torque through a brain
 restart or an A7Z reboot. Install first (from the Mac; copies the files, installs OpenCV in the brain venv if missing,
 does not restart the running brain; walk_brain.py changed, so restart the brain from the app after it):
@@ -145,5 +159,6 @@ ssh a7z 'cd ~/rt/microduck-sim/guide/firmware/mac && ~/.venvs/duck-policy/bin/py
 
 - The 8 fps camera and about 50 ms of servo latency bound how fast a moving object can be followed; the 720p USB camera
   comes later.
-- The walking speed in the estimate (0.11 m/s) is the sim's; detections correct it only while the object is in view.
+- The walking speed in the estimate (0.15 m/s) is one robot measurement; detections correct it only while the object
+  is in view.
 - walk61 does not walk backward, so an overshoot ends as "too close".

@@ -42,6 +42,8 @@ CMD_ALPHA = 0.2       # walk_wired: cmd += CMD_ALPHA * (target - cmd) every tick
 FPS = 8.0
 CAM_LAT_S = 0.15
 W, H = 480, 640
+SIM_V_REAL = 0.11  # the as-built sim's walking speed at vx 0.25 (the robot's, 0.15, is approach.V_REAL)
+apc.V_REAL = SIM_V_REAL
 DRIFT_NM = 0.015   # needs the robot's trim on a straight walk with the 4 deg IMU pitch (2026-10-24)
 TRIM = -1.1079
 # (object x, y, move): move = (s after start, dx, dy) or None; two far to the side (turn in place first), one moved

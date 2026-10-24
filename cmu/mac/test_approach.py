@@ -24,6 +24,8 @@ class FakeDuck:
     def __init__(self, obj, mode="walk", turn_gain=1.0):
         self.t, self.X, self.Y, self.th = 0.0, 0.0, 0.0, 0.0
         self.turn_gain, self.ok = turn_gain, True
+        self.head_pitch_max = 9.0   # the robot's head lagged its command while walking (2026-10-24)
+        self.cut_px = 0   # > 0: the object stays in the picture, cut at the bottom, this many px after its base leaves
         self.obj, self.mode, self.cmd, self.sent = obj, mode, {}, []
         self.q = dict(STAND)
         self.frame_i, self.frame = 0, None
@@ -43,6 +45,7 @@ class FakeDuck:
             head = c.get("head") or {}
             for k in ("neck_pitch", "head_pitch", "head_yaw"):
                 self.q[k] = float(head.get(k, STAND[k]))
+            self.q["head_pitch"] = min(self.q["head_pitch"], self.head_pitch_max)
         self.t += dt
         if int(self.t / 0.125) != int((self.t - dt) / 0.125):
             self.frame_i += 1
@@ -62,7 +65,11 @@ class FakeDuck:
             return None
         bx, by = x * (r - 0.02) / r, y * (r - 0.02) / r   # the base edge, obj_radius nearer than the centre
         uv = KIN.ground_to_pixel(bx, by, self.q, (0.0, 0.0, -1.0))
-        if uv is None or not (0 <= uv[0] < 480 and 0 <= uv[1] < 640):
+        if uv is None or not 0 <= uv[0] < 480:
+            return None
+        if self.cut_px and 640 <= uv[1] < 640 + self.cut_px:   # base under the picture, top still in it
+            return dict(cx=uv[0], cy=630, base_cx=uv[0], bbox=(uv[0] - 10, 620, 20, 20), area=200)
+        if not 0 <= uv[1] < 640:
             return None
         return dict(cx=uv[0], cy=uv[1] - 10, base_cx=uv[0], bbox=(uv[0] - 10, uv[1] - 20, 20, 20), area=400)
 
@@ -142,6 +149,17 @@ def test_a_turn_the_wrong_way_stops_the_run():
     ctl = drive(duck)
     assert not ctl.result["ok"] and ("wrong way" in ctl.result["why"] or "not following" in ctl.result["why"])
     assert duck.th < math.radians(40)              # stopped before it turned far (in place: 29 deg/s for ~1 s)
+
+
+def test_a_blob_cut_at_the_bottom_does_not_walk_it_over():
+    duck = FakeDuck((0.6, 0.0))
+    duck.head_pitch_max = 0.7   # the picture's bottom edge ~0.2 m out, as when it walked onto the object
+    duck.cut_px = 400   # the robot run: a tall object stays visible, cut, long after its base left the picture
+    ctl = drive(duck)
+    x, y = duck.obj_robot()
+    assert ctl.result["ok"], ctl.result
+    assert abs(ctl.result["r"] - math.hypot(x, y)) < 0.02, (ctl.result, x, y)   # cut blobs read it too far
+    assert math.hypot(x, y) >= 0.09
 
 
 def test_stale_state_never_starts_a_walk():

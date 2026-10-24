@@ -1,8 +1,8 @@
 """Walk up to an orange object in front, steering toward it and turning in place when it is far to the side, stop with
 it about 10 cm ahead, measure it.
 
-Runs on the A7Z beside walk_wired.py (which owns the servos): reads the head camera itself (gst-launch on /dev/video1,
-the same full-sensor pipeline as the app's camera window, as raw BGR), the robot state from walk_wired's log, and
+Runs on the A7Z beside walk_wired.py (which owns the servos): reads the head camera from a7z_cam.py (the always-on
+camera daemon, shared memory; started if not running), the robot state from walk_wired's log, and
 writes walk_wired's control file. Final-goal step 2 (walk to it), D-019; the crouch and grip stay in pickup.py.
 
 Walking uses vx 0.25 with vtheta within +-0.3 (the app's arc rate; walk_brain holds it with the IMU against the
@@ -35,7 +35,6 @@ x 0.07, the toes at -0.045); standing, the head looks down and MEASURE_N detecti
   ~/.venvs/duck-policy/bin/python approach.py [--pitch-offset D]       on the A7Z, walk_wired running
   ~/.venvs/duck-policy/bin/python approach.py --observe 10             detections and floor positions only, no motion
   ~/.venvs/duck-policy/bin/python approach.py --calibrate 0.30         object 0.30 m straight ahead: fit the pitch offset
-The app's camera window must be closed: two openers of /dev/video1 wedge the camera driver until a reboot.
 """
 import argparse
 import collections
@@ -45,7 +44,6 @@ import math
 import os
 import subprocess
 import sys
-import threading
 import time
 
 import numpy as np
@@ -55,7 +53,8 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "pi"))
 
 VX = 0.25            # walk61 steps only at 0.25 (as-built sim and robot)
-V_REAL = 0.11        # m/s the trunk actually moves at vx 0.25 once stepping (as-built sim path speed 0.10-0.12)
+V_REAL = 0.15        # m/s ground speed at vx 0.25 once stepping, robot 2026-10-24 (CURRENT-STATE walk_speed_vx025;
+                     # the as-built sim walks 0.10-0.12, approach_sim.py sets SIM_V_REAL)
 V_ONSET_S = 1.0      # the gait needs about a second to get going; the estimate assumes half speed meanwhile
 VTH_ARC = 0.3        # rad/s: the largest arc command, the app's arc rate (robot-remote.js ARC_VTHETA)
 K_TURN = 1.0         # vtheta = K_TURN x bearing within +-VTH_ARC (two-level +-0.3 arcs overshot left in the sim)
@@ -166,6 +165,7 @@ class Approach:
         self.blind_from = None
         self.exit = None           # where the object left the picture: "bottom", "left", "right" or None
         self.exit_yaw = None
+        self.exit_t = 0.0
         self.last_box = None
         self.trace = []
 
@@ -195,6 +195,7 @@ class Approach:
         if self.walk_t0 is None:
             self.walk_t0 = now
             self.yaws.clear()
+            self.exit = None
         turn = 0 if abs(vth) < 0.1 else (1 if vth > 0 else -1)   # the direction the IMU check holds it to
         if turn != self.turn or self.turn_t0 is None:
             self.turn, self.turn_t0 = turn, now
@@ -271,6 +272,21 @@ class Approach:
         if p is None or p[0] < 0.03:  # the duck's own orange parts project under the body
             return None
         x, y = rotate(p[0], p[1], wrap(st["yaw"] - sc["yaw"]))  # capture frame -> current heading
+        if p[2] and self.est is not None:
+            # the blob reaches the picture's bottom: its base is under the picture, so the projection is only an upper
+            # bound on the range (robot 2026-10-24: cut blobs read 0.16-0.18 m while the robot walked onto the
+            # object); the bearing is still good. Range = min(estimate, projection), bearing from this frame.
+            r = min(math.hypot(*self.est), math.hypot(x, y))
+            b = math.atan2(y, x)
+            self.est, self.est_t, self.est_yaw = (r * math.cos(b), r * math.sin(b)), st["t"], st["yaw"]
+            self.seen_t, self.seen_walked = self.now(), self.walked
+            self.trace.append(dict(t=self.now(), phase=self.phase, frame=idx, cut=[x, y], est=list(self.est)))
+            if self.walk_t0 is not None:
+                return None
+            # standing: still a measurement (an upper bound on the range, the bearing good); a tall object at 0.09 m
+            # stays cut in the near head pose (as-built sim), so dropping these left the stop unmeasured
+            return dict(x=x, y=y, cut=True, area=int(det["area"]), cx=det["cx"], cy=det["cy"], frame=idx,
+                        lag=round(self.now() - t_cap, 3))
         fresh = self.est is None or self.now() - (self.seen_t or 0) > 2 * LOST_S
         if not fresh and math.hypot(x - self.est[0], y - self.est[1]) > JUMP_M:
             # far from the estimate: a moved object or a false blob; take it once a second frame agrees
@@ -406,7 +422,7 @@ class Approach:
             self.seen_t = now
             b = math.atan2(self.est[1], self.est[0])
             near = math.hypot(*self.est) <= DONE_R[1]
-            if near and abs(b) <= DONE_BEARING:   # a walk would only coast it closer (each start steps 4-5 cm)
+            if math.hypot(*self.est) <= STOP_R and abs(b) <= DONE_BEARING:   # a walk would coast it 4-5 cm closer
                 self.enter("settle", f"already at x {self.est[0]:.2f} y {self.est[1]:.2f}: measure")
                 self.t_phase -= SETTLE_S
                 return
@@ -461,9 +477,9 @@ class Approach:
             self.exit = ("bottom" if y0 + bh >= h * (1 - EDGE) else "left" if x0 <= w * EDGE else
                          "right" if x0 + bw >= w * (1 - EDGE) else None)
             if self.exit:
-                self.blind_from, self.exit_yaw = self.walked, st["yaw"]
+                self.blind_from, self.exit_yaw, self.exit_t = self.walked, st["yaw"], now
                 self.log(f"  left the picture at the {self.exit} (estimate r {r:.2f} b {math.degrees(b):+.0f} deg)")
-        if unseen <= 0.3:
+        if unseen <= 0.3 and (self.seen_t or 0) > self.exit_t:
             self.exit = None
         if self.exit == "bottom":    # under the picture: the last bit straight on dead reckoning
             if self.walked - self.blind_from > BLIND_MAX_M:
@@ -549,46 +565,27 @@ class Approach:
 
 
 # --- the robot side (A7Z) ----------------------------------------------------------------------------------------
-GST = ("gst-launch-1.0 -q v4l2src device=/dev/video1 en-awisp=1 en-largemode=1"
-       " ! video/x-raw,format=NV12,width=4208,height=3120,framerate=24/1 ! videorate drop-only=true"
-       " ! video/x-raw,framerate=8/1 ! rawvideoparse use-sink-caps=false format=nv12 width=4208 height=3120 framerate=8/1"
-       " ! videoscale ! video/x-raw,width=640,height=480 ! videoflip method=clockwise ! videoconvert"
-       " ! video/x-raw,format=BGR ! fdsink fd=1")
 FRAME_W, FRAME_H = 480, 640
-CAM_LATENCY_S = 0.12   # capture to arrival, assumed; frames are stamped arrival minus this
 
 
-class GstCamera:
-    """The Radxa 13M on /dev/video1, upright 480 x 640 BGR at 8 fps, newest frame kept (a7z-bridge.mjs pipeline)."""
+class ShmCamera:
+    """The head camera through a7z_cam.py, which keeps /dev/video1 open (started here if it is not running): the newest
+    upright 480 x 640 BGR frame with its capture time and index, no warm-up per run."""
 
     def __init__(self):
-        busy = subprocess.run(["pgrep", "-f", "device=/dev/video"], capture_output=True, text=True).stdout.split()
-        if busy:
-            sys.exit(f"the camera is in use (pid {' '.join(busy)}, probably the app's camera window): close it first; "
-                     "a second opener wedges the camera driver until a reboot")
-        self.p = subprocess.Popen(GST, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
-        self.frame, self.t, self.idx, self.lock = None, 0.0, 0, threading.Lock()
-        threading.Thread(target=self._read, daemon=True).start()
-
-    def _read(self):
-        n = FRAME_W * FRAME_H * 3
-        while True:
-            buf = bytearray()
-            while len(buf) < n:
-                chunk = self.p.stdout.read(n - len(buf))
-                if not chunk:
-                    return
-                buf += chunk
-            with self.lock:
-                self.frame = np.frombuffer(bytes(buf), np.uint8).reshape(FRAME_H, FRAME_W, 3)
-                self.t, self.idx = time.time() - CAM_LATENCY_S, self.idx + 1
+        import a7z_cam
+        self.dc = a7z_cam
+        if not a7z_cam.ensure():
+            sys.exit("the head camera daemon (a7z_cam.py) has no fresh frame: see ~/duck-logs/a7z_cam.out")
 
     def latest(self):
-        with self.lock:
-            return None if self.frame is None else (self.frame, self.t, self.idx)
+        fr = self.dc.read_frame()
+        if fr is None:
+            return None
+        return np.frombuffer(fr[0], np.uint8).reshape(FRAME_H, FRAME_W, 3), fr[1], fr[2]
 
     def close(self):
-        self.p.kill()
+        pass   # the daemon stays on
 
 
 class LogTail:
@@ -704,7 +701,7 @@ def main():
     lo, hi = (tuple(int(v) for v in a.split(",")) for a in (args.hsv_lo, args.hsv_hi))
     detect = lambda f, accept=None: orange_target.detect(f, lo, hi, MIN_AREA, accept=accept)  # noqa: E731
     tail = LogTail(log_path)
-    cam = GstCamera()
+    cam = ShmCamera()
     print(f"log {log_path}, pitch offset {off:+.2f} deg, arcs vtheta +-{VTH_ARC}, stop at r {STOP_R}", flush=True)
     try:
         t0 = time.time()
