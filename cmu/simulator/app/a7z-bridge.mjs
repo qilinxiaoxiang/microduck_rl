@@ -15,13 +15,41 @@
 // the control-file path the writer finds on the A7Z. A set or merge with "start": true starts walk_wired.py on the A7Z
 // first when none runs there (duck-command.py; nothing restarts it after an A7Z reboot), unless walk_wired.py runs on
 // this Mac: that brain owns the servo bus over USB, and a second brain on the A7Z would fight it, so the request fails.
+//
+// Head camera: GET /api/a7z/camera is an MJPEG stream (multipart/x-mixed-replace) of the Radxa Camera 13M 214 on the
+// A7Z's CSI port. A third SSH session runs CAMERA_PIPELINE there only while a page shows it and stops 2 s after the
+// last viewer leaves (the scaling and JPEG encoding cost A7Z CPU next to the brain). The pipeline uses Radxa's verified
+// full-sensor mode, /dev/video1 at 4208x3120 NV12 with en-awisp=1 en-largemode=1
+// (docs.radxa.com/en/cubie/a7z/accessories/camera-13m-214): the 1080p mode on /dev/video0 crops the sensor to 91 % of
+// its long side and 69 % of its short side (feature match, 2026-10-23), and the short side is the picture's width once
+// turned upright. The A7Z keeps every third frame (8 fps), scales to 640x480 and turns it a quarter clockwise (the
+// sensor sits on its side in the head; upright duck -> upright 480x640 picture). rawvideoparse re-reads each buffer as
+// plain NV12: the bytes are a correct frame, but the chroma plane offset v4l2src attaches makes videoscale and jpegenc
+// read the wrong chroma (grey picture with pink and green blocks; 2026-10-23).
+// Never open /dev/video0 while this runs: both nodes drive the one sensor, and a second open wedges the vin driver
+// ("video1 cannot be close", "__vin_set_fmt device busy") until the A7Z reboots (2026-10-23).
+// The frame rate and the error of a failed start reach the pages as {camera: {...}} on /api/a7z/stream.
+// /api/a7z/camera?stab=1 is the same stream after desktop/duck-stabilize.py (optical-flow roll and shift correction on
+// this Mac, started while such a viewer is open); its once-a-second motion figures arrive as camera.stab.
+// MICRODUCK_PY names the Python with OpenCV (default ~/.venvs/microduck-walk/bin/python).
 import {spawn, spawnSync} from "node:child_process";
 import {readFileSync} from "node:fs";
+import {homedir} from "node:os";
 
 const HISTORY_S = 1800, SILENT_S = 3, ACK_S = 3, START_ACK_S = 30;  // START_ACK_S covers duck-command.py START_S
-const SSH_OPTS = ["-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "-o", "ServerAliveInterval=2", "-o", "ServerAliveCountMax=2"];
+const CAMERA_LINGER_S = 2, CAMERA_SILENT_S = 6, BOUNDARY = "duckframe";
+// gst runs in the background and the shell waits on it, so its own exit (and error) ends the session; a second
+// background job reads this session's stdin (kept as fd 3: a background job's own stdin is /dev/null), and when SSH drops (a closed page, a Vite restart, a lost link) it sees
+// EOF and ends gst, which otherwise lingers when the sensor stops delivering.
+const CAMERA_PIPELINE = "exec 3<&0; nice -n 10 gst-launch-1.0 -q v4l2src device=/dev/video1 en-awisp=1 en-largemode=1" +
+  " ! video/x-raw,format=NV12,width=4208,height=3120,framerate=24/1 ! videorate drop-only=true ! video/x-raw,framerate=8/1" +
+  " ! rawvideoparse use-sink-caps=false format=nv12 width=4208 height=3120 framerate=8/1" +
+  " ! videoscale ! video/x-raw,width=640,height=480 ! videoflip method=clockwise ! jpegenc quality=70" +
+  ` ! multipartmux boundary=${BOUNDARY} ! fdsink fd=1 & g=$!; (cat <&3 >/dev/null; kill $g) >/dev/null 2>&1 & wait $g`;
+const SSH_OPTS = ["-T","-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "-o", "ServerAliveInterval=2", "-o", "ServerAliveCountMax=2"];
 
-export function a7zBridge({script, commandScript, host = process.env.MICRODUCK_ROBOT_HOST ?? "a7z",
+export function a7zBridge({script, commandScript, stabilizeScript,
+                           python = process.env.MICRODUCK_PY ?? `${homedir()}/.venvs/microduck-walk/bin/python`, host = process.env.MICRODUCK_ROBOT_HOST ?? "a7z",
                            cmdPath = process.env.MICRODUCK_CMD_PATH}) {
   return {
     name: "a7z-bridge",
@@ -70,7 +98,7 @@ export function a7zBridge({script, commandScript, host = process.env.MICRODUCK_R
       }, 1000).unref();
       server.middlewares.use("/api/a7z/stream", (req, res) => {
         res.writeHead(200, {"Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive"});
-        res.write(`data: ${JSON.stringify({history, host, link: child ? "open" : "connecting"})}\n\n`);
+        res.write(`data: ${JSON.stringify({history, host, link: child ? "open" : "connecting", camera: camState})}\n\n`);
         clients.add(res); clearTimeout(linger); start();
         req.on("close", () => {
           clients.delete(res);
@@ -120,6 +148,103 @@ export function a7zBridge({script, commandScript, host = process.env.MICRODUCK_R
           w.proc.stdin.write(JSON.stringify({...req, n}) + "\n");
         });
       }
+      // ── Head camera: one SSH gst session shared by every viewer, frames cut out by their Content-Length ──
+      const viewers = new Set(), stabViewers = new Set();
+      let stab = null;
+      const part = jpeg => Buffer.concat([Buffer.from(`--${BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: ${jpeg.length}\r\n\r\n`), jpeg, Buffer.from("\r\n")]);
+      // the stabilizer: frames in and out as a 4-byte length and a JPEG, motion figures on stderr
+      function startStab() {
+        if (stab || !stabViewers.size) return;
+        const proc = spawn(python, [stabilizeScript], {stdio: ["pipe", "pipe", "pipe"]});
+        const s = {proc, buf: Buffer.alloc(0), err: ""};
+        stab = s;
+        proc.stdin.on("error", () => {});
+        proc.on("error", e => { s.err += `\n${e.message}`; });
+        proc.stdout.on("data", d => {
+          s.buf = Buffer.concat([s.buf, d]);
+          while (s.buf.length >= 4 && s.buf.length >= 4 + s.buf.readUInt32BE(0)) {
+            const n = s.buf.readUInt32BE(0), jpeg = s.buf.subarray(4, 4 + n);
+            s.buf = s.buf.subarray(4 + n);
+            for (const v of stabViewers) v.write(part(jpeg));
+          }
+        });
+        proc.stderr.on("data", d => {
+          s.err = (s.err + d).slice(-2000);
+          for (const line of String(d).split("\n")) {
+            try { const m = JSON.parse(line); if (m.stab) camSend({stab: m.stab}); } catch {}
+          }
+        });
+        proc.on("close", code => {
+          if (stab === s) stab = null;
+          if (stabViewers.size) camSend({stab: {error: s.err.trim().split("\n").pop() || `stabilizer exited ${code}`}});
+        });
+      }
+      let cam = null, camLinger = null, camRetry = null, camFrames = [], camLast = 0, camState = {state: "off"};
+      const camSend = patch => { camState = {...camState, ...patch}; send({camera: camState}); };
+      function startCamera() {
+        clearTimeout(camRetry);
+        if (cam || !viewers.size) return;
+        const proc = spawn("ssh", [...SSH_OPTS, host, CAMERA_PIPELINE], {stdio: ["pipe", "pipe", "pipe"]});
+        const c = {proc, buf: Buffer.alloc(0), stderr: ""};
+        cam = c; camLast = Date.now(); camFrames = [];
+        camSend({state: "starting", error: "", fps: 0});
+        proc.stderr.on("data", d => { c.stderr = (c.stderr + d).slice(-600); });
+        proc.stdout.on("data", d => {
+          c.buf = Buffer.concat([c.buf, d]);
+          for (;;) {
+            const head = c.buf.indexOf("\r\n\r\n");
+            if (head < 0) break;
+            const length = /Content-Length: *(\d+)/i.exec(c.buf.subarray(0, head).toString("latin1"));
+            if (!length) { c.buf = c.buf.subarray(head + 4); continue; }
+            const end = head + 4 + Number(length[1]);
+            if (c.buf.length < end) break;
+            const jpeg = c.buf.subarray(head + 4, end);
+            c.buf = c.buf.subarray(end);
+            camLast = Date.now(); camFrames.push(camLast);
+            for (const v of viewers) if (!stabViewers.has(v)) v.write(part(jpeg));
+            if (stabViewers.size) {
+              startStab();
+              if (stab?.proc.stdin.writableLength < 2e6) {   // a stalled stabilizer drops frames instead of queueing them
+                const head = Buffer.alloc(4); head.writeUInt32BE(jpeg.length);
+                stab.proc.stdin.write(Buffer.concat([head, jpeg]));
+              }
+            }
+          }
+          if (c.buf.length > 4e6) c.buf = Buffer.alloc(0);  // no header found in 4 MB: not our stream, start over
+        });
+        proc.on("exit", code => {
+          if (cam === c) cam = null;
+          const error = c.stderr.trim().split("\n").filter(l => !/quantum|store now|upgraded/.test(l)).pop() ?? "";
+          if (!viewers.size) return camSend({state: "off", fps: 0});
+          camSend({state: "closed", fps: 0, error: error || `gst-launch exited ${code}`});
+          camRetry = setTimeout(startCamera, 3000);
+        });
+      }
+      setInterval(() => {
+        if (!cam) return;
+        const now = Date.now();
+        camFrames = camFrames.filter(t => t > now - 2000);
+        if (now - camLast > CAMERA_SILENT_S * 1000) { cam.stderr += "\n6 秒没有新画面"; cam.proc.kill(); return; }
+        camSend({state: camFrames.length ? "streaming" : "starting", fps: camFrames.length / 2});
+      }, 1000).unref();
+      // a Vite restart (config edit) builds a new bridge in the same process: end this one's SSH sessions
+      server.httpServer?.on("close", () => {
+        for (const p of [child, writer?.proc, cam?.proc, stab?.proc]) p?.kill();
+        viewers.clear(); stabViewers.clear();
+      });
+      server.middlewares.use("/api/a7z/camera", (req, res) => {
+        res.writeHead(200, {"Content-Type": `multipart/x-mixed-replace; boundary=${BOUNDARY}`, "Cache-Control": "no-cache, no-store",
+                            Connection: "keep-alive"});
+        viewers.add(res); clearTimeout(camLinger);
+        if (new URL(req.originalUrl ?? req.url, "http://x").searchParams.get("stab") === "1") { stabViewers.add(res); startStab(); }
+        startCamera();
+        req.on("close", () => {
+          viewers.delete(res); stabViewers.delete(res);
+          if (!stabViewers.size && stab) { stab.proc.kill(); camSend({stab: null}); }
+          if (!viewers.size) camLinger = setTimeout(() => { clearTimeout(camRetry); cam?.proc.kill(); }, CAMERA_LINGER_S * 1000);
+        });
+      });
+
       server.middlewares.use("/api/a7z/cmd", (req, res) => {
         if (req.method !== "POST") { res.statusCode = 405; return res.end(); }
         let body = "";

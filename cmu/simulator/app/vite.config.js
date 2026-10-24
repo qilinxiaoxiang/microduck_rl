@@ -6,7 +6,8 @@ import {shellRunner} from "./shell-runner.mjs";
 
 export default defineConfig({
   plugins: [react(), a7zBridge({script: fileURLToPath(new URL("../desktop/duck-telemetry.py", import.meta.url)),
-    commandScript: fileURLToPath(new URL("../desktop/duck-command.py", import.meta.url))}),
+    commandScript: fileURLToPath(new URL("../desktop/duck-command.py", import.meta.url)),
+    stabilizeScript: fileURLToPath(new URL("../desktop/duck-stabilize.py", import.meta.url))}),
     shellRunner({cwd: fileURLToPath(new URL("../..", import.meta.url))})],
   // MuJoCo WASM and onnxruntime-web stay on the CDN (dynamic import with
   // @vite-ignore in game/boot.js), exactly like the pre-Vite app: their

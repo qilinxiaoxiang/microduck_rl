@@ -156,6 +156,13 @@
     <mesh name="sole_right" file="sole_right.stl"/>
     <mesh name="power_support" file="power_support.stl"/>
     <mesh name="motor_support" file="motor_support.stl"/>
+    <mesh name="cmu_jaw_soft__dark" file="../../../../../cmu/model/visual/frozen/jaw_soft__dark.stl"/>
+    <mesh name="cmu_jaw_soft__gold" file="../../../../../cmu/model/visual/frozen/jaw_soft__gold.stl"/>
+    <mesh name="cmu_jaw_soft__light" file="../../../../../cmu/model/visual/frozen/jaw_soft__light.stl"/>
+    <mesh name="cmu_jaw_soft__metal" file="../../../../../cmu/model/visual/frozen/jaw_soft__metal.stl"/>
+    <mesh name="cmu_jaw_soft__orange" file="../../../../../cmu/model/visual/frozen/jaw_soft__orange.stl"/>
+    <mesh name="cmu_jaw_soft__pcb_blue" file="../../../../../cmu/model/visual/frozen/jaw_soft__pcb_blue.stl"/>
+    <mesh name="cmu_jaw_soft__pcb_green" file="../../../../../cmu/model/visual/frozen/jaw_soft__pcb_green.stl"/>
     <mesh name="cmu_ankle_left__black" file="../../../../../cmu/model/visual/meshes/ankle_left__black.stl"/>
     <mesh name="cmu_ankle_left__orange" file="../../../../../cmu/model/visual/meshes/ankle_left__orange.stl"/>
     <mesh name="cmu_ankle_left__yellow" file="../../../../../cmu/model/visual/meshes/ankle_left__yellow.stl"/>
@@ -170,13 +177,6 @@
     <mesh name="cmu_hip_l_2__black" file="../../../../../cmu/model/visual/meshes/hip_l_2__black.stl"/>
     <mesh name="cmu_hip_l_2__orange" file="../../../../../cmu/model/visual/meshes/hip_l_2__orange.stl"/>
     <mesh name="cmu_jaw_soft__black" file="../../../../../cmu/model/visual/meshes/jaw_soft__black.stl"/>
-    <mesh name="cmu_jaw_soft__dark" file="../../../../../cmu/model/visual/meshes/jaw_soft__dark.stl"/>
-    <mesh name="cmu_jaw_soft__gold" file="../../../../../cmu/model/visual/meshes/jaw_soft__gold.stl"/>
-    <mesh name="cmu_jaw_soft__light" file="../../../../../cmu/model/visual/meshes/jaw_soft__light.stl"/>
-    <mesh name="cmu_jaw_soft__metal" file="../../../../../cmu/model/visual/meshes/jaw_soft__metal.stl"/>
-    <mesh name="cmu_jaw_soft__orange" file="../../../../../cmu/model/visual/meshes/jaw_soft__orange.stl"/>
-    <mesh name="cmu_jaw_soft__pcb_blue" file="../../../../../cmu/model/visual/meshes/jaw_soft__pcb_blue.stl"/>
-    <mesh name="cmu_jaw_soft__pcb_green" file="../../../../../cmu/model/visual/meshes/jaw_soft__pcb_green.stl"/>
     <mesh name="cmu_jaw_soft__servo" file="../../../../../cmu/model/visual/meshes/jaw_soft__servo.stl"/>
     <mesh name="cmu_jaw_soft__white" file="../../../../../cmu/model/visual/meshes/jaw_soft__white.stl"/>
     <mesh name="cmu_jaw_soft__yellow" file="../../../../../cmu/model/visual/meshes/jaw_soft__yellow.stl"/>
@@ -190,7 +190,6 @@
     <mesh name="cmu_neck__orange" file="../../../../../cmu/model/visual/meshes/neck__orange.stl"/>
     <mesh name="cmu_neck__servo" file="../../../../../cmu/model/visual/meshes/neck__servo.stl"/>
     <mesh name="cmu_neck_pitch__black" file="../../../../../cmu/model/visual/meshes/neck_pitch__black.stl"/>
-    <mesh name="cmu_neck_pitch__orange" file="../../../../../cmu/model/visual/meshes/neck_pitch__orange.stl"/>
     <mesh name="cmu_trunk_base__black" file="../../../../../cmu/model/visual/meshes/trunk_base__black.stl"/>
     <mesh name="cmu_trunk_base__dark" file="../../../../../cmu/model/visual/meshes/trunk_base__dark.stl"/>
     <mesh name="cmu_trunk_base__light" file="../../../../../cmu/model/visual/meshes/trunk_base__light.stl"/>
@@ -276,7 +275,6 @@
           <inertial pos="0.00169167 0.00744211 -0.0183004" quat="0.980322 -0.108562 -0.0580264 -0.154325" mass="0.011849" diaginertia="2.91419e-06 2.71846e-06 1.53104e-06"/>
           <joint name="head_pitch" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
           <geom name="cmu_neck_pitch__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_neck_pitch__black"/>
-          <geom name="cmu_neck_pitch__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_neck_pitch__orange"/>
           <body name="yaw_roll_motion" pos="0 0.0186931 -0.0145" quat="0 0 -0.707107 -0.707107">
             <inertial pos="-0.000662563 -0.00449347 0.0182996" quat="0.208355 0.690888 -0.0625975 0.689451" mass="0.0539567" diaginertia="1.12705e-05 9.28245e-06 8.1778e-06"/>
             <joint name="head_yaw" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-2.96706 2.96706"/>
@@ -288,7 +286,6 @@
               <geom class="collision" pos="-0.0045 0 -0.018" quat="0.5 0.5 0.5 0.5" type="mesh" material="top_head_shell_material" mesh="top_head_shell"/>
               <geom class="collision" pos="-0.0045 0 -0.018" quat="0.5 0.5 0.5 0.5" type="mesh" material="jaw_material" mesh="jaw"/>
               <geom class="collision" pos="-0.0043 0 -0.018" quat="0.5 0.5 0.5 0.5" type="mesh" material="bottom_head_shell_material" mesh="bottom_head_shell"/>
-              <geom name="cmu_jaw_soft__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_jaw_soft__black"/>
               <geom name="cmu_jaw_soft__dark" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.2 0.2 0.22 1" mesh="cmu_jaw_soft__dark"/>
               <geom name="cmu_jaw_soft__gold" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.8 0.62 0.25 1" mesh="cmu_jaw_soft__gold"/>
               <geom name="cmu_jaw_soft__light" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.9 0.88 0.82 1" mesh="cmu_jaw_soft__light"/>
@@ -296,6 +293,7 @@
               <geom name="cmu_jaw_soft__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_jaw_soft__orange"/>
               <geom name="cmu_jaw_soft__pcb_blue" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.15 0.3 0.62 1" mesh="cmu_jaw_soft__pcb_blue"/>
               <geom name="cmu_jaw_soft__pcb_green" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.15 0.4 0.28 1" mesh="cmu_jaw_soft__pcb_green"/>
+              <geom name="cmu_jaw_soft__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_jaw_soft__black"/>
               <geom name="cmu_jaw_soft__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_jaw_soft__servo"/>
               <geom name="cmu_jaw_soft__white" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.93 0.93 0.91 1" mesh="cmu_jaw_soft__white"/>
               <geom name="cmu_jaw_soft__yellow" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="1 0.8 0.1 1" mesh="cmu_jaw_soft__yellow"/>

@@ -1,9 +1,107 @@
 {
  "source": "microduck-sim/guide/data/guide-data.json",
- "guide_revision": "guide-20261015-backpack",
+ "guide_revision": "guide-20261022-saddle",
  "fitted": "fitted.json",
  "frame": "official body frames, metres",
  "geoms": [
+  {
+   "mesh": "jaw_soft__dark",
+   "file": "frozen/jaw_soft__dark.stl",
+   "body": "jaw_soft",
+   "colour": "dark",
+   "rgba": [
+    0.2,
+    0.2,
+    0.22,
+    1
+   ],
+   "faces": 4558,
+   "frozen": true
+  },
+  {
+   "mesh": "jaw_soft__gold",
+   "file": "frozen/jaw_soft__gold.stl",
+   "body": "jaw_soft",
+   "colour": "gold",
+   "rgba": [
+    0.8,
+    0.62,
+    0.25,
+    1
+   ],
+   "faces": 3664,
+   "frozen": true
+  },
+  {
+   "mesh": "jaw_soft__light",
+   "file": "frozen/jaw_soft__light.stl",
+   "body": "jaw_soft",
+   "colour": "light",
+   "rgba": [
+    0.9,
+    0.88,
+    0.82,
+    1
+   ],
+   "faces": 36,
+   "frozen": true
+  },
+  {
+   "mesh": "jaw_soft__metal",
+   "file": "frozen/jaw_soft__metal.stl",
+   "body": "jaw_soft",
+   "colour": "metal",
+   "rgba": [
+    0.72,
+    0.73,
+    0.74,
+    1
+   ],
+   "faces": 1712,
+   "frozen": true
+  },
+  {
+   "mesh": "jaw_soft__orange",
+   "file": "frozen/jaw_soft__orange.stl",
+   "body": "jaw_soft",
+   "colour": "orange",
+   "rgba": [
+    0.95,
+    0.45,
+    0.06,
+    1
+   ],
+   "faces": 1068,
+   "frozen": true
+  },
+  {
+   "mesh": "jaw_soft__pcb_blue",
+   "file": "frozen/jaw_soft__pcb_blue.stl",
+   "body": "jaw_soft",
+   "colour": "pcb_blue",
+   "rgba": [
+    0.15,
+    0.3,
+    0.62,
+    1
+   ],
+   "faces": 12,
+   "frozen": true
+  },
+  {
+   "mesh": "jaw_soft__pcb_green",
+   "file": "frozen/jaw_soft__pcb_green.stl",
+   "body": "jaw_soft",
+   "colour": "pcb_green",
+   "rgba": [
+    0.15,
+    0.4,
+    0.28,
+    1
+   ],
+   "faces": 3128,
+   "frozen": true
+  },
   {
    "mesh": "ankle_left__black",
    "file": "meshes/ankle_left__black.stl",
@@ -28,7 +126,7 @@
     0.06,
     1
    ],
-   "faces": 8170
+   "faces": 6634
   },
   {
    "mesh": "ankle_left__yellow",
@@ -41,7 +139,7 @@
     0.1,
     1
    ],
-   "faces": 16108
+   "faces": 18000
   },
   {
    "mesh": "ankle_right__black",
@@ -67,7 +165,7 @@
     0.06,
     1
    ],
-   "faces": 8550
+   "faces": 7026
   },
   {
    "mesh": "ankle_right__yellow",
@@ -80,7 +178,7 @@
     0.1,
     1
    ],
-   "faces": 15844
+   "faces": 18000
   },
   {
    "mesh": "bearing_roll__black",
@@ -119,7 +217,7 @@
     0.18,
     1
    ],
-   "faces": 7034
+   "faces": 7162
   },
   {
    "mesh": "hip_l__black",
@@ -187,97 +285,6 @@
    "faces": 7504
   },
   {
-   "mesh": "jaw_soft__dark",
-   "file": "meshes/jaw_soft__dark.stl",
-   "body": "jaw_soft",
-   "colour": "dark",
-   "rgba": [
-    0.2,
-    0.2,
-    0.22,
-    1
-   ],
-   "faces": 4558
-  },
-  {
-   "mesh": "jaw_soft__gold",
-   "file": "meshes/jaw_soft__gold.stl",
-   "body": "jaw_soft",
-   "colour": "gold",
-   "rgba": [
-    0.8,
-    0.62,
-    0.25,
-    1
-   ],
-   "faces": 3664
-  },
-  {
-   "mesh": "jaw_soft__light",
-   "file": "meshes/jaw_soft__light.stl",
-   "body": "jaw_soft",
-   "colour": "light",
-   "rgba": [
-    0.9,
-    0.88,
-    0.82,
-    1
-   ],
-   "faces": 36
-  },
-  {
-   "mesh": "jaw_soft__metal",
-   "file": "meshes/jaw_soft__metal.stl",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "rgba": [
-    0.72,
-    0.73,
-    0.74,
-    1
-   ],
-   "faces": 1712
-  },
-  {
-   "mesh": "jaw_soft__orange",
-   "file": "meshes/jaw_soft__orange.stl",
-   "body": "jaw_soft",
-   "colour": "orange",
-   "rgba": [
-    0.95,
-    0.45,
-    0.06,
-    1
-   ],
-   "faces": 2676
-  },
-  {
-   "mesh": "jaw_soft__pcb_blue",
-   "file": "meshes/jaw_soft__pcb_blue.stl",
-   "body": "jaw_soft",
-   "colour": "pcb_blue",
-   "rgba": [
-    0.15,
-    0.3,
-    0.62,
-    1
-   ],
-   "faces": 12
-  },
-  {
-   "mesh": "jaw_soft__pcb_green",
-   "file": "meshes/jaw_soft__pcb_green.stl",
-   "body": "jaw_soft",
-   "colour": "pcb_green",
-   "rgba": [
-    0.15,
-    0.4,
-    0.28,
-    1
-   ],
-   "faces": 3128
-  },
-  {
    "mesh": "jaw_soft__servo",
    "file": "meshes/jaw_soft__servo.stl",
    "body": "jaw_soft",
@@ -288,7 +295,7 @@
     0.18,
     1
    ],
-   "faces": 10614
+   "faces": 14602
   },
   {
    "mesh": "jaw_soft__white",
@@ -314,7 +321,7 @@
     0.1,
     1
    ],
-   "faces": 12000
+   "faces": 18000
   },
   {
    "mesh": "jaw_soft__jaw_yellow",
@@ -367,7 +374,7 @@
     0.18,
     1
    ],
-   "faces": 7597
+   "faces": 7307
   },
   {
    "mesh": "leg_2__black",
@@ -406,7 +413,7 @@
     0.18,
     1
    ],
-   "faces": 7584
+   "faces": 7300
   },
   {
    "mesh": "neck__orange",
@@ -432,7 +439,7 @@
     0.18,
     1
    ],
-   "faces": 10429
+   "faces": 14484
   },
   {
    "mesh": "neck_pitch__black",
@@ -446,19 +453,6 @@
     1
    ],
    "faces": 12000
-  },
-  {
-   "mesh": "neck_pitch__orange",
-   "file": "meshes/neck_pitch__orange.stl",
-   "body": "neck_pitch",
-   "colour": "orange",
-   "rgba": [
-    0.95,
-    0.45,
-    0.06,
-    1
-   ],
-   "faces": 914
   },
   {
    "mesh": "trunk_base__black",
@@ -523,7 +517,7 @@
     0.62,
     1
    ],
-   "faces": 16074
+   "faces": 32395
   },
   {
    "mesh": "trunk_base__pcb_green",
@@ -536,7 +530,7 @@
     0.28,
     1
    ],
-   "faces": 4719
+   "faces": 4705
   },
   {
    "mesh": "trunk_base__servo",
@@ -549,7 +543,7 @@
     0.18,
     1
    ],
-   "faces": 10579
+   "faces": 14521
   },
   {
    "mesh": "trunk_base__white",
@@ -588,7 +582,7 @@
     0.18,
     1
    ],
-   "faces": 10471
+   "faces": 14471
   },
   {
    "mesh": "upper_leg_left__white",
@@ -627,7 +621,7 @@
     0.18,
     1
    ],
-   "faces": 10415
+   "faces": 14483
   },
   {
    "mesh": "upper_leg_right__white",
@@ -679,7 +673,7 @@
     0.18,
     1
    ],
-   "faces": 7017
+   "faces": 7150
   },
   {
    "mesh": "yaw_roll_motion__black",
@@ -705,7 +699,7 @@
     0.18,
     1
    ],
-   "faces": 7525
+   "faces": 7231
   }
  ],
  "jaw": {
@@ -728,6 +722,104 @@
  "variants": {
   "battery": {
    "geoms": [
+    {
+     "mesh": "jaw_soft__dark",
+     "file": "frozen/jaw_soft__dark.stl",
+     "body": "jaw_soft",
+     "colour": "dark",
+     "rgba": [
+      0.2,
+      0.2,
+      0.22,
+      1
+     ],
+     "faces": 4558,
+     "frozen": true
+    },
+    {
+     "mesh": "jaw_soft__gold",
+     "file": "frozen/jaw_soft__gold.stl",
+     "body": "jaw_soft",
+     "colour": "gold",
+     "rgba": [
+      0.8,
+      0.62,
+      0.25,
+      1
+     ],
+     "faces": 3664,
+     "frozen": true
+    },
+    {
+     "mesh": "jaw_soft__light",
+     "file": "frozen/jaw_soft__light.stl",
+     "body": "jaw_soft",
+     "colour": "light",
+     "rgba": [
+      0.9,
+      0.88,
+      0.82,
+      1
+     ],
+     "faces": 36,
+     "frozen": true
+    },
+    {
+     "mesh": "jaw_soft__metal",
+     "file": "frozen/jaw_soft__metal.stl",
+     "body": "jaw_soft",
+     "colour": "metal",
+     "rgba": [
+      0.72,
+      0.73,
+      0.74,
+      1
+     ],
+     "faces": 1712,
+     "frozen": true
+    },
+    {
+     "mesh": "jaw_soft__orange",
+     "file": "frozen/jaw_soft__orange.stl",
+     "body": "jaw_soft",
+     "colour": "orange",
+     "rgba": [
+      0.95,
+      0.45,
+      0.06,
+      1
+     ],
+     "faces": 1068,
+     "frozen": true
+    },
+    {
+     "mesh": "jaw_soft__pcb_blue",
+     "file": "frozen/jaw_soft__pcb_blue.stl",
+     "body": "jaw_soft",
+     "colour": "pcb_blue",
+     "rgba": [
+      0.15,
+      0.3,
+      0.62,
+      1
+     ],
+     "faces": 12,
+     "frozen": true
+    },
+    {
+     "mesh": "jaw_soft__pcb_green",
+     "file": "frozen/jaw_soft__pcb_green.stl",
+     "body": "jaw_soft",
+     "colour": "pcb_green",
+     "rgba": [
+      0.15,
+      0.4,
+      0.28,
+      1
+     ],
+     "faces": 3128,
+     "frozen": true
+    },
     {
      "mesh": "ankle_left__black",
      "file": "meshes/ankle_left__black.stl",
@@ -752,7 +844,7 @@
       0.06,
       1
      ],
-     "faces": 8170
+     "faces": 6634
     },
     {
      "mesh": "ankle_left__yellow",
@@ -765,7 +857,7 @@
       0.1,
       1
      ],
-     "faces": 16108
+     "faces": 18000
     },
     {
      "mesh": "ankle_right__black",
@@ -791,7 +883,7 @@
       0.06,
       1
      ],
-     "faces": 8550
+     "faces": 7026
     },
     {
      "mesh": "ankle_right__yellow",
@@ -804,7 +896,7 @@
       0.1,
       1
      ],
-     "faces": 15844
+     "faces": 18000
     },
     {
      "mesh": "bearing_roll__black",
@@ -843,7 +935,7 @@
       0.18,
       1
      ],
-     "faces": 7034
+     "faces": 7162
     },
     {
      "mesh": "hip_l__black",
@@ -911,97 +1003,6 @@
      "faces": 7504
     },
     {
-     "mesh": "jaw_soft__dark",
-     "file": "meshes/jaw_soft__dark.stl",
-     "body": "jaw_soft",
-     "colour": "dark",
-     "rgba": [
-      0.2,
-      0.2,
-      0.22,
-      1
-     ],
-     "faces": 4558
-    },
-    {
-     "mesh": "jaw_soft__gold",
-     "file": "meshes/jaw_soft__gold.stl",
-     "body": "jaw_soft",
-     "colour": "gold",
-     "rgba": [
-      0.8,
-      0.62,
-      0.25,
-      1
-     ],
-     "faces": 3664
-    },
-    {
-     "mesh": "jaw_soft__light",
-     "file": "meshes/jaw_soft__light.stl",
-     "body": "jaw_soft",
-     "colour": "light",
-     "rgba": [
-      0.9,
-      0.88,
-      0.82,
-      1
-     ],
-     "faces": 36
-    },
-    {
-     "mesh": "jaw_soft__metal",
-     "file": "meshes/jaw_soft__metal.stl",
-     "body": "jaw_soft",
-     "colour": "metal",
-     "rgba": [
-      0.72,
-      0.73,
-      0.74,
-      1
-     ],
-     "faces": 1712
-    },
-    {
-     "mesh": "jaw_soft__orange",
-     "file": "meshes/jaw_soft__orange.stl",
-     "body": "jaw_soft",
-     "colour": "orange",
-     "rgba": [
-      0.95,
-      0.45,
-      0.06,
-      1
-     ],
-     "faces": 2676
-    },
-    {
-     "mesh": "jaw_soft__pcb_blue",
-     "file": "meshes/jaw_soft__pcb_blue.stl",
-     "body": "jaw_soft",
-     "colour": "pcb_blue",
-     "rgba": [
-      0.15,
-      0.3,
-      0.62,
-      1
-     ],
-     "faces": 12
-    },
-    {
-     "mesh": "jaw_soft__pcb_green",
-     "file": "meshes/jaw_soft__pcb_green.stl",
-     "body": "jaw_soft",
-     "colour": "pcb_green",
-     "rgba": [
-      0.15,
-      0.4,
-      0.28,
-      1
-     ],
-     "faces": 3128
-    },
-    {
      "mesh": "jaw_soft__servo",
      "file": "meshes/jaw_soft__servo.stl",
      "body": "jaw_soft",
@@ -1012,7 +1013,7 @@
       0.18,
       1
      ],
-     "faces": 10614
+     "faces": 14602
     },
     {
      "mesh": "jaw_soft__white",
@@ -1038,7 +1039,7 @@
       0.1,
       1
      ],
-     "faces": 12000
+     "faces": 18000
     },
     {
      "mesh": "jaw_soft__jaw_yellow",
@@ -1091,7 +1092,7 @@
       0.18,
       1
      ],
-     "faces": 7597
+     "faces": 7307
     },
     {
      "mesh": "leg_2__black",
@@ -1130,7 +1131,7 @@
       0.18,
       1
      ],
-     "faces": 7584
+     "faces": 7300
     },
     {
      "mesh": "neck__orange",
@@ -1156,7 +1157,7 @@
       0.18,
       1
      ],
-     "faces": 10429
+     "faces": 14484
     },
     {
      "mesh": "neck_pitch__black",
@@ -1170,19 +1171,6 @@
       1
      ],
      "faces": 12000
-    },
-    {
-     "mesh": "neck_pitch__orange",
-     "file": "meshes/neck_pitch__orange.stl",
-     "body": "neck_pitch",
-     "colour": "orange",
-     "rgba": [
-      0.95,
-      0.45,
-      0.06,
-      1
-     ],
-     "faces": 914
     },
     {
      "mesh": "trunk_base__black",
@@ -1247,7 +1235,7 @@
       0.06,
       1
      ],
-     "faces": 11998
+     "faces": 17998
     },
     {
      "mesh": "trunk_base__pcb_blue__battery",
@@ -1260,7 +1248,7 @@
       0.62,
       1
      ],
-     "faces": 4790
+     "faces": 9120
     },
     {
      "mesh": "trunk_base__pcb_green__battery",
@@ -1273,7 +1261,7 @@
       0.28,
       1
      ],
-     "faces": 4719
+     "faces": 4709
     },
     {
      "mesh": "trunk_base__servo",
@@ -1286,7 +1274,7 @@
       0.18,
       1
      ],
-     "faces": 10579
+     "faces": 14521
     },
     {
      "mesh": "trunk_base__white",
@@ -1325,7 +1313,7 @@
       0.18,
       1
      ],
-     "faces": 10471
+     "faces": 14471
     },
     {
      "mesh": "upper_leg_left__white",
@@ -1364,7 +1352,7 @@
       0.18,
       1
      ],
-     "faces": 10415
+     "faces": 14483
     },
     {
      "mesh": "upper_leg_right__white",
@@ -1416,7 +1404,7 @@
       0.18,
       1
      ],
-     "faces": 7017
+     "faces": 7150
     },
     {
      "mesh": "yaw_roll_motion__black",
@@ -1442,7 +1430,7 @@
       0.18,
       1
      ],
-     "faces": 7525
+     "faces": 7231
     }
    ]
   }
@@ -1452,7 +1440,8 @@
    "key": "amplifier",
    "name": "MAX98357A I2S amplifier with five soldered wires and the terminal block",
    "body": "jaw_soft",
-   "colour": "pcb_green"
+   "colour": "pcb_green",
+   "frozen": true
   },
   {
    "key": "ankle",
@@ -1470,65 +1459,46 @@
    "key": "antenna",
    "name": "AC019 Wi-Fi antenna (FPC sticker, 42 x 11.9 mm) inside the cap roof",
    "body": "jaw_soft",
-   "colour": "gold"
+   "colour": "gold",
+   "frozen": true
   },
   {
    "key": "antenna_coax",
    "name": "AC019 antenna cable (50 mm coax)",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "antenna_ipex",
    "name": "AC019 IPEX plug on the A7Z antenna socket",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "camera_board",
    "name": "Radxa Camera 13M 214 (IMX214), connector edge to the left (+Y), with the first part of its ribbon",
    "body": "jaw_soft",
-   "colour": "pcb_green"
+   "colour": "pcb_green",
+   "frozen": true
   },
   {
    "key": "camera_ribbon",
    "name": "Camera ribbon, A7Z end (150 mm, 31-pin, contacts towards the board)",
    "body": "jaw_soft",
-   "colour": "gold"
-  },
-  {
-   "key": "clip_bracket",
-   "name": "Bracket wire clip (new print)",
-   "body": "neck_pitch",
-   "colour": "orange"
-  },
-  {
-   "key": "clip_cap",
-   "name": "Cap wire clip with the micro HDMI notch (A7Z print, orange)",
-   "body": "jaw_soft",
-   "colour": "orange"
-  },
-  {
-   "key": "clip_head",
-   "name": "Head wire clip (new print)",
-   "body": "jaw_soft",
-   "colour": "orange"
-  },
-  {
-   "key": "clip_torso",
-   "name": "Torso wire clip (new print)",
-   "body": "trunk_base",
-   "colour": "orange"
+   "colour": "gold",
+   "frozen": true
   },
   {
    "key": "eye_trim",
-   "name": "Eye Trim",
+   "name": "Eye trim, bore dia 16.2 for the U20CAM lens ring (V1.30 print, black)",
    "body": "jaw_soft",
    "colour": "black"
   },
   {
    "key": "face_panel",
-   "name": "Face panel with four camera bosses (A7Z print, white)",
+   "name": "Face panel with four camera bosses for the U20CAM (V1.30 print, white)",
    "body": "jaw_soft",
    "colour": "white"
   },
@@ -1540,13 +1510,13 @@
   },
   {
    "key": "head_bottom",
-   "name": "Lower head shell",
+   "name": "Lower head shell with the dia 11 left-rear exit and six floor ports (V1.32 print, yellow, or the V1.30 shell drilled)",
    "body": "jaw_soft",
    "colour": "yellow"
   },
   {
    "key": "head_cap",
-   "name": "Head cap for the A7Z: V1.9 cap with relieved board rails and two end slots (white)",
+   "name": "Head cap with two ears and no speaker collar (V1.32 print, white; D-025)",
    "body": "jaw_soft",
    "colour": "white"
   },
@@ -1554,439 +1524,512 @@
    "key": "head_pi_a7z_csi_connector",
    "name": "A7Z camera connector (31-pin, underside, pin-1 end)",
    "body": "jaw_soft",
-   "colour": "light"
+   "colour": "light",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_fan_connector",
    "name": "A7Z fan socket",
    "body": "jaw_soft",
-   "colour": "light"
+   "colour": "light",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_ipex_socket",
    "name": "A7Z antenna socket (IPEX)",
    "body": "jaw_soft",
-   "colour": "gold"
+   "colour": "gold",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_micro_hdmi",
    "name": "A7Z micro HDMI",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_microsd_card",
    "name": "microSD card in the A7Z",
    "body": "jaw_soft",
-   "colour": "pcb_blue"
+   "colour": "pcb_blue",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_microsd_socket",
    "name": "A7Z microSD socket",
    "body": "jaw_soft",
-   "colour": "dark"
+   "colour": "dark",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_pcie_fpc",
    "name": "A7Z PCIe connector",
    "body": "jaw_soft",
-   "colour": "light"
+   "colour": "light",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_pmic_area",
    "name": "A7Z power chip area",
    "body": "jaw_soft",
-   "colour": "dark"
+   "colour": "dark",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_ram",
    "name": "A7Z memory",
    "body": "jaw_soft",
-   "colour": "dark"
+   "colour": "dark",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_soc_a733",
    "name": "A7Z processor (Allwinner A733)",
    "body": "jaw_soft",
-   "colour": "dark"
+   "colour": "dark",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_uboot_button",
    "name": "A7Z boot button",
    "body": "jaw_soft",
-   "colour": "dark"
+   "colour": "dark",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_underside_smd",
    "name": "A7Z underside components",
    "body": "jaw_soft",
-   "colour": "dark"
+   "colour": "dark",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_usb_c_otg_dp",
    "name": "A7Z USB-C (OTG, DisplayPort)",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_usb_c_power",
    "name": "A7Z USB-C power",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_a7z_wifi_module_fcu760k",
    "name": "A7Z Wi-Fi module",
    "body": "jaw_soft",
-   "colour": "dark"
+   "colour": "dark",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_01_receiving",
    "name": "Jumper-wire end on A7Z pin 1",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_02_receiving",
    "name": "Jumper-wire end on A7Z pin 2",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_03_receiving",
    "name": "Jumper-wire end on A7Z pin 3",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_04_receiving",
    "name": "Jumper-wire end on A7Z pin 4",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_05_receiving",
    "name": "Jumper-wire end on A7Z pin 5",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_06_receiving",
    "name": "Jumper-wire end on A7Z pin 6",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_07_receiving",
    "name": "Jumper-wire end on A7Z pin 7",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_09_receiving",
    "name": "Jumper-wire end on A7Z pin 9",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_11_receiving",
    "name": "Jumper-wire end on A7Z pin 11",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_12_receiving",
    "name": "Jumper-wire end on A7Z pin 12",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_17_receiving",
    "name": "Jumper-wire end on A7Z pin 17",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_25_receiving",
    "name": "Jumper-wire end on A7Z pin 25",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_29_receiving",
    "name": "Jumper-wire end on A7Z pin 29",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_31_receiving",
    "name": "Jumper-wire end on A7Z pin 31",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_35_receiving",
    "name": "Jumper-wire end on A7Z pin 35",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_39_receiving",
    "name": "Jumper-wire end on A7Z pin 39",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_gpio_pin_40_receiving",
    "name": "Jumper-wire end on A7Z pin 40",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_base",
    "name": "Pi zero w header base",
    "body": "jaw_soft",
-   "colour": "dark"
+   "colour": "dark",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_01",
    "name": "Pi zero w header pin 01",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_02",
    "name": "Pi zero w header pin 02",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_03",
    "name": "Pi zero w header pin 03",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_04",
    "name": "Pi zero w header pin 04",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_05",
    "name": "Pi zero w header pin 05",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_06",
    "name": "Pi zero w header pin 06",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_07",
    "name": "Pi zero w header pin 07",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_08",
    "name": "Pi zero w header pin 08",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_09",
    "name": "Pi zero w header pin 09",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_10",
    "name": "Pi zero w header pin 10",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_11",
    "name": "Pi zero w header pin 11",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_12",
    "name": "Pi zero w header pin 12",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_13",
    "name": "Pi zero w header pin 13",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_14",
    "name": "Pi zero w header pin 14",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_15",
    "name": "Pi zero w header pin 15",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_16",
    "name": "Pi zero w header pin 16",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_17",
    "name": "Pi zero w header pin 17",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_18",
    "name": "Pi zero w header pin 18",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_19",
    "name": "Pi zero w header pin 19",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_20",
    "name": "Pi zero w header pin 20",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_21",
    "name": "Pi zero w header pin 21",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_22",
    "name": "Pi zero w header pin 22",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_23",
    "name": "Pi zero w header pin 23",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_24",
    "name": "Pi zero w header pin 24",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_25",
    "name": "Pi zero w header pin 25",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_26",
    "name": "Pi zero w header pin 26",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_27",
    "name": "Pi zero w header pin 27",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_28",
    "name": "Pi zero w header pin 28",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_29",
    "name": "Pi zero w header pin 29",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_30",
    "name": "Pi zero w header pin 30",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_31",
    "name": "Pi zero w header pin 31",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_32",
    "name": "Pi zero w header pin 32",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_33",
    "name": "Pi zero w header pin 33",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_34",
    "name": "Pi zero w header pin 34",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_35",
    "name": "Pi zero w header pin 35",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_36",
    "name": "Pi zero w header pin 36",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_37",
    "name": "Pi zero w header pin 37",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_38",
    "name": "Pi zero w header pin 38",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_39",
    "name": "Pi zero w header pin 39",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_pi_zero_w_header_pin_40",
    "name": "Pi zero w header pin 40",
    "body": "jaw_soft",
-   "colour": "metal"
+   "colour": "metal",
+   "frozen": true
   },
   {
    "key": "head_roll_ring_a",
@@ -2057,13 +2100,13 @@
   },
   {
    "key": "jaw_support",
-   "name": "Jaw support (restored original)",
+   "name": "Jaw support with the dia 11 left-rear exit and the fixed half of the wire clamp (V1.30 print, black)",
    "body": "jaw_soft",
    "colour": "black"
   },
   {
    "key": "lower",
-   "name": "Lower-leg link",
+   "name": "Left lower-leg link, ankle sleeve printed on (new print)",
    "body": "leg",
    "colour": "black"
   },
@@ -2209,7 +2252,8 @@
    "key": "pi",
    "name": "Radxa Cubie A7Z with soldered 40-pin header",
    "body": "jaw_soft",
-   "colour": "pcb_green"
+   "colour": "pcb_green",
+   "frozen": true
   },
   {
    "key": "plate",
@@ -2255,7 +2299,7 @@
   },
   {
    "key": "right_lower",
-   "name": "Right lower-leg link",
+   "name": "Right lower-leg link, ankle sleeve printed on (new print)",
    "body": "leg_2",
    "colour": "black"
   },
@@ -2273,7 +2317,7 @@
   },
   {
    "key": "right_smallring",
-   "name": "Right ankle sleeve, 10.4 mm bore (new print)",
+   "name": "Right ankle sleeve (V1.22, black), the inner ankle half runs on it",
    "body": "ankle_right",
    "colour": "black"
   },
@@ -2351,7 +2395,7 @@
   },
   {
    "key": "smallring",
-   "name": "Left ankle sleeve, 10.4 mm bore (new print)",
+   "name": "Left ankle sleeve (V1.22, black), the inner ankle half runs on it",
    "body": "ankle_left",
    "colour": "black"
   },
@@ -2359,19 +2403,22 @@
    "key": "speaker",
    "name": "Speaker CMS-30204-18SP, 30 x 20 x 4 mm: metal grille with seven holes towards the roof, magnet and two solder pads on the back, pads at the amplifier end",
    "body": "jaw_soft",
-   "colour": "dark"
+   "colour": "dark",
+   "frozen": true
   },
   {
    "key": "speaker_retainer",
    "name": "Speaker retainer frame (new print)",
    "body": "jaw_soft",
-   "colour": "orange"
+   "colour": "orange",
+   "frozen": true
   },
   {
    "key": "speaker_tape",
    "name": "Foam double-sided tape, two strips making one loop on the collar lip ring (pressed to 0.6 mm)",
    "body": "jaw_soft",
-   "colour": "gold"
+   "colour": "gold",
+   "frozen": true
   },
   {
    "key": "thigh",
@@ -2436,7 +2483,40 @@
   "bp_plugs",
   "bp_swap_plugs",
   "bp_switch",
+  "camera_cable_stub",
+  "camera_u20cam",
+  "exit_clamp_loose",
+  "mic_foam_left",
+  "mic_foam_right",
+  "mic_left",
+  "mic_right",
   "rear_lid",
+  "saddle_body",
+  "saddle_lid",
+  "sd_a7z_pcb",
+  "sd_antenna",
+  "sd_csi_connector",
+  "sd_dupont_housings",
+  "sd_fan",
+  "sd_fan_connector",
+  "sd_heatsink",
+  "sd_ipex_socket",
+  "sd_micro_hdmi",
+  "sd_microsd_card",
+  "sd_microsd_socket",
+  "sd_pcie_fpc",
+  "sd_pmic_area",
+  "sd_ram",
+  "sd_soc_a733",
+  "sd_thermal_pad",
+  "sd_uboot_button",
+  "sd_underside_smd",
+  "sd_usb_c_otg_dp",
+  "sd_usb_c_plug",
+  "sd_usb_c_power",
+  "sd_wifi_module_fcu760k",
+  "speaker_box",
+  "speaker_box_tape",
   "touch_pad_l1",
   "touch_pad_l2",
   "touch_pad_m",

@@ -42,6 +42,7 @@ add(MAC, "mac", [
     "duck_sense.py",  # the live page's read-only standby reader on the A7Z
     "test_teleop_modes.py", "teleop_sim_batch.py", "teleop-sim-check.json",
     "test_walk_wired_touch.py",  # Present Current and head touch pads in the tick log
+    "hold.py", "test_hold.py",  # graded hold: walk_wired.py and brain_sim_check.py import it
 ])
 add(f"{MAC}/jitter-20261018", "mac/jitter-20261018", ["jitter_sim.py", "compare.py", "osc_metrics.py", "band.py", "summ.sh"])
 add(f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016", [])  # filled below from the directory listing
@@ -117,11 +118,12 @@ add(f"{BP}/build", f"{HWB}/envelopes", ["battery-world.stl", "dfr1202-world.stl"
 add(BP, f"{HWB}/checks", ["bp_checks.json", "bp_mass.json", "bp_hip_sweep.json", "release-rows-orange.json"])
 add(f"{BP}/renders", f"{HWB}/renders", ["BP-sheet.png", "lead-bend-explainer.png"])
 add(f"{BP}/renders/team", f"{HWB}/renders", ["TEAM-sheet.png"])
-add(BP, f"{HWB}/cad-source", ["build_bp.py", "concepts.py", "bp_checks.py", "bp_mass.py", "render_bp.py", "render_team.py",
+add(BP, f"{HWB}/cad-source", ["build_bp.py", "concepts.py", "bp_checks.py", "bp_mass.py", "render_bp.py", "render_team.py", "render_concepts.py",
                               "swann_switch.py", "release_rows.py"])
 add("guide/print/world", f"{HWB}/mating", ["rear_pack.stl", "rear_frame.stl", "rear_lid.stl", "shell_left.stl", "shell_right.stl",
                                            "openrb-board-upright.stl"])
-add(PIPE, f"{HWP}/scripts", ["release_pipeline_v2.py", "verify_release_v2.py", "review_brim.py"])
+add(PIPE, f"{HWP}/scripts", ["release_pipeline_v2.py", "verify_release_v2.py", "review_brim.py",
+                             "wall_check.py", "verify_release.py", "release_pipeline.py"])  # the last three: imported by the v2 scripts
 # (3mf, member, destination): a JSON member of a project archive written out as a readable profile
 EXTRACTS = [
     (f"{REL}/run/Orange_Bambu_editable.3mf", "Metadata/project_settings.config", f"{HWP}/profiles/x1c-orange-project_settings.json"),
@@ -240,6 +242,30 @@ def rewrite(dst_rel, data: bytes) -> bytes:
     return text.encode()
 
 
+def missing_local_imports(sim: Path, pairs) -> list:
+    """(source, module) for every import in a copied .py file of a module that sits beside it in the robotics tree but
+    is not copied: the copy would fail to import (walk_wired.py imported hold.py, unsynced, from 2026-10-23)."""
+    import ast
+    copied = {src for src, _ in pairs}
+    missing = []
+    for src_rel, _ in pairs:
+        if not src_rel.endswith(".py"):
+            continue
+        src = sim / src_rel
+        for node in ast.walk(ast.parse(src.read_bytes())):
+            if isinstance(node, ast.Import):
+                mods = [n.name.split(".")[0] for n in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                mods = [node.module.split(".")[0]]
+            else:
+                continue
+            for mod in mods:
+                rel = f"{Path(src_rel).parent.as_posix()}/{mod}.py"
+                if (sim / rel).is_file() and rel not in copied:
+                    missing.append((src_rel, mod))
+    return sorted(set(missing))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--robotics", default=os.path.expanduser("~/code/robotics"))
@@ -253,6 +279,10 @@ def main():
         for p in sorted((sim / sdir).iterdir()):
             if p.is_file() and not p.name.startswith("."):
                 pairs.append((f"{sdir}/{p.name}", f"{ddir}/{p.name}"))
+    missing = missing_local_imports(sim, pairs)
+    if missing:
+        sys.exit("sync: copied files import local modules that are not synced (add them to FILES): "
+                 + "; ".join(f"{src} imports {mod}" for src, mod in missing))
     sim_copy = simulator_files(sim)
     changed = 0
     items = [(src_rel, dst_rel, None) for src_rel, dst_rel in pairs] + \

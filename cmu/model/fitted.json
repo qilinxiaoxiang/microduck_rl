@@ -1,11 +1,20 @@
 {
- "about": "What is on the CMU robot today, on top of the assembly guide's whole-robot data (make_visual.py). Source: Shawn, 2026-10-20: torso shells and thighs are white, the back carries the two-converter box without its rear lid (bench supply), the ankles and feet are the V1.22 split ankle and slip-fit feet. Colours are the printed filament colours of colour scheme C (guide/print/colour-study-20261014/make_specs.py); the guide's own colours are display colours.",
- "checked": "2026-10-20",
+ "about": "What is on the CMU robot today, on top of the assembly guide's whole-robot data (make_visual.py). Source: Shawn, 2026-10-20: torso shells and thighs are white, the back carries the two-converter box without its rear lid (bench supply), the ankles are the V1.24/V1.25 two-half ankle on the V1.22 sleeves with the V1.22 slip-fit feet (CURRENT-STATE.json ankle_bracket, 2026-10-23). The head is the 2026-10-20 A7Z head (A7Z inside, no microphones), the walking robot of FOUNDATION-20261023.md. Colours are the printed filament colours of colour scheme C (guide/print/colour-study-20261014/make_specs.py); the guide's own colours are display colours.",
+ "checked": "2026-10-24",
  "not_fitted": [
   "rear_lid",
   "battery_backpack_*",
   "bp_*",
-  "touch_*"
+  "touch_*",
+  "saddle_*",
+  "sd_*",
+  "speaker_box*",
+  "mic_*",
+  "camera_u20cam",
+  "camera_cable_stub",
+  "camera_splice_stub",
+  "exit_clamp_*",
+  "clip_*"
  ],
  "colour_overrides": {
   "thigh": "white",
@@ -125,19 +134,29 @@
   "#c9a227": "gold",
   "#c87533": "gold",
   "#f2c14e": "gold",
-  "#ff8f00": "gold"
+  "#ff8f00": "gold",
+  "#1b1b1b": "black",
+  "#1b5e20": "pcb_green",
+  "#2e7d32": "pcb_green",
+  "#37474f": "dark",
+  "#4a4a4a": "dark",
+  "#9e9e9e": "metal",
+  "#b87333": "gold"
  },
  "part_files": {
-  "ankle": "guide/print/world/ankle_base_left.stl",
-  "right_ankle": "guide/print/world/ankle_base_right.stl",
-  "ankle_cheek": "guide/print/world/ankle_cheek_left.stl",
-  "right_ankle_cheek": "guide/print/world/ankle_cheek_right.stl",
-  "smallring": "guide/print/world/ankle_sleeve_left.stl",
-  "right_smallring": "guide/print/world/ankle_sleeve_right.stl",
+  "ankle": "guide/print/world/ankle_outer_left.stl",
+  "right_ankle": "guide/print/world/ankle_outer_right.stl",
+  "ankle_cheek": "guide/print/world/ankle_inner_left.stl",
+  "right_ankle_cheek": "guide/print/world/ankle_inner_right.stl",
   "foot": "guide/print/world/foot_left.stl",
-  "right_foot": "guide/print/world/foot_right.stl"
+  "right_foot": "guide/print/world/foot_right.stl",
+  "head_cap": "guide/print/a7z-head/head_cap_a7z-world.stl",
+  "face_panel": "guide/print/face-a7z/face_panel_a7z.stl",
+  "eye_trim": "guide/print/face-a7z/eye_trim_a7z.stl",
+  "head_bottom": "guide/print/world/head_bottom_v18.stl",
+  "jaw_support": "build-pack-20260913/redesign-20260913/workflow-review-20261009/central-cad/fusion-C-meshes/jaw_support.stl"
  },
- "part_files_reason": "The guide data now carries the V1.24 two-half ankle (not printed). The robot wears the V1.22 split ankle (base on the horn, side with two M2 x 8 TAP, 10.4 mm black sleeve) and the V1.22 slip-fit feet: the world STLs of release-V1.22 (guide frame, mm).",
+ "part_files_reason": "The robot wears the V1.24/V1.25 two-half ankle (stock bracket cut at mid shaft: outer half on the horn, inner half on the V1.22 black sleeve, screwed together at the toe since 2026-10-23; microduck-sim/CURRENT-STATE.json ankle_bracket) with the V1.22 slip-fit feet: the guide/gate world files of guide/print/ankle-halves-20261020 and release-V1.22 (guide frame, mm). The guide's ankle and ankle_cheek keys draw these halves, but the files are named here so the model does not follow a later guide revision. The head shells are the 2026-10-20 A7Z head on the walking robot (V1.17 cap and face, V1.8 lower shell, original jaw support), while the guide has moved on to the extension head (U20 face, exit lower shell and jaw support, ear cap); each file matched the 2026-10-20 head meshes within their reduction error (99th percentile 0.3-1 mm) on 2026-10-24.",
  "jaw": {
   "parts": [
    "jaw_frame"
@@ -171,5 +190,256 @@
     "bp_*"
    ]
   }
+ },
+ "extra_parts": [
+  {
+   "key": "smallring",
+   "name": "Left ankle sleeve (V1.22, black), the inner ankle half runs on it",
+   "colour": "black",
+   "file": "guide/print/world/ankle_sleeve_left.stl"
+  },
+  {
+   "key": "right_smallring",
+   "name": "Right ankle sleeve (V1.22, black), the inner ankle half runs on it",
+   "colour": "black",
+   "file": "guide/print/world/ankle_sleeve_right.stl"
+  }
+ ],
+ "extra_parts_reason": "On the robot but no longer a part of the guide data (guide-20261022-saddle).",
+ "not_fitted_reason": "Rear lid off (bench supply). Battery backpack: the battery variant only. Extensions that are designed or printed but not on the walking robot (FOUNDATION-20261023.md, D-022 to D-025): the A7Z roof saddle with its board and fan, the ear microphones, the mouth speaker box, the U20CAM USB camera with its head exit clamp. Head wire clips: never fitted.",
+ "frozen": {
+  "dir": "visual/frozen",
+  "about": "Parts inside the 2026-10-20 A7Z head on the walking robot that the guide data no longer carries: the A7Z board with its header pins and sockets, the Radxa camera board and ribbon, the antenna, and the speaker retainer. The guide moved to the D-022/D-023/D-025 extension head (guide-20261022-saddle) and its generated data of the A7Z head is not kept, so these are the meshes make_visual.py wrote on 2026-10-20 from guide-20261015-backpack, kept as files (the two head wire clips, never fitted, were taken out of jaw_soft__orange). They sit inside the closed head. The head shells come from part_files; the head servos and the jaw from the guide.",
+  "groups": [
+   {
+    "mesh": "jaw_soft__dark",
+    "body": "jaw_soft",
+    "colour": "dark",
+    "parts": [
+     "head_pi_a7z_microsd_socket",
+     "head_pi_a7z_pmic_area",
+     "head_pi_a7z_ram",
+     "head_pi_a7z_soc_a733",
+     "head_pi_a7z_uboot_button",
+     "head_pi_a7z_underside_smd",
+     "head_pi_a7z_wifi_module_fcu760k",
+     "head_pi_zero_w_header_base",
+     "speaker"
+    ],
+    "names": [
+     "A7Z microSD socket",
+     "A7Z power chip area",
+     "A7Z memory",
+     "A7Z processor (Allwinner A733)",
+     "A7Z boot button",
+     "A7Z underside components",
+     "A7Z Wi-Fi module",
+     "Pi zero w header base",
+     "Speaker CMS-30204-18SP, 30 x 20 x 4 mm: metal grille with seven holes towards the roof, magnet and two solder pads on the back, pads at the amplifier end"
+    ]
+   },
+   {
+    "mesh": "jaw_soft__gold",
+    "body": "jaw_soft",
+    "colour": "gold",
+    "parts": [
+     "antenna",
+     "camera_ribbon",
+     "head_pi_a7z_ipex_socket",
+     "speaker_tape"
+    ],
+    "names": [
+     "AC019 Wi-Fi antenna (FPC sticker, 42 x 11.9 mm) inside the cap roof",
+     "Camera ribbon, A7Z end (150 mm, 31-pin, contacts towards the board)",
+     "A7Z antenna socket (IPEX)",
+     "Foam double-sided tape, two strips making one loop on the collar lip ring (pressed to 0.6 mm)"
+    ]
+   },
+   {
+    "mesh": "jaw_soft__light",
+    "body": "jaw_soft",
+    "colour": "light",
+    "parts": [
+     "head_pi_a7z_csi_connector",
+     "head_pi_a7z_fan_connector",
+     "head_pi_a7z_pcie_fpc"
+    ],
+    "names": [
+     "A7Z camera connector (31-pin, underside, pin-1 end)",
+     "A7Z fan socket",
+     "A7Z PCIe connector"
+    ]
+   },
+   {
+    "mesh": "jaw_soft__metal",
+    "body": "jaw_soft",
+    "colour": "metal",
+    "parts": [
+     "antenna_coax",
+     "antenna_ipex",
+     "head_pi_a7z_micro_hdmi",
+     "head_pi_a7z_usb_c_otg_dp",
+     "head_pi_a7z_usb_c_power",
+     "head_pi_gpio_pin_01_receiving",
+     "head_pi_gpio_pin_02_receiving",
+     "head_pi_gpio_pin_03_receiving",
+     "head_pi_gpio_pin_04_receiving",
+     "head_pi_gpio_pin_05_receiving",
+     "head_pi_gpio_pin_06_receiving",
+     "head_pi_gpio_pin_07_receiving",
+     "head_pi_gpio_pin_09_receiving",
+     "head_pi_gpio_pin_11_receiving",
+     "head_pi_gpio_pin_12_receiving",
+     "head_pi_gpio_pin_17_receiving",
+     "head_pi_gpio_pin_25_receiving",
+     "head_pi_gpio_pin_29_receiving",
+     "head_pi_gpio_pin_31_receiving",
+     "head_pi_gpio_pin_35_receiving",
+     "head_pi_gpio_pin_39_receiving",
+     "head_pi_gpio_pin_40_receiving",
+     "head_pi_zero_w_header_pin_01",
+     "head_pi_zero_w_header_pin_02",
+     "head_pi_zero_w_header_pin_03",
+     "head_pi_zero_w_header_pin_04",
+     "head_pi_zero_w_header_pin_05",
+     "head_pi_zero_w_header_pin_06",
+     "head_pi_zero_w_header_pin_07",
+     "head_pi_zero_w_header_pin_08",
+     "head_pi_zero_w_header_pin_09",
+     "head_pi_zero_w_header_pin_10",
+     "head_pi_zero_w_header_pin_11",
+     "head_pi_zero_w_header_pin_12",
+     "head_pi_zero_w_header_pin_13",
+     "head_pi_zero_w_header_pin_14",
+     "head_pi_zero_w_header_pin_15",
+     "head_pi_zero_w_header_pin_16",
+     "head_pi_zero_w_header_pin_17",
+     "head_pi_zero_w_header_pin_18",
+     "head_pi_zero_w_header_pin_19",
+     "head_pi_zero_w_header_pin_20",
+     "head_pi_zero_w_header_pin_21",
+     "head_pi_zero_w_header_pin_22",
+     "head_pi_zero_w_header_pin_23",
+     "head_pi_zero_w_header_pin_24",
+     "head_pi_zero_w_header_pin_25",
+     "head_pi_zero_w_header_pin_26",
+     "head_pi_zero_w_header_pin_27",
+     "head_pi_zero_w_header_pin_28",
+     "head_pi_zero_w_header_pin_29",
+     "head_pi_zero_w_header_pin_30",
+     "head_pi_zero_w_header_pin_31",
+     "head_pi_zero_w_header_pin_32",
+     "head_pi_zero_w_header_pin_33",
+     "head_pi_zero_w_header_pin_34",
+     "head_pi_zero_w_header_pin_35",
+     "head_pi_zero_w_header_pin_36",
+     "head_pi_zero_w_header_pin_37",
+     "head_pi_zero_w_header_pin_38",
+     "head_pi_zero_w_header_pin_39",
+     "head_pi_zero_w_header_pin_40"
+    ],
+    "names": [
+     "AC019 antenna cable (50 mm coax)",
+     "AC019 IPEX plug on the A7Z antenna socket",
+     "A7Z micro HDMI",
+     "A7Z USB-C (OTG, DisplayPort)",
+     "A7Z USB-C power",
+     "Jumper-wire end on A7Z pin 1",
+     "Jumper-wire end on A7Z pin 2",
+     "Jumper-wire end on A7Z pin 3",
+     "Jumper-wire end on A7Z pin 4",
+     "Jumper-wire end on A7Z pin 5",
+     "Jumper-wire end on A7Z pin 6",
+     "Jumper-wire end on A7Z pin 7",
+     "Jumper-wire end on A7Z pin 9",
+     "Jumper-wire end on A7Z pin 11",
+     "Jumper-wire end on A7Z pin 12",
+     "Jumper-wire end on A7Z pin 17",
+     "Jumper-wire end on A7Z pin 25",
+     "Jumper-wire end on A7Z pin 29",
+     "Jumper-wire end on A7Z pin 31",
+     "Jumper-wire end on A7Z pin 35",
+     "Jumper-wire end on A7Z pin 39",
+     "Jumper-wire end on A7Z pin 40",
+     "Pi zero w header pin 01",
+     "Pi zero w header pin 02",
+     "Pi zero w header pin 03",
+     "Pi zero w header pin 04",
+     "Pi zero w header pin 05",
+     "Pi zero w header pin 06",
+     "Pi zero w header pin 07",
+     "Pi zero w header pin 08",
+     "Pi zero w header pin 09",
+     "Pi zero w header pin 10",
+     "Pi zero w header pin 11",
+     "Pi zero w header pin 12",
+     "Pi zero w header pin 13",
+     "Pi zero w header pin 14",
+     "Pi zero w header pin 15",
+     "Pi zero w header pin 16",
+     "Pi zero w header pin 17",
+     "Pi zero w header pin 18",
+     "Pi zero w header pin 19",
+     "Pi zero w header pin 20",
+     "Pi zero w header pin 21",
+     "Pi zero w header pin 22",
+     "Pi zero w header pin 23",
+     "Pi zero w header pin 24",
+     "Pi zero w header pin 25",
+     "Pi zero w header pin 26",
+     "Pi zero w header pin 27",
+     "Pi zero w header pin 28",
+     "Pi zero w header pin 29",
+     "Pi zero w header pin 30",
+     "Pi zero w header pin 31",
+     "Pi zero w header pin 32",
+     "Pi zero w header pin 33",
+     "Pi zero w header pin 34",
+     "Pi zero w header pin 35",
+     "Pi zero w header pin 36",
+     "Pi zero w header pin 37",
+     "Pi zero w header pin 38",
+     "Pi zero w header pin 39",
+     "Pi zero w header pin 40"
+    ]
+   },
+   {
+    "mesh": "jaw_soft__orange",
+    "body": "jaw_soft",
+    "colour": "orange",
+    "parts": [
+     "speaker_retainer"
+    ],
+    "names": [
+     "Speaker retainer frame (new print)"
+    ]
+   },
+   {
+    "mesh": "jaw_soft__pcb_blue",
+    "body": "jaw_soft",
+    "colour": "pcb_blue",
+    "parts": [
+     "head_pi_a7z_microsd_card"
+    ],
+    "names": [
+     "microSD card in the A7Z"
+    ]
+   },
+   {
+    "mesh": "jaw_soft__pcb_green",
+    "body": "jaw_soft",
+    "colour": "pcb_green",
+    "parts": [
+     "amplifier",
+     "camera_board",
+     "pi"
+    ],
+    "names": [
+     "MAX98357A I2S amplifier with five soldered wires and the terminal block",
+     "Radxa Camera 13M 214 (IMX214), connector edge to the left (+Y), with the first part of its ribbon",
+     "Radxa Cubie A7Z with soldered 40-pin header"
+    ]
+   }
+  ]
  }
 }

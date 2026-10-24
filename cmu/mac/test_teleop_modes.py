@@ -291,7 +291,7 @@ class Teleop(unittest.TestCase):
         self.assertEqual(goals[-1], 1500 + round(5 * TICKS_PER_DEG))  # back to the opening it had
         self.assertEqual(last_log["jaw_goal"], 5)
 
-    def test_quack_enables_an_unpowered_jaw_and_returns_it_to_rest(self):
+    def test_quack_enables_an_unpowered_jaw_presses_it_shut_and_holds_it(self):
         cal = {"closed_tick": 1500, "open_tick": 1700}
         # end after the quack head move (QUACK_HEAD_S) is back: the jaw limits follow the head pose
         text, last_log, w, spawned, voice = self.run_quack(lambda d, p: [(1.0, write_cmd(p, dict(WALK0, quack=1)))],
@@ -301,7 +301,9 @@ class Teleop(unittest.TestCase):
         self.assertIn(JAW, {i for addr, i, v in w.log if addr == jaw_ctl.ADDR_TORQUE})
         goals = [v for addr, i, v in w.log if i == JAW and addr == jaw_ctl.ADDR_GOAL]
         self.assertIn(1500 + round(ww.QUACK_JAW_DEG * TICKS_PER_DEG), goals)
-        self.assertEqual(last_log["jaw_goal"], 2.0)  # the rest opening (the written tick follows jaw_ctl's closed zone)
+        self.assertIn(1500 + round(ww.QUACK_SHUT_DEG * TICKS_PER_DEG), goals)  # pressed shut
+        self.assertEqual(goals[-1], 1500 + round(ww.QUACK_HOLD_DEG * TICKS_PER_DEG))  # then eased to the hold
+        self.assertEqual(last_log["jaw_goal"], ww.QUACK_HOLD_DEG)
 
     def test_torque_off_releases_every_servo_and_reboots_latched_ones(self):
         w = World(shutdown=52, hw_err=0, volts_dv=74)
