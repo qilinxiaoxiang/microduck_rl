@@ -21,8 +21,9 @@ KIN = duck_kin.DuckKin()
 
 
 class FakeDuck:
-    def __init__(self, obj, mode="walk"):
+    def __init__(self, obj, mode="walk", turn_gain=1.0):
         self.t, self.X, self.Y, self.th = 0.0, 0.0, 0.0, 0.0
+        self.turn_gain, self.ok = turn_gain, True
         self.obj, self.mode, self.cmd, self.sent = obj, mode, {}, []
         self.q = dict(STAND)
         self.frame_i, self.frame = 0, None
@@ -35,7 +36,7 @@ class FakeDuck:
     def advance(self, dt=0.05):
         c = self.cmd
         if c.get("mode") == "walk":
-            self.th += float(c.get("vtheta", 0)) * dt
+            self.th += self.turn_gain * float(c.get("vtheta", 0)) * dt
             v = apc.V_REAL if c.get("vx") else 0.0
             self.X += v * math.cos(self.th) * dt
             self.Y += v * math.sin(self.th) * dt
@@ -48,7 +49,7 @@ class FakeDuck:
             self.frame = (np.zeros((640, 480, 3), np.uint8), self.t - self.frame_age, self.frame_i)
 
     def state(self):
-        return dict(t=self.t, mode=self.mode, torque=True, gb=(0.0, 0.0, -1.0), q=dict(self.q), yaw=self.th)
+        return dict(t=self.t, mode=self.mode, torque=True, gb=(0.0, 0.0, -1.0), q=dict(self.q), yaw=self.th, ok=self.ok)
 
     def obj_robot(self):
         dx, dy = self.obj[0] - self.X, self.obj[1] - self.Y
@@ -75,16 +76,22 @@ def drive(duck, max_s=60.0):
     return ctl
 
 
-def test_walks_and_turns_to_a_front_right_object():
-    duck = FakeDuck((0.7, -0.3))
+def walk_cmds(duck):
+    return [c for _, c in duck.sent if c.get("mode") == "walk" and (c.get("vx") or c.get("vtheta"))]
+
+
+def test_walks_and_arcs_to_a_front_right_object():
+    duck = FakeDuck((0.7, -0.25))
     ctl = drive(duck)
     assert ctl.result["ok"], ctl.result
     x, y = duck.obj_robot()
     assert apc.DONE_R[0] <= math.hypot(x, y) <= apc.DONE_R[1] and abs(math.atan2(y, x)) < apc.DONE_BEARING
-    walks = [c for _, c in duck.sent if c.get("vx")]
+    walks = walk_cmds(duck)
     assert walks and all(c.get("for_s") == apc.CMD_FOR_S for c in walks)       # hold-to-walk: stops by itself
-    assert any(c["vtheta"] < 0 for c in walks)                                    # turned right while walking
-    assert not any(c["vtheta"] and not c["vx"] for c in walks)
+    assert all(abs(c["vtheta"]) <= (apc.VTH_ARC if c["vx"] else apc.VTH_SPIN) + 1e-9 for c in walks)
+    assert all(c["vx"] in (0.0, apc.VX) for c in walks)
+    assert any(c["vtheta"] < 0 for c in walks)                                    # turned right
+    assert all(abs(c.get("head", {}).get("head_yaw", 0.0)) <= apc.HEAD_YAW_WALK + 1e-9 for c in walks)
 
 
 def test_head_stays_default_when_a_walk_starts():
@@ -97,18 +104,65 @@ def test_head_stays_default_when_a_walk_starts():
     assert late and all("head" in c and c["head"]["head_pitch"] <= apc.HEAD_PITCH_WALK[1] + 1e-9 for c in late)
 
 
-def test_object_beside_turns_in_place_first():
-    duck = FakeDuck((0.12, 0.3))   # 68 deg left at 0.32 m: beyond SPIN_BEARING, seen by the left scan
+def test_object_beside_turns_in_place_then_arrives():
+    duck = FakeDuck((0.25, 0.3))   # 50 deg left at 0.39 m: no arc reaches it
     ctl = drive(duck)
     assert ctl.result["ok"], ctl.result
-    spins = [c for _, c in duck.sent if c.get("mode") == "walk" and not c.get("vx") and c.get("vtheta", 0) > 0]
-    assert spins
+    walks = walk_cmds(duck)
+    assert walks[0]["vx"] == 0.0 and walks[0]["vtheta"] == apc.VTH_SPIN   # turned in place first
+    x, y = duck.obj_robot()
+    assert apc.DONE_R[0] <= math.hypot(x, y) <= apc.DONE_R[1] and abs(math.atan2(y, x)) < apc.DONE_BEARING
 
 
-def test_object_behind_found_by_search_turns():
+def test_object_moved_beside_when_close_turns_in_place():
+    duck = FakeDuck((0.5, 0.0))
+    ctl = apc.Approach(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                       now=lambda: duck.t, log=lambda s: None)
+    moved = False
+    while ctl.phase not in ("done", "failed") and duck.t < 60:
+        duck.advance()
+        ctl.step()
+        x, y = duck.obj_robot()
+        if not moved and math.hypot(x, y) < 0.3:
+            ax, ay = apc.rotate(0.0, 0.15, -duck.th)   # 15 cm to the robot's left
+            duck.obj = (duck.obj[0] + ax, duck.obj[1] + ay)
+            moved = True
+    assert moved and ctl.result["ok"], ctl.result
+    assert any(c["vx"] == 0.0 and c["vtheta"] > 0 for c in walk_cmds(duck))
+
+
+def test_object_behind_is_not_searched_for():
     duck = FakeDuck((-0.4, -0.2))
-    ctl = drive(duck, 90.0)
+    ctl = drive(duck, 30.0)
+    assert not ctl.result["ok"] and not walk_cmds(duck), ctl.result
+
+
+def test_a_turn_the_wrong_way_stops_the_run():
+    duck = FakeDuck((0.8, -0.3), turn_gain=-1.0)   # commanded right, turns left (the first robot run)
+    ctl = drive(duck)
+    assert not ctl.result["ok"] and ("wrong way" in ctl.result["why"] or "not following" in ctl.result["why"])
+    assert duck.th < math.radians(40)              # stopped before it turned far (in place: 29 deg/s for ~1 s)
+
+
+def test_stale_state_never_starts_a_walk():
+    duck = FakeDuck((0.7, 0.0))
+    duck.ok = False
+    ctl = drive(duck, 20.0)
+    assert not ctl.result["ok"] and "stale" in ctl.result["why"] and not walk_cmds(duck)
+
+
+def test_a_moved_object_is_followed():
+    duck = FakeDuck((0.9, 0.0))
+    ctl = apc.Approach(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                       now=lambda: duck.t, log=lambda s: None)
+    while ctl.phase not in ("done", "failed") and duck.t < 60:
+        if abs(duck.t - 3.0) < 0.026:
+            duck.obj = (duck.obj[0], -0.2)        # moved 20 cm to the right mid-walk
+        duck.advance()
+        ctl.step()
     assert ctl.result["ok"], ctl.result
+    x, y = duck.obj_robot()
+    assert math.hypot(x, y) <= apc.DONE_R[1] and abs(math.atan2(y, x)) < apc.DONE_BEARING
 
 
 def test_guard_trip_ends_the_run():

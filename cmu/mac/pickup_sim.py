@@ -105,6 +105,9 @@ class SimDuck:
         self.grip_dist = None
         self.frames = 0
         self.dump_dir = None
+        # the BNO085's own pitch error (deg, + = reads more forward lean); walk_brain.IMU_PITCH_TRIM undoes the robot's
+        # 4 deg, so a sim that wants the brain's body gravity right sets 4 (brain_sim_check.py --imu-pitch)
+        self.imu_pitch_deg = 0.0
 
     # --- walk_wired.py side -----------------------------------------------------------------------------------
     def send(self, cmd):
@@ -133,8 +136,13 @@ class SimDuck:
             self.burst_end = None
         # sensors as the wired link reports them (one tick of delay)
         q_trunk = d.qpos[3:7].copy()
-        q_sensor = qmul(qmul(tuple(q_trunk), conj(IMU_MOUNT_QUAT)), conj(MOUNT_FIX))
         w_body = d.sensordata[self.gyro_adr:self.gyro_adr + 3]
+        if self.imu_pitch_deg:
+            h = math.radians(self.imu_pitch_deg) / 2
+            q_trunk = np.array(qmul(tuple(q_trunk), (math.cos(h), 0.0, math.sin(h), 0.0)))
+            c, s = math.cos(2 * h), math.sin(2 * h)
+            w_body = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]]).T @ w_body
+        q_sensor = qmul(qmul(tuple(q_trunk), conj(IMU_MOUNT_QUAT)), conj(MOUNT_FIX))
         g_sensor = apply(MOUNT_FIX, apply(IMU_MOUNT_QUAT, w_body))
         sample = (q_sensor, tuple(float(x) for x in g_sensor), d.qpos[self.qa].copy(), d.qvel[self.va].copy())
         if not self.sq:

@@ -133,6 +133,13 @@ WALK_ZERO = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
 # 2026-10-23 (run app1023-225437) a right arc pinned at -2.0 wound it up, and the left arc after it kept the command at
 # -1.7 to -2.0 for 1.5 s (run app1023-223352: the whole 3.7 s arc, +3 deg/s), then overshot to +1.9.
 TURN_MAX = 2.0
+# Turning in place (vx = vy = 0, vtheta != 0) uses the held heading too, but without the trim and the integral, which
+# are learned on straight walking: in the as-built sim with the 4 deg IMU pitch and the drift torque, the straight-walk
+# terms pinned the command at -2.0 and a right turn in place turned left (+35 deg in 6 s at 0.020 N m); the first robot
+# approach run (2026-10-24) turned left the same way. walk61 starts stepping in place only above a turn command of about
+# 1 (clip 1.0: 14 deg in 6 s); with clip 2.0 and no drift vtheta +-0.5 turns +-170 deg in 6 s. The robot's drift while
+# turning in place is not measured yet (turn_test.py --vx 0).
+SPIN_TURN_MAX = 2.0
 ARC_LEAD = 0.35
 # Gains 2026-10-23: with KP 2, KI 1 and the integral capped at 0.5 rad s the integral could not cover a steady drift, so
 # the heading settled left of the start (robot: +40 deg in 3 s, then +10 deg in 8 s). As-built sim, yaw torque 0.020 N m,
@@ -626,8 +633,11 @@ class Brain:
                         u_new = self.yaw_trim + HEADING_KP * err + HEADING_KI * i_new
                         if abs(u_new) < TURN_MAX or abs(i_new) < abs(self.heading_i):
                             self.heading_i = i_new
-                    turn = float(np.clip(self.yaw_trim + vth + HEADING_KP * err + HEADING_KI * self.heading_i,
-                                         -TURN_MAX, TURN_MAX))
+                    if moving:
+                        turn = float(np.clip(self.yaw_trim + vth + HEADING_KP * err + HEADING_KI * self.heading_i,
+                                             -TURN_MAX, TURN_MAX))
+                    else:  # turning in place: the straight-walk trim and integral do not apply (SPIN_TURN_MAX note)
+                        turn = float(np.clip(vth + HEADING_KP * err, -SPIN_TURN_MAX, SPIN_TURN_MAX))
                 else:
                     turn, self.heading, self.turning = 0.0, None, False
                 if moving or abs(vth) > 1e-3:
