@@ -28,6 +28,18 @@ decides whether a take is usable before the video is even looked at.
   tip 69 mm ahead of the feet and 22 mm over the floor; as-built sim 2026-10-16). A pencil mark on tape helps.
 - Light: room light plus any window, both from the camera side or from above. No window behind the robot.
 
+## Table variant (chosen 2026-10-24: the power bank tethers the robot, so no floor walk)
+
+- The two 1.8 m by 0.6 m tables pushed together into one 1.8 m by 1.2 m top. The robot walks along the middle line,
+  0.6 m from either long edge, right to left as seen from Shawn's side, starting 0.3 m in from the right short edge;
+  the left arc then curls toward the near edge and his hand. `shoot.sh walk --straight-s 3 --arc-s 3` (about 0.65 m
+  of path; a fall from a table is a 75 cm drop, so the walk is shorter than on the floor and a hand stays within reach).
+- Power bank on the table behind the robot, lead slack on the table top, never hanging over an edge.
+- Chairs on the far side pulled away: their backs stand above the table top in a low shot. The robot sits in front of
+  the plain wall between the lockers and the TV; the TV may show at one edge of the frame, the lockers at the other.
+- Camera on Shawn's side of the table, lens 18 to 22 cm above the table top (phone propped on a box or a small
+  tripod on the table), 0.6 m from the path for the walk takes, 0.4 to 0.5 m for the quack, crouch and rear takes.
+
 ## Camera
 
 - Phone in landscape, 4K at 30 fps (the page shows 1080p; 4K leaves room to crop and stabilise). Main 1x lens, not
