@@ -416,6 +416,154 @@ def seg_back(args, log, cmd):
     return 0
 
 
+def keys_at(keys, t):
+    """Head deltas at time t from [{"t", "head"}] keyframes, linear between them, held after the last (as
+    brain_sim_check.head_keys)."""
+    names = {n for k in keys for n in k["head"]}
+    out = {}
+    for n in names:
+        pts = [(k["t"], k["head"].get(n, 0.0)) for k in keys]
+        if t <= pts[0][0]:
+            out[n] = pts[0][1]
+        elif t >= pts[-1][0]:
+            out[n] = pts[-1][1]
+        else:
+            for (t0, v0), (t1, v1) in zip(pts, pts[1:]):
+                if t0 <= t <= t1:
+                    out[n] = v0 + (v1 - v0) * (t - t0) / max(1e-9, t1 - t0)
+                    break
+    return out
+
+
+def aim_step(delta, det, aim, fx, fy, w, h):
+    """One visual-servo step: head yaw/pitch deltas moved toward centring the blob. The camera looks along the head;
+    a blob right of centre is to the robot's right (yaw negative), below centre is lower (head_pitch positive looks
+    down), as duck_kin's pixel ray [1, -(u - cx)/fx, -(v - cy)/fy]."""
+    step = aim["max_rate"] * aim["period_s"]
+    dy = -aim["gain"] * math.atan((det["cx"] - w / 2) / fx)
+    dp = aim["gain"] * math.atan((det["cy"] - h / 2) / fy)
+    out = dict(delta)
+    out["head_yaw"] = max(-aim["yaw_max"], min(aim["yaw_max"], out.get("head_yaw", 0.0) + max(-step, min(step, dy))))
+    out["head_pitch"] = max(aim["pitch_min"], min(aim["pitch_max"], out.get("head_pitch", 0.0) + max(-step, min(step, dp))))
+    return out
+
+
+def seg_sitfind(args, log, cmd):
+    """Sits down, sweeps the head to find the orange part (orange_target on the head camera), turns the head onto it,
+    tilts the head and quacks, and stays seated looking at it (no rise in the take: the 2026-10-23 robot rise ran away
+    once in four, its fix awaits robot acceptance). Seated head commands are sitstand61 inputs; the sweep, the aim
+    limits and the tilt are in sitlook.json (as-built sim of the same keyframes with the aim stand-in, 3 seeds: no fall,
+    seated tilt 1.3 deg, head reached 88 % of the command)."""
+    import cv2
+    import orange_target
+    from approach import FRAME_H, FRAME_W, ShmCamera
+    from duck_kin import RADXA_13M_UPRIGHT as K
+    with open(args.sitlook) as f:
+        look = json.load(f)
+    aim = look["aim"]
+    default = policy_default()
+    tail = Tail(log)
+    out_path = log.replace("duck_wired_log_", "duck_wired_").replace(".jsonl", ".out")
+    out_pos = os.path.getsize(out_path) if os.path.exists(out_path) else 0
+    cam = ShmCamera()
+    t0 = time.time()
+    rep = dict(seg="sitfind", seated=False, found_s=None, locked_s=None, lock_err_px=None, head_delta=None, snapshot=None)
+
+    def send(delta, quack=None):
+        c = {"mode": "sit", "head": {n: default[n] + d for n, d in delta.items()}}
+        if quack is not None:
+            c["quack"] = quack
+        write_cmd(cmd, c)
+
+    delta = {}
+    try:
+        write_cmd(cmd, {"mode": "sit"})
+        end = time.time() + 7.0
+        while time.time() < end:  # walk_brain: prep 0.8 s, glide 2.0 s, then the knee check
+            rows = tail.poll()
+            if rows and rows[-1].get("sit_phase") == "seated" and "sit_stalled" in rows[-1]:
+                rep["seated"] = not rows[-1]["sit_stalled"]
+                break
+            time.sleep(0.1)
+        if not rep["seated"]:
+            rep["why"] = "no seat (stalled or the sit never reached seated): stays on the sitstand policy"
+            return 1
+        time.sleep(0.5)
+        # sweep until two frames in a row see the part
+        ts, last_idx, hits, det = time.time(), None, 0, None
+        scan_end = look["scan"][-1]["t"] + 1.0
+        while time.time() - ts < scan_end * 2:  # two sweeps at most
+            el = (time.time() - ts) % scan_end
+            delta = keys_at(look["scan"], el)
+            send(delta)
+            fr = cam.latest()
+            if fr is not None and fr[2] != last_idx:
+                last_idx = fr[2]
+                det = orange_target.detect(fr[0])
+                hits = hits + 1 if det else 0
+                if hits >= 2:
+                    rep["found_s"] = round(time.time() - t0, 2)
+                    break
+            time.sleep(0.05)
+        if rep["found_s"] is None:
+            rep["why"] = "the part was never seen in two sweeps"
+            send({})
+            return 1
+        # aim: centre the part, lock after lock_s within lock_px
+        ta, tl, seen, frame = time.time(), None, time.time(), None
+        while time.time() - ta < 10.0:
+            fr = cam.latest()
+            if fr is not None and fr[2] != last_idx:
+                last_idx = fr[2]
+                det = orange_target.detect(fr[0])
+                if det:
+                    seen, frame = time.time(), (fr[0], det)
+                    delta = aim_step(delta, det, aim, K.fx, K.fy, FRAME_W, FRAME_H)
+                    err = math.hypot(det["cx"] - FRAME_W / 2, det["cy"] - FRAME_H / 2)
+                    tl = (tl or time.time()) if err <= aim["lock_px"] else None
+                    if tl is not None and time.time() - tl >= aim["lock_s"]:
+                        rep["locked_s"], rep["lock_err_px"] = round(time.time() - t0, 2), round(err, 1)
+                        break
+                elif time.time() - seen > aim["lost_s"]:
+                    break
+            send(delta)
+            time.sleep(aim["period_s"])
+        rep["head_delta"] = {n: round(v, 3) for n, v in delta.items()}
+        if frame is not None:
+            snap = os.path.expanduser(f"~/duck-logs/sitfind_{time.strftime('%m%d-%H%M%S')}.jpg")
+            cv2.imwrite(snap, orange_target.annotate(frame[0].copy(), frame[1]))
+            rep["snapshot"] = snap
+        if rep["locked_s"] is None:
+            rep["why"] = "found but not locked (lost, or never within lock_px)"
+            return 1
+        # head tilt and a quack, the aim held
+        tt, qn, sent_q = time.time(), int(time.time()) * 100, None
+        while time.time() - tt <= look["tilt"][-1]["t"] + 0.5:
+            el = time.time() - tt
+            d = dict(delta, **keys_at(look["tilt"], el))
+            if sent_q is None and any(k.get("quack") and k["t"] <= el for k in look["tilt"]):
+                sent_q = qn + 1
+            send(d, sent_q)
+            time.sleep(0.05)
+        send(delta)
+        time.sleep(2.0)
+        return 0
+    finally:
+        send(delta)  # stays seated, looking at the part
+        cam.close()
+        time.sleep(SETTLE_S)
+        rows = tail.poll()
+        lines = []
+        if os.path.exists(out_path):
+            with open(out_path, "rb") as f:
+                f.seek(out_pos)
+                lines = [ln for ln in f.read().decode(errors="replace").splitlines() if ln.startswith(("quack", "sit:"))]
+        rep.update(max_tilt_deg=round(max(tilt_deg(r) for r in rows), 1) if rows else None,
+                   modes=sorted({r["mode"] for r in rows}), guard_trip=any(r["mode"] == "monitor" for r in rows),
+                   lines=lines, elapsed_s=round(time.time() - t0, 1))
+        print(json.dumps(rep))
+
+
 def seg_stop(args, log, cmd):
     write_cmd(cmd, dict(WALK_ZERO))
     print(json.dumps({"seg": "stop", "written": WALK_ZERO}))
@@ -423,7 +571,7 @@ def seg_stop(args, log, cmd):
 
 
 SEGS = {"ready": (seg_ready, False), "walk": (seg_walk, True), "grip": (seg_grip, True), "quack": (seg_quack, True), "sing": (seg_sing, True),
-        "crouch": (seg_crouch, True), "back": (seg_back, True), "stop": (seg_stop, False)}
+        "crouch": (seg_crouch, True), "back": (seg_back, True), "sitfind": (seg_sitfind, True), "stop": (seg_stop, False)}
 
 
 def start_replay(src, dst):
@@ -468,6 +616,7 @@ def main():
     ap.add_argument("--rise-s", type=float, default=3.0)
     ap.add_argument("--back-s", type=float, default=8.0)
     ap.add_argument("--dance", default=os.path.join(HERE, "dance.json"))
+    ap.add_argument("--sitlook", default=os.path.join(HERE, "sitlook.json"))
     ap.add_argument("--replay", default=None, help="recorded log to replay instead of a live brain (dry run)")
     args = ap.parse_args()
     if args.replay:
@@ -484,7 +633,9 @@ def main():
     try:
         return fn(args, log, args.cmd)
     except KeyboardInterrupt:
-        if args.seg == "crouch":
+        if args.seg == "sitfind":
+            print("interrupted: stays seated", flush=True)
+        elif args.seg == "crouch":
             write_cmd(args.cmd, {"mode": "groundpick", "phase": 1.0})
             print("interrupted: rising, stand61 follows", flush=True)
         else:

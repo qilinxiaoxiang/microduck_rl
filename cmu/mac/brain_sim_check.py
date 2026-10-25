@@ -217,6 +217,10 @@ def run(args):
         with open(args.dance) as f:
             dance = json.load(f)
     dance_vth = [0.0]
+    sit_keys = None
+    if args.sit_head_keys:
+        with open(args.sit_head_keys[0]) as f:
+            sit_keys = json.load(f)[args.sit_head_keys[1]]
     if args.quack_at:
         T = max(T, max(args.quack_at) + QUACK_HEAD_S + 1.0)
     gp_at = args.gp_at
@@ -258,7 +262,7 @@ def run(args):
     hrows = []  # per tick: t, load, est record, raw/applied action, neck torques, leg q, tilt, gyro, hand force, feet z
     guard = dict(stop=None, why=None, hard_hits=collections.deque(maxlen=HARD_WINDOW), last_goal=None, clipped=0,
                  tilt_skipped=0)
-    load_now = 1.0
+    load_now, tau_legs = 1.0, 0.0
     grip_stop, cmd_s, hold_s, wz_t, grip_stop_at = GripStop(), [0.0, 0.0, 0.0], 1.0, None, None  # --wired-hold
     settled_at = None
     for tick in range(int(T / 0.02)):
@@ -314,6 +318,9 @@ def run(args):
                 want = {"mode": "kick", "foot": args.kick_foot, "id": 1}
             if args.sit_at is not None and t >= args.sit_at and (args.unsit_at is None or t < args.unsit_at):
                 want = {"mode": "sit"}
+                seat_t = args.sit_at + walk_brain.SIT_PREP_S + walk_brain.SIT_SETTLE_S + 0.2
+                if sit_keys is not None and t >= seat_t:  # shoot.py sitfind: seated head keyframes, linear ramps
+                    want["head"] = {n: brain.default[n] + d for n, d in head_keys(sit_keys, t - seat_t).items()}
                 if args.sit_head and t >= args.sit_at + SIT_HEAD_DELAY_S:  # robot-remote.js head buttons while seated
                     want["head"] = {n: brain.default[n] + d for n, d in args.sit_head.items()}
             zero_t = None if walking else (t if zero_t is None else zero_t)
@@ -333,7 +340,10 @@ def run(args):
         level = 1.0 if args.grip_at is not None and args.grip_at <= t and (args.release_at is None or t < args.release_at) else 0.0
         counts = [PAD_BASE + (level * PAD_HI if p in GRIP_PADS else 0.0) for p in PADS]
         # --hold-uncal: no load share, as walk_wired before hold_session.py calibrates the leg currents (grip only)
-        est.update(0.02, counts=counts, age=0.0, load=None if args.hold_uncal else load_now)
+        # --load-from-legs: the share the robot would read from its leg currents (summed |torque| of the ten leg
+        # actuators between the calibrated hanging and standing sums), not the true foot force
+        load_in = load_now if args.load_from_legs is None else min(1.0, max(0.0, (tau_legs - args.load_from_legs[1]) / (args.load_from_legs[0] - args.load_from_legs[1])))
+        est.update(0.02, counts=counts, age=0.0, load=None if args.hold_uncal else load_in)
         if guard["stop"] is not None:  # walk_wired wrote stand (monitor out of a sit or crouch) to the control file
             want = {"mode": guard["stop_to"]}
         if args.wired_hold:  # walk_wired.py's order: grip stop on the file command, then the smoothing, then the gate
@@ -435,10 +445,11 @@ def run(args):
             c.update()
             mujoco.mj_step(m, d)
         load_now = min(1.0, max(0.0, foot_load(m, d, floor, foot_geoms) / mg))
+        tau_legs = float(sum(abs(d.actuator_force[act_id[n]]) for n in leg_names))
         if scen:
             Rh = d.xmat[trunk].reshape(3, 3)
             raw = info.get("action_raw", info.get("action"))
-            hrows.append(dict(t=round(t, 2), load=load_now, est=est.record(), h_load=est.h_load,
+            hrows.append(dict(t=round(t, 2), load=load_now, tau_legs=tau_legs, est=est.record(), h_load=est.h_load,
                               s_applied=want.get("hold", {}).get("s", 1.0) if want.get("mode") == "walk" else 1.0,
                               grip_stop=grip_stop.on, vx=want.get("vx"),
                               raw=None if raw is None else list(raw),
@@ -629,7 +640,8 @@ def hold_summary(args, rows, hand, guard, stable_after, leg_names):
                min_s=r3(min(r["est"]["s"] for r in rows)), max_e=r3(max(r["est"]["e"] for r in rows)),
                min_load=r3(min(r["load"] for r in rows)), min_kp_leg=min(r["est"]["kp_leg"] for r in rows),
                max_kp_neck=max(r["est"]["kp_neck"] for r in rows),
-               torque_standing={n: torque(ref, n) for n in ("neck_pitch", "head_pitch")})
+               torque_standing={n: torque(ref, n) for n in ("neck_pitch", "head_pitch")},
+               legs_tau_standing=r3(np.mean([r["tau_legs"] for r in ref])) if ref else None)
     if air:
         a0, a1 = air[0]["t"], air[-1]["t"]
         q = np.array([r["legq"] for r in air])
@@ -645,7 +657,10 @@ def hold_summary(args, rows, hand, guard, stable_after, leg_names):
                    leg_range_air_after_0p5s_rad=None if late is None or not len(late) else r3((late.max(0) - late.min(0)).max()),
                    leg_rms_speed_air=r3(np.sqrt(np.mean(dq ** 2))),
                    max_raw_action_air=r3(amax("raw", air)), max_applied_action_air=r3(amax("act", air)),
-                   action_ticks_air=sum(r["act"] is not None for r in air))
+                   action_ticks_air=sum(r["act"] is not None for r in air),
+                   legs_tau_air=r3(np.mean([r["tau_legs"] for r in air])), legs_tau_air_max=r3(max(r["tau_legs"] for r in air)),
+                   est_load_air_mean=r3(np.mean([r["est"]["load"] for r in air if r["est"]["load"] is not None] or [np.nan])),
+                   first_air_est_load_below_0p5_s=next((round(r["t"] - a0, 2) for r in air if (r["est"]["load"] if r["est"]["load"] is not None else 1) < 0.5), None))
     if hand_off is not None:
         post = [r for r in rows if hand_off <= r["t"] < hand_off + 0.3]
         prev = [r for r in rows if r["t"] < hand_off][-1:]
@@ -658,7 +673,7 @@ def hold_summary(args, rows, hand, guard, stable_after, leg_names):
                    max_applied_action_after_release=r3(amax("act", after)),
                    s_back_to_1_after_release_s=None if s_back is None else round(s_back - hand_off, 2),
                    max_tilt_after_release=round(max(r["tilt"] for r in after), 1) if after else None)
-    out["trace"] = [dict(t=r["t"], load=r3(r["load"]), s=r["est"]["s"], e=r["est"]["e"], h_load=r3(r["h_load"]),
+    out["trace"] = [dict(t=r["t"], load=r3(r["load"]), est_load=r["est"]["load"], tau_legs=r3(r["tau_legs"]), s=r["est"]["s"], e=r["est"]["e"], h_load=r3(r["h_load"]),
                          kp_leg=r["est"]["kp_leg"], kp_neck=r["est"]["kp_neck"], tilt=round(r["tilt"], 1), mode=r["mode"],
                          raw=r3(None if r["raw"] is None else max(abs(a) for a in r["raw"])),
                          act=r3(None if r["act"] is None else max(abs(a) for a in r["act"])),
@@ -669,6 +684,24 @@ def hold_summary(args, rows, hand, guard, stable_after, leg_names):
 
 
 tick_log = None
+
+
+def head_keys(keys, t):
+    """Head deltas at time t from [{"t", "head": {joint: delta}}] keyframes, linear between them, held after the last."""
+    names = {n for k in keys for n in k["head"]}
+    out = {}
+    for n in names:
+        pts = [(k["t"], k["head"].get(n, 0.0)) for k in keys]
+        if t <= pts[0][0]:
+            out[n] = pts[0][1]
+        elif t >= pts[-1][0]:
+            out[n] = pts[-1][1]
+        else:
+            for (t0, v0), (t1, v1) in zip(pts, pts[1:]):
+                if t0 <= t <= t1:
+                    out[n] = v0 + (v1 - v0) * (t - t0) / max(1e-9, t1 - t0)
+                    break
+    return out
 
 
 def _yaw(q):
@@ -743,6 +776,8 @@ def main():
     ap.add_argument("--sit-at", type=float, default=None, help="s; {\"mode\": \"sit\"} from here")
     ap.add_argument("--sit-head", type=json.loads, default=None,
                     help=f'JSON head deltas from the default, e.g. \'{{"head_pitch": 1.1}}\', sent with the sit command from --sit-at + {SIT_HEAD_DELAY_S} s (seated)')
+    ap.add_argument("--sit-head-keys", nargs=2, default=None, metavar=("FILE", "KEY"),
+                    help="seated head keyframes (sitlook.json sim_aim) from the seat on, as shoot.py sitfind sends them")
     ap.add_argument("--unsit-at", type=float, default=None, help="s; walk at zero command from here (stands up first)")
     ap.add_argument("--trace", action="store_true")
     ap.add_argument("--bam-friction-scale", type=float, default=1.0, help="multiply BAM Coulomb/Stribeck/load friction (training DR range 0.9-1.1; measured real servos sit above it)")
@@ -766,6 +801,8 @@ def main():
     ap.add_argument("--hand-crot", type=float, default=0.02, help="N m s/rad; angular damping of the palm on the head")
     ap.add_argument("--hand-krot", type=float, default=0.0, help="N m/rad; grip holding the head's orientation (0 = head pivots in the hand)")
     ap.add_argument("--hold", action="store_true", help="pass hold.HoldEstimator's s and gains to the Brain (else shadow only)")
+    ap.add_argument("--load-from-legs", type=float, nargs=2, default=None, metavar=("STAND", "AIR"),
+                    help="feed the estimator the load share from the summed |leg actuator torque| (N m) between these two sums, as walk_wired reads it from the leg currents")
     ap.add_argument("--hold-uncal", action="store_true", help="feed the estimator no load share (uncalibrated legs: the grip term alone)")
     ap.add_argument("--hold-set", nargs=2, action="append", default=[], metavar=("NAME", "VALUE"),
                     help="override a hold.py module constant for this run (sensitivity study), e.g. --hold-set UP_RATE 2")

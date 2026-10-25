@@ -83,3 +83,14 @@ bend rises first).
 Clips go to the Mac (AirDrop); I trim, stabilise and encode them (muted H.264 1080p loop for the homepage hero, the
 others for the project page), with the caption "Walking policies: Pollen Robotics'. Build, touch sense, heading hold
 and graded hold: mine." under the hero video.
+
+## Seated look take (added 2026-10-24)
+
+- **sitfind**, `shoot.sh sitfind`: the robot sits, sweeps its head to find the orange part on the table with the head
+  camera, turns its head onto it, tilts the head one way, quacks, tilts the other way and stays seated looking at the
+  part. It does not stand up in the take; `shoot.sh ready` afterwards stands it up (hand near: one 2026-10-23 rise of
+  four ran away). The part goes 20 to 35 cm from the robot, in front and up to about 40 deg to either side. Camera
+  three-quarter front at 0.5 m, low, both the beak and the part in frame. Usable when `seated` is true, `locked_s` is
+  reported with `lock_err_px` under 25, `guard_trip` false and `max_tilt_deg` under 10. The run saves the camera frame
+  at the lock with the detection drawn (`snapshot`).
+

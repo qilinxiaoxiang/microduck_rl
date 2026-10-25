@@ -1,0 +1,36 @@
+{
+  "about": "Seated look-around take (2026-10-24, shoot.py sitfind): head command deltas from the policy default (model rad) fed to the sitstand policy while seated, linearly ramped between keyframes. 'scan' is the search sweep, run until the orange part is seen; 'sim_aim' stands in for the closed-loop aim (yaw toward a part off to the side, looking down at the table) for brain_sim_check.py --sit-head; 'tilt' is the head tilt and quack after the lock, times relative to the lock. Seated head commands are policy inputs, not joint goals; Pollen trained them small and slow.",
+  "scan": [
+    {"t": 0.0, "head": {"head_pitch": 0.0, "head_yaw": 0.0}},
+    {"t": 1.0, "head": {"head_pitch": 0.3, "head_yaw": 0.0}},
+    {"t": 2.0, "head": {"head_pitch": 0.3, "head_yaw": 0.0}},
+    {"t": 3.5, "head": {"head_pitch": 0.3, "head_yaw": 0.6}},
+    {"t": 4.5, "head": {"head_pitch": 0.3, "head_yaw": 0.6}},
+    {"t": 7.0, "head": {"head_pitch": 0.3, "head_yaw": -0.6}},
+    {"t": 8.0, "head": {"head_pitch": 0.3, "head_yaw": -0.6}},
+    {"t": 9.5, "head": {"head_pitch": 0.3, "head_yaw": 0.0}}
+  ],
+  "aim": {"gain": 0.5, "max_rate": 0.5, "yaw_max": 0.8, "pitch_min": -0.3, "pitch_max": 0.6, "period_s": 0.1, "lock_px": 25, "lock_s": 0.6, "lost_s": 1.5},
+  "tilt": [
+    {"t": 0.0, "head": {}},
+    {"t": 1.0, "head": {}},
+    {"t": 1.8, "head": {"head_roll": 0.22}},
+    {"t": 3.0, "head": {"head_roll": 0.22}, "quack": true},
+    {"t": 4.2, "head": {"head_roll": -0.22}},
+    {"t": 5.4, "head": {"head_roll": -0.22}},
+    {"t": 6.2, "head": {"head_roll": 0.0}}
+  ],
+  "sim_aim": [
+    {"t": 0.0, "head": {"head_pitch": 0.0, "head_yaw": 0.0}},
+    {"t": 1.0, "head": {"head_pitch": 0.3, "head_yaw": 0.0}},
+    {"t": 3.5, "head": {"head_pitch": 0.3, "head_yaw": 0.6}},
+    {"t": 7.0, "head": {"head_pitch": 0.3, "head_yaw": -0.6}},
+    {"t": 8.6, "head": {"head_pitch": 0.45, "head_yaw": -0.8}},
+    {"t": 10.6, "head": {"head_pitch": 0.45, "head_yaw": -0.8}},
+    {"t": 11.4, "head": {"head_pitch": 0.45, "head_yaw": -0.8, "head_roll": 0.22}},
+    {"t": 12.6, "head": {"head_pitch": 0.45, "head_yaw": -0.8, "head_roll": 0.22}},
+    {"t": 13.8, "head": {"head_pitch": 0.45, "head_yaw": -0.8, "head_roll": -0.22}},
+    {"t": 15.0, "head": {"head_pitch": 0.45, "head_yaw": -0.8, "head_roll": -0.22}},
+    {"t": 15.8, "head": {"head_pitch": 0.45, "head_yaw": -0.8, "head_roll": 0.0}}
+  ]
+}
