@@ -1,4 +1,4 @@
-"""The head camera, always on: one process owns /dev/video1 and keeps the newest frame in shared memory.
+"""The head camera: one process owns /dev/video1 and keeps the newest frame in shared memory, only while a task needs it.
 
 Opening the camera per script costs about 3 s of near-black frames while the ISP auto-exposure settles (robot
 2026-10-24: frame 4 black facing a lit room, frame 17 normal; in the dark frames the reddish wood floor passed as
@@ -7,15 +7,21 @@ open in this daemon and every reader (approach.py, the app's camera window via -
 /dev/shm/a7z_cam.bgr: a 16-byte header (frame index uint64, capture time float64, little endian) and the upright
 480 x 640 BGR picture, replaced atomically per frame.
 
+The capture runs the full 13 MP sensor mode at 24 fps and costs about one CPU core plus the ISP: in the closed head on
+2026-10-24 it took the SoC from 86 to 90 C within 10 s while the board idled at 85-86 C without it. So it is not
+started with the brain (Shawn 2026-10-24): the find-and-walk task (approach.py) starts it and stops it when it ends,
+and the app only watches (--mjpeg shows the picture while the daemon runs and never starts it).
+
   python a7z_cam.py              the daemon (one instance, a lock in /dev/shm); restarts gst if it exits
   python a7z_cam.py --ensure     start the daemon detached if it is not running, wait for a fresh frame
-  python a7z_cam.py --snap F     save the newest frame as an image file
-  python a7z_cam.py --mjpeg      multipart JPEG on stdout from the shared frame (boundary duckframe, quality 70),
-                                  the stream a7z-bridge.mjs used to get from gst-launch directly
-~/duck-run.sh starts it with the brain; it keeps running across brain restarts.
+  python a7z_cam.py --stop       stop the daemon and its gst (SIGTERM), wait until the camera is closed
+  python a7z_cam.py --snap F     save the newest frame as an image file (stops the daemon again if it started it)
+  python a7z_cam.py --mjpeg      multipart JPEG on stdout from the shared frame (boundary duckframe, quality 70) while
+                                  the daemon runs; "a7z_cam: idle" on stderr once a second while it does not
 """
 import fcntl
 import os
+import signal
 import struct
 import subprocess
 import sys
@@ -51,6 +57,18 @@ def daemon():
         sys.exit("a7z_cam is already running")
     lock.write(str(os.getpid()))
     lock.flush()
+    gst = []
+
+    def quit_(*_):
+        for p in gst:
+            p.kill()
+            p.wait()
+        try:
+            os.remove(SHM)
+        except FileNotFoundError:
+            pass
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, quit_)
     idx = 0
     while True:
         busy = others_on_camera()
@@ -58,7 +76,9 @@ def daemon():
             print(f"camera held by pid {' '.join(busy)}: waiting (a second opener wedges the driver)", flush=True)
             time.sleep(2.0)
             continue
-        p = subprocess.Popen(GST, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
+        # exec: the shell becomes gst, so killing p closes the camera
+        p = subprocess.Popen("exec " + GST, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
+        gst[:] = [p]
         n_run = 0
         print(f"gst started (pid {p.pid})", flush=True)
         while True:
@@ -100,7 +120,7 @@ def read_frame():
 
 def running():
     try:
-        with open(LOCK, "w") as lock:
+        with open(LOCK, "a") as lock:  # "a": "w" would truncate the daemon's pid, which stop() reads
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             fcntl.flock(lock, fcntl.LOCK_UN)
             return False
@@ -124,15 +144,36 @@ def ensure(timeout_s=12.0):
     return False
 
 
+def stop(timeout_s=5.0):
+    """SIGTERM to the daemon (it kills its gst first); True once the lock is free."""
+    if not running():
+        return True
+    try:
+        os.kill(int(open(LOCK).read().strip()), signal.SIGTERM)
+    except (OSError, ValueError):
+        return False
+    t0 = time.time()
+    while time.time() - t0 < timeout_s:
+        if not running():
+            return True
+        time.sleep(0.1)
+    return False
+
+
 def mjpeg(fps=8.0, quality=70):
+    """Watch only: JPEG parts while the daemon publishes fresh frames, an idle line on stderr once a second otherwise."""
     import cv2
     import numpy as np
-    if not ensure():
-        sys.exit("a7z_cam: no fresh frame (see ~/duck-logs/a7z_cam.out)")
-    out, last = sys.stdout.buffer, None
+    out, last, idle_t = sys.stdout.buffer, None, 0.0
     while True:
-        fr = read_frame()
-        if fr is not None and fr[2] != last and time.time() - fr[1] < FRESH_S:
+        fr = read_frame() if running() else None
+        if fr is None or time.time() - fr[1] >= FRESH_S:
+            if time.time() - idle_t >= 1.0:
+                print("a7z_cam: idle", file=sys.stderr, flush=True)
+                idle_t = time.time()
+            time.sleep(0.5)
+            continue
+        if fr[2] != last:
             last = fr[2]
             ok, jpg = cv2.imencode(".jpg", np.frombuffer(fr[0], np.uint8).reshape(H, W, 3),
                                    [cv2.IMWRITE_JPEG_QUALITY, quality])
@@ -146,13 +187,20 @@ def mjpeg(fps=8.0, quality=70):
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--ensure":
         sys.exit(0 if ensure() else "a7z_cam: no fresh frame (see ~/duck-logs/a7z_cam.out)")
+    if len(sys.argv) > 1 and sys.argv[1] == "--stop":
+        sys.exit(0 if stop() else "a7z_cam: the daemon did not stop")
     if len(sys.argv) > 2 and sys.argv[1] == "--snap":
         import cv2
         import numpy as np
-        if not ensure():
-            sys.exit("a7z_cam: no fresh frame")
-        cv2.imwrite(sys.argv[2], np.frombuffer(read_frame()[0], np.uint8).reshape(H, W, 3))
-        print(sys.argv[2])
+        started = not running()
+        try:
+            if not ensure():
+                sys.exit("a7z_cam: no fresh frame")
+            cv2.imwrite(sys.argv[2], np.frombuffer(read_frame()[0], np.uint8).reshape(H, W, 3))
+            print(sys.argv[2])
+        finally:
+            if started:
+                stop()
     elif len(sys.argv) > 1 and sys.argv[1] == "--mjpeg":
         try:
             mjpeg()

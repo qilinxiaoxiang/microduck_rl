@@ -55,49 +55,45 @@ function showTouch(t) {
   else state.textContent = `读到 ${t.ok} 次，丢 ${t.bad} 次（${t.bus === "gpio" ? "程序拨针脚读" : "内核 I2C " + t.bus}）`;
 }
 
-// ── Head camera: an <img> on the bridge's MJPEG stream, frame rate and errors from {camera} records ──
-const CAM_KEY = "microduck.camera.on", STAB_KEY = "microduck.camera.stab";
-let camOn = false, stabOn = false;
-try { camOn = localStorage.getItem(CAM_KEY) === "1"; stabOn = localStorage.getItem(STAB_KEY) === "1"; } catch {}
+// ── Head camera: an <img> on the bridge's MJPEG stream, frame rate and errors from {camera} records. The page only
+// watches: the A7Z camera runs while the find-and-walk task (approach.py) has it on, and the picture appears by itself
+// then; nothing here starts it (the capture heats the closed head, a7z_cam.py). ──
+const STAB_KEY = "microduck.camera.stab";
+let stabOn = false;
+try { stabOn = localStorage.getItem(STAB_KEY) === "1"; } catch {}
 const camUrl = () => `/api/a7z/camera?${stabOn ? "stab=1&" : ""}t=${Date.now()}`;
-function setCamera(on) {
-  camOn = on;
-  try { localStorage.setItem(CAM_KEY, on ? "1" : "0"); } catch {}
-  $("#camToggle").textContent = on ? "关掉摄像头" : "打开摄像头";
+const CAM_IDLE = "摄像头没开：找东西走过去（approach.py）时自动打开，画面会出现在这里";
+function openCamera() {
   $("#stabToggle").textContent = stabOn ? "防抖：开" : "防抖：关";
-  $("#camImg").src = on ? camUrl() : "";
-  if (!on) $("#camImg").removeAttribute("src");
-  $("#camMsg").textContent = on ? "正在打开摄像头…" : "摄像头关着";
-  $("#camMsg").hidden = false;
-  showCamera({state: on ? "starting" : "off"});
+  $("#camImg").src = camUrl();
+  showCamera({state: "starting"});
 }
-$("#camToggle").onclick = () => setCamera(!camOn);
 $("#stabToggle").onclick = () => {
   stabOn = !stabOn;
   try { localStorage.setItem(STAB_KEY, stabOn ? "1" : "0"); } catch {}
-  setCamera(camOn);
+  openCamera();
 };
-$("#camImg").onload = () => { $("#camMsg").hidden = true; };
-// the MJPEG stream ends when the local service restarts; reopen it while the camera is on
-$("#camImg").onerror = () => { if (camOn) setTimeout(() => { if (camOn) $("#camImg").src = camUrl(); }, 2000); };
+// the MJPEG stream ends when the local service restarts; reopen it
+$("#camImg").onerror = () => setTimeout(() => { $("#camImg").src = camUrl(); }, 2000);
 function showCamera(c) {
-  const state = $("#camState"), box = $("#camBox");
+  const state = $("#camState"), box = $("#camBox"), msg = $("#camMsg");
   state.className = "";
-  box.classList.toggle("stale", camOn && c.state !== "streaming");
-  if (!camOn) { state.textContent = "关着，不占 A7Z 的 CPU"; return; }
+  box.classList.toggle("stale", c.state !== "streaming");
+  msg.hidden = c.state === "streaming";
   if (c.state === "streaming") {
     // frame-to-frame motion: what the camera did and what the stabilized picture still shows
     const st = stabOn && c.stab, stabText = !st ? "" : st.error ? ` · 防抖出错：${st.error}`
       : ` · 帧间晃动 ${fmt(st.raw_deg, 1)}° ${fmt(st.raw_px, 0)} px → ${fmt(st.out_deg, 1)}° ${fmt(st.out_px, 0)} px`;
-    state.textContent = `${fmt(c.fps, 1)} 帧/秒 · 480x640${stabText}`; $("#camMsg").hidden = true;
+    state.textContent = `${fmt(c.fps, 1)} 帧/秒 · 480x640${stabText}`;
     if (st?.error) state.className = "bad";
-  }
-  else if (c.state === "closed") {
-    state.textContent = `采集停了，3 秒后重试：${c.error || "原因不明"}`; state.className = "bad";
-    $("#camMsg").hidden = false; $("#camMsg").textContent = "没有画面";
-  } else state.textContent = "正在打开摄像头…";
+  } else if (c.state === "idle") {
+    state.textContent = "没开，不占 A7Z 的 CPU"; msg.textContent = CAM_IDLE;
+  } else if (c.state === "closed") {
+    state.textContent = `连接断了，3 秒后重连：${c.error || "原因不明"}`; state.className = "bad";
+    msg.textContent = "没有画面";
+  } else { state.textContent = "正在连接…"; msg.textContent = "正在连接…"; }
 }
-setCamera(camOn);
+openCamera();
 
 function event(text, t = Date.now() / 1000) {
   const li = document.createElement("li");
@@ -162,7 +158,7 @@ function connect() {
   const source = new EventSource("/api/a7z/stream");
   source.onmessage = e => ingest(JSON.parse(e.data));
   let opened = false;  // a reopened event stream means the local service may have restarted and ended the camera stream
-  source.onopen = () => { if (opened && camOn) $("#camImg").src = camUrl(); opened = true; };
+  source.onopen = () => { if (opened) $("#camImg").src = camUrl(); opened = true; };
   source.onerror = () => { $("#link").title = "本机服务连接断开，浏览器会自动重连"; };
 }
 

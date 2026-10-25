@@ -1,8 +1,8 @@
 """Walk up to an orange object in front, steering toward it and turning in place when it is far to the side, stop with
 it about 10 cm ahead, measure it.
 
-Runs on the A7Z beside walk_wired.py (which owns the servos): reads the head camera from a7z_cam.py (the always-on
-camera daemon, shared memory; started if not running), the robot state from walk_wired's log, and
+Runs on the A7Z beside walk_wired.py (which owns the servos): reads the head camera from a7z_cam.py (the camera
+daemon, shared memory; started here if not running and stopped again at the end), the robot state from walk_wired's log, and
 writes walk_wired's control file. Final-goal step 2 (walk to it), D-019; the crouch and grip stay in pickup.py.
 
 Walking uses vx 0.25 with vtheta within +-0.3 (the app's arc rate; walk_brain holds it with the IMU against the
@@ -569,13 +569,17 @@ FRAME_W, FRAME_H = 480, 640
 
 
 class ShmCamera:
-    """The head camera through a7z_cam.py, which keeps /dev/video1 open (started here if it is not running): the newest
-    upright 480 x 640 BGR frame with its capture time and index, no warm-up per run."""
+    """The head camera through a7z_cam.py, which keeps /dev/video1 open: the newest upright 480 x 640 BGR frame with its
+    capture time and index. A daemon this run started is stopped by close() (the capture heats the closed head,
+    a7z_cam.py); one that was already running stays."""
 
     def __init__(self):
         import a7z_cam
         self.dc = a7z_cam
+        self.started = not a7z_cam.running()
         if not a7z_cam.ensure():
+            if self.started:
+                a7z_cam.stop()
             sys.exit("the head camera daemon (a7z_cam.py) has no fresh frame: see ~/duck-logs/a7z_cam.out")
 
     def latest(self):
@@ -585,7 +589,8 @@ class ShmCamera:
         return np.frombuffer(fr[0], np.uint8).reshape(FRAME_H, FRAME_W, 3), fr[1], fr[2]
 
     def close(self):
-        pass   # the daemon stays on
+        if self.started:
+            self.dc.stop()
 
 
 class LogTail:

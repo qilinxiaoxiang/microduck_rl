@@ -17,11 +17,11 @@
 // this Mac: that brain owns the servo bus over USB, and a second brain on the A7Z would fight it, so the request fails.
 //
 // Head camera: GET /api/a7z/camera is an MJPEG stream (multipart/x-mixed-replace) of the Radxa Camera 13M 214 on the
-// A7Z's CSI port. The camera itself stays open in a7z_cam.py on the A7Z (robotics guide/firmware/mac/a7z_cam.py,
-// started with the brain by ~/duck-run.sh; one owner, so approach.py and this window share it and no reader waits ~3 s
-// of near-black auto-exposure frames). A third SSH session runs CAMERA_PIPELINE, `a7z_cam.py --mjpeg`, only while a
-// page shows it and stops 2 s after the last viewer leaves (the JPEG encoding costs A7Z CPU next to the brain); it
-// starts the daemon if it is not running. The daemon uses Radxa's verified full-sensor mode, /dev/video1 at 4208x3120
+// A7Z's CSI port. The camera itself is opened only by a7z_cam.py on the A7Z (robotics guide/firmware/mac/a7z_cam.py),
+// which the find-and-walk task (approach.py) starts for its run and stops after: the capture heats the closed head.
+// This window only watches that one capture: a third SSH session runs CAMERA_PIPELINE, `a7z_cam.py --mjpeg`, while a
+// page is open and stops 2 s after the last viewer leaves; it sends frames while the daemon runs and "a7z_cam: idle"
+// on stderr once a second while it does not (camera state "idle"), and never starts it. The daemon uses Radxa's verified full-sensor mode, /dev/video1 at 4208x3120
 // NV12 with en-awisp=1 en-largemode=1 (docs.radxa.com/en/cubie/a7z/accessories/camera-13m-214), keeps every third
 // frame (8 fps), scales to 640x480 and turns it a quarter clockwise (upright duck -> upright 480x640 picture).
 // Never open /dev/video0 or /dev/video1 beside it: a second open wedges the vin driver ("video1 cannot be close",
@@ -174,16 +174,19 @@ export function a7zBridge({script, commandScript, stabilizeScript,
           if (stabViewers.size) camSend({stab: {error: s.err.trim().split("\n").pop() || `stabilizer exited ${code}`}});
         });
       }
-      let cam = null, camLinger = null, camRetry = null, camFrames = [], camLast = 0, camState = {state: "off"};
+      let cam = null, camLinger = null, camRetry = null, camFrames = [], camLast = 0, camIdle = false, camState = {state: "off"};
       const camSend = patch => { camState = {...camState, ...patch}; send({camera: camState}); };
       function startCamera() {
         clearTimeout(camRetry);
         if (cam || !viewers.size) return;
         const proc = spawn("ssh", [...SSH_OPTS, host, CAMERA_PIPELINE], {stdio: ["pipe", "pipe", "pipe"]});
         const c = {proc, buf: Buffer.alloc(0), stderr: ""};
-        cam = c; camLast = Date.now(); camFrames = [];
+        cam = c; camLast = Date.now(); camFrames = []; camIdle = false;
         camSend({state: "starting", error: "", fps: 0});
-        proc.stderr.on("data", d => { c.stderr = (c.stderr + d).slice(-600); });
+        proc.stderr.on("data", d => {
+          if (/a7z_cam: idle/.test(String(d))) { camLast = Date.now(); camIdle = true; }  // the A7Z camera is not running
+          c.stderr = (c.stderr + String(d).replace(/a7z_cam: idle\n?/g, "")).slice(-600);
+        });
         proc.stdout.on("data", d => {
           c.buf = Buffer.concat([c.buf, d]);
           for (;;) {
@@ -195,7 +198,7 @@ export function a7zBridge({script, commandScript, stabilizeScript,
             if (c.buf.length < end) break;
             const jpeg = c.buf.subarray(head + 4, end);
             c.buf = c.buf.subarray(end);
-            camLast = Date.now(); camFrames.push(camLast);
+            camLast = Date.now(); camFrames.push(camLast); camIdle = false;
             for (const v of viewers) if (!stabViewers.has(v)) v.write(part(jpeg));
             if (stabViewers.size) {
               startStab();
@@ -220,7 +223,7 @@ export function a7zBridge({script, commandScript, stabilizeScript,
         const now = Date.now();
         camFrames = camFrames.filter(t => t > now - 2000);
         if (now - camLast > CAMERA_SILENT_S * 1000) { cam.stderr += "\n6 秒没有新画面"; cam.proc.kill(); return; }
-        camSend({state: camFrames.length ? "streaming" : "starting", fps: camFrames.length / 2});
+        camSend({state: camFrames.length ? "streaming" : camIdle ? "idle" : "starting", fps: camFrames.length / 2});
       }, 1000).unref();
       // a Vite restart (config edit) builds a new bridge in the same process: end this one's SSH sessions
       server.httpServer?.on("close", () => {
