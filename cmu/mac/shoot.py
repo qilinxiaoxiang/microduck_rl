@@ -389,7 +389,7 @@ def seg_crouch(args, log, cmd):
     time.sleep(SETTLE_S)
     rows = tail.poll()
     phases = [(round(r["t"] - t0, 1), round(r["gp_phase"], 2)) for r in rows if r.get("gp_phase") is not None]
-    out = dict(seg="crouch", lowest_phase=min((p for _, p in phases), default=None),
+    out = dict(seg="crouch", lowest_phase=max((p for _, p in phases), default=None),
                phase_at_hold=[p for t, p in phases if args.descend_s <= t <= args.descend_s + args.hold_s][-3:],
                back_to_stand61=bool(rows) and rows[-1]["mode"] == "walk" and rows[-1].get("policy") == "stand",
                max_tilt_deg=round(max(tilt_deg(r) for r in rows), 1) if rows else None,

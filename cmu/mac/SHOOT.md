@@ -1,7 +1,7 @@
 # Filming the five homepage takes (2026-10-24)
 
 Five clips for shawnxiang.com and the MicroDuck page: a straight walk with a turn, the head-grip stop, two quacks, the
-crouch toward the orange part, and a rear-pack close-up. One `shoot.py` segment per clip, run from the Mac with
+forward bend toward the orange part, and a rear-pack close-up. One `shoot.py` segment per clip, run from the Mac with
 `shoot.sh SEG` while the brain the app started runs on the A7Z. The script's own report, read against the tick log,
 decides whether a take is usable before the video is even looked at.
 
@@ -24,7 +24,7 @@ decides whether a take is usable before the video is even looked at.
   bottom 50 cm of the background are what the viewer sees.
 - The power lead is in every take (the robot runs on the USB-C PD route). Route it from behind the robot, away from the
   camera, held slack by a person outside the frame at waist height so it never tugs and never lies across the path.
-- The orange part for the crouch take goes on the floor 7 cm ahead of the beak tip (the lowest crouch puts the mouth
+- The orange part for the bend take goes on the floor 7 cm ahead of the beak tip (the lowest bend puts the mouth
   tip 69 mm ahead of the feet and 22 mm over the floor; as-built sim 2026-10-16). A pencil mark on tape helps.
 - Light: room light plus any window, both from the camera side or from above. No window behind the robot.
 
@@ -38,7 +38,7 @@ decides whether a take is usable before the video is even looked at.
 - Chairs on the far side pulled away: their backs stand above the table top in a low shot. The robot sits in front of
   the plain wall between the lockers and the TV; the TV may show at one edge of the frame, the lockers at the other.
 - Camera on Shawn's side of the table, lens 18 to 22 cm above the table top (phone propped on a box or a small
-  tripod on the table), 0.6 m from the path for the walk takes, 0.4 to 0.5 m for the quack, crouch and rear takes.
+  tripod on the table), 0.6 m from the path for the walk takes, 0.4 to 0.5 m for the quack, bend and rear takes.
 
 ## Camera
 
@@ -49,8 +49,8 @@ decides whether a take is usable before the video is even looked at.
 - Focus and exposure locked before each take: long-press the robot on the screen until AE/AF LOCK shows. The robot
   walks across the frame, not toward the camera, so the distance barely changes and no follow focus is needed.
 - Distances with the 1x lens: 1.0 to 1.2 m for the two walking takes (frame about 1.5 m wide at the floor), 0.6 m for
-  the quack and the crouch, 0.35 m for the rear-pack close-up. Side views for walking, three-quarter front for the
-  quack, three-quarter front from low for the crouch so the beak and the part are both visible.
+  the quack and the bend, 0.35 m for the rear-pack close-up. Side views for walking, three-quarter front for the
+  quack, three-quarter front from low for the bend so the beak and the part are both visible.
 - Start recording 2 s before saying action, keep rolling 2 s after the robot has come to rest. Nothing else moves in
   the frame: no feet, no hands except in the grip take.
 
@@ -66,7 +66,7 @@ decides whether a take is usable before the video is even looked at.
 - **3 quack**, `shoot.sh quack`: stand61, two quacks 3 s apart with the jaw and a head tilt. Camera three-quarter
   front at 0.6 m, beak in the upper third. Usable with two `quack_lines`, `jaw_opened_deg` over 10 and `jaw_rest_deg`
   under 0.
-- **4 crouch**, `shoot.sh crouch`: stand61, the ground-pick crouch over 2.5 s, held 4 s, the rise, stand61. Camera
+- **4 bend**, `shoot.sh crouch`: stand61, the ground-pick bend (Pollen's groundpick61: a forward bend at the hips, trunk tilted about 38 deg, not a squat) over 2.5 s, held 4 s, the rise, stand61. Camera
   three-quarter front from low at 0.6 m, the orange part 7 cm ahead of the beak. Usable when `lowest_phase` is near
   0.33, `back_to_stand61` true, `guard_trip` false and `max_tilt_deg` under 45.
 - **5 back**, `shoot.sh back`: stand61, the head turns left, right, centre over 8 s. Camera behind and slightly above
@@ -76,7 +76,7 @@ decides whether a take is usable before the video is even looked at.
 Protocol per take: Shawn frames and locks focus, starts recording, says action; I run the segment; the script prints
 its report when the robot has come to rest; he stops recording and sends the clip; I read the report and the clip and
 say keep or retake. `shoot.sh stop` writes the zero command at any time; Ctrl-C in a running segment does the same (a
-crouch rises first).
+bend rises first).
 
 ## Afterwards
 
