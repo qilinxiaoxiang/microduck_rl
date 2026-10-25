@@ -166,6 +166,33 @@ key("keydown", "KeyW");
 assert.deepEqual(lastCmd(), {...ZERO, vx: 0.25});
 key("keyup", "KeyW");
 
+// Seated: the head rides on {"mode": "sit"} (a walk command would stand it up); reset sends the bare sit command
+const settle = () => new Promise(r => setTimeout(r, 0));
+brain.mode = "sit";
+remote.refresh();
+key("keydown", "KeyK");
+assert.deepEqual(lastCmd(), {mode: "sit", head: {head_pitch: 0.45, head_yaw: 0, head_roll: 0}});
+tick();
+assert.deepEqual(lastCmd(), {mode: "sit", head: {head_pitch: 0.55, head_yaw: 0, head_roll: 0}});
+key("keyup", "KeyK");
+assert.equal(timers.size, 0);
+key("keydown", "KeyH");
+assert.deepEqual(lastCmd(), {mode: "sit"});
+// 站起: the brain reports sit until the rise ends; head keys stay refused so nothing writes "sit" again
+key("keydown", "KeyR");
+await settle();
+assert.deepEqual(lastCmd(), {mode: "walk", vx: 0, vy: 0, vtheta: 0});
+const n1 = sent.length;
+key("keydown", "KeyJ");
+assert.equal(sent.length, n1);
+assert.equal(timers.size, 0);
+brain.mode = "walk";
+remote.refresh();
+key("keydown", "KeyJ");
+assert.deepEqual(lastCmd().mode, "walk");
+key("keyup", "KeyJ");
+key("keydown", "KeyH");
+
 // every walk write is a plain set, never a brain start
 assert.ok(sent.every(b => b.op === "set" && !("start" in b)));
 

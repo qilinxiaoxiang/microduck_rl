@@ -12,8 +12,10 @@
 // While the A7Z is too hot or too slow for a 50 Hz policy (robot-thermal.js) the policy buttons are disabled with the
 // reason shown, their keys are refused, and a held walk is stopped.
 // Head buttons step a held head target (head pitch, yaw, roll) that rides on every walk-mode command, so the head stays
-// where it was put while walking. Only walk mode (closed-loop stand and walking) reads "head": walk_brain.head_target
-// feeds walk61/stand61; the open-loop stand takes top-level joint overrides only, and a walk command would end a sit.
+// where it was put while walking. Walk mode (closed-loop stand and walking) and sit read "head": walk_brain.head_target
+// feeds walk61/stand61 and sitstand61, so seated the head rides on {"mode": "sit"} (a walk command would end the sit;
+// as-built sim 2026-10-24, every HEAD_RANGE extreme and all three at once while seated: no fall, seated tilt <= 2.6 deg,
+// mouth >= 107 mm above the floor, stood up after). The open-loop stand takes top-level joint overrides only.
 
 import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
 
@@ -87,7 +89,7 @@ const ACTIONS = [
   {id: "bend", key: "G", label: "弯腰 / 起身", hint: "再按起身"},
 ];
 // Head row: closed-loop stand or walking only.
-const HEAD_HINT = "闭环站立或走路时有效，按住连续动";
+const HEAD_HINT = "闭环站立、走路或坐着时有效，按住连续动";
 const HEAD_ACTIONS = [
   {id: "headUp", key: "I", label: "抬头", hint: HEAD_HINT},
   {id: "headDown", key: "K", label: "低头", hint: HEAD_HINT},
@@ -105,7 +107,7 @@ export function createRemote({root, state, log}) {
   root.innerHTML = `
     <div class="remote-grid">${ACTIONS.map(btn).join("")}
     </div>
-    <p class="remote-status">头（闭环站立或走路时有效；开环站立不认头部命令）：<span data-head></span>。走路时头侧转会减弱身体转弯
+    <p class="remote-status">头（闭环站立、走路或坐着时有效；开环站立不认头部命令）：<span data-head></span>。走路时头侧转会减弱身体转弯
       （真机 + 仿真 2026-10-24：vtheta -0.3 时头向转弯方向转 0.15，6 秒转角从 -65° 减到 -47°），转向前先按「回正」。</p>
     <div class="remote-grid">${HEAD_ACTIONS.map(btn).join("")}
     </div>
@@ -116,6 +118,8 @@ export function createRemote({root, state, log}) {
   const last = root.querySelector("[data-last]");
   const heatEl = root.querySelector("[data-heat]");
   let walkTimer = null, busy = false, gate = {blocked: false, reasons: []};
+  // 站起 was sent and the brain still reports sit: a head write now ({"mode": "sit"}) would sit it down again
+  let rising = false;
   const gated = id => POLICY_ACTS.has(id) || id in HEAD_IDS || id === "headReset"; // head moves run on stand61/walk61
   const refused = id => {
     if (!gated(id) || !gate.blocked) return false;
@@ -197,12 +201,13 @@ export function createRemote({root, state, log}) {
 
   // Head: the target lives in the page; walking, the next walk write carries it, standing, a zero command with it.
   const headSend = label => {
-    if (walkTimer) { const w = walkCmd(); set(w.cmd, w.label, false); } else set(withHead(WALK_ZERO, head), label, false);
+    if (state().brain?.mode === "sit") set(withHead({mode: "sit"}, head), label, false);
+    else if (walkTimer) { const w = walkCmd(); set(w.cmd, w.label, false); } else set(withHead(WALK_ZERO, head), label, false);
   };
+  const headMode = brain => brain?.running && (brain.mode === "walk" || (brain.mode === "sit" && !rising));
   const headUsable = () => {
-    const brain = state().brain;
-    if (brain?.running && brain.mode === "walk") return true;
-    last.textContent = "转头只在闭环站立或走路时有效：先按「闭环站立」";
+    if (headMode(state().brain)) return true;
+    last.textContent = rising ? "正在站起，站稳后再转头" : "转头只在闭环站立、走路或坐着时有效：先按「闭环站立」";
     return false;
   };
   function headStart(id) {
@@ -247,7 +252,8 @@ export function createRemote({root, state, log}) {
       else if (id === "kickR") await set({mode: "kick", foot: "right", id: "new"}, "右踢");
       else if (id === "sit" && mode !== "sit" && mode !== "stand" && mode !== "walk")
         last.textContent = "坐下要从站着开始：先按「闭环站立」，站稳后再按坐下"; // walk_brain.Brain.sit_blocked
-      else if (id === "sit") await (mode === "sit" ? set(WALK_ZERO, "站起") : set({mode: "sit"}, "坐下"));
+      else if (id === "sit" && mode === "sit") { rising = true; await set(WALK_ZERO, "站起"); }
+      else if (id === "sit") await set({mode: "sit"}, "坐下");
       else if (id === "bend") sent = await (mode === "groundpick" ? set({mode: "groundpick", phase: GP_UP}, "起身")
         : set({mode: "groundpick", phase: GP_LOW}, "弯腰"));
       else if (id === "quack") await post({op: "merge", patch: {quack: "new"}}, "叫一声");
@@ -313,7 +319,8 @@ export function createRemote({root, state, log}) {
       gate = online ? thermalGate({health, healthAge, brain, wasBlocked: was}) : {blocked: false, reasons: []};
       if (gate.blocked && held.size) { walkStop(); last.textContent = `过热保护，已停步：${gate.reasons.join("；")}`; }
       if (gate.blocked) headStop();
-      if (head && !(running && brain.mode === "walk")) headForget();
+      if (!(running && brain.mode === "sit")) rising = false;
+      if (head && !headMode(running && brain)) headForget();
       if (gate.blocked !== was) log(gate.blocked ? `过热保护：${gate.reasons.join("；")}` : "过热保护解除");
       heatEl.hidden = !gate.blocked;
       heatEl.textContent = gate.blocked ? `过热保护：${gate.reasons.join("；")}。前进、转向、转头、闭环站立、踢、坐、弯腰暂停；`

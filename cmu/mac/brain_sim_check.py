@@ -89,6 +89,8 @@ def rot_y(deg):
 
 
 GRIP_PADS = ("L1", "R1", "M")  # a palm over the head top: the two large side pads and the middle one
+# --sit-head: the seat is reached at SIT_PREP_S + SIT_SETTLE_S (2.8 s) after the sit command; the head moves after it
+SIT_HEAD_DELAY_S = 3.0
 PAD_BASE = 1000.0  # synthetic rest count of every pad
 
 
@@ -312,6 +314,8 @@ def run(args):
                 want = {"mode": "kick", "foot": args.kick_foot, "id": 1}
             if args.sit_at is not None and t >= args.sit_at and (args.unsit_at is None or t < args.unsit_at):
                 want = {"mode": "sit"}
+                if args.sit_head and t >= args.sit_at + SIT_HEAD_DELAY_S:  # robot-remote.js head buttons while seated
+                    want["head"] = {n: brain.default[n] + d for n, d in args.sit_head.items()}
             zero_t = None if walking else (t if zero_t is None else zero_t)
             for qt in args.quack_at:  # walk_wired.py's quack head move: the same gate and profile
                 if qt <= t < qt + QUACK_HEAD_S:
@@ -476,6 +480,12 @@ def run(args):
             sit["min_trunk_z"] = round(tz if sit["min_trunk_z"] is None else min(sit["min_trunk_z"], tz), 4)
             if ph == "seated":
                 sit["seated_tilt"], sit["seated_trunk_z"] = round(tilt, 1), round(tz, 4)
+                sit["seated_max_tilt"] = max(sit.get("seated_max_tilt", 0.0), round(tilt, 1))
+                mz = round(float(d.site_xpos[mouth, 2]), 4)
+                sit["seated_mouth_min_z"] = min(sit.get("seated_mouth_min_z", mz), mz)
+                if brain.q is not None:  # head joints at the end of the seat, model rad (--sit-head targets default + delta)
+                    sit["seated_head_q"] = {n: round(float(brain.q[n]), 3) for n in ("head_pitch", "head_yaw", "head_roll")}
+                    sit["head_default"] = {n: round(float(brain.default[n]), 3) for n in ("head_pitch", "head_yaw", "head_roll")}
         elif sit["start"] is not None and sit["done"] is None:
             sit["done"] = round(t, 2)
         if brain.mode == "groundpick":
@@ -731,6 +741,8 @@ def main():
     ap.add_argument("--kick-at", type=float, default=None, help="s; one kick command (id 1) at this time")
     ap.add_argument("--kick-foot", choices=("left", "right"), default="left")
     ap.add_argument("--sit-at", type=float, default=None, help="s; {\"mode\": \"sit\"} from here")
+    ap.add_argument("--sit-head", type=json.loads, default=None,
+                    help=f'JSON head deltas from the default, e.g. \'{{"head_pitch": 1.1}}\', sent with the sit command from --sit-at + {SIT_HEAD_DELAY_S} s (seated)')
     ap.add_argument("--unsit-at", type=float, default=None, help="s; walk at zero command from here (stands up first)")
     ap.add_argument("--trace", action="store_true")
     ap.add_argument("--bam-friction-scale", type=float, default=1.0, help="multiply BAM Coulomb/Stribeck/load friction (training DR range 0.9-1.1; measured real servos sit above it)")
