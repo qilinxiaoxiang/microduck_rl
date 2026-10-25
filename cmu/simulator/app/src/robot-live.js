@@ -58,6 +58,8 @@ function showTouch(t) {
 // ── Head camera: an <img> on the bridge's MJPEG stream, frame rate and errors from {camera} records. The page only
 // watches: the A7Z camera runs while the find-and-walk task (approach.py) has it on, and the picture appears by itself
 // then; nothing here starts it (the capture heats the closed head, a7z_cam.py). ──
+// the Mac mini's phone remote (vite.robot.config.js, mode "robot") has no shell runner behind the debug page
+if (import.meta.env.MODE === "robot") $("#debugLink").hidden = true;
 const STAB_KEY = "microduck.camera.stab";
 let stabOn = false;
 try { stabOn = localStorage.getItem(STAB_KEY) === "1"; } catch {}

@@ -1,5 +1,8 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MicroDuck 真机监视</title>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>MicroDuck 真机监视</title>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="鸭子遥控"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="/robot-touch-icon.png">
 <style>
 :root{color-scheme:light;--surface:#fcfcfb;--panel:#ffffff;--border:#e2e1dc;--text:#0b0b0b;--text-2:#52514e;--muted:#8a8984;--grid:#ecebe7;
   --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--good:#1a7f37;--bad:#c62828;--warn:#b26a00;--floor:#e9eef2}
@@ -74,6 +77,12 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 #camBox.stale #camImg{opacity:.4}
 #camMsg[hidden]{display:none}#camMsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:12px;text-align:center;color:#ddd;font-size:14px}
 #camState{font-size:12px;margin:6px 0 0;color:var(--text-2);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}#camState.bad{color:var(--bad);font-weight:600}
+/* touch: a held button must not start a text selection, the iOS callout or a double-tap zoom */
+.remote-grid button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}
+@media(hover:none){.remote-grid kbd{display:none}}
+/* phone: the remote first, the camera after it; the home-screen web app clears the notch and home bar */
+@media(max-width:600px){.pose{display:flex;flex-direction:column}.pose .remote-card{order:-1}.remote-grid button{min-height:56px}
+  header{padding:calc(10px + env(safe-area-inset-top)) 12px 10px}main{padding-bottom:calc(12px + env(safe-area-inset-bottom))}}
 @media(max-width:900px){main{grid-template-columns:1fr;padding:12px}.remote-grid{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.pose{position:static}#view{height:300px}.range{margin-left:0}}
 </style>
 </head>
@@ -81,7 +90,7 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 <header>
   <h1>MicroDuck 真机</h1>
   <div id="link" class="wait">正在连接 A7Z…</div>
-  <a href="/debug.html" style="font-weight:600;color:var(--s1)">排查工具 →</a>
+  <a id="debugLink" href="/debug.html" style="font-weight:600;color:var(--s1)">排查工具 →</a>
   <div class="range" role="group" aria-label="时间范围">
     <button data-s="120">2 分钟</button><button data-s="600" aria-pressed="true">10 分钟</button><button data-s="1800">30 分钟</button>
   </div>
@@ -94,7 +103,7 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
       <p id="camState">关着，不占 A7Z 的 CPU</p>
       <p class="note">头部 CSI 摄像头（Radxa 13M 214），A7Z 用整块传感器（4208x3120），每 3 帧留 1 帧缩小、转正成 480x640 压 JPEG 传过来，约 8 帧/秒。摄像头只在找东西走过去的任务（approach.py）运行时打开，任务结束就关（全分辨率采集会让头里很快升温）；这里只看画面，开着就自动显示，不会自己去开。防抖在这台 Mac 上做：跟踪画面里的特征点算出每帧的转动和平移，按平滑后的路径把画面转回去，再放大 1.15 倍藏住边缘；慢慢转头会跟过去，快的抖动被抵消。曝光里的拖影去不掉。</p>
     </div>
-    <div class="card">
+    <div class="card remote-card">
       <h2>遥控</h2>
       <div id="remote"></div>
       <p class="note">命令写进 A7Z 上 walk_wired.py 的控制文件。前进是按住才走：每 0.3 秒续一次，松手、切走窗口或断线 0.6 秒内自己停。踢腿、坐、弯腰用 Pollen 官方策略，只从站或走开始。</p>
