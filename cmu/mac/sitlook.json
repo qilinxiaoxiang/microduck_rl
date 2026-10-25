@@ -10,7 +10,7 @@
     {"t": 8.0, "head": {"head_pitch": 0.3, "head_yaw": -0.6}},
     {"t": 9.5, "head": {"head_pitch": 0.3, "head_yaw": 0.0}}
   ],
-  "aim": {"gain": 0.5, "max_rate": 0.5, "yaw_max": 0.8, "pitch_min": -0.3, "pitch_max": 0.6, "period_s": 0.1, "lock_px": 25, "lock_s": 0.6, "lost_s": 1.5},
+  "aim": {"gain": 0.5, "max_rate": 0.5, "yaw_max": 0.8, "pitch_min": -0.3, "pitch_max": 0.6, "period_s": 0.1, "lock_px": 25, "lock_s": 0.6, "lost_s": 1.5, "max_range_m": 0.45},
   "tilt": [
     {"t": 0.0, "head": {}},
     {"t": 1.0, "head": {}},

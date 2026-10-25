@@ -456,8 +456,8 @@ def seg_sitfind(args, log, cmd):
     seated tilt 1.3 deg, head reached 88 % of the command)."""
     import cv2
     import orange_target
-    from approach import FRAME_H, FRAME_W, ShmCamera
-    from duck_kin import RADXA_13M_UPRIGHT as K
+    from approach import FRAME_H, FRAME_W, PITCH_FILE, LogTail, ShmCamera
+    from duck_kin import RADXA_13M_UPRIGHT as K, DuckKin
     with open(args.sitlook) as f:
         look = json.load(f)
     aim = look["aim"]
@@ -466,6 +466,27 @@ def seg_sitfind(args, log, cmd):
     out_path = log.replace("duck_wired_log_", "duck_wired_").replace(".jsonl", ".out")
     out_pos = os.path.getsize(out_path) if os.path.exists(out_path) else 0
     cam = ShmCamera()
+    try:
+        off = float(json.load(open(PITCH_FILE))["pitch_offset_deg"])
+    except (OSError, ValueError, KeyError):
+        off = 0.0
+    kin, states = DuckKin(pitch_offset_deg=off), LogTail(log)
+
+    def find(fr):
+        """The part on the table near the robot: the blob's base projected onto the plane of the feet within
+        aim["max_range_m"], nothing reaching above the horizon (the first robot snapshot, 2026-10-24, locked onto an
+        orange thing behind the chairs at the top left of the picture)."""
+        st = states.at(fr[1]) if states.latest() else None
+        if st is None:
+            return None
+
+        def accept(x, y, bw, bh):
+            v = kin.horizon_v(x + bw / 2.0, st["q"], st["gb"], FRAME_W, FRAME_H)
+            if v is not None and y <= v:
+                return False
+            p = kin.pixel_to_ground(x + bw / 2.0, y + bh, st["q"], st["gb"], FRAME_W, FRAME_H)
+            return p is not None and math.hypot(*p) <= aim["max_range_m"]
+        return orange_target.detect(fr[0], accept=accept)
     t0 = time.time()
     rep = dict(seg="sitfind", seated=False, found_s=None, locked_s=None, lock_err_px=None, head_delta=None, snapshot=None)
 
@@ -499,7 +520,7 @@ def seg_sitfind(args, log, cmd):
             fr = cam.latest()
             if fr is not None and fr[2] != last_idx:
                 last_idx = fr[2]
-                det = orange_target.detect(fr[0])
+                det = find(fr)
                 hits = hits + 1 if det else 0
                 if hits >= 2:
                     rep["found_s"] = round(time.time() - t0, 2)
@@ -515,7 +536,7 @@ def seg_sitfind(args, log, cmd):
             fr = cam.latest()
             if fr is not None and fr[2] != last_idx:
                 last_idx = fr[2]
-                det = orange_target.detect(fr[0])
+                det = find(fr)
                 if det:
                     seen, frame = time.time(), (fr[0], det)
                     delta = aim_step(delta, det, aim, K.fx, K.fy, FRAME_W, FRAME_H)
@@ -571,7 +592,7 @@ def seg_stop(args, log, cmd):
 
 
 SEGS = {"ready": (seg_ready, False), "walk": (seg_walk, True), "grip": (seg_grip, True), "quack": (seg_quack, True), "sing": (seg_sing, True),
-        "crouch": (seg_crouch, True), "back": (seg_back, True), "sitfind": (seg_sitfind, True), "stop": (seg_stop, False)}
+        "crouch": (seg_crouch, True), "back": (seg_back, True), "sitfind": (seg_sitfind, False), "stop": (seg_stop, False)}
 
 
 def start_replay(src, dst):

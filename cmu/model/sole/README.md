@@ -49,3 +49,29 @@ Process:
 If a mold loses its shape, print it again (V1.23 Black plate).
 
 Release, by construction and print: the cavity is a height field seen from above, so it has no undercut and the foot lifts straight up (the tabs keep it straight; a tilted pull makes the layer steps catch). The coat is on the convex foot, so as the glue cools and shrinks it pulls toward the foot and away from the mold; cooling fully (freezer) helps. Printed cavity up, 0.12 mm layers with top ironing, seam at the back. Hot glue bonds to PLA, and a 190 C high-temperature gun can soften the PLA skin (PLA melts about 150-160 C), so use the release agent every cast. A glue gun only touches the cavity skin briefly; a heat gun heats the whole mold and is never used.
+
+## Inner tube sole in a press mold (2026-10-24)
+
+Thin tape gave way to E6000 because the contact cement had expired. E6000 grabs slowly, so on the rounded edge the cut tube springs back and lifts. A cut tube also keeps its curl. `press_mold.py` builds a mold and a screw-down lid for each foot, so the glued tube is held on the curve until it cures. Nothing else is needed: no weights and no clamps (Shawn). Release V1.34 (`guide/print/release-V1.34/`): one Black plate with both molds and both lids, 0.12 mm layers with ironed tops, no support.
+
+Tube (calipers, Shawn): 0.7 mm between the moulded ribs, 0.8 mm on a rib.
+
+- **Cavity:** the foot bottom offset 0.7 mm along the normal, with one plane over the flat. Seated normal gap is 0.7-0.8 mm: exactly 0.7 on the curve, and up to 0.1 more on the flat, which copies the foot's own print waviness. A cavity slightly thinner than tube plus glue presses the slopes harder than the flat, which is where the rubber has to be held.
+- **No rim stop:** the cavity ends at the plane z = 2.3 mm. The rim stays 0.7 mm from the foot, so the tube is not pinched there and the excess leaves over the open top.
+- **Glue line:** dry, without the tube, the foot lands on the flat floor 0.7 mm lower. A pencil run flat on the mold top then marks the 3.0 mm line on the foot. Sim floor contacts reach 1.6 mm.
+- **Lid:** its underside is the top of the slip-fit foot lowered 0.1 mm wherever that top is above 12.0 mm. That covers the rim and the toe block, about 901 mm2, right over the curved edge. Fins narrower than 2.4 mm are closed off, because they failed the 1.2 mm wall check. Four M2 x 10 self-tapping screws go through 2.4 mm holes into 1.6 mm pilots in the corner posts, 6 mm deep. With the lid down on the posts, the foot sits 0.1 mm below the nominal seat, so the rubber is always pressed.
+- **Checks** (`press-mold-check.json`): no overlap between the seated foot and the mold, or between the foot and the lid. Every STL reads back closed the way the release pipeline reads it.
+
+Process:
+1. Take the foot off the robot: undo the toe M2 x 6 and slide the foot off the bracket.
+2. Dry fit the foot in its mold. The raised L or R is at the heel end. With a pencil flat on the mold top, draw the glue line around the foot.
+3. Cut the blank: a rectangle about 60 x 48 mm from the slit-open tube. Keep the moulded seam and the splice out of it. Cut a V dart at each corner of the flat, using `sole_template.pdf`. Orient the tube's curl across the foot width.
+4. Clean both faces with dish soap and water, dry them, and wipe with alcohol. If no sandpaper is at hand, scrape the ribbed face lightly with an upright knife blade.
+5. Spread a thin E6000 film on the foot bottom up to the pencil line, and only there. The tube stays dry, so the flap above the line does not bond and comes away at step 9; the mold supplies the pressure that a two-sided contact bond would. Wait 2-3 minutes until the film is tacky.
+6. Lay the tube ribbed face to the foot, smooth face out, centred on the flat. Press the middle down, then work the edges over the curve so the dart edges meet.
+7. Set the foot in the mold. Put the lid on and drive the four screws in turns, crosswise, until the lid sits on all four posts.
+8. Leave it for 48-72 h at room temperature, because E6000 cures slowly below 15 C. Unscrew the lid and lift the foot out.
+9. Lift the unglued flap above the glue line and cut it off with scissors along the bonded edge.
+10. Refit the foot to the robot.
+
+Regenerate: `/tmp/microduck-cad-venv/bin/python press_mold.py`.
