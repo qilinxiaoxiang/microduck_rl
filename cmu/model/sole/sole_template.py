@@ -26,9 +26,9 @@ from matplotlib.patches import Polygon  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 STL = HERE / ".." / ".." / "assembly" / "print-parts" / "community-44.stl"
-WRAP_H = 2.5   # mm above the flat that the sheet reaches (sim contacts reach 1.6 mm)
+WRAP_H = 4.5   # mm above the flat that the sheet reaches: the press mold glue line (press_mold.py GLUE_EDGE)
 FLAT_H = 0.1   # mm: below this the bottom counts as flat
-DART_W = 2.0   # mm opening of each corner dart at the outer edge
+DART_W = 2.6   # mm opening of each corner dart at the outer edge (2.5 mm excess per corner at 4.5 mm)
 STEP = 0.25    # mm height-map grid
 
 

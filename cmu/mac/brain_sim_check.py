@@ -218,6 +218,7 @@ def run(args):
             dance = json.load(f)
     dance_vth = [0.0]
     sit_keys = None
+    restarted = False
     if args.sit_head_keys:
         with open(args.sit_head_keys[0]) as f:
             sit_keys = json.load(f)[args.sit_head_keys[1]]
@@ -242,6 +243,8 @@ def run(args):
         T = max(T, args.kick_at + 4.0)
     if args.sit_at is not None:
         T = max(T, (args.unsit_at if args.unsit_at is not None else args.sit_at + 6.0) + 6.0)
+    if args.resit_at is not None:
+        T = max(T, args.resit_at + args.resit_s)
     kick_done_t, kick_start_t, kick_foot_z0, kick_foot_max = None, None, None, None
     sit = dict(start=None, flag1=None, rise=None, done=None, min_trunk_z=None, seated_tilt=None, seated_trunk_z=None)
     zero_t, quack_ok, quack_reach = None, {}, {}  # quack head moves: zero-command start, quack time -> ran to the end
@@ -319,10 +322,21 @@ def run(args):
             if args.sit_at is not None and t >= args.sit_at and (args.unsit_at is None or t < args.unsit_at):
                 want = {"mode": "sit"}
                 seat_t = args.sit_at + walk_brain.SIT_PREP_S + walk_brain.SIT_SETTLE_S + 0.2
-                if sit_keys is not None and t >= seat_t:  # shoot.py sitfind: seated head keyframes, linear ramps
+                if sit_keys is not None and t >= seat_t and args.restart_at is None:  # shoot.py sitfind: seated head keyframes, linear ramps
                     want["head"] = {n: brain.default[n] + d for n, d in head_keys(sit_keys, t - seat_t).items()}
                 if args.sit_head and t >= args.sit_at + SIT_HEAD_DELAY_S:  # robot-remote.js head buttons while seated
                     want["head"] = {n: brain.default[n] + d for n, d in args.sit_head.items()}
+            if args.restart_at is not None and t >= args.restart_at:
+                # the brain is stopped on the seated robot (the servos keep the last goals) and started again: a fresh
+                # Brain in monitor mode, then {"mode": "sit"} from --resit-at, which enters the seat directly
+                if not restarted:
+                    brain, restarted = Brain(args.models, compensation=args.compensation, walk_ramp=args.walk_ramp,
+                                             yaw_trim_file=args.yaw_trim_file), True
+                want = {"mode": "monitor"}
+                if args.resit_at is not None and t >= args.resit_at:
+                    want = {"mode": "sit"}
+                    if sit_keys is not None and t >= args.resit_at + 0.2:
+                        want["head"] = {n: brain.default[n] + d for n, d in head_keys(sit_keys, t - args.resit_at - 0.2).items()}
             zero_t = None if walking else (t if zero_t is None else zero_t)
             for qt in args.quack_at:  # walk_wired.py's quack head move: the same gate and profile
                 if qt <= t < qt + QUACK_HEAD_S:
@@ -778,6 +792,10 @@ def main():
                     help=f'JSON head deltas from the default, e.g. \'{{"head_pitch": 1.1}}\', sent with the sit command from --sit-at + {SIT_HEAD_DELAY_S} s (seated)')
     ap.add_argument("--sit-head-keys", nargs=2, default=None, metavar=("FILE", "KEY"),
                     help="seated head keyframes (sitlook.json sim_aim) from the seat on, as shoot.py sitfind sends them")
+    ap.add_argument("--restart-at", type=float, default=None,
+                    help="s; a fresh Brain in monitor mode from here (the brain restarted on a seated robot)")
+    ap.add_argument("--resit-at", type=float, default=None, help="s; {\"mode\": \"sit\"} again from here, after --restart-at")
+    ap.add_argument("--resit-s", type=float, default=30.0, help="s simulated after --resit-at")
     ap.add_argument("--unsit-at", type=float, default=None, help="s; walk at zero command from here (stands up first)")
     ap.add_argument("--trace", action="store_true")
     ap.add_argument("--bam-friction-scale", type=float, default=1.0, help="multiply BAM Coulomb/Stribeck/load friction (training DR range 0.9-1.1; measured real servos sit above it)")

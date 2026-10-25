@@ -86,7 +86,8 @@ and graded hold: mine." under the hero video.
 
 ## Seated look take (added 2026-10-24)
 
-- **sitfind**, `shoot.sh sitfind`: the robot sits, sweeps its head to find the orange part on the table with the head
+- **sitfind**, `shoot.sh sitfind`: the robot sits (or, already seated after a brain restart, the sit policy takes over
+  in the seat without standing up), sweeps its head to find the orange part on the table with the head
   camera, turns its head onto it, tilts the head one way, quacks, tilts the other way and stays seated looking at the
   part. It does not stand up in the take; `shoot.sh ready` afterwards stands it up (hand near: one 2026-10-23 rise of
   four ran away). The part goes 20 to 35 cm from the robot, in front and up to about 40 deg to either side. Camera

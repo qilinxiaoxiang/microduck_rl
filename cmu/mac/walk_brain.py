@@ -30,7 +30,8 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
                                             history carries across both switches, as in Pollen's robotd and simulator.
                                             A re-read of the same id, or any command during the kick, starts nothing;
                                             a command written during the kick takes over after it.
-  {"mode": "sit"}                           Pollen's sitstand policy (sitstand61.onnx) from stand or walk mode: the
+  {"mode": "sit"}                           Pollen's sitstand policy (sitstand61.onnx) from stand or walk mode (or
+                                            from monitor mode on a robot already seated: straight to the seat): the
                                             posture flag in command slot vx is 0 for SIT_PREP_S, then 1 (sit). Any
                                             other command stands it back up first: flag 0 for UNSIT_S (requests during
                                             the SIT_SETTLE_S glide into the seat wait for it), then that command runs.
@@ -99,6 +100,9 @@ UNSIT_S = 2.0
 # not follow the policy's first small moves, so its closed-loop descent never started. A seat the timer declares is
 # therefore checked against the knees at the first policy tick after the glide; under this it is a stall, not a seat.
 SIT_KNEE_MIN = 0.6
+# a robot that is already seated (both knees folded into this range, model rad, sign ignored) may enter sit mode from
+# monitor mode, e.g. after a brain restart: the sitstand policy takes over in the seated phase without standing up
+SIT_SEATED_KNEE = (0.9, 2.0)
 # Trained joint ranges (model rad): the hinge ranges of Pollen's MJCF (microduck-rl-contribution robot_groundcontact.xml),
 # which no policy saw exceeded. Every policy goal is clamped to them. 2026-10-23 a sitstand61 rise ran away on the robot
 # (body pitch past 10 deg, then the neck action -0.3 -> -3.75 rad in 0.3 s): the neck was driven to -2.5 rad, 0.93 rad
@@ -316,7 +320,7 @@ class Brain:
     """
 
     POLICY_MODES = ("walk", "groundpick", "kick", "sit")  # modes driven by an ONNX policy at KP_RL
-    TORQUE_MODES = ("stand", "walk", "groundpick")  # modes that switch torque on
+    TORQUE_MODES = ("stand", "walk", "groundpick", "sit")  # modes that switch torque on
 
     def __init__(self, models, compensation=True, walk_ramp=0.0, yaw_trim_file=None):
         names = ["walk", "stand"] + [k for k in ("groundpick", "sitstand", "kick_left", "kick_right")
@@ -369,11 +373,18 @@ class Brain:
             return "the stand ramp is still running"
         return None
 
+    def seated(self):
+        """Both knees folded as in a seat (present joint positions)."""
+        return self.q is not None and all(SIT_SEATED_KNEE[0] <= abs(self.q[k]) <= SIT_SEATED_KNEE[1]
+                                          for k in ("left_knee", "right_knee"))
+
     def sit_blocked(self):
         if "sitstand" not in self.sessions:
             return "no sitstand61.onnx in the models directory"
+        if self.mode == "monitor" and self.seated():
+            return None  # already seated: the policy takes over in the seated phase (switch below)
         if self.mode not in ("walk", "stand"):
-            return f"only from stand or walk mode (now {self.mode})"
+            return f"only from stand or walk mode, or from monitor mode while seated (now {self.mode})"
         if self.ramp is not None or self.goal is None:
             return "the stand ramp is still running"
         return None
@@ -526,6 +537,14 @@ class Brain:
                 self.head_cmd[:] = 0
                 if not was_policy:
                     self.last_action[:] = 0
+            elif self.mode == "sit" and not was_policy and self.seated():
+                # from monitor mode while seated (a brain restart on a seated robot): the present pose is the goal,
+                # the policy takes over in the seated phase with the posture flag at 1, and its last action is the
+                # present pose's offset from the default, the action that holds this seat
+                self.ramp, self.goal = None, dict(q)
+                self.last_action = np.array([q[n] - self.default[n] for n in OBSERVATION_DOF_ORDER], dtype=np.float32)
+                self.head_cmd[:] = 0
+                self.sit, self.sit_next = {"phase": "seated", "t": now}, None
             elif self.mode == "sit":
                 # from stand61/walk61 or STAND: hold the present pose, the sitstand policy takes over at the first
                 # fresh upright sample with the posture flag at 0 for SIT_PREP_S (route above)

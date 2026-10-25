@@ -196,15 +196,34 @@ class Teleop(unittest.TestCase):
         self.assertAlmostEqual(rise - flag1, 2.0, delta=0.05)
         self.assertEqual(last_log["policy"], "stand")
 
-    def test_monitor_leaves_a_sit_at_once_and_sit_from_monitor_is_refused(self):
+    def test_monitor_leaves_a_sit_at_once_and_sit_from_a_standing_monitor_is_refused(self):
         w = World(shutdown=52, hw_err=0, volts_dv=74)
-        hooks = lambda d, p: [(1.0, write_cmd(p, {"mode": "sit"})), (3.0, write_cmd(p, {"mode": "monitor"})),  # noqa: E731
-                              (3.5, write_cmd(p, {"mode": "sit"}))]
-        text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, WALK0, end=4.5, supply="bench",
+        hooks = lambda d, p: [(1.0, write_cmd(p, {"mode": "sit"})), (1.4, write_cmd(p, {"mode": "monitor"})),  # noqa: E731
+                              (2.0, write_cmd(p, {"mode": "sit"}))]
+        text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, WALK0, end=3.0, supply="bench",
                                                               hooks=hooks)
-        self.assertEqual(text.count("sit refused: only from stand or walk mode (now monitor)"), 1)
+        self.assertEqual(text.count("sit refused: only from stand or walk mode, or from monitor mode while seated "
+                                    "(now monitor)"), 1)
         self.assertEqual(last_log["mode"], "monitor")
         self.assertTrue(last_log["torque"])
+
+    def test_a_brain_restarted_on_a_seated_robot_sits_without_standing_up(self):
+        # the seated pose of the as-built sim (brain_sim_check --sit-at 3, t = 12 s), servos still holding it
+        seat = [-0.0798, -1.31, 0.4587, -0.1703, 0.0138, 0.089, 1.3085, -0.4648, 0.1703, 0.0706, 0.3559, 0.3728,
+                -0.0046, 0.0383]
+        w = World(shutdown=52, hw_err=0, volts_dv=74, torque=1)
+        for i, n, q in zip(wb.IDS, wb.NAMES, seat):
+            w.regs[i][132:136] = wb.to_tick(n, q).to_bytes(4, "little")
+        hooks = lambda d, p: [(1.0, write_cmd(p, {"mode": "sit"}))]  # noqa: E731
+        text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, {"mode": "monitor"}, end=2.5,
+                                                              supply="bench", hooks=hooks)
+        self.assertNotIn("sit refused", text)
+        self.assertIn("torque on at present positions", text)
+        sit = [ln for ln in self.log_lines if ln.get("policy") == "sitstand"]
+        self.assertTrue(sit)
+        self.assertTrue(all(ln["sit_phase"] == "seated" and ln["sit_flag"] == 1.0 for ln in sit))
+        self.assertFalse(sit[-1]["sit_stalled"])
+        self.assertEqual(last_log["mode"], "sit")
 
     def test_tilt_guard_in_a_sit_holds_the_last_goals(self):
         w = World(shutdown=52, hw_err=0, volts_dv=74)
