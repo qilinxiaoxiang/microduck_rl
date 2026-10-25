@@ -210,6 +210,11 @@ def run(args):
     imu_hold, imu_t = None, 0.0
     max_action, action_jumps, prev_action = 0.0, 0, None
     T = args.walk_at + args.walk_s + 3.0
+    dance = None
+    if args.dance:
+        with open(args.dance) as f:
+            dance = json.load(f)
+    dance_vth = [0.0]
     if args.quack_at:
         T = max(T, max(args.quack_at) + QUACK_HEAD_S + 1.0)
     gp_at = args.gp_at
@@ -293,6 +298,16 @@ def run(args):
                     "vtheta": vth if walking else 0.0}
             if (args.head_yaw or args.head_pitch is not None) and t >= args.walk_at:
                 want["head"] = {"head_yaw": args.head_yaw, "head_pitch": args.head_pitch}
+            if dance is not None and t >= args.walk_at:  # shoot.py's singing take: the step in force at this time
+                step = None
+                for st_ in dance["steps"]:
+                    if t - args.walk_at >= st_["t"]:
+                        step = st_
+                if step is not None:
+                    dv = step.get("vtheta", dance_vth[0]) if "vtheta" in step else dance_vth[0]
+                    dance_vth[0] = dv
+                    want = dict(want, vx=0.0, vtheta=dv if walking else 0.0,
+                                head={n: brain.default[n] + d for n, d in step.get("head", {}).items()})
             if args.kick_at is not None and t >= args.kick_at and kick_done_t is None:
                 want = {"mode": "kick", "foot": args.kick_foot, "id": 1}
             if args.sit_at is not None and t >= args.sit_at and (args.unsit_at is None or t < args.unsit_at):
@@ -705,6 +720,7 @@ def main():
     ap.add_argument("--gp-at", type=float, default=None, help="s; switch stand61 to groundpick (Pollen alpha_ground_pick) here")
     ap.add_argument("--gp-phase", type=float, default=0.4, help="phase to descend to and hold (0.375..0.425 is the lowest)")
     ap.add_argument("--gp-hold-s", type=float, default=2.0, help="s to hold the low pose before the rise")
+    ap.add_argument("--dance", default=None, help="dance.json: head and in-place turn steps from --walk-at on (shoot.py sing)")
     ap.add_argument("--head-yaw", type=float, default=0.0, help="rad; head pose command in walk mode from --walk-at on")
     ap.add_argument("--head-pitch", type=float, default=None, help="rad; absolute head_pitch target with --head-yaw")
     ap.add_argument("--quack-at", type=float, nargs="*", default=[],

@@ -320,7 +320,9 @@ class InTheLoop(WiredRun):
         self.assertTrue(ww.hold_allowed(WALK0, b, None, grip_stopped=True))  # stopped by a grip: at once
         self.assertFalse(ww.hold_allowed({"mode": "stand"}, b, None, grip_stopped=True))
 
-    def test_grip_stop_latches_on_a_grip_and_clears_only_on_a_zero_command(self):
+    def test_grip_stop_latches_on_a_grip_and_clears_only_on_a_new_push_without_the_hand(self):
+        # 2026-10-24 take 2: the latch cleared on the zero command written 0.24 s after it, the hold fell back to the
+        # walk61-at-rest rule and walk61 kicked in the air for 2.5 s while the robot was lifted
         walk = {"mode": "walk", "vx": 0.2, "vy": 0.0, "vtheta": 0.1}
         g = ww.GripStop()
         self.assertIsNone(g.update(walk, True, ww.GRIP_STOP_E))       # a brush at the threshold: keeps walking
@@ -328,11 +330,15 @@ class InTheLoop(WiredRun):
         self.assertEqual(g.apply(walk), walk)
         self.assertEqual(g.update(walk, True, 0.5), "stop")
         self.assertEqual(g.apply(walk), dict(walk, vx=0.0, vtheta=0.0))
-        self.assertIsNone(g.update(walk, True, 0.0))                   # the hand leaves: still stopped
+        self.assertIsNone(g.update(WALK0, True, 0.8))                  # zero command while held (stick released, for_s)
         self.assertTrue(g.on)
-        self.assertEqual(g.update(WALK0, True, 0.0), "clear")
-        self.assertIsNone(g.update(walk, True, 0.0))                   # pushed again without a hand: walks
+        self.assertIsNone(g.update(walk, True, 0.8))                   # pushed again with the hand still on: stays
+        self.assertTrue(g.on)
+        self.assertIsNone(g.update(WALK0, True, 0.0))                  # hand gone, robot set down: still stopped
+        self.assertTrue(g.on)
+        self.assertEqual(g.update(walk, True, 0.0), "clear")           # a new push without a hand: walks
         self.assertFalse(g.on)
+        self.assertEqual(g.apply(walk), walk)
         g.update(walk, True, 0.5)
         self.assertEqual(g.update({"mode": "stand"}, True, 0.5), "clear")
 
@@ -376,12 +382,14 @@ class InTheLoop(WiredRun):
         self.assertTrue(after and all(ln["hold"]["s"] == 1.0 for ln in after))
         self.assertNotIn("STOP ->", text)
 
-    def test_a_grip_stop_clears_on_a_zero_command_and_walks_on_a_new_push(self):
+    def test_a_grip_stop_survives_a_zero_command_and_walks_on_a_new_push(self):
         walk = {"mode": "walk", "vx": 0.2, "vy": 0.0, "vtheta": 0.0}
         text = self.run_hold(True, [(1.5, grip), (3.0, release)], end=6.0, cmd=walk,
-                             cmd_hooks=[(4.0, WALK0), (5.0, walk)])
-        self.assertIn("hold: grip stop cleared by a zero or non-walk command", text)
-        self.assertTrue(all(ln["grip_stop"] and ln["cmd"]["vx"] == 0.0 for ln in self.policy_rows(2.2, 4.0)))
+                             cmd_hooks=[(1.7, WALK0), (4.0, WALK0), (5.0, walk)])
+        held = self.policy_rows(2.0, 4.0)
+        self.assertTrue(held and all(ln["grip_stop"] and ln["cmd"]["vx"] == 0.0 for ln in held))
+        self.assertTrue(any(ln["hold_on"] for ln in self.policy_rows(1.8, 2.6)))  # the hold stays on after the zero
+        self.assertIn("hold: grip stop cleared by a new push without a hand on the head", text)
         again = self.policy_rows(5.2, 6.0)
         self.assertTrue(again and all(not ln["grip_stop"] and ln["cmd"]["vx"] == 0.2 for ln in again))
 

@@ -480,24 +480,34 @@ GRIP_STOP_HELD_S = 0.05  # applied authority at or below which a grip-stopped ro
 class GripStop:
     """A hand gripping the head stops a walk (Shawn 2026-10-23: a held head means stop). While the hold is on and
     calibrated, a walk command meeting grip engagement e > GRIP_STOP_E is latched: its velocities read as zero, so the
-    usual command ramp brings walk61 to a stop and hold_allowed lets the hold act at once. The latch stays after the
-    hand leaves, so a robot set down stands where it is; it clears when the control file's command is zero or leaves
-    walk mode, so walking again takes releasing the stick and pushing it again."""
+    usual command ramp brings walk61 to a stop and hold_allowed lets the hold act at once. The latch stays through a
+    zero command (the stick released, a for_s expiry, a script's stop) and after the hand leaves, so a lifted robot
+    stays held and a robot set down stands where it is. It clears on a walk command that moves again after the
+    command has been zero, with no hand on the head (release the stick, push it again), or on a non-walk command.
+    2026-10-24: a latch that cleared on any zero command dropped the hold 0.24 s after the grip, and walk61 kicked in
+    the air for 2.5 s while the robot was lifted (shoot.py take 2)."""
 
     def __init__(self):
-        self.on = False
+        self.on, self.released = False, False
 
     def update(self, want, ready, e):
         """want: the control file's command; ready: hold on and calibrated. Returns 'stop' on the tick it latches,
         'clear' on the tick it releases, else None."""
-        moving = want.get("mode") == "walk" and any(float(want.get(k, 0)) for k in ("vx", "vy", "vtheta"))
-        if not moving:
-            if self.on:
+        walk = want.get("mode") == "walk"
+        moving = walk and any(float(want.get(k, 0)) for k in ("vx", "vy", "vtheta"))
+        if self.on:
+            if not walk:
+                self.on = False
+                return "clear"
+            if not moving:
+                self.released = True
+                return None
+            if self.released and e <= GRIP_STOP_E:
                 self.on = False
                 return "clear"
             return None
-        if not self.on and ready and e > GRIP_STOP_E:
-            self.on = True
+        if moving and ready and e > GRIP_STOP_E:
+            self.on, self.released = True, False
             return "stop"
         return None
 
@@ -717,7 +727,7 @@ def main():
         gs = grip_stop.update(want, hold_cfg["on"] and est.legs_range is not None, est.e)
         if gs:
             print("hold: head gripped while walking, stopped (walking again needs the stick released and pushed again)"
-                  if gs == "stop" else "hold: grip stop cleared by a zero or non-walk command", flush=True)
+                  if gs == "stop" else "hold: grip stop cleared by a new push without a hand on the head, or a non-walk command", flush=True)
         want = grip_stop.apply(want)
         if want.get("mode") == "off":
             link.sync_write(ADDR_TORQUE, 1, {i: 0 for i in IDS})

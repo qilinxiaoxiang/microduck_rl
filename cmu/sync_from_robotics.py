@@ -45,7 +45,7 @@ add(MAC, "mac", [
     "hold.py", "test_hold.py",  # graded hold: walk_wired.py and brain_sim_check.py import it
     "approach.py", "approach_sim.py", "duck_kin.py", "duck_kin.json", "duck_kin_export.py", "turn_test.py",
     "test_approach.py", "test_duck_kin.py", "APPROACH.md", "a7z_cam.py",  # walk to the object while turning (step 2)
-    "shoot.py", "shoot.sh", "SHOOT.md",  # the five filmed homepage takes (2026-10-24)
+    "shoot.py", "shoot.sh", "SHOOT.md", "dance.json",  # the five filmed homepage takes (2026-10-24)
 ])
 add(f"{MAC}/jitter-20261018", "mac/jitter-20261018", ["jitter_sim.py", "compare.py", "osc_metrics.py", "band.py", "summ.sh"])
 add(f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016", [])  # filled below from the directory listing

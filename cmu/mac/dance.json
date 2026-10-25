@@ -1,0 +1,25 @@
+{
+  "about": "Singing take (2026-10-24): quacks on a beat with head sway, nods and look-ups, and an in-place wiggle (turn in place left/right). Head values are deltas from the policy's default head pose (model rad, inside walk_brain.HEAD_RANGE 1.10/1.10/1.40/0.31 for neck_pitch/head_pitch/head_yaw/head_roll); head_pitch negative looks up. Each step holds until the next. vtheta steps turn in place (vx 0).",
+  "end_s": 11.0,
+  "steps": [
+    {"t": 0.0,  "head": {"head_pitch": -0.25}, "quack": true},
+    {"t": 0.5,  "head": {"head_yaw": 0.35, "head_roll": 0.15}, "quack": true},
+    {"t": 1.0,  "head": {"head_yaw": -0.35, "head_roll": -0.15}, "quack": true},
+    {"t": 1.5,  "head": {"head_yaw": 0.35, "head_roll": 0.15}, "quack": true},
+    {"t": 2.0,  "head": {"head_pitch": 0.2}},
+    {"t": 2.4,  "head": {"head_pitch": -0.3}, "quack": true},
+    {"t": 3.2,  "head": {}},
+    {"t": 3.6,  "head": {"head_roll": -0.15}, "vtheta": 0.6, "quack": true},
+    {"t": 4.2,  "head": {"head_roll": 0.15}, "vtheta": -0.6},
+    {"t": 4.8,  "head": {"head_roll": -0.15}, "vtheta": 0.6, "quack": true},
+    {"t": 5.4,  "head": {"head_roll": 0.15}, "vtheta": -0.6},
+    {"t": 6.0,  "head": {}, "vtheta": 0.0},
+    {"t": 7.0,  "head": {"head_pitch": 0.15, "head_yaw": 0.2}, "quack": true},
+    {"t": 7.35, "head": {"head_pitch": -0.15, "head_yaw": 0.0}, "quack": true},
+    {"t": 7.7,  "head": {"head_pitch": 0.15, "head_yaw": -0.2}, "quack": true},
+    {"t": 8.05, "head": {"head_pitch": -0.15, "head_yaw": 0.0}},
+    {"t": 8.6,  "head": {"head_pitch": -0.35, "head_roll": 0.1}, "quack": true},
+    {"t": 9.0,  "head": {"head_pitch": -0.35, "head_roll": -0.1}, "quack": true},
+    {"t": 9.8,  "head": {}}
+  ]
+}
