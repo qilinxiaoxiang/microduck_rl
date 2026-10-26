@@ -1,4 +1,4 @@
-"""Ramp MicroDuck to STAND_POSE (community NEUTRAL_POSE plus this build's lean-back trim) and hold it, with current and error watch. No IMU needed.
+"""Ramp MicroDuck to STAND_POSE (community NEUTRAL_POSE, neck forward for the saddle: stand_pose.py) and hold it, with current and error watch. No IMU needed.
 
 Follows the community runtime's ramp_to_neutral (Microduck-build-tutorial/microduck/src/main.py) and its
 constants: hardware rad = model rad * sign + offset (signs below), knees +-45 deg, 2048 ticks = 0 rad, KP 400.

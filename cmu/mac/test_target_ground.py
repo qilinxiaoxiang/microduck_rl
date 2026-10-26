@@ -16,7 +16,7 @@ mujoco = pytest.importorskip("mujoco")
 from PIL import Image, ImageDraw  # noqa: E402
 
 from target_ground import UPRIGHT, DuckGeometry, gb_from_rotation, orange_centroid, trunk_rotation  # noqa: E402
-from stand_pose import STAND_POSE  # noqa: E402  (target_ground puts ../pi on sys.path)
+from stand_pose import NEUTRAL_POSE as STAND_POSE  # noqa: E402  (the policies' default pose: the camera geometry these cases fix; ../pi on sys.path)
 
 RENDER_OUT = os.environ.get("TARGET_GROUND_RENDER",
                             "/private/tmp/claude-501/-Users-xiangzheng-code-robotics/"
