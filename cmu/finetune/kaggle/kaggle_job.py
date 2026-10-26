@@ -50,6 +50,8 @@ for _p in sorted((REPO / "cmu/model/manifests").glob("*.json")):
 SKIP_DIRS = {".venv", "logs", "wandb", "__pycache__", ".pytest_cache", ".git", "outputs", "runs", "out", "real-logs"}
 SKIP_DIR_PREFIX = ("models-ft",)  # cmu/whole/runtime-overlay/models-ft*: candidate policies and their suite results
 SKIP_SUFFIX = (".pt", ".onnx", ".gz")
+# package data the tasks load at import or runner init (the grasp FromPick runners start from alpha_ground_pick.onnx)
+KEEP_DIRS = ("src/mjlab_microduck/tasks/init_policies",)
 # Same arguments as the smoke and bench entrypoints of cmu/finetune/modal/finetune.py (_common order).
 PRESETS = {
     "smoke": ["--num-envs", "64", "--max-iters", "6", "--warmup-iters", "3", "--save-interval", "2", "--max-hours", "0.25", "--max-dollars", "1"],
@@ -111,7 +113,8 @@ def source_files():
     for root, dirs, files in os.walk(REPO):
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and not d.startswith(SKIP_DIR_PREFIX))
         for f in sorted(files):
-            if not f.endswith(SKIP_SUFFIX):
+            rel = (Path(root) / f).relative_to(REPO).as_posix()
+            if not f.endswith(SKIP_SUFFIX) or rel.startswith(KEEP_DIRS):
                 yield Path(root) / f
 
 
