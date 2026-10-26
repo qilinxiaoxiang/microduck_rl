@@ -343,6 +343,7 @@ def action_limit(stepping, since_step_s, max_action, max_walk_action):
 OVER_LIMIT_TICKS = 3   # consecutive ticks over the limit before the stop
 HARD_WINDOW = 10  # ticks (0.2 s); a runaway alternates over and under the hard limit
 HARD_MAX_ACTION = 3.0  # one tick over this stops at once (the 10-15 divergence reached +-5)
+GETUP_MAX_ACTION = 6.0  # while the get-up recover sequence owns the robot: sim rises ask 3.2-5.1 rad (getup-20261026)
 
 
 def over_limit(amax, over, limit, ticks=OVER_LIMIT_TICKS, hard=HARD_MAX_ACTION):
@@ -941,7 +942,9 @@ def main():
                 last_step_t = now
             if act is not None:
                 amax = max(abs(a) for a in act)
-                hard = args.hard_max_action
+                # a rise from the floor (DUCK_GETUP=recover, brain.getup set) legitimately asks for more than the
+                # walking limit; the sequence's own 5 s give-up bounds a failed rise
+                hard = args.hard_max_action if brain.getup is None else max(args.hard_max_action, GETUP_MAX_ACTION)
                 # 2026-10-16: the 1.8 rad limit stopped walks the policy was recovering (a 3-tick run to 2.03 rad at
                 # 15 deg; a 4 s walk cut at 1.3 s), and a single 3.16 rad tick at 4.4 deg tilt switched a steady 6 s
                 # walk to the open-loop STAND, which fell. Pollen's runtime has no action limit. An action under the
@@ -958,7 +961,8 @@ def main():
                     brain.goal = dict(goal)
             max_tilt = {"groundpick": args.max_tilt_gp, "sit": args.max_tilt_sit}.get(brain.mode, args.max_tilt)
             carried = hold_on and est.e > HOLD_TILT_E  # tilted in a hand, not falling
-            if not diverging and not carried and info["gb"][2] > -math.cos(math.radians(max_tilt)):
+            rising = brain.getup is not None  # the recover sequence passes through every tilt on its way up
+            if not diverging and not carried and not rising and info["gb"][2] > -math.cos(math.radians(max_tilt)):
                 diverging = f"body tilt over {max_tilt} deg"
             if diverging and last_goal is not None:
                 goal = dict(last_goal)  # hold the last goal sent; the stand ramp next tick starts from it

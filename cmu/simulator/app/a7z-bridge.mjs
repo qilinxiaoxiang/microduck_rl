@@ -16,17 +16,13 @@
 // first when none runs there (duck-command.py; nothing restarts it after an A7Z reboot), unless walk_wired.py runs on
 // this Mac: that brain owns the servo bus over USB, and a second brain on the A7Z would fight it, so the request fails.
 //
-// Head camera: GET /api/a7z/camera is an MJPEG stream (multipart/x-mixed-replace) of the Radxa Camera 13M 214 on the
-// A7Z's CSI port. The camera itself is opened only by a7z_cam.py on the A7Z (robotics guide/firmware/mac/a7z_cam.py),
-// which the find-and-walk task (approach.py) starts for its run and stops after: the capture heats the closed head.
+// Head camera: GET /api/a7z/camera is an MJPEG stream (multipart/x-mixed-replace) of the Innomaker U20CAM-720P on the
+// A7Z's USB-C port 2 (D-023). The camera itself is opened only by a7z_cam.py on the A7Z (robotics guide/firmware/mac/a7z_cam.py),
+// which the find-and-walk task (approach.py) starts for its run and stops after.
 // This window only watches that one capture: a third SSH session runs CAMERA_PIPELINE, `a7z_cam.py --mjpeg`, while a
 // page is open and stops 2 s after the last viewer leaves; it sends frames while the daemon runs and "a7z_cam: idle"
-// on stderr once a second while it does not (camera state "idle"), and never starts it. The daemon uses Radxa's verified full-sensor mode, /dev/video1 at 4208x3120
-// NV12 with en-awisp=1 en-largemode=1 (docs.radxa.com/en/cubie/a7z/accessories/camera-13m-214), keeps every third
-// frame (8 fps), scales to 640x480 and turns it a quarter clockwise (upright duck -> upright 480x640 picture).
-// Never open /dev/video0 or /dev/video1 beside it: a second open wedges the vin driver ("video1 cannot be close",
-// "__vin_set_fmt device busy") until the A7Z reboots (2026-10-23).
-// The frame rate and the error of a failed start reach the pages as {camera: {...}} on /api/a7z/stream.
+// on stderr once a second while it does not (camera state "idle"), and never starts it. The daemon reads the camera's
+// 1280x720 MJPEG through OpenCV, decodes every third frame (about 8-10 fps) and scales it to an upright 640x360 picture.
 // /api/a7z/camera?stab=1 is the same stream after desktop/duck-stabilize.py (optical-flow roll and shift correction on
 // this Mac, started while such a viewer is open); its once-a-second motion figures arrive as camera.stab.
 // MICRODUCK_PY names the Python with OpenCV (default ~/.venvs/microduck-walk/bin/python).

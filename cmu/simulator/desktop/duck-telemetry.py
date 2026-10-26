@@ -67,6 +67,34 @@ TICK_T = re.compile(rb'"t": ([0-9.]+)')
 ticks = []
 
 
+HW_LOCK = "/tmp/duck-hw.lock"  # walk_wired.py and duck_sense.py share it: one process on the servo bus and IMU
+
+
+def lock_holder():
+    """Who holds HW_LOCK: ("monitor", pid) for another session's duck_sense.py, ("brain", pid) for walk_wired.py,
+    ("other", pid) for anything else, or None. duck_sense.py says "the brain holds" for every holder."""
+    for fd in glob.glob("/proc/[0-9]*/fd/*"):
+        try:
+            if os.readlink(fd) != HW_LOCK:
+                continue
+        except OSError:
+            continue
+        pid = int(fd.split("/")[2])
+        if pid == os.getpid():
+            continue
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                argv = [os.path.basename(a).decode(errors="replace") for a in f.read().split(b"\0")]
+        except OSError:
+            continue
+        if "duck_sense.py" in argv:
+            return "monitor", pid
+        if "walk_wired.py" in argv:
+            return "brain", pid
+        return "other", pid
+    return None
+
+
 class Standby:
     """duck_sense.py as a child process; its newest line, or why there is none."""
 
@@ -83,6 +111,12 @@ class Standby:
             return
         if self.proc is not None:  # it quit: a brain started, or it failed
             self.error = (self.proc.stderr.read() or b"").decode(errors="replace").strip().split("\n")[-1] or None
+            if self.error and "holds the servo bus" in self.error:
+                who = lock_holder()
+                if who and who[0] == "monitor":
+                    self.error = f"another monitor session's standby reader holds the servo bus and IMU (duck_sense.py pid {who[1]})"
+                elif who and who[0] == "other":
+                    self.error = f"pid {who[1]} holds the servo bus and IMU lock"
             self.proc, self.row = None, None
         if now < self.next_start:
             return

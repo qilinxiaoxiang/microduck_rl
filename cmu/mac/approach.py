@@ -569,12 +569,15 @@ FRAME_W, FRAME_H = 480, 640
 
 
 class ShmCamera:
-    """The head camera through a7z_cam.py, which keeps /dev/video1 open: the newest upright 480 x 640 BGR frame with its
+    """The head camera through a7z_cam.py, which keeps the camera open: the newest upright FRAME_W x FRAME_H BGR frame with its
     capture time and index. A daemon this run started is stopped by close() (the capture heats the closed head,
     a7z_cam.py); one that was already running stays."""
 
     def __init__(self):
         import a7z_cam
+        if (a7z_cam.W, a7z_cam.H) != (FRAME_W, FRAME_H):
+            sys.exit(f"the head camera publishes {a7z_cam.W} x {a7z_cam.H} (U20CAM) but duck_kin projects with the Radxa 13M "
+                     f"{FRAME_W} x {FRAME_H} intrinsics and camera site: calibrate the U20CAM's intrinsics and mount first")
         self.dc = a7z_cam
         self.started = not a7z_cam.running()
         if not a7z_cam.ensure():

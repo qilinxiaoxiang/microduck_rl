@@ -38,6 +38,9 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
                                             {"mode": "monitor"} holds the last goals at once; after a guard trip
                                             the head joints hold where they are (hold_head).
 
+Get-up after a fall (walk mode): DUCK_GETUP=recover (or --getup recover here) runs Pollen robotd's limp_fall sequence;
+see GETUP below and getup-20261026/README.md. The default "off" keeps the 60 deg hold.
+
 walk61/stand61 come from hardware-design-20260912/whole-robot-20260912/runtime-overlay: the community walk.onnx was
 trained for 7.5 V servos and falls within 0.6 s at 5 V in the whole-robot simulation; the 61-input policies pass at
 5 V. Stale state is extrapolated to the moment the goals reach the servos (delay-repair-20260912/compensation.py),
@@ -155,6 +158,35 @@ HEADING_I_MAX = 1.5  # rad s
 TRIM_MIN_S = 1.0
 TRIM_RATE = 0.5
 WAIT_FOR_FRESH = True  # torque modes wait for a fresh sample before entry (tests flip it to show the 10-16 slam)
+# Get-up after a fall (getup-20261026/README.md). Walk mode only; sit, ground pick and kick keep their own guards.
+#   "off"      the old behaviour: past 60 deg of tilt the policy step is skipped and the last goal held, so stand61 never
+#              sees a lying robot.
+#   "nogate"   that gate removed: stand61/walk61 run whatever the tilt (Pollen robotd has no fall gate).
+#   "recover"  robotd's limp_fall sequence (pollen-robotics/microduck robotd/src/main.rs LimpFall, duck-control/src/fall.rs,
+#              deploy/robotd.toml [safety]): a gyro-predicted fall, or a robot found lying, goes LIMP at KP_LIMP following
+#              the joints down; once the gyro is quiet the joints ramp linearly to the policy default over POSE_S at
+#              KP_POSE; then stand61 runs at zero command with no tilt gate (RISE) until the trunk has been upright for
+#              UPRIGHT_S, after which walk mode carries on as before. A rise not done GIVEUP_S after hand-over holds the
+#              present pose at KP_LIMP (GAVE_UP) instead of pushing at walking gain against the floor; a new command
+#              (mode or velocity) re-arms the sequence. Torque stays on in every phase.
+# walk_wired.py builds the Brain without arguments, so the switch is this module constant, set from DUCK_GETUP.
+GETUP_MODES = ("off", "nogate", "recover")
+GETUP = os.environ.get("DUCK_GETUP", "off")
+FALL_TILT_Z = -0.90  # robotd limp_fall_tilt_z: already about 26 deg tilted
+FALL_PREDICT_Z = -0.5  # robotd limp_fall_predict_z: gravity z extrapolated LOOKAHEAD ahead past this
+FALL_LOOKAHEAD_S = 0.30
+FALL_DEBOUNCE_S = 0.06  # three 50 Hz ticks
+FALLEN_Z = -0.5  # robotd safety fall_gravity_z: lying (60 deg); held FALLEN_DEBOUNCE_S starts the sequence too
+FALLEN_DEBOUNCE_S = 0.2
+KP_LIMP = 50  # robotd gain_limp
+LIMP_STILL_RATE = 1.0  # rad/s, |gyro| under this for LIMP_STILL_S ends the limp (robotd limp_fall_still_*)
+LIMP_STILL_S = 0.2
+LIMP_MAX_S = 1.5  # robotd limp_fall_max_ms
+POSE_S = 1.0  # ramp to the policy default (robotd limp_fall_pose_ms is 0.6; 1.0 per the 2026-10-26 plan, sim-checked)
+KP_POSE = 160  # robotd limp_fall_pose_gain (its softened standing gain)
+UPRIGHT_Z = -0.85  # Pollen simulator RECOVER: gravity z under this ...
+UPRIGHT_S = 1.0  # ... for this long ends the rise
+GIVEUP_S = 5.0  # rise time after hand-over before GAVE_UP
 STATE_FMT = "<4sId14i14i4f3f3f4fBf"
 CMD_FMT = "<4sIIH14i"
 OBS_NAMES = "base_ang_vel,projected_gravity,joint_pos,joint_vel,actions,command,head_command,body_command"
@@ -322,7 +354,14 @@ class Brain:
     POLICY_MODES = ("walk", "groundpick", "kick", "sit")  # modes driven by an ONNX policy at KP_RL
     TORQUE_MODES = ("stand", "walk", "groundpick", "sit")  # modes that switch torque on
 
-    def __init__(self, models, compensation=True, walk_ramp=0.0, yaw_trim_file=None):
+    def __init__(self, models, compensation=True, walk_ramp=0.0, yaw_trim_file=None, getup=None):
+        self.getup_mode = GETUP if getup is None else getup
+        if self.getup_mode not in GETUP_MODES:
+            raise ValueError(f"getup must be one of {GETUP_MODES}, not {self.getup_mode!r}")
+        self.getup = None  # recover mode: {"phase": "limp" | "pose" | "rise" | "gave_up", "t": phase start, ...}
+        self.fall_for = 0.0  # s the fall prediction has held (debounce)
+        self.lying_for = 0.0  # s the trunk has read lying (FALLEN_Z)
+        self.fall_t = None  # time of the last detector tick
         names = ["walk", "stand"] + [k for k in ("groundpick", "sitstand", "kick_left", "kick_right")
                                      if os.path.exists(os.path.join(models, k + "61.onnx"))]
         self.sessions = {k: ort.InferenceSession(os.path.join(models, k + "61.onnx"), session_options()) for k in names}
@@ -487,6 +526,83 @@ class Brain:
         if self.q is not None:
             self.head_hold = {n: self.q[n] for n in HEAD_JOINTS}
 
+    @staticmethod
+    def _cmd_sig(want):
+        return (want.get("mode", "monitor"),) + tuple(round(float(want.get(k, 0) or 0), 2) for k in ("vx", "vy", "vtheta"))
+
+    def _getup_reset(self, why):
+        print(f"getup: {why}", flush=True)
+        self.getup, self.fall_for, self.lying_for = None, 0.0, 0.0
+
+    def getup_tick(self, want, now, q, gb, gyro, fresh, hold, info):
+        """GETUP "recover" in walk mode: fall/lying detection while idle, then LIMP -> POSE -> RISE (-> GAVE_UP).
+        Returns (goal, kp, info) for the phases that own the robot, None when the policy runs (idle, or RISE with
+        self.getup set). gb, gyro: body-frame gravity and angular velocity, as the policy sees them."""
+        dt = 0.02 if self.fall_t is None else min(0.1, max(0.0, now - self.fall_t))
+        self.fall_t = now
+        g = self.getup
+        rate = float(math.sqrt(sum(float(w) * float(w) for w in gyro)))
+        if g is None:
+            held = hold is not None and float(hold.get("s", 1.0)) < 0.999  # in a hand (hold.py): not a fall
+            if not fresh or held:
+                self.fall_for = self.lying_for = 0.0
+                return None
+            gz_rate = -(gyro[0] * gb[1] - gyro[1] * gb[0])  # d(gz)/dt = -(w x g)_z, robotd fall.rs
+            going_down = FALL_TILT_Z < gb[2] < FALLEN_Z and gz_rate > 0 and \
+                gb[2] + gz_rate * FALL_LOOKAHEAD_S > FALL_PREDICT_Z
+            self.fall_for = self.fall_for + dt if going_down else 0.0
+            self.lying_for = self.lying_for + dt if gb[2] >= FALLEN_Z else 0.0
+            info["fall_pred"] = round(gb[2] + gz_rate * FALL_LOOKAHEAD_S, 3)
+            if self.fall_for >= FALL_DEBOUNCE_S - 1e-6:
+                why = f"falling (gravity z {gb[2]:+.2f}, predicted {info['fall_pred']:+.2f})"
+            elif self.lying_for >= FALLEN_DEBOUNCE_S - 1e-6:
+                why = f"lying (gravity z {gb[2]:+.2f})"
+            else:
+                return None
+            self.getup = g = {"phase": "limp", "t": now, "still": 0.0, "t0": now}
+            print(f"getup: {why} -> LIMP at kp {KP_LIMP}", flush=True)
+        info["getup"] = g["phase"]
+        if g["phase"] == "limp":
+            g["still"] = g["still"] + dt if fresh and rate < LIMP_STILL_RATE else 0.0
+            if g["still"] < LIMP_STILL_S - 1e-6 and now - g["t"] < LIMP_MAX_S:
+                if fresh or self.goal is None:
+                    self.goal = dict(q)  # follow the joints wherever they are pushed
+                return self.goal, KP_LIMP, info
+            print(f"getup: still after {now - g['t']:.2f} s -> POSE to the policy default over {POSE_S} s at kp "
+                  f"{KP_POSE}", flush=True)
+            g.update(phase="pose", t=now, start=dict(q))
+            info["getup"] = "pose"
+        if g["phase"] == "pose":
+            s = min(1.0, (now - g["t"]) / POSE_S)
+            self.goal = {n: g["start"][n] + (self.default[n] - g["start"][n]) * s for n in NAMES}
+            if s >= 1.0:
+                # hand-over as robotd controller.reset(): fresh action history, zero command selects stand61
+                g.update(phase="rise", t=now, up=0.0)
+                self.last_action[:] = 0
+                self.head_cmd[:] = 0
+                self.stepped, self.heading, self.turning, self.walk_seg = False, None, False, None
+                print("getup: posed -> RISE (stand61 at zero command)", flush=True)
+            return self.goal, KP_POSE, info
+        if g["phase"] == "rise":
+            g["up"] = g["up"] + dt if fresh and gb[2] < UPRIGHT_Z else (g["up"] if not fresh else 0.0)
+            if g["up"] >= UPRIGHT_S - 1e-6:
+                self._getup_reset(f"upright for {UPRIGHT_S} s, {now - g['t0']:.1f} s after the fall was seen -> walk")
+                info["getup"] = "up"
+                return None
+            if now - g["t"] >= GIVEUP_S and gb[2] >= UPRIGHT_Z:
+                g.update(phase="gave_up", t=now, cmd=self._cmd_sig(want))
+                self.goal = dict(q)
+                info["getup"] = "gave_up"
+                print(f"getup: not up {GIVEUP_S} s after the hand-over (gravity z {gb[2]:+.2f}) -> GAVE_UP, holding "
+                      f"the present pose at kp {KP_LIMP}; a new command tries again", flush=True)
+                return self.goal, KP_LIMP, info
+            return None
+        # gave_up: hold until the command changes
+        if self._cmd_sig(want) != g["cmd"]:
+            self._getup_reset("new command after GAVE_UP: re-armed")
+            info["getup"] = "rearmed"
+        return self.goal, KP_LIMP, info
+
     def tick(self, want, now, pos_t, vel_t, quat, gyro, imu_valid, joint_age, imu_age):
         """joint_age / imu_age: predicted sample ages (s) at the moment the returned goals reach the servos."""
         q = {n: to_model(n, t) for n, t in zip(NAMES, pos_t)}
@@ -521,6 +637,9 @@ class Brain:
             self.waiting = False
             was_policy = self.mode in self.POLICY_MODES
             self.mode = want.get("mode", "monitor")
+            if self.getup is not None:
+                print(f"getup: {self.getup['phase']} ended by the switch to {self.mode}", flush=True)
+            self.getup, self.fall_for, self.lying_for = None, 0.0, 0.0
             start = self.goal or q
             if self.mode == "groundpick" and "groundpick" not in self.sessions:
                 raise RuntimeError("no groundpick61.onnx in the models directory")
@@ -595,6 +714,15 @@ class Brain:
         if self.mode in ("groundpick", "sit"):
             # the trunk pitches in the crouch and the seat: "upright" for the policy step means not fallen over
             upright = grav_body[2] < -0.2
+        if self.mode == "walk" and self.getup_mode == "nogate":
+            upright = True
+        elif self.mode == "walk" and self.getup_mode == "recover":
+            out = self.getup_tick(want, now, q, grav_body, gyro_body, imu_valid, hold, info)
+            if out is not None:
+                return out
+            if self.getup is not None:  # RISE: stand61 at zero command, no tilt gate, no hold, walking gain
+                upright, hold, kp = True, None, KP_RL
+                want = {"mode": "walk"}
         if self.mode in self.POLICY_MODES and upright and imu_valid and joint_age is not None and \
                 max(joint_age, imu_age) <= MAX_AGE:
             state = np.array(list(gyro_body) + list(grav_body) + [q[n] - self.default[n] for n in OBSERVATION_DOF_ORDER]
@@ -715,9 +843,12 @@ def main():
                          "present pose (default). The ramp tipped the robot over on 2026-10-14; keep 0.")
     ap.add_argument("--cmd", default="/tmp/duck_cmd.json")
     ap.add_argument("--log", default="/tmp/duck_walk_log.jsonl")
+    ap.add_argument("--getup", choices=GETUP_MODES, default=GETUP,
+                    help="fall handling in walk mode (default DUCK_GETUP or off): off = hold past 60 deg, nogate = policy "
+                         "at any tilt, recover = limp, pose, stand61 rise (getup-20261026/README.md)")
     args = ap.parse_args()
 
-    brain = Brain(args.models, compensation=not args.no_compensation, walk_ramp=args.walk_ramp)
+    brain = Brain(args.models, compensation=not args.no_compensation, walk_ramp=args.walk_ramp, getup=args.getup)
     print(f"walk61/stand61 over Wi-Fi, compensation {brain.comp_cfg['delay_compensation']}", flush=True)
     ages = []  # Pi-measured joint sample age at the moment goals were applied, s
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

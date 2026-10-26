@@ -254,8 +254,17 @@ def check_bambu_archive(path):
  assert '<object' not in mdl and not any(n.startswith('3D/Objects/')for n in names),f'{path}: model objects in the sliced archive (GUI drops the stored slice and opens Prepare)'
  assert any(n.startswith('Metadata/plate_')and n.endswith('.gcode')for n in names),f'{path}: no stored G-code'
 
+import re as _re
+OTHER_MATERIALS=_re.compile(r'\b(PETG|ABS|ASA|TPU|PC|nylon|PA12)\b',_re.I)
+def check_material_words(manifest_path):
+ """Every MicroDuck plate is sliced with the PLA profiles (check_profile asserts filament_type == PLA). A manifest that names another
+ material in its prose is wrong (2026-10-25: 'white PETG out' was written from an assumption and spread to the guide and DECISIONS)."""
+ txt=Path(manifest_path).read_text();hits=sorted({m.group(0) for m in OTHER_MATERIALS.finditer(txt)})
+ assert not hits,f'{manifest_path} names a material other than PLA: {hits}; the plates are PLA (check_profile)'
+
 def prepare(manifest_path,out):
  out=Path(out).resolve();out.mkdir(parents=True,exist_ok=True)
+ check_material_words(manifest_path)
  m,receipt=source_receipt(manifest_path);sources={r['key']:r for r in m['parts']};rows=[]
  for color in COLORS:
   parts=[r for r in receipt['parts']if r['color']==color]

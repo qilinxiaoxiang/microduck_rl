@@ -86,7 +86,7 @@ function showCamera(c) {
     // frame-to-frame motion: what the camera did and what the stabilized picture still shows
     const st = stabOn && c.stab, stabText = !st ? "" : st.error ? ` · 防抖出错：${st.error}`
       : ` · 帧间晃动 ${fmt(st.raw_deg, 1)}° ${fmt(st.raw_px, 0)} px → ${fmt(st.out_deg, 1)}° ${fmt(st.out_px, 0)} px`;
-    state.textContent = `${fmt(c.fps, 1)} 帧/秒 · 480x640${stabText}`;
+    state.textContent = `${fmt(c.fps, 1)} 帧/秒 · 640x360${stabText}`;
     if (st?.error) state.className = "bad";
   } else if (c.state === "idle") {
     state.textContent = "没开，不占 A7Z 的 CPU"; msg.textContent = CAM_IDLE;
@@ -152,7 +152,7 @@ function watch() {
   } else {
     link.className = "wait"; link.textContent = "正在连接 A7Z…";
   }
-  $("#view").classList.toggle("stale", !online || !lastBrain?.running);
+  $("#view").classList.toggle("stale", !online || !poseLive);
   drawCharts();
 }
 
@@ -349,14 +349,38 @@ let rig = null, trunk = null;
 const target = {joints: {}, quat: new THREE.Quaternion(), jaw: 0}, current = {joints: {}, quat: new THREE.Quaternion(), jaw: 0};
 const down = new THREE.Vector3(0, 0, -1), gb = new THREE.Vector3();
 
-function setPoseTarget(brain) {
+// Without joint angles the model would keep drawing its default standing pose, which reads as the robot standing
+// (2026-10-26: the phone showed a standing duck while the robot lay face-down, because the MacBook's monitor held the
+// standby reader). No angles: the duck is hidden and the panel says why; it comes back with the next real reading.
+let poseLive = false;
+function showNoPose(reason) {
+  poseLive = false;
+  if (rig) rig.placer.visible = false;
   const note = $("#poseNote");
+  note.className = "bad";
+  note.textContent = `没有姿态数据：${reason}`;
+  $("#joints").innerHTML = "";
+}
+function standbyReason(err) {
+  if (/another monitor session/.test(err)) return "待机读取被另一个监视页面占着（本机 app 或另一台设备上的真机页面），关掉那边，或用那边看姿态";
+  return `待机读取没起来：${err}`;
+}
+
+function setPoseTarget(brain) {
   if (!brain?.joints) {
-    note.textContent = brain?.running ? "大脑在运行，还没有关节读数"
-      : brain?.standby_error ? `大脑没在运行，待机读取没起来：${brain.standby_error}`
-      : "大脑没在运行，待机读取正在启动（Mac 上的大脑在跑时不读，免得抢总线）";
+    showNoPose(brain?.running ? "大脑在运行，还没有关节读数"
+      : brain?.standby_error ? standbyReason(brain.standby_error)
+      : "大脑没在运行，待机读取正在启动（Mac 上的大脑在跑时不读，免得抢总线）");
     return;
   }
+  const note = $("#poseNote");
+  note.className = "";
+  if (!poseLive) {  // first reading after a gap: jump to it instead of easing from the old pose
+    for (const k of Object.keys(current.joints)) delete current.joints[k];
+    if (brain.gb) current.quat.setFromUnitVectors(gb.set(...brain.gb).normalize(), down);
+  }
+  poseLive = true;
+  if (rig) rig.placer.visible = true;
   Object.assign(target.joints, brain.joints);
   // Body-frame gravity from the brain (what the policy sees); the rotation that takes it to world down is the
   // trunk's tilt. Heading is not observable from gravity and stays fixed.
@@ -382,16 +406,29 @@ function frame() {
   requestAnimationFrame(frame);
 }
 
-async function loadModel() {
-  rig = await buildRig(await loadKinematics(ROBOT_KINEMATICS));
-  trunk = rig.bodies.get("trunk_base");
-  scene.add(rig.placer);
+// The 6 MB model can fail to arrive (phone link dropped, the service restarted mid-download). Its state has its own
+// line: #poseNote is rewritten by every brain record, so an error there vanished within 0.1 s and left the empty floor.
+async function loadModel(attempt = 1) {
+  const note = $("#modelNote");
+  try {
+    const built = await buildRig(await loadKinematics(ROBOT_KINEMATICS));
+    rig = built; trunk = rig.bodies.get("trunk_base");
+    rig.placer.visible = poseLive;
+    scene.add(rig.placer);
+    note.hidden = true;
+  } catch (e) {
+    console.error(e);
+    const wait = Math.min(30, 2 * attempt);
+    note.className = "bad"; note.hidden = false;
+    note.textContent = `模型加载失败（第 ${attempt} 次）：${e.message}，${wait} 秒后重试`;
+    setTimeout(() => { note.className = ""; note.textContent = "模型加载中…"; loadModel(attempt + 1); }, wait * 1000);
+  }
 }
 
 connect();
 setInterval(watch, 250);
 requestAnimationFrame(frame);
-loadModel().catch(e => { $("#poseNote").textContent = "模型加载失败：" + e.message; console.error(e); });
+loadModel();
 const remote = createRemote({root: $("#remote"), state: () => ({online, brain: lastBrain, health: latest, healthAge: (Date.now() - latestAt) / 1000}), log: event});
 setInterval(() => remote.refresh(), 250);
 

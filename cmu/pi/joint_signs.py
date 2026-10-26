@@ -32,3 +32,6 @@ MOTOR_OFFSET.update(right_ankle=0.0, left_ankle=math.radians(-90.0))
 # the horn off, ID3 turned its bare shaft clockwise from 2350 (the stand pose) to 1310, the horn went back on with the
 # leg in its old orientation, so the same leg pose now reads 1040 ticks lower.
 MOTOR_OFFSET.update(right_hip_pitch=-1040 * 2 * math.pi / 4096)
+# 2026-10-26 head yaw (ID13) read -181 deg (raw -13) with the head forward after the A7Z left the head: the horn sat half
+# a turn round, on the encoder seam. Fixed mechanically like ID5 (D-018), not with an offset: head off, ID13 turned its
+# bare shaft 50 -> 2035, head refit facing forward; it reads 2032 (-1.4 deg). head_yaw keeps offset 0, mode 3, homing 0.

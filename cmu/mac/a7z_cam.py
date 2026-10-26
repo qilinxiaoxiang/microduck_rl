@@ -1,20 +1,21 @@
-"""The head camera: one process owns /dev/video1 and keeps the newest frame in shared memory, only while a task needs it.
+"""The head camera: one process owns the Innomaker U20CAM-720P (USB, UVC) and keeps the newest frame in shared memory,
+only while a task needs it.
 
-Opening the camera per script costs about 3 s of near-black frames while the ISP auto-exposure settles (robot
-2026-10-24: frame 4 black facing a lit room, frame 17 normal; in the dark frames the reddish wood floor passed as
-orange), and a second opener of /dev/video0 or /dev/video1 wedges the vin driver until a reboot. So the camera stays
-open in this daemon and every reader (approach.py, the app's camera window via --mjpeg, snapshots) reads
-/dev/shm/a7z_cam.bgr: a 16-byte header (frame index uint64, capture time float64, little endian) and the upright
-480 x 640 BGR picture, replaced atomically per frame.
+The U20CAM sits on the face with its plug edge up (D-023; CURRENT-STATE parts_a7z_extensions innomaker_u20cam) and
+streams MJPEG 1280 x 720 at 30 fps on the A7Z's port 2. Radxa's gst v4l2src cannot open it (its vendor
+VIDIOC_SET_DMA_MERGE call fails on a UVC device, 2026-10-26), so OpenCV's V4L2 backend reads it. The node is found by
+name, since /dev/videoN moves with the boot order. Every third frame is decoded (10 fps); the picture is shrunk to the
+upright 640 x 360 BGR that every reader (approach.py, the app's camera window via --mjpeg, snapshots) reads from
+/dev/shm/a7z_cam.bgr: a 16-byte header (frame index uint64, capture time float64, little endian) and the picture,
+replaced atomically per frame. Frames from the first WARMUP_S are not published while the auto-exposure settles.
 
-The capture runs the full 13 MP sensor mode at 24 fps and costs about one CPU core plus the ISP: in the closed head on
-2026-10-24 it took the SoC from 86 to 90 C within 10 s while the board idled at 85-86 C without it. So it is not
-started with the brain (Shawn 2026-10-24): the find-and-walk task (approach.py) starts it and stops it when it ends,
-and the app only watches (--mjpeg shows the picture while the daemon runs and never starts it).
+The camera is not started with the brain (Shawn 2026-10-24, when the CSI capture heated the closed head): the
+find-and-walk task (approach.py) starts it and stops it when it ends, and the app only watches (--mjpeg shows the
+picture while the daemon runs and never starts it).
 
-  python a7z_cam.py              the daemon (one instance, a lock in /dev/shm); restarts gst if it exits
+  python a7z_cam.py              the daemon (one instance, a lock in /dev/shm); reopens the camera if it stops
   python a7z_cam.py --ensure     start the daemon detached if it is not running, wait for a fresh frame
-  python a7z_cam.py --stop       stop the daemon and its gst (SIGTERM), wait until the camera is closed
+  python a7z_cam.py --stop       stop the daemon (SIGTERM), wait until the camera is closed
   python a7z_cam.py --snap F     save the newest frame as an image file (stops the daemon again if it started it)
   python a7z_cam.py --mjpeg      multipart JPEG on stdout from the shared frame (boundary duckframe, quality 70) while
                                   the daemon runs; "a7z_cam: idle" on stderr once a second while it does not
@@ -27,26 +28,31 @@ import subprocess
 import sys
 import time
 
-GST = ("gst-launch-1.0 -q v4l2src device=/dev/video1 en-awisp=1 en-largemode=1"
-       " ! video/x-raw,format=NV12,width=4208,height=3120,framerate=24/1 ! videorate drop-only=true"
-       " ! video/x-raw,framerate=8/1 ! rawvideoparse use-sink-caps=false format=nv12 width=4208 height=3120 framerate=8/1"
-       " ! videoscale ! video/x-raw,width=640,height=480 ! videoflip method=clockwise ! videoconvert"
-       " ! video/x-raw,format=BGR ! fdsink fd=1")
-W, H = 480, 640
+CAMERA_NAME = "U20CAM"
+CAP_W, CAP_H = 1280, 720
+DECODE_EVERY = 3    # 30 fps from the camera, 10 fps published
+W, H = 640, 360
 NBYTES = W * H * 3
 HEADER = struct.Struct("<Qd")
 SHM = "/dev/shm/a7z_cam.bgr"
 LOCK = "/dev/shm/a7z_cam.lock"
-LATENCY_S = 0.12    # capture to arrival, assumed; frames are stamped arrival minus this
-WARMUP = 24         # 3 s at 8 fps: frames before the auto-exposure settles are not published
+LATENCY_S = 0.10    # capture to arrival, assumed; frames are stamped arrival minus this
+WARMUP_S = 1.0      # auto-exposure settling: frames before this are not published
 FRESH_S = 1.0
 
 
-def others_on_camera():
-    """pids of camera openers that are not this daemon's gst (the app's old pipeline, a stray script)."""
-    out = subprocess.run(["pgrep", "-f", "v4l2src device=/dev/video"], capture_output=True, text=True).stdout.split()
-    mine = set(subprocess.run(["pgrep", "-P", str(os.getpid())], capture_output=True, text=True).stdout.split())
-    return [p for p in out if p not in mine]
+def camera_node():
+    """/dev/videoN of the U20CAM's capture node (index 0; index 1 is its metadata node), or None."""
+    base = "/sys/class/video4linux"
+    for d in sorted(os.listdir(base)):
+        try:
+            name = open(f"{base}/{d}/name").read()
+            index = open(f"{base}/{d}/index").read().strip()
+        except OSError:
+            continue
+        if CAMERA_NAME in name and index == "0":
+            return f"/dev/{d}"
+    return None
 
 
 def daemon():
@@ -57,51 +63,51 @@ def daemon():
         sys.exit("a7z_cam is already running")
     lock.write(str(os.getpid()))
     lock.flush()
-    gst = []
+    cap = []
 
     def quit_(*_):
-        for p in gst:
-            p.kill()
-            p.wait()
+        for c in cap:
+            c.release()
         try:
             os.remove(SHM)
         except FileNotFoundError:
             pass
         sys.exit(0)
     signal.signal(signal.SIGTERM, quit_)
+    import cv2
     idx = 0
     while True:
-        busy = others_on_camera()
-        if busy:
-            print(f"camera held by pid {' '.join(busy)}: waiting (a second opener wedges the driver)", flush=True)
+        node = camera_node()
+        c = cv2.VideoCapture(node, cv2.CAP_V4L2) if node else None
+        if c is None or not c.isOpened():
+            print(f"no {CAMERA_NAME} capture node open ({node}): retrying in 2 s", flush=True)
             time.sleep(2.0)
             continue
-        # exec: the shell becomes gst, so killing p closes the camera
-        p = subprocess.Popen("exec " + GST, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
-        gst[:] = [p]
-        n_run = 0
-        print(f"gst started (pid {p.pid})", flush=True)
+        c.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        c.set(cv2.CAP_PROP_FRAME_WIDTH, CAP_W)
+        c.set(cv2.CAP_PROP_FRAME_HEIGHT, CAP_H)
+        cap[:] = [c]
+        t_open, n_run = time.time(), 0
+        print(f"{node} open", flush=True)
         while True:
-            buf = bytearray()
-            while len(buf) < NBYTES:
-                chunk = p.stdout.read(NBYTES - len(buf))
-                if not chunk:
-                    break
-                buf += chunk
-            if len(buf) < NBYTES:
+            if not c.grab():
                 break
             n_run += 1
-            if n_run <= WARMUP:
+            if n_run % DECODE_EVERY or time.time() - t_open < WARMUP_S:
                 continue
+            t_cap = time.time() - LATENCY_S
+            ok, frame = c.retrieve()
+            if not ok:
+                break
+            frame = cv2.resize(frame, (W, H), interpolation=cv2.INTER_AREA)
             idx += 1
             tmp = SHM + ".tmp"
             with open(tmp, "wb") as f:
-                f.write(HEADER.pack(idx, time.time() - LATENCY_S))
-                f.write(buf)
+                f.write(HEADER.pack(idx, t_cap))
+                f.write(frame.tobytes())
             os.replace(tmp, SHM)
-        p.kill()
-        p.wait()
-        print(f"gst exited after {n_run} frames: restarting in 2 s", flush=True)
+        c.release()
+        print(f"camera stopped after {n_run} frames: reopening in 2 s", flush=True)
         time.sleep(2.0)
 
 
@@ -145,7 +151,7 @@ def ensure(timeout_s=12.0):
 
 
 def stop(timeout_s=5.0):
-    """SIGTERM to the daemon (it kills its gst first); True once the lock is free."""
+    """SIGTERM to the daemon (it releases the camera first); True once the lock is free."""
     if not running():
         return True
     try:
