@@ -6,6 +6,7 @@
 // ground-pick policies, and a quack. Walking is hold-to-walk: while a walk key or button is held the page rewrites the
 // command every 0.3 s with for_s 0.6, so the robot stops by itself 0.6 s after the page, the Mac or the link goes quiet.
 // Forward and the turn keys are independent: a turn key alone turns in place, together with forward it walks an arc.
+// The stick (Shawn 2026-10-26: "推得猛就走得快") sets the speed by how far it is pushed: see stickCommand.
 // Every other button works whenever the A7Z is online: with no brain running (nothing restarts walk_wired.py after an
 // A7Z reboot) the request carries "start", and the A7Z starts it in monitor mode before writing the command. A torque
 // command that leaves torque off after TORQUE_WAIT_MS shows the brain's own reason (a latched hardware error, no IMU).
@@ -73,6 +74,24 @@ export function walkCommand(held, head = null) {
   return {...w, cmd: withHead(w.cmd, head)};
 }
 
+// Stick: up past STICK_WALK starts walking at WALK_VX and a full push reaches STICK_VX_MAX, the top of walk61's trained
+// forward range (Pollen microduck_velocity_env_cfg lin_vel_x (-0.4, 0.4)); speeds above 0.25 have not been walked on
+// the robot yet. Sideways turns the arc at up to ARC_VTHETA, or in place at SPIN_VTHETA with no forward push. Pulling
+// back does nothing (walk61 steps only from 0.25 forward).
+const STICK_WALK = 0.3, STICK_TURN = 0.15, STICK_VX_MAX = 0.4;
+export function stickCommand(x, y, head = null) {
+  const r = Math.hypot(x, y), k = r > 1 ? 1 / r : 1, fwd = Math.max(0, -y * k), side = -x * k;  // + side = left
+  const round = v => Math.round(v * 1000) / 1000;
+  const turn = Math.abs(side) > STICK_TURN ? side : 0;
+  const w = fwd > STICK_WALK
+    ? {cmd: {...WALK_ZERO, vx: round(WALK_VX + (STICK_VX_MAX - WALK_VX) * (fwd - STICK_WALK) / (1 - STICK_WALK)),
+      vtheta: round(turn * ARC_VTHETA), for_s: WALK_FOR_S}, label: turn > 0 ? "左转" : turn < 0 ? "右转" : "前进"}
+    : Math.abs(side) > STICK_WALK ? {cmd: {...WALK_ZERO, vtheta: Math.sign(side) * SPIN_VTHETA, for_s: WALK_FOR_S},
+      label: side > 0 ? "原地左转" : "原地右转"}
+    : {cmd: {...WALK_ZERO, for_s: WALK_FOR_S}, label: "原地"};
+  return {...w, cmd: withHead(w.cmd, head)};
+}
+
 // Rows of four on robot-live.html: walking, standing and safety, the other moves.
 const ACTIONS = [
   {id: "left", key: "A", label: "左转", hint: "按住原地左转；和前进一起按边走边左转", hold: true},
@@ -105,6 +124,10 @@ const btn = a => `
 
 export function createRemote({root, state, log}) {
   root.innerHTML = `
+    <div class="remote-stick-row"><div class="remote-stick" data-stick title="按住拖：往前推得越多走得越快，左右是转弯">
+      <div class="remote-knob" data-knob></div></div>
+      <p class="remote-status">摇杆：往前推过三成开始走（0.25 m/s），推到底 0.4 m/s；左右推边走边转，不往前推时原地转；松手就停。
+        0.25 以上是 walk61 训练范围内、真机还没走过的速度，先小推试。<span data-speed></span></p></div>
     <div class="remote-grid">${ACTIONS.map(btn).join("")}
     </div>
     <p class="remote-status">头（闭环站立、走路或坐着时有效；开环站立不认头部命令）：<span data-head></span>。走路时头侧转会减弱身体转弯
@@ -174,7 +197,8 @@ export function createRemote({root, state, log}) {
   }
 
   const WALK_LABELS = new Set(["前进", "左转", "右转", "原地左转", "原地右转", "原地", "转头", "头回正"]);
-  const walkCmd = () => walkCommand(held, head);
+  let stick = null; // {x, y} in the unit circle while the stick is held
+  const walkCmd = () => stick ? stickCommand(stick.x, stick.y, head) : walkCommand(held, head);
   function walkStart(id) {
     if (held.has(id) || refused(id)) return;
     if (!state().brain?.running) { last.textContent = "大脑没在运行：先按「开环站立」或「闭环站立」（会先启动大脑），站稳再走"; return; }
@@ -194,9 +218,44 @@ export function createRemote({root, state, log}) {
   function walkStop() {
     for (const id of held) buttons.get(id).classList.remove("held");
     held.clear();
+    stickReset();
     if (!walkTimer) return;
     clearInterval(walkTimer); walkTimer = null;
     set(withHead(WALK_ZERO, head), "停步", false);
+  }
+
+  // Stick: held like a walk button, the command follows the knob on every repeat.
+  const stickEl = root.querySelector("[data-stick]"), knob = root.querySelector("[data-knob]");
+  const speedEl = root.querySelector("[data-speed]");
+  function stickMove(e) {
+    const b = stickEl.getBoundingClientRect(), rad = b.width / 2;
+    let x = (e.clientX - b.left - rad) / rad, y = (e.clientY - b.top - rad) / rad;
+    const r = Math.hypot(x, y);
+    if (r > 1) { x /= r; y /= r; }
+    stick = {x, y};
+    knob.style.transform = `translate(${x * rad * 0.7}px, ${y * rad * 0.7}px)`;
+    const w = walkCmd();
+    speedEl.textContent = ` 现在：${w.label}${w.cmd.vx ? ` ${w.cmd.vx.toFixed(2)} m/s` : ""}`;
+  }
+  function stickReset() {
+    if (!stick) return;
+    stick = null; knob.style.transform = ""; speedEl.textContent = ""; stickEl.classList.remove("held");
+  }
+  stickEl.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if (refused("walk")) return;
+    if (!state().brain?.running) { last.textContent = "大脑没在运行：先按「开环站立」或「闭环站立」（会先启动大脑），站稳再走"; return; }
+    stickEl.setPointerCapture(e.pointerId);
+    stickEl.classList.add("held");
+    stickMove(e);
+    log("遥控：摇杆（按住）");
+    const go = () => { const w = walkCmd(); set(w.cmd, w.label, false); };
+    go();
+    if (!walkTimer) walkTimer = setInterval(go, WALK_REPEAT_MS);
+  });
+  stickEl.addEventListener("pointermove", e => { if (stick) stickMove(e); });
+  for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) {
+    stickEl.addEventListener(ev, () => { if (!stick) return; stickReset(); if (held.size) { const w = walkCmd(); set(w.cmd, w.label, false); } else walkStop(); });
   }
 
   // Head: the target lives in the page; walking, the next walk write carries it, standing, a zero command with it.
@@ -328,6 +387,7 @@ export function createRemote({root, state, log}) {
       modeEl.textContent = !online ? "大脑：A7Z 不在线" : !brain?.running ? "大脑：没在运行（按站立等按钮会先启动 walk_wired.py）"
         : `大脑：${MODE_NAMES[brain.mode] ?? brain.mode} · 扭矩${brain.torque ? "开" : "关"}`;
       root.classList.toggle("off", !running);
+      stickEl.classList.toggle("disabled", !online || (gate.blocked && gated("walk")));
       for (const [id, b] of buttons) {
         const hot = gate.blocked && gated(id);
         b.disabled = !online || hot;

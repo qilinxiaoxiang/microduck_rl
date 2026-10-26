@@ -48,6 +48,10 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 .now-grid div{min-width:0}.now-grid dt{font-size:12px;color:var(--muted)}.now-grid dd{margin:0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 #events{margin:0;padding-left:18px;font-size:13px;color:var(--text-2);max-height:180px;overflow:auto}
 .wide{grid-column:1/-1}
+.remote-stick-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}.remote-stick-row p{margin:0;flex:1}
+.remote-stick{flex:none;width:132px;height:132px;border-radius:50%;border:1px solid var(--border);background:radial-gradient(circle,var(--panel) 0 30%,var(--surface) 31%);position:relative;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.remote-stick.held{border-color:var(--text-2)}.remote-stick.disabled{opacity:.45;pointer-events:none}
+.remote-knob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:var(--text);opacity:.85;pointer-events:none}
 .remote-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .remote-grid button{font:inherit;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 8px;border-radius:8px;
   border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;text-align:left;min-width:0;touch-action:none;user-select:none}
@@ -72,7 +76,7 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 .touch-head button{font:inherit;font-size:13px;margin-left:auto;padding:2px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
 #touchState{font-size:13px;margin:8px 0 0;color:var(--text-2)}#touchState.bad{color:var(--bad);font-weight:600}
 .cam-head{display:flex;align-items:center;gap:10px}.cam-head h2{margin:0}
-.cam-head #stabToggle{margin-left:auto}.cam-head button{font:inherit;font-size:13px;padding:2px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
+.cam-head #camPower{margin-left:auto}.cam-head #camPower[aria-pressed=true]{background:var(--accent,#2b6);color:#fff;border-color:transparent}.cam-head button{font:inherit;font-size:13px;padding:2px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
 #camBox{position:relative;margin:8px auto 0;aspect-ratio:16/9;max-width:480px;border-radius:8px;overflow:hidden;background:#111}
 #camImg{display:block;width:100%;height:100%;object-fit:contain}
 #camBox.stale #camImg{opacity:.4}
@@ -99,10 +103,10 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 <main>
   <section class="pose">
     <div class="card">
-      <div class="cam-head"><h2>鸭子视野</h2><button id="stabToggle" type="button">防抖：关</button></div>
+      <div class="cam-head"><h2>鸭子视野</h2><button id="camPower" type="button" aria-pressed="false">摄像头：关</button><button id="stabToggle" type="button">防抖：关</button></div>
       <div id="camBox"><img id="camImg" alt="头部摄像头画面"><div id="camMsg">正在连接…</div></div>
       <p id="camState">关着，不占 A7Z 的 CPU</p>
-      <p class="note">头部 CSI 摄像头（Radxa 13M 214），A7Z 用整块传感器（4208x3120），每 3 帧留 1 帧缩小、转正成 480x640 压 JPEG 传过来，约 8 帧/秒。摄像头只在找东西走过去的任务（approach.py）运行时打开，任务结束就关（全分辨率采集会让头里很快升温）；这里只看画面，开着就自动显示，不会自己去开。防抖在这台 Mac 上做：跟踪画面里的特征点算出每帧的转动和平移，按平滑后的路径把画面转回去，再放大 1.15 倍藏住边缘；慢慢转头会跟过去，快的抖动被抵消。曝光里的拖影去不掉。</p>
+      <p class="note">头部 USB 摄像头（Innomaker U20CAM，1280x720 MJPEG），A7Z 每 3 帧留 1 帧缩小成 640x360 压 JPEG 传过来，约 8 帧/秒。A7Z 开机就自动打开；点「摄像头：开」会关掉它，再点打开，这样打开的在关掉所有看画面的页面后会自己停。画面在 A7Z 上转了 180°（摄像头装反）。防抖在这台 Mac 上做：跟踪画面里的特征点算出每帧的转动和平移，按平滑后的路径把画面转回去，再放大 1.15 倍藏住边缘；慢慢转头会跟过去，快的抖动被抵消。曝光里的拖影去不掉。</p>
     </div>
     <div class="card remote-card">
       <h2>遥控</h2>

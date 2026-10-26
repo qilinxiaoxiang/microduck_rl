@@ -57,14 +57,33 @@ function showTouch(t) {
 
 // ── Head camera: an <img> on the bridge's MJPEG stream, frame rate and errors from {camera} records. The page only
 // watches: the A7Z camera runs while the find-and-walk task (approach.py) has it on, and the picture appears by itself
-// then; nothing here starts it (the capture heats the closed head, a7z_cam.py). ──
+// then. The camera runs from boot (duck-camera.service); the switch (Shawn 2026-10-26) turns it off, and on again for
+// as long as this page stays open (a7z_cam.py --hold). It shows "on" whenever pictures arrive. ──
 // the Mac mini's phone remote (vite.robot.config.js, mode "robot") has no shell runner behind the debug page
 if (import.meta.env.MODE === "robot") $("#debugLink").hidden = true;
 const STAB_KEY = "microduck.camera.stab";
 let stabOn = false;
 try { stabOn = localStorage.getItem(STAB_KEY) === "1"; } catch {}
 const camUrl = () => `/api/a7z/camera?${stabOn ? "stab=1&" : ""}t=${Date.now()}`;
-const CAM_IDLE = "摄像头没开：找东西走过去（approach.py）时自动打开，画面会出现在这里";
+const CAM_IDLE = "摄像头关着：点右上角「摄像头：关」打开（A7Z 开机时会自动打开）";
+let camOn = false;
+$("#camPower").onclick = async () => {
+  const want = !camOn;
+  $("#camPower").disabled = true;
+  try {
+    const r = await fetch(`/api/a7z/campower?on=${want ? 1 : 0}`, {method: "POST"});
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const a = await r.json();
+    if (!a.ok) throw new Error(a.error);
+    camOn = a.on;
+  } catch (e) { $("#camState").textContent = `开关没生效：${e.message}`; $("#camState").className = "bad"; }
+  $("#camPower").disabled = false;
+  showPower();
+};
+function showPower() {
+  $("#camPower").textContent = camOn ? "摄像头：开" : "摄像头：关";
+  $("#camPower").setAttribute("aria-pressed", String(camOn));
+}
 function openCamera() {
   $("#stabToggle").textContent = stabOn ? "防抖：开" : "防抖：关";
   $("#camImg").src = camUrl();
@@ -78,6 +97,7 @@ $("#stabToggle").onclick = () => {
 // the MJPEG stream ends when the local service restarts; reopen it
 $("#camImg").onerror = () => setTimeout(() => { $("#camImg").src = camUrl(); }, 2000);
 function showCamera(c) {
+  if (typeof c.on === "boolean" || c.state) { camOn = c.on || c.state === "streaming"; showPower(); }
   const state = $("#camState"), box = $("#camBox"), msg = $("#camMsg");
   state.className = "";
   box.classList.toggle("stale", c.state !== "streaming");
@@ -88,6 +108,8 @@ function showCamera(c) {
       : ` · 帧间晃动 ${fmt(st.raw_deg, 1)}° ${fmt(st.raw_px, 0)} px → ${fmt(st.out_deg, 1)}° ${fmt(st.out_px, 0)} px`;
     state.textContent = `${fmt(c.fps, 1)} 帧/秒 · 640x360${stabText}`;
     if (st?.error) state.className = "bad";
+  } else if (c.state === "idle" && camOn) {
+    state.textContent = "正在打开摄像头…"; msg.textContent = "正在打开摄像头…";
   } else if (c.state === "idle") {
     state.textContent = "没开，不占 A7Z 的 CPU"; msg.textContent = CAM_IDLE;
   } else if (c.state === "closed") {

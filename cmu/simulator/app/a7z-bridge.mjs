@@ -18,10 +18,12 @@
 //
 // Head camera: GET /api/a7z/camera is an MJPEG stream (multipart/x-mixed-replace) of the Innomaker U20CAM-720P on the
 // A7Z's USB-C port 2 (D-023). The camera itself is opened only by a7z_cam.py on the A7Z (robotics guide/firmware/mac/a7z_cam.py),
-// which the find-and-walk task (approach.py) starts for its run and stops after.
-// This window only watches that one capture: a third SSH session runs CAMERA_PIPELINE, `a7z_cam.py --mjpeg`, while a
-// page is open and stops 2 s after the last viewer leaves; it sends frames while the daemon runs and "a7z_cam: idle"
-// on stderr once a second while it does not (camera state "idle"), and never starts it. The daemon reads the camera's
+// which the find-and-walk task (approach.py) starts for its run and stops after, or the page's camera switch.
+// A third SSH session runs CAMERA_PIPELINE, `a7z_cam.py --mjpeg`, while a page is open and stops 2 s after the last
+// viewer leaves; it sends frames while the daemon runs and "a7z_cam: idle" on stderr once a second while it does not
+// (camera state "idle"). The daemon runs from boot (duck-camera.service). The page's switch (Shawn 2026-10-26):
+// POST /api/a7z/campower?on=0 stops the daemon (`a7z_cam.py --stop`); on=1 reruns the watch session with --hold, which
+// starts it and stops it again when the session ends (on=0, the last page closed, a dropped link). The daemon reads the camera's
 // 1280x720 MJPEG through OpenCV, decodes every third frame (about 8-10 fps) and scales it to an upright 640x360 picture.
 // /api/a7z/camera?stab=1 is the same stream after desktop/duck-stabilize.py (optical-flow roll and shift correction on
 // this Mac, started while such a viewer is open); its once-a-second motion figures arrive as camera.stab.
@@ -35,8 +37,8 @@ const CAMERA_LINGER_S = 2, CAMERA_SILENT_S = 6, BOUNDARY = "duckframe";
 // the reader runs in the background and the shell waits on it, so its own exit (and error) ends the session; a second
 // background job reads this session's stdin (kept as fd 3: a background job's own stdin is /dev/null), and when SSH drops (a closed page, a Vite restart, a lost link) it sees
 // EOF and ends the reader.
-const CAMERA_PIPELINE = "exec 3<&0; nice -n 10 ~/.venvs/duck-policy/bin/python ~/rt/microduck-sim/guide/firmware/mac/a7z_cam.py" +
-  ` --mjpeg & g=$!; (cat <&3 >/dev/null; kill $g) >/dev/null 2>&1 & wait $g`;
+const CAMERA_PIPELINE = hold => "exec 3<&0; nice -n 10 ~/.venvs/duck-policy/bin/python ~/rt/microduck-sim/guide/firmware/mac/a7z_cam.py" +
+  ` --mjpeg${hold ? " --hold" : ""} & g=$!; (cat <&3 >/dev/null; kill $g) >/dev/null 2>&1 & wait $g`;
 const SSH_OPTS = ["-T","-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "-o", "ServerAliveInterval=2", "-o", "ServerAliveCountMax=2"];
 
 export function a7zBridge({script, commandScript, stabilizeScript,
@@ -170,13 +172,14 @@ export function a7zBridge({script, commandScript, stabilizeScript,
           if (stabViewers.size) camSend({stab: {error: s.err.trim().split("\n").pop() || `stabilizer exited ${code}`}});
         });
       }
-      let cam = null, camLinger = null, camRetry = null, camFrames = [], camLast = 0, camIdle = false, camState = {state: "off"};
+      let cam = null, camLinger = null, camRetry = null, camFrames = [], camLast = 0, camIdle = false, camWant = false;
+      let camState = {state: "off", on: false};
       const camSend = patch => { camState = {...camState, ...patch}; send({camera: camState}); };
       function startCamera() {
         clearTimeout(camRetry);
         if (cam || !viewers.size) return;
-        const proc = spawn("ssh", [...SSH_OPTS, host, CAMERA_PIPELINE], {stdio: ["pipe", "pipe", "pipe"]});
-        const c = {proc, buf: Buffer.alloc(0), stderr: ""};
+        const proc = spawn("ssh", [...SSH_OPTS, host, CAMERA_PIPELINE(camWant)], {stdio: ["pipe", "pipe", "pipe"]});
+        const c = {proc, buf: Buffer.alloc(0), stderr: "", hold: camWant};
         cam = c; camLast = Date.now(); camFrames = []; camIdle = false;
         camSend({state: "starting", error: "", fps: 0});
         proc.stderr.on("data", d => {
@@ -209,7 +212,8 @@ export function a7zBridge({script, commandScript, stabilizeScript,
         proc.on("exit", code => {
           if (cam === c) cam = null;
           const error = c.stderr.trim().split("\n").filter(l => !/quantum|store now|upgraded/.test(l)).pop() ?? "";
-          if (!viewers.size) return camSend({state: "off", fps: 0});
+          if (!viewers.size) return camSend({state: "off", fps: 0, on: camWant = false});
+          if (c.switched) return startCamera();   // the switch changed: reopen with or without --hold at once
           camSend({state: "closed", fps: 0, error: error || `a7z_cam --mjpeg exited ${code}`});
           camRetry = setTimeout(startCamera, 3000);
         });
@@ -225,6 +229,22 @@ export function a7zBridge({script, commandScript, stabilizeScript,
       server.httpServer?.on("close", () => {
         for (const p of [child, writer?.proc, cam?.proc, stab?.proc]) p?.kill();
         viewers.clear(); stabViewers.clear();
+      });
+      server.middlewares.use("/api/a7z/campower", (req, res) => {
+        if (req.method !== "POST") { res.statusCode = 405; return res.end(); }
+        camWant = new URL(req.originalUrl ?? req.url, "http://x").searchParams.get("on") === "1";
+        camSend({on: camWant, state: camWant ? "starting" : camState.state});
+        if (cam && cam.hold !== camWant) { cam.switched = true; cam.proc.kill(); }
+        else startCamera();
+        res.setHeader("Content-Type", "application/json");
+        if (camWant) return res.end(JSON.stringify({ok: true, on: true}));
+        // off: also a daemon this switch did not start (the boot service, another page, approach.py)
+        const stop = spawn("ssh", [...SSH_OPTS, host, "~/.venvs/duck-policy/bin/python ~/rt/microduck-sim/guide/firmware/mac/a7z_cam.py --stop"],
+          {stdio: ["ignore", "ignore", "pipe"]});
+        let err = "";
+        stop.stderr.on("data", d => { err += d; });
+        stop.on("close", code => res.end(JSON.stringify(code === 0 ? {ok: true, on: false}
+          : {ok: false, on: false, error: err.split("\n").filter(l => l && !/quantum|store now|upgraded/.test(l)).pop() ?? `exit ${code}`})));
       });
       server.middlewares.use("/api/a7z/camera", (req, res) => {
         res.writeHead(200, {"Content-Type": `multipart/x-mixed-replace; boundary=${BOUNDARY}`, "Cache-Control": "no-cache, no-store",

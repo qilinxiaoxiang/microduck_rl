@@ -16,7 +16,7 @@ globalThis.fetch = async (_url, {body}) => {
   return {json: async () => ({ok: true, wrote: b.cmd})};
 };
 
-const {walkCommand, headStep, headTargets, createRemote} = await import("../src/robot-remote.js");
+const {walkCommand, stickCommand, headStep, headTargets, createRemote} = await import("../src/robot-remote.js");
 
 const ZERO = {mode: "walk", vx: 0, vy: 0, vtheta: 0, for_s: 0.6};
 const cmd = ids => walkCommand(new Set(ids)).cmd;
@@ -34,6 +34,17 @@ assert.deepEqual(cmd(["walk", "left", "right"]), {...ZERO, vx: 0.25});
 assert.deepEqual(cmd(["left", "right"]), ZERO);
 assert.equal(walkCommand(new Set(["left"])).label, "原地左转");
 assert.equal(walkCommand(new Set(["walk", "right"])).label, "右转");
+
+// Stick: walking starts past 30 % forward at 0.25 and a full push reaches 0.4 (walk61's trained top); pulling back does
+// nothing; sideways arcs within +-0.3 or, with no forward push, turns in place at 0.5.
+assert.equal(stickCommand(0, -0.3).cmd.vx, 0);
+assert.equal(stickCommand(0, -0.31).cmd.vx, 0.252);
+assert.equal(stickCommand(0, -1).cmd.vx, 0.4);
+assert.equal(stickCommand(0, -3).cmd.vx, 0.4);
+assert.deepEqual(stickCommand(0, 1).cmd, ZERO);
+assert.ok(stickCommand(-1, -1).cmd.vtheta > 0 && stickCommand(1, -1).cmd.vtheta >= -0.3);
+assert.deepEqual(stickCommand(0.8, 0).cmd, {...ZERO, vtheta: -0.5});
+assert.equal(stickCommand(0, -1).label, "前进");
 
 // Head: steps clamp to walk_brain.HEAD_RANGE (pitch 1.10, yaw 1.40, roll 0.31), targets are absolute model rad
 let d = null;
@@ -59,7 +70,8 @@ assert.deepEqual(walkCommand(new Set(), h).cmd, {...ZERO, head: H});
 assert.deepEqual(walkCommand(new Set(["walk"]), null).cmd, {...ZERO, vx: 0.25});
 
 // The page: fake buttons parsed from the rendered markup, a running brain, keys through the window handlers.
-const el = () => ({textContent: "", hidden: false, classList: {add() {}, remove() {}, toggle() {}}});
+const el = () => ({textContent: "", hidden: false, style: {}, classList: {add() {}, remove() {}, toggle() {}},
+  addEventListener() {}});
 const root = {
   classList: {add() {}, remove() {}, toggle() {}},
   set innerHTML(html) {
@@ -197,3 +209,4 @@ key("keydown", "KeyH");
 assert.ok(sent.every(b => b.op === "set" && !("start" in b)));
 
 console.log("robot-remote: all cases pass");
+

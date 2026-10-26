@@ -4,14 +4,17 @@ only while a task needs it.
 The U20CAM sits on the face with its plug edge up (D-023; CURRENT-STATE parts_a7z_extensions innomaker_u20cam) and
 streams MJPEG 1280 x 720 at 30 fps on the A7Z's port 2. Radxa's gst v4l2src cannot open it (its vendor
 VIDIOC_SET_DMA_MERGE call fails on a UVC device, 2026-10-26), so OpenCV's V4L2 backend reads it. The node is found by
-name, since /dev/videoN moves with the boot order. Every third frame is decoded (10 fps); the picture is shrunk to the
-upright 640 x 360 BGR that every reader (approach.py, the app's camera window via --mjpeg, snapshots) reads from
+name, since /dev/videoN moves with the boot order. Every third frame is decoded (10 fps); the picture is shrunk and
+turned half a turn (the camera's own picture comes out upside down as mounted, Shawn 2026-10-26) to the upright
+640 x 360 BGR that every reader (approach.py, the app's camera window via --mjpeg, snapshots) reads from
 /dev/shm/a7z_cam.bgr: a 16-byte header (frame index uint64, capture time float64, little endian) and the picture,
 replaced atomically per frame. Frames from the first WARMUP_S are not published while the auto-exposure settles.
 
-The camera is not started with the brain (Shawn 2026-10-24, when the CSI capture heated the closed head): the
-find-and-walk task (approach.py) starts it and stops it when it ends, and the app only watches (--mjpeg shows the
-picture while the daemon runs and never starts it).
+The camera runs from boot (duck-camera.service, a7z/install_camera.sh; Shawn 2026-10-26, with the A7Z on the saddle
+and its temperature under control; on 2026-10-24 the CSI capture had heated the closed head). The app's switch turns it
+off (--stop) and on again (--mjpeg --hold: the daemon runs while any such viewer is connected, and the last one to
+leave stops it, unless the boot service, approach.py or someone else had started it). approach.py starts it if it is
+off and stops it after only in that case.
 
   python a7z_cam.py              the daemon (one instance, a lock in /dev/shm); reopens the camera if it stops
   python a7z_cam.py --ensure     start the daemon detached if it is not running, wait for a fresh frame
@@ -19,6 +22,7 @@ picture while the daemon runs and never starts it).
   python a7z_cam.py --snap F     save the newest frame as an image file (stops the daemon again if it started it)
   python a7z_cam.py --mjpeg      multipart JPEG on stdout from the shared frame (boundary duckframe, quality 70) while
                                   the daemon runs; "a7z_cam: idle" on stderr once a second while it does not
+  python a7z_cam.py --mjpeg --hold   the same, and keep the daemon running while this viewer lives (the app's switch)
 """
 import fcntl
 import os
@@ -39,6 +43,8 @@ LOCK = "/dev/shm/a7z_cam.lock"
 LATENCY_S = 0.10    # capture to arrival, assumed; frames are stamped arrival minus this
 WARMUP_S = 1.0      # auto-exposure settling: frames before this are not published
 FRESH_S = 1.0
+HOLD_DIR = "/dev/shm"          # a7z_cam.hold.<pid>: one per --hold viewer
+HOLD_STARTED = "/dev/shm/a7z_cam.held"   # present while the daemon runs because a --hold viewer started it
 
 
 def camera_node():
@@ -60,7 +66,8 @@ def daemon():
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
-        sys.exit("a7z_cam is already running")
+        print("a7z_cam is already running")
+        sys.exit(0)   # not a failure: duck-camera.service (Restart=on-failure) must not retry against it
     lock.write(str(os.getpid()))
     lock.flush()
     cap = []
@@ -100,6 +107,7 @@ def daemon():
             if not ok:
                 break
             frame = cv2.resize(frame, (W, H), interpolation=cv2.INTER_AREA)
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
             idx += 1
             tmp = SHM + ".tmp"
             with open(tmp, "wb") as f:
@@ -166,6 +174,40 @@ def stop(timeout_s=5.0):
     return False
 
 
+def holders():
+    """pids of the live --hold viewers (a stale file of a killed viewer is removed)."""
+    pids = []
+    for f in os.listdir(HOLD_DIR):
+        if f.startswith("a7z_cam.hold."):
+            pid = int(f.rsplit(".", 1)[1])
+            try:
+                os.kill(pid, 0)
+                pids.append(pid)
+            except ProcessLookupError:
+                os.remove(f"{HOLD_DIR}/{f}")
+    return pids
+
+
+def hold():
+    """Register this viewer and start the daemon if none runs; the returned release() stops it again when this was the
+    last viewer and a viewer had started it."""
+    mine = f"{HOLD_DIR}/a7z_cam.hold.{os.getpid()}"
+    open(mine, "w").close()
+    if not running():
+        open(HOLD_STARTED, "w").close()
+        ensure()
+
+    def release():
+        try:
+            os.remove(mine)
+        except FileNotFoundError:
+            pass
+        if not [p for p in holders() if p != os.getpid()] and os.path.exists(HOLD_STARTED):
+            os.remove(HOLD_STARTED)
+            stop()
+    return release
+
+
 def mjpeg(fps=8.0, quality=70):
     """Watch only: JPEG parts while the daemon publishes fresh frames, an idle line on stderr once a second otherwise."""
     import cv2
@@ -208,9 +250,14 @@ if __name__ == "__main__":
             if started:
                 stop()
     elif len(sys.argv) > 1 and sys.argv[1] == "--mjpeg":
+        release = hold() if "--hold" in sys.argv else (lambda: None)
+        signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))   # the bridge's SSH end kills this viewer with SIGTERM
+        signal.signal(signal.SIGHUP, lambda *_: sys.exit(0))
         try:
             mjpeg()
         except BrokenPipeError:
             pass
+        finally:
+            release()
     else:
         daemon()
