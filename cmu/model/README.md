@@ -15,7 +15,7 @@ Pollen's MJCF describes Pollen's duck. Our robot carries a head computer, a benc
 
 ## How the robot looks (one model everywhere)
 
-Every simulator draws the CMU robot as it is today, never Pollen's duck: our printed parts in their filament colours (colour scheme C), the A7Z head as it walks (A7Z inside the V1.17 cap, no microphones, no roof saddle, no USB camera), the rear converter box without its lid, the V1.24/V1.25 two-half ankles on the V1.22 sleeves and the V1.22 slip-fit feet. Only visual geoms change; collision geoms, inertials, joints, sites and keyframes stay Pollen's, and `test_visual.py` checks that masses, inertias, contact geoms and a 2 s rollout are bit-identical with and without the swap.
+Every simulator draws the CMU robot as it is today, never Pollen's duck: our printed parts in their filament colours (colour scheme C), the A7Z head as it walks (A7Z inside the V1.17 cap, no microphones, no roof saddle, no USB camera), the rear converter box with its lid (on since 2026-10-26), the V1.24/V1.25 two-half ankles on the V1.22 sleeves and the V1.22 slip-fit feet. Only visual geoms change; collision geoms, inertials, joints, sites and keyframes stay Pollen's, and `test_visual.py` checks that masses, inertias, contact geoms and a 2 s rollout are bit-identical with and without the swap.
 
 - `fitted.json`: what is on the robot now, on top of the assembly guide's whole-robot data (`guide/data/guide-data.json` in the robotics checkout): parts not fitted, colours that differ from the guide (thighs white), prints that differ from the guide's current revision or are pinned against it (`part_files`: the two-half ankle and slip-fit feet, and the A7Z head shells while the guide carries the extension head), parts the guide no longer carries (`extra_parts`: the ankle sleeves), extension parts left off (`not_fitted`: roof saddle, microphones, speaker box, USB camera), `frozen` head electronics kept as the 2026-10-20 meshes because their source data is gone, the jaw hinge, and the `battery` variant (backpack on, bench box off). Edit this file when the robot changes, then rerun the two scripts below.
 - `make_visual.py` (cad venv: `/tmp/microduck-cad-venv/bin/python cmu/model/make_visual.py`): assigns every guide part to the official body whose meshes lie closest at the zero pose, moves it into that body frame, merges per body and colour, reduces each merged mesh, and writes `visual/meshes/*.stl` and `visual/visual.json` (the `frozen` groups are read from `visual/frozen/`). A reduction is accepted only if no edge-collapsed vertex lies more than 0.4 mm off the unreduced surface; fast_simplification's default setting put spikes up to 12 mm under the feet (through the floor) and elsewhere, so a failing result is redone with gentler settings and the mesh stays unreduced if none passes. Meshes that differ in the battery variant get a `__battery` file; the rest are shared.
@@ -27,8 +27,8 @@ Every simulator draws the CMU robot as it is today, never Pollen's duck: our pri
 
 - `official`: Pollen's model as exported, no parts.
 - `asbuilt`: the robot as built on 2026-10-15 (V1.8 prints, V1.9 rear pack, bench box without lid with two XL4015 and the 5991 PD board, Pi Zero W head with the V1.9 cap and audio), battery removed. This is what `cmu/mac/brain_sim_check.py --model asbuilt` without `--manifest` and the fine-tune worker's default use: the base manifest.
-- `plugged`: today's robot on the bench supply. `asbuilt` with the Pi Zero W (9.3 g) replaced by the Radxa Cubie A7Z (18 g, estimate) at the former Pi position and the AC019 antenna (1.5 g, estimate) at the cap's centre of mass. The Camera Module 3 entry (4 g) stands in for the fitted Radxa Camera 13M 214, which is of the same order and not weighed.
-- `battery`: the robot on the 2S battery backpack (D-010). `plugged` with the bench box removed (frame, two XL4015, 5991, their screws, the 15 V and 7 V leads: 59.5 g) and the backpack parts from the 2026-10-15 plan added on `trunk_base` (frame 16.05 g, cap 8.05 g, Tattu 2S 650 43 g, switch 14 g, DFR1202 6 g, plugs and leads 10 g: 97.1 g), all plan estimates.
+- `plugged`: today's robot on the bench supply. `asbuilt` with the Pi Zero W (9.3 g) replaced by the Radxa Cubie A7Z (18 g, estimate) at the former Pi position and the AC019 antenna (1.5 g, estimate) at the cap's centre of mass, plus the bench box's rear lid, on since 2026-10-26 (7.80 g, the slicer model mass of `rear_lid` in the V1.20 Orange Elegoo G-code, at the mesh centre of mass with mesh inertia) and its four M2 x 10 (0.316 g each, steel estimate): 9.06 g. The Camera Module 3 entry (4 g) stands in for the fitted Radxa Camera 13M 214, which is of the same order and not weighed.
+- `battery`: the robot on the 2S battery backpack (D-010). `plugged` with the bench box removed (frame, rear lid, two XL4015, 5991, their screws, the 15 V and 7 V leads: 68.57 g) and the backpack parts from the 2026-10-15 plan added on `trunk_base` (frame 16.05 g, cap 8.05 g, Tattu 2S 650 43 g, switch 14 g, DFR1202 6 g, plugs and leads 10 g: 97.1 g), all plan estimates.
 
 ## Use
 
@@ -61,6 +61,13 @@ Total mass and whole-robot centre of mass at the HOME pose (STAND keyframe), in 
 - `battery`: 875.63 g (+138.39 g); COM x -4.20, y -0.21, z +23.71 (shift -4.76, -0.20, +1.96 mm).
 
 The plugged delta against asbuilt is +10.20 g (18 + 1.5 - 9.3). The battery delta against plugged is +37.59 g (97.1 - 59.51). Each body's before and after grams are printed by the CLI.
+
+## Measured on 2026-10-26 (rear lid on)
+
+Same method as above. `official`, `asbuilt` and `battery` are unchanged (the battery variant takes the lid off with the bench box).
+
+- `plugged`: 847.10 g (+109.86 g); COM x -1.83, y -0.25, z +24.74 (shift -2.39, -0.24, +2.99 mm). Against 2026-10-19: +9.06 g, COM x -0.66, z -0.19 mm.
+- `battery` against `plugged`: +28.53 g (97.1 - 68.57).
 
 ## Estimates and the open item
 

@@ -88,9 +88,11 @@ def test_variant_totals_are_asbuilt_plus_signed_deltas(measured):
     assert measured["plugged"]["total_g"] - measured["asbuilt"]["total_g"] == pytest.approx(plugged_delta, abs=0.01)
     assert measured["battery"]["total_g"] - measured["plugged"]["total_g"] == pytest.approx(battery_delta, abs=0.01)
     assert measured["battery"]["total_g"] - measured["asbuilt"]["total_g"] == pytest.approx(plugged_delta + battery_delta, abs=0.01)
-    # the deltas are the ones the design states: Pi (9.3 g) -> A7Z (18 g) + antenna (1.5 g); box -> backpack
-    assert plugged_delta == pytest.approx(-9.3 + 18.0 + 1.5, abs=1e-6)
-    assert battery_delta == pytest.approx(97.1 - 59.513, abs=0.01)
+    # the deltas are the ones the design states: Pi (9.3 g) -> A7Z (18 g) + antenna (1.5 g) + the rear box lid
+    # (7.80 g slicer, on since 2026-10-26) with its four M2 x 10 (0.316 g each); box with lid -> backpack
+    lid_g = 7.80 + 4 * 0.31567
+    assert plugged_delta == pytest.approx(-9.3 + 18.0 + 1.5 + lid_g, abs=0.01)
+    assert battery_delta == pytest.approx(97.1 - 59.513 - lid_g, abs=0.01)
     # the battery removal is in every variant and asbuilt = official + manifest - 90 g
     base = apply_masses.load_manifest(apply_masses.BASE_MANIFEST)
     manifest_g = sum(p["mass_kg"] for p in base["parts"]) * 1000

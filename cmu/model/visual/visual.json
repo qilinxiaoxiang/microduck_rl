@@ -1,6 +1,6 @@
 {
  "source": "microduck-sim/guide/data/guide-data.json",
- "guide_revision": "guide-20261022-saddle",
+ "guide_revision": "guide-20261026-camera-up",
  "fitted": "fitted.json",
  "frame": "official body frames, metres",
  "geoms": [
@@ -504,7 +504,7 @@
     0.06,
     1
    ],
-   "faces": 12000
+   "faces": 18000
   },
   {
    "mesh": "trunk_base__pcb_blue",
@@ -1510,13 +1510,13 @@
   },
   {
    "key": "head_bottom",
-   "name": "Lower head shell with the dia 11 left-rear exit and six floor ports (V1.32 print, yellow, or the V1.30 shell drilled)",
+   "name": "Lower head shell with the speaker pocket, twelve sound holes and the long-round left-rear exit (V1.36 print, yellow)",
    "body": "jaw_soft",
    "colour": "yellow"
   },
   {
    "key": "head_cap",
-   "name": "Head cap with two ears and no speaker collar (V1.32 print, white; D-025)",
+   "name": "Head cap with two ears, no speaker collar and no amplifier posts, the XIAO at the roof centre (V1.33 print, white)",
    "body": "jaw_soft",
    "colour": "white"
   },
@@ -2100,7 +2100,7 @@
   },
   {
    "key": "jaw_support",
-   "name": "Jaw support with the dia 11 left-rear exit and the fixed half of the wire clamp (V1.30 print, black)",
+   "name": "Jaw support with the long-round left-rear exit and the curved wall of the retired wire clamp (V1.33 print, black)",
    "body": "jaw_soft",
    "colour": "black"
   },
@@ -2264,6 +2264,12 @@
   {
    "key": "rear_frame",
    "name": "Rear converter box frame (new print)",
+   "body": "trunk_base",
+   "colour": "orange"
+  },
+  {
+   "key": "rear_lid",
+   "name": "Rear converter box lid (new print)",
    "body": "trunk_base",
    "colour": "orange"
   },
@@ -2476,6 +2482,7 @@
   }
  ],
  "not_fitted": [
+  "amp_tape",
   "battery_backpack_cap",
   "battery_backpack_frame",
   "bp_battery",
@@ -2485,21 +2492,20 @@
   "bp_switch",
   "camera_cable_stub",
   "camera_u20cam",
-  "exit_clamp_loose",
+  "mic_back",
+  "mic_foam_back",
   "mic_foam_left",
   "mic_foam_right",
   "mic_left",
   "mic_right",
-  "rear_lid",
   "saddle_body",
   "saddle_lid",
   "sd_a7z_pcb",
   "sd_antenna",
   "sd_csi_connector",
   "sd_dupont_housings",
-  "sd_fan",
   "sd_fan_connector",
-  "sd_heatsink",
+  "sd_heatsink_6530b",
   "sd_ipex_socket",
   "sd_micro_hdmi",
   "sd_microsd_card",
@@ -2508,15 +2514,13 @@
   "sd_pmic_area",
   "sd_ram",
   "sd_soc_a733",
-  "sd_thermal_pad",
+  "sd_thermal_pad_6530b",
   "sd_uboot_button",
   "sd_underside_smd",
   "sd_usb_c_otg_dp",
   "sd_usb_c_plug",
   "sd_usb_c_power",
   "sd_wifi_module_fcu760k",
-  "speaker_box",
-  "speaker_box_tape",
   "touch_pad_l1",
   "touch_pad_l2",
   "touch_pad_m",

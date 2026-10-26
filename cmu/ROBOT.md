@@ -13,9 +13,9 @@ number below disagrees with `robot-condition.json`, the JSON wins.
   into the model as explicit inertials, with Pollen's NP-F970 battery (90 g) removed.
 - Two forms, both registered as training tasks and exportable as scenes (`model/README.md` has the measured totals
   and centres of mass):
-  - `plugged`: the robot on the bench supply. A rear box without its lid carries two XL4015 buck converters
-    (7.0 V servo rail, 5 V head board) and a USB-PD trigger board; a 20 V lead runs to the bench. This is the robot
-    in every real log in this repository.
+  - `plugged`: the robot on the bench supply. A rear box carries two XL4015 buck converters (7.0 V servo rail,
+    5 V head board) and a USB-PD trigger board; a 20 V lead runs to the bench. This is the robot in every real log in
+    this repository. The box ran without its rear lid until 2026-10-26; the lid (7.8 g, 9.1 g with its four M2 x 10) is on since.
   - `battery`: the 2S 650 mAh backpack (frame, cap, cell, switch, DFR1202 charger board, plugs and leads) in place
     of the bench box. Its part masses are from the design plan and are labelled estimates until weighed.
 - Head computer: Radxa Cubie A7Z (fitted 2026-10-17, replacing a Raspberry Pi Zero W) at the former Pi position in

@@ -1,8 +1,7 @@
 {
- "about": "What is on the CMU robot today, on top of the assembly guide's whole-robot data (make_visual.py). Source: Shawn, 2026-10-20: torso shells and thighs are white, the back carries the two-converter box without its rear lid (bench supply), the ankles are the V1.24/V1.25 two-half ankle on the V1.22 sleeves with the V1.22 slip-fit feet (CURRENT-STATE.json ankle_bracket, 2026-10-23). The head is the 2026-10-20 A7Z head (A7Z inside, no microphones), the walking robot of FOUNDATION-20261023.md. Colours are the printed filament colours of colour scheme C (guide/print/colour-study-20261014/make_specs.py); the guide's own colours are display colours.",
- "checked": "2026-10-24",
+ "about": "What is on the CMU robot today, on top of the assembly guide's whole-robot data (make_visual.py). Source: Shawn, 2026-10-20: torso shells and thighs are white, the back carries the two-converter box (bench supply), its rear lid on since 2026-10-26 (Shawn; the layout-F cap, the V1.20 print by inference since the printed V1.17 cap's screw floors tore), the ankles are the V1.24/V1.25 two-half ankle on the V1.22 sleeves with the V1.22 slip-fit feet (CURRENT-STATE.json ankle_bracket, 2026-10-23). The head is the 2026-10-20 A7Z head (A7Z inside, no microphones), the walking robot of FOUNDATION-20261023.md. Colours are the printed filament colours of colour scheme C (guide/print/colour-study-20261014/make_specs.py); the guide's own colours are display colours.",
+ "checked": "2026-10-26",
  "not_fitted": [
-  "rear_lid",
   "battery_backpack_*",
   "bp_*",
   "touch_*",
@@ -141,7 +140,8 @@
   "#37474f": "dark",
   "#4a4a4a": "dark",
   "#9e9e9e": "metal",
-  "#b87333": "gold"
+  "#b87333": "gold",
+  "#8a8f94": "metal"
  },
  "part_files": {
   "ankle": "guide/print/world/ankle_outer_left.stl",
@@ -206,7 +206,7 @@
   }
  ],
  "extra_parts_reason": "On the robot but no longer a part of the guide data (guide-20261022-saddle).",
- "not_fitted_reason": "Rear lid off (bench supply). Battery backpack: the battery variant only. Extensions that are designed or printed but not on the walking robot (FOUNDATION-20261023.md, D-022 to D-025): the A7Z roof saddle with its board and fan, the ear microphones, the mouth speaker box, the U20CAM USB camera with its head exit clamp. Head wire clips: never fitted.",
+ "not_fitted_reason": "Battery backpack: the battery variant only. Extensions that are designed or printed but not on the walking robot (FOUNDATION-20261023.md, D-022 to D-025): the A7Z roof saddle with its board and fan, the ear microphones, the mouth speaker box, the U20CAM USB camera with its head exit clamp. Head wire clips: never fitted.",
  "frozen": {
   "dir": "visual/frozen",
   "about": "Parts inside the 2026-10-20 A7Z head on the walking robot that the guide data no longer carries: the A7Z board with its header pins and sockets, the Radxa camera board and ribbon, the antenna, and the speaker retainer. The guide moved to the D-022/D-023/D-025 extension head (guide-20261022-saddle) and its generated data of the A7Z head is not kept, so these are the meshes make_visual.py wrote on 2026-10-20 from guide-20261015-backpack, kept as files (the two head wire clips, never fitted, were taken out of jaw_soft__orange). They sit inside the closed head. The head shells come from part_files; the head servos and the jaw from the guide.",

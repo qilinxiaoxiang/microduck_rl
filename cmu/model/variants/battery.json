@@ -1,6 +1,6 @@
 {
   "variant": "battery",
-  "describes": "the robot on the 2S battery backpack (D-010, plan 2026-10-15): plugged with the bench box (frame, two XL4015, 5991, their screws, the 15 V and 7 V leads) removed and the backpack parts added on trunk_base; all backpack masses are plan estimates until weighed",
+  "describes": "the robot on the 2S battery backpack (D-010, plan 2026-10-15): plugged with the bench box (frame, rear lid, two XL4015, 5991, their screws, the 15 V and 7 V leads) removed and the backpack parts added on trunk_base; all backpack masses are plan estimates until weighed",
   "base": "plugged.json",
   "remove_ids": [
     "add-box-rear_frame",
@@ -9,11 +9,13 @@
     "add-box-pd5991",
     "add-cable-pw-15v-trunk_base",
     "add-cable-pw-15v-link-trunk_base",
-    "add-cable-pw-7v-trunk_base"
+    "add-cable-pw-7v-trunk_base",
+    "add-box-rear_lid"
   ],
   "remove_prefixes": [
     "add-screw-C-xl4015-",
-    "add-screw-C-pd5991-"
+    "add-screw-C-pd5991-",
+    "add-screw-C-rear_lid-"
   ],
   "position_frame": "guide trunk_base frame at qpos0 = MJCF trunk_base body frame (x forward, z up), mm",
   "add": [

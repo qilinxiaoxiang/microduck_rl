@@ -1778,5 +1778,5 @@
   "open_positive": "a positive angle about axis swings the lip tip down (opens)"
  },
  "source": "microduck_rl/cmu/model/export_web.py from cmu/model/visual/visual.json (fitted.json)",
- "guide_revision": "guide-20261022-saddle"
+ "guide_revision": "guide-20261026-camera-up"
 }

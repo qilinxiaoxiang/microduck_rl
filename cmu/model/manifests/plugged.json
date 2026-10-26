@@ -1,6 +1,6 @@
 {
  "schema": "signed mass parts for add_signed_inertias (dynamics/evaluate.py)",
- "build": "plugged (the robot on the bench supply, 2026-10-19: as built 2026-10-15 (bench box without lid, two XL4015 + 5991) with the Pi Zero W replaced by the Radxa Cubie A7Z and the AC019 antenna in the head cap; Camera Module 3 entry kept (the fitted Radxa Camera 13M 214 is of the same order, not weighed)). Derived by cmu/model/make_variants.py from cmu/model/variants/plugged.json on top of cmu/whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json; do not edit, edit the variant file and rerun.",
+ "build": "plugged (the robot on the bench supply, 2026-10-19: as built 2026-10-15 (bench box, two XL4015 + 5991) with the Pi Zero W replaced by the Radxa Cubie A7Z and the AC019 antenna in the head cap; Camera Module 3 entry kept (the fitted Radxa Camera 13M 214 is of the same order, not weighed); the bench box's rear lid with its four M2 x 10 is on since 2026-10-26 (Shawn)). Derived by cmu/model/make_variants.py from cmu/model/variants/plugged.json on top of cmu/whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json; do not edit, edit the variant file and rerun.",
  "frame": "official MJCF body frames, m; guide geometry mapped from trunk_base qpos0 frame",
  "excluded": [
   "BNO085 zip ties on the V1.8 shelf (< 0.3 g)",
@@ -38,11 +38,41 @@
     "body": "jaw_soft",
     "g": 1.5,
     "label": "estimate"
+   },
+   {
+    "id": "add-box-rear_lid",
+    "body": "trunk_base",
+    "g": 7.8,
+    "label": "slicer"
+   },
+   {
+    "id": "add-screw-C-rear_lid-01",
+    "body": "trunk_base",
+    "g": 0.316,
+    "label": "estimate"
+   },
+   {
+    "id": "add-screw-C-rear_lid-02",
+    "body": "trunk_base",
+    "g": 0.316,
+    "label": "estimate"
+   },
+   {
+    "id": "add-screw-C-rear_lid-03",
+    "body": "trunk_base",
+    "g": 0.316,
+    "label": "estimate"
+   },
+   {
+    "id": "add-screw-C-rear_lid-04",
+    "body": "trunk_base",
+    "g": 0.316,
+    "label": "estimate"
    }
   ],
   "removed_g": 9.3,
-  "added_g": 19.5,
-  "net_delta_g": 10.2
+  "added_g": 28.563,
+  "net_delta_g": 19.263
  },
  "parts": [
   {
@@ -4262,6 +4292,109 @@
    "source": "Radxa AC019 antenna stuck inside the front of the cap roof (D-011); placed at the head cap's COM (add-head_cap_v19 in the base manifest)",
    "label": "estimate",
    "position_note": "position of base part add-head_cap_v19"
+  },
+  {
+   "id": "add-box-rear_lid",
+   "body": "trunk_base",
+   "mass_kg": 0.0078,
+   "inertia_about_com_kg_m2": [
+    [
+     6.7121886970154624e-06,
+     -2.2671803154670864e-09,
+     -1.0017771310562273e-08
+    ],
+    [
+     -2.2671803154670864e-09,
+     4.267387175411542e-06,
+     4.034361064123787e-08
+    ],
+    [
+     -1.0017771310562273e-08,
+     4.034361064123787e-08,
+     2.594531363165451e-06
+    ]
+   ],
+   "basis": "slicer",
+   "source": "layout-F rear box cap fitted 2026-10-26 (Shawn). release-V1.20/run/delivery/zhengxia_V1.20_Orange_Elegoo-Centauri-Carbon_2h22m.gcode object rear_lid_1 model 7.80 g (support 0.22 g not on the part; PLA 1.25 g/cm3, 4 walls, 30 % gyroid; parsed with whole/dynamics/v19-20261014/gcode_part_masses.py::parse). Geometry guide/print/back-plate/layout-F/rear_lid-world.stl sha ee096c39 (the V1.20 row), solid 6.56 cm3. The V1.20 print is inferred: the printed V1.17 cap (7.62 g, thinner screw floors) tore its floors on 2026-10-15. Not weighed.",
+   "mesh": "microduck-sim/guide/print/back-plate/layout-F/rear_lid-world.stl",
+   "label": "slicer",
+   "position_m": [
+    -0.064562,
+    0.00016700000000000002,
+    0.00714
+   ]
+  },
+  {
+   "id": "add-screw-C-rear_lid-01",
+   "body": "trunk_base",
+   "mass_kg": 0.0003156672298327024,
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP (rear_lid into rear_frame, guide screw C-rear_lid-01); steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate",
+   "position_m": [
+    -0.056100000000000004,
+    0.011367,
+    -0.016667
+   ]
+  },
+  {
+   "id": "add-screw-C-rear_lid-02",
+   "body": "trunk_base",
+   "mass_kg": 0.0003156672298327024,
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP (rear_lid into rear_frame, guide screw C-rear_lid-02); steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate",
+   "position_m": [
+    -0.056100000000000004,
+    -0.011366,
+    -0.01654
+   ]
+  },
+  {
+   "id": "add-screw-C-rear_lid-03",
+   "body": "trunk_base",
+   "mass_kg": 0.0003156672298327024,
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP (rear_lid into rear_frame, guide screw C-rear_lid-03); steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate",
+   "position_m": [
+    -0.055600000000000004,
+    0.02825,
+    0.038700000000000005
+   ]
+  },
+  {
+   "id": "add-screw-C-rear_lid-04",
+   "body": "trunk_base",
+   "mass_kg": 0.0003156672298327024,
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP (rear_lid into rear_frame, guide screw C-rear_lid-04); steel, 0.8 fill of shank and head cylinders",
+   "label": "estimate",
+   "position_m": [
+    -0.055600000000000004,
+    -0.02825,
+    0.038700000000000005
+   ]
   }
  ]
 }

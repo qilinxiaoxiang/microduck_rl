@@ -9,8 +9,12 @@ import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import { mergeVertices, toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
 
 // Cache-busting version appended to the GLB / kinematics / leftover STL
-// fetches. Bump whenever microduck.glb is regenerated.
-export const MESH_VERSION = "11";
+// fetches. Bump whenever cmu.glb or kinematics.json is regenerated: the
+// fetches use force-cache, so an unbumped version keeps serving the old
+// manifest (12: the 10-24 GLB dropped neck_pitch__orange, and Microduck.app
+// kept asking for it from its WebKit cache; 13: the 10-26 GLB adds the rear
+// box lid to trunk_base__orange).
+export const MESH_VERSION = "13";
 
 // Physics model directory: the official mjlab export (MJCF + collision
 // meshes, converted from robot_walk.xml by tools/mjcf_to_kinematics.py).
@@ -81,7 +85,9 @@ export function loadGlbGeometries(glbUrl = GLB_URL) {
           if (o.name && o.name !== name) map.set(o.name, entry);
         });
         return map;
-      }));
+      })
+      // a failed download must not stay cached, or every later buildRig fails without fetching again
+      .catch((e) => { glbGeomsPromises.delete(glbUrl); throw e; }));
   }
   return glbGeomsPromises.get(glbUrl);
 }
@@ -151,7 +157,15 @@ export async function buildRig(k, opts = {}) {
     if (!extraStlCache.has(name)) {
       extraStlCache.set(
         name,
-        new STLLoader().loadAsync(signed(`${k.mesh_dir}/${name}?v=${MESH_VERSION}`)).then((raw) => {
+        fetch(signed(`${k.mesh_dir}/${name}?v=${MESH_VERSION}`)).then(async (r) => {
+          // The dev server answers a missing file with index.html; parsed as
+          // STL its bytes give a face count in the hundreds of millions.
+          const type = r.headers.get("content-type") ?? "";
+          if (!r.ok || type.includes("text/html")) {
+            throw new Error(`mesh ${name} is neither in the GLB nor a file in ${k.mesh_dir}`);
+          }
+          return new STLLoader().parse(await r.arrayBuffer());
+        }).then((raw) => {
           raw.deleteAttribute("normal");
           const welded = mergeVertices(raw, 1e-4);
           welded.scale(1000, 1000, 1000);

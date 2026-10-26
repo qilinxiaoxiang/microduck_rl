@@ -1,6 +1,6 @@
 {
  "schema": "signed mass parts for add_signed_inertias (dynamics/evaluate.py)",
- "build": "battery (the robot on the 2S battery backpack (D-010, plan 2026-10-15): plugged with the bench box (frame, two XL4015, 5991, their screws, the 15 V and 7 V leads) removed and the backpack parts added on trunk_base; all backpack masses are plan estimates until weighed). Derived by cmu/model/make_variants.py from cmu/model/variants/battery.json on top of cmu/whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json -> cmu/model/variants/plugged.json; do not edit, edit the variant file and rerun.",
+ "build": "battery (the robot on the 2S battery backpack (D-010, plan 2026-10-15): plugged with the bench box (frame, rear lid, two XL4015, 5991, their screws, the 15 V and 7 V leads) removed and the backpack parts added on trunk_base; all backpack masses are plan estimates until weighed). Derived by cmu/model/make_variants.py from cmu/model/variants/battery.json on top of cmu/whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json -> cmu/model/variants/plugged.json; do not edit, edit the variant file and rerun.",
  "frame": "official MJCF body frames, m; guide geometry mapped from trunk_base qpos0 frame",
  "excluded": [
   "BNO085 zip ties on the V1.8 shelf (< 0.3 g)",
@@ -57,6 +57,11 @@
     "g": 1.253
    },
    {
+    "id": "add-box-rear_lid",
+    "body": "trunk_base",
+    "g": 7.8
+   },
+   {
     "id": "add-screw-C-xl4015-02",
     "body": "trunk_base",
     "g": 0.197
@@ -95,6 +100,26 @@
     "id": "add-screw-C-pd5991-04",
     "body": "trunk_base",
     "g": 0.237
+   },
+   {
+    "id": "add-screw-C-rear_lid-01",
+    "body": "trunk_base",
+    "g": 0.316
+   },
+   {
+    "id": "add-screw-C-rear_lid-02",
+    "body": "trunk_base",
+    "g": 0.316
+   },
+   {
+    "id": "add-screw-C-rear_lid-03",
+    "body": "trunk_base",
+    "g": 0.316
+   },
+   {
+    "id": "add-screw-C-rear_lid-04",
+    "body": "trunk_base",
+    "g": 0.316
    }
   ],
   "added": [
@@ -135,9 +160,9 @@
     "label": "estimate"
    }
   ],
-  "removed_g": 59.507,
+  "removed_g": 68.57,
   "added_g": 97.1,
-  "net_delta_g": 37.593
+  "net_delta_g": 28.53
  },
  "parts": [
   {
