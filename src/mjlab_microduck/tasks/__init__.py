@@ -432,3 +432,20 @@ register_mjlab_task(
     rl_cfg=MicroduckStaticGraspRlCfg,
     runner_cls=GroundGraspFromPickRunner,
 )
+
+# CMU grasp variants (cmu_grasp_env_cfg.py): Pollen's ground / static grasp on the CMU as-built masses, with the
+# 1.0-1.5 cm lumpy printed ball (-Ball-) Shawn tests on the robot.
+from .cmu_grasp_env_cfg import make_cmu_grasp_env_cfg
+
+for _base_name, _factory, _kw, _rl in (
+    ("GroundGrasp-FromPick", make_microduck_ground_grasp_env_cfg, {}, MicroduckGroundGraspRlCfg),
+    ("StaticGrasp-Hover-FromPick", make_microduck_static_grasp_env_cfg, {"hover": True}, MicroduckStaticGraspRlCfg),
+):
+    for _ball in (True, False):
+        register_mjlab_task(
+            task_id=f"Mjlab-{_base_name}-MicroDuck-CMU-Plugged{'-Ball' if _ball else ''}",
+            env_cfg=make_cmu_grasp_env_cfg(_factory, "plugged", ball=_ball, **_kw),
+            play_env_cfg=make_cmu_grasp_env_cfg(_factory, "plugged", ball=_ball, play=True, **_kw),
+            rl_cfg=_rl,
+            runner_cls=GroundGraspFromPickRunner,
+        )

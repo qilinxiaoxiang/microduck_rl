@@ -56,6 +56,14 @@ PRESETS = {
     "bench": ["--num-envs", "4096", "--max-iters", "40", "--warmup-iters", "0", "--save-interval", "10", "--max-hours", "0.5", "--max-dollars", "1"],
     "run": ["--num-envs", "4096", "--save-interval", "25", "--max-dollars", "1"],
 }
+# --worker grasp: cmu/grasp/grasp_worker.py (Pollen's ground / static grasp on the CMU masses, train CLI + ONNX export)
+GRASP_WORKER = REPO / "cmu/grasp/grasp_worker.py"
+GRASP_PRESETS = {
+    "smoke": ["--num-envs", "64", "--max-iters", "5", "--save-interval", "2", "--max-hours", "0.25"],
+    "bench": ["--num-envs", "4096", "--max-iters", "40", "--save-interval", "20", "--max-hours", "0.5"],
+    "run": ["--num-envs", "4096", "--save-interval", "100"],
+}
+WORKERS = {"finetune": (WORKER, PRESETS), "grasp": (GRASP_WORKER, GRASP_PRESETS)}
 MAX_HOURS = 11.5
 
 
@@ -64,9 +72,9 @@ def slug(run_name):
     return "microduck-" + re.sub(r"[^a-z0-9-]+", "-", run_name.lower()).strip("-")
 
 
-def worker_flags():
-    """The flags finetune_worker.py accepts, read from its source so a typo fails here, not on Kaggle."""
-    return set(re.findall(r'add_argument\("(--[a-z0-9-]+)"', WORKER.read_text()))
+def worker_flags(worker=WORKER):
+    """The flags the worker script accepts, read from its source so a typo fails here, not on Kaggle."""
+    return set(re.findall(r'add_argument\("(--[a-z0-9-]+)"', worker.read_text()))
 
 
 def flag_value(args, name):
@@ -171,13 +179,14 @@ def pack(force=False, dry_run=False):
     return digest
 
 
-def worker_args(preset, run_name, extra):
+def worker_args(preset, run_name, extra, worker="finetune"):
     """Full worker argument list for one job, checked before anything is uploaded."""
-    args = ["--run-name", run_name] + PRESETS[preset] + extra
-    known = worker_flags()
+    path, presets = WORKERS[worker]
+    args = ["--run-name", run_name] + presets[preset] + extra
+    known = worker_flags(path)
     unknown = sorted({a.split("=", 1)[0] for a in extra if a.startswith("--")} - known)
     if unknown:
-        sys.exit(f"finetune_worker.py has no flag {', '.join(unknown)}; it accepts: {' '.join(sorted(known))}")
+        sys.exit(f"{path.name} has no flag {', '.join(unknown)}; it accepts: {' '.join(sorted(known))}")
     if preset == "run" and flag_value(extra, "--max-hours") is None:
         sys.exit("push run needs --max-hours (Kaggle ends GPU sessions at 12 h; use at most 11.5)")
     hours = float(flag_value(args, "--max-hours"))
@@ -186,16 +195,16 @@ def worker_args(preset, run_name, extra):
     return args
 
 
-def push(preset, run_name, extra, accelerator, pair_run_name="", pair_extra=None):
+def push(preset, run_name, extra, accelerator, pair_run_name="", pair_extra=None, worker="finetune"):
     if not run_name:
         run_name = f"{preset}-" + time.strftime("%m%d-%H%M")
-    args = worker_args(preset, run_name, extra)
+    args = worker_args(preset, run_name, extra, worker)
     pair = None
     if pair_run_name:
         if slug(pair_run_name) == slug(run_name):
             sys.exit("--pair-run-name must differ from --run-name (each job writes runs/<run-name>)")
         pair_extra = extra if pair_extra is None else pair_extra
-        pair = worker_args(preset, pair_run_name, pair_extra)
+        pair = worker_args(preset, pair_run_name, pair_extra, worker)
         if pair[2:] == args[2:]:
             sys.exit("both jobs have identical flags; give the pair its own group after a second -- (e.g. another --seed)")
     elif pair_extra is not None:
@@ -205,7 +214,7 @@ def push(preset, run_name, extra, accelerator, pair_run_name="", pair_extra=None
     name = slug(run_name)
     k = STAGE / "kernels" / name
     k.mkdir(parents=True, exist_ok=True)
-    job = {"run_name": run_name, "worker_args": args, "source_digest": digest, "pushed": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
+    job = {"run_name": run_name, "worker": str(WORKERS[worker][0].relative_to(REPO)), "worker_args": args, "source_digest": digest, "pushed": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
     if pair:  # one job per T4; kernel_entry.py runs them in parallel with CUDA_VISIBLE_DEVICES=0 and 1
         job["jobs"] = [{"run_name": run_name, "worker_args": args}, {"run_name": pair_run_name, "worker_args": pair}]
     src = (HERE / "kernel_entry.py").read_text().replace("JOB = {}  # replaced by kaggle_job.py", "JOB = " + json.dumps(job))
@@ -257,6 +266,7 @@ def main():
     p.add_argument("--run-name", default="")
     p.add_argument("--accelerator", default="NvidiaTeslaT4")
     p.add_argument("--pair-run-name", default="", help="second job on the second T4; its flags follow a second --")
+    p.add_argument("--worker", default="finetune", choices=sorted(WORKERS), help="finetune: walk61 fine-tune; grasp: cmu/grasp/grasp_worker.py")
     for c in ("status", "fetch"):
         sub.add_parser(c).add_argument("run_name")
     argv = sys.argv[1:]
@@ -272,7 +282,7 @@ def main():
     elif a.cmd == "pack":
         pack(a.force, a.dry_run)
     elif a.cmd == "push":
-        push(a.preset, a.run_name, extra, a.accelerator, a.pair_run_name, pair_extra)
+        push(a.preset, a.run_name, extra, a.accelerator, a.pair_run_name, pair_extra, a.worker)
     elif a.cmd == "status":
         status(a.run_name)
     else:
