@@ -15,7 +15,7 @@
     0.22,
     1
    ],
-   "faces": 4558,
+   "faces": 3402,
    "frozen": true
   },
   {
@@ -29,35 +29,7 @@
     0.25,
     1
    ],
-   "faces": 3664,
-   "frozen": true
-  },
-  {
-   "mesh": "jaw_soft__light",
-   "file": "frozen/jaw_soft__light.stl",
-   "body": "jaw_soft",
-   "colour": "light",
-   "rgba": [
-    0.9,
-    0.88,
-    0.82,
-    1
-   ],
-   "faces": 36,
-   "frozen": true
-  },
-  {
-   "mesh": "jaw_soft__metal",
-   "file": "frozen/jaw_soft__metal.stl",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "rgba": [
-    0.72,
-    0.73,
-    0.74,
-    1
-   ],
-   "faces": 1712,
+   "faces": 2072,
    "frozen": true
   },
   {
@@ -75,20 +47,6 @@
    "frozen": true
   },
   {
-   "mesh": "jaw_soft__pcb_blue",
-   "file": "frozen/jaw_soft__pcb_blue.stl",
-   "body": "jaw_soft",
-   "colour": "pcb_blue",
-   "rgba": [
-    0.15,
-    0.3,
-    0.62,
-    1
-   ],
-   "faces": 12,
-   "frozen": true
-  },
-  {
    "mesh": "jaw_soft__pcb_green",
    "file": "frozen/jaw_soft__pcb_green.stl",
    "body": "jaw_soft",
@@ -99,7 +57,7 @@
     0.28,
     1
    ],
-   "faces": 3128,
+   "faces": 256,
    "frozen": true
   },
   {
@@ -478,7 +436,20 @@
     0.22,
     1
    ],
-   "faces": 60
+   "faces": 1204
+  },
+  {
+   "mesh": "trunk_base__gold",
+   "file": "meshes/trunk_base__gold.stl",
+   "body": "trunk_base",
+   "colour": "gold",
+   "rgba": [
+    0.8,
+    0.62,
+    0.25,
+    1
+   ],
+   "faces": 24
   },
   {
    "mesh": "trunk_base__light",
@@ -491,7 +462,20 @@
     0.82,
     1
    ],
-   "faces": 12
+   "faces": 48
+  },
+  {
+   "mesh": "trunk_base__metal",
+   "file": "meshes/trunk_base__metal.stl",
+   "body": "trunk_base",
+   "colour": "metal",
+   "rgba": [
+    0.72,
+    0.73,
+    0.74,
+    1
+   ],
+   "faces": 36
   },
   {
    "mesh": "trunk_base__orange",
@@ -517,7 +501,7 @@
     0.62,
     1
    ],
-   "faces": 32395
+   "faces": 32407
   },
   {
    "mesh": "trunk_base__pcb_green",
@@ -530,7 +514,7 @@
     0.28,
     1
    ],
-   "faces": 4705
+   "faces": 6182
   },
   {
    "mesh": "trunk_base__servo",
@@ -733,7 +717,7 @@
       0.22,
       1
      ],
-     "faces": 4558,
+     "faces": 3402,
      "frozen": true
     },
     {
@@ -747,35 +731,7 @@
       0.25,
       1
      ],
-     "faces": 3664,
-     "frozen": true
-    },
-    {
-     "mesh": "jaw_soft__light",
-     "file": "frozen/jaw_soft__light.stl",
-     "body": "jaw_soft",
-     "colour": "light",
-     "rgba": [
-      0.9,
-      0.88,
-      0.82,
-      1
-     ],
-     "faces": 36,
-     "frozen": true
-    },
-    {
-     "mesh": "jaw_soft__metal",
-     "file": "frozen/jaw_soft__metal.stl",
-     "body": "jaw_soft",
-     "colour": "metal",
-     "rgba": [
-      0.72,
-      0.73,
-      0.74,
-      1
-     ],
-     "faces": 1712,
+     "faces": 2072,
      "frozen": true
     },
     {
@@ -793,20 +749,6 @@
      "frozen": true
     },
     {
-     "mesh": "jaw_soft__pcb_blue",
-     "file": "frozen/jaw_soft__pcb_blue.stl",
-     "body": "jaw_soft",
-     "colour": "pcb_blue",
-     "rgba": [
-      0.15,
-      0.3,
-      0.62,
-      1
-     ],
-     "faces": 12,
-     "frozen": true
-    },
-    {
      "mesh": "jaw_soft__pcb_green",
      "file": "frozen/jaw_soft__pcb_green.stl",
      "body": "jaw_soft",
@@ -817,7 +759,7 @@
       0.28,
       1
      ],
-     "faces": 3128,
+     "faces": 256,
      "frozen": true
     },
     {
@@ -1196,7 +1138,7 @@
       0.22,
       1
      ],
-     "faces": 76
+     "faces": 1220
     },
     {
      "mesh": "trunk_base__gold__battery",
@@ -1209,7 +1151,7 @@
       0.25,
       1
      ],
-     "faces": 60
+     "faces": 84
     },
     {
      "mesh": "trunk_base__light",
@@ -1222,7 +1164,20 @@
       0.82,
       1
      ],
-     "faces": 12
+     "faces": 48
+    },
+    {
+     "mesh": "trunk_base__metal",
+     "file": "meshes/trunk_base__metal.stl",
+     "body": "trunk_base",
+     "colour": "metal",
+     "rgba": [
+      0.72,
+      0.73,
+      0.74,
+      1
+     ],
+     "faces": 36
     },
     {
      "mesh": "trunk_base__orange__battery",
@@ -1248,7 +1203,7 @@
       0.62,
       1
      ],
-     "faces": 9120
+     "faces": 9132
     },
     {
      "mesh": "trunk_base__pcb_green__battery",
@@ -1261,7 +1216,7 @@
       0.28,
       1
      ],
-     "faces": 4709
+     "faces": 6194
     },
     {
      "mesh": "trunk_base__servo",
@@ -1456,41 +1411,6 @@
    "colour": "orange"
   },
   {
-   "key": "antenna",
-   "name": "AC019 Wi-Fi antenna (FPC sticker, 42 x 11.9 mm) inside the cap roof",
-   "body": "jaw_soft",
-   "colour": "gold",
-   "frozen": true
-  },
-  {
-   "key": "antenna_coax",
-   "name": "AC019 antenna cable (50 mm coax)",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "antenna_ipex",
-   "name": "AC019 IPEX plug on the A7Z antenna socket",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "camera_board",
-   "name": "Radxa Camera 13M 214 (IMX214), connector edge to the left (+Y), with the first part of its ribbon",
-   "body": "jaw_soft",
-   "colour": "pcb_green",
-   "frozen": true
-  },
-  {
-   "key": "camera_ribbon",
-   "name": "Camera ribbon, A7Z end (150 mm, 31-pin, contacts towards the board)",
-   "body": "jaw_soft",
-   "colour": "gold",
-   "frozen": true
-  },
-  {
    "key": "eye_trim",
    "name": "Eye trim, bore dia 16.2 for the U20CAM lens ring (V1.30 print, black)",
    "body": "jaw_soft",
@@ -1519,517 +1439,6 @@
    "name": "Head cap with two ears, no speaker collar and no amplifier posts, the XIAO at the roof centre (V1.33 print, white)",
    "body": "jaw_soft",
    "colour": "white"
-  },
-  {
-   "key": "head_pi_a7z_csi_connector",
-   "name": "A7Z camera connector (31-pin, underside, pin-1 end)",
-   "body": "jaw_soft",
-   "colour": "light",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_fan_connector",
-   "name": "A7Z fan socket",
-   "body": "jaw_soft",
-   "colour": "light",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_ipex_socket",
-   "name": "A7Z antenna socket (IPEX)",
-   "body": "jaw_soft",
-   "colour": "gold",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_micro_hdmi",
-   "name": "A7Z micro HDMI",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_microsd_card",
-   "name": "microSD card in the A7Z",
-   "body": "jaw_soft",
-   "colour": "pcb_blue",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_microsd_socket",
-   "name": "A7Z microSD socket",
-   "body": "jaw_soft",
-   "colour": "dark",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_pcie_fpc",
-   "name": "A7Z PCIe connector",
-   "body": "jaw_soft",
-   "colour": "light",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_pmic_area",
-   "name": "A7Z power chip area",
-   "body": "jaw_soft",
-   "colour": "dark",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_ram",
-   "name": "A7Z memory",
-   "body": "jaw_soft",
-   "colour": "dark",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_soc_a733",
-   "name": "A7Z processor (Allwinner A733)",
-   "body": "jaw_soft",
-   "colour": "dark",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_uboot_button",
-   "name": "A7Z boot button",
-   "body": "jaw_soft",
-   "colour": "dark",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_underside_smd",
-   "name": "A7Z underside components",
-   "body": "jaw_soft",
-   "colour": "dark",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_usb_c_otg_dp",
-   "name": "A7Z USB-C (OTG, DisplayPort)",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_usb_c_power",
-   "name": "A7Z USB-C power",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_a7z_wifi_module_fcu760k",
-   "name": "A7Z Wi-Fi module",
-   "body": "jaw_soft",
-   "colour": "dark",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_01_receiving",
-   "name": "Jumper-wire end on A7Z pin 1",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_02_receiving",
-   "name": "Jumper-wire end on A7Z pin 2",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_03_receiving",
-   "name": "Jumper-wire end on A7Z pin 3",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_04_receiving",
-   "name": "Jumper-wire end on A7Z pin 4",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_05_receiving",
-   "name": "Jumper-wire end on A7Z pin 5",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_06_receiving",
-   "name": "Jumper-wire end on A7Z pin 6",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_07_receiving",
-   "name": "Jumper-wire end on A7Z pin 7",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_09_receiving",
-   "name": "Jumper-wire end on A7Z pin 9",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_11_receiving",
-   "name": "Jumper-wire end on A7Z pin 11",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_12_receiving",
-   "name": "Jumper-wire end on A7Z pin 12",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_17_receiving",
-   "name": "Jumper-wire end on A7Z pin 17",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_25_receiving",
-   "name": "Jumper-wire end on A7Z pin 25",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_29_receiving",
-   "name": "Jumper-wire end on A7Z pin 29",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_31_receiving",
-   "name": "Jumper-wire end on A7Z pin 31",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_35_receiving",
-   "name": "Jumper-wire end on A7Z pin 35",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_39_receiving",
-   "name": "Jumper-wire end on A7Z pin 39",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_gpio_pin_40_receiving",
-   "name": "Jumper-wire end on A7Z pin 40",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_base",
-   "name": "Pi zero w header base",
-   "body": "jaw_soft",
-   "colour": "dark",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_01",
-   "name": "Pi zero w header pin 01",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_02",
-   "name": "Pi zero w header pin 02",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_03",
-   "name": "Pi zero w header pin 03",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_04",
-   "name": "Pi zero w header pin 04",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_05",
-   "name": "Pi zero w header pin 05",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_06",
-   "name": "Pi zero w header pin 06",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_07",
-   "name": "Pi zero w header pin 07",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_08",
-   "name": "Pi zero w header pin 08",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_09",
-   "name": "Pi zero w header pin 09",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_10",
-   "name": "Pi zero w header pin 10",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_11",
-   "name": "Pi zero w header pin 11",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_12",
-   "name": "Pi zero w header pin 12",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_13",
-   "name": "Pi zero w header pin 13",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_14",
-   "name": "Pi zero w header pin 14",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_15",
-   "name": "Pi zero w header pin 15",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_16",
-   "name": "Pi zero w header pin 16",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_17",
-   "name": "Pi zero w header pin 17",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_18",
-   "name": "Pi zero w header pin 18",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_19",
-   "name": "Pi zero w header pin 19",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_20",
-   "name": "Pi zero w header pin 20",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_21",
-   "name": "Pi zero w header pin 21",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_22",
-   "name": "Pi zero w header pin 22",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_23",
-   "name": "Pi zero w header pin 23",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_24",
-   "name": "Pi zero w header pin 24",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_25",
-   "name": "Pi zero w header pin 25",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_26",
-   "name": "Pi zero w header pin 26",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_27",
-   "name": "Pi zero w header pin 27",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_28",
-   "name": "Pi zero w header pin 28",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_29",
-   "name": "Pi zero w header pin 29",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_30",
-   "name": "Pi zero w header pin 30",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_31",
-   "name": "Pi zero w header pin 31",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_32",
-   "name": "Pi zero w header pin 32",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_33",
-   "name": "Pi zero w header pin 33",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_34",
-   "name": "Pi zero w header pin 34",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_35",
-   "name": "Pi zero w header pin 35",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_36",
-   "name": "Pi zero w header pin 36",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_37",
-   "name": "Pi zero w header pin 37",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_38",
-   "name": "Pi zero w header pin 38",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_39",
-   "name": "Pi zero w header pin 39",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
-  },
-  {
-   "key": "head_pi_zero_w_header_pin_40",
-   "name": "Pi zero w header pin 40",
-   "body": "jaw_soft",
-   "colour": "metal",
-   "frozen": true
   },
   {
    "key": "head_roll_ring_a",
@@ -2249,13 +1658,6 @@
    "colour": "dark"
   },
   {
-   "key": "pi",
-   "name": "Radxa Cubie A7Z with soldered 40-pin header",
-   "body": "jaw_soft",
-   "colour": "pcb_green",
-   "frozen": true
-  },
-  {
    "key": "plate",
    "name": "Thigh reinforcing plate",
    "body": "upper_leg_left",
@@ -2388,6 +1790,120 @@
    "colour": "black"
   },
   {
+   "key": "saddle_a7z_a7z_pcb",
+   "name": "Radxa Cubie A7Z with soldered 40-pin header, on the four floor bosses (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "pcb_green"
+  },
+  {
+   "key": "saddle_a7z_antenna",
+   "name": "AC019 Wi-Fi antenna strip on the saddle rear wall (inner face) (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "gold"
+  },
+  {
+   "key": "saddle_a7z_csi_connector",
+   "name": "A7Z camera connector (31-pin, underside, pin-1 end; empty, no ribbon) (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "light"
+  },
+  {
+   "key": "saddle_a7z_dupont_housings",
+   "name": "Straight Dupont housings on the A7Z header (one envelope for every plu (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "black"
+  },
+  {
+   "key": "saddle_a7z_fan_connector",
+   "name": "A7Z fan socket J6 (3-pin, pin-1 (+Y) end, towards the rear corner): ta (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "light"
+  },
+  {
+   "key": "saddle_a7z_ipex_socket",
+   "name": "A7Z antenna socket (IPEX, on the +Y edge about the middle of the board (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "gold"
+  },
+  {
+   "key": "saddle_a7z_micro_hdmi",
+   "name": "A7Z micro HDMI on the rear edge, behind the rear window (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "metal"
+  },
+  {
+   "key": "saddle_a7z_microsd_card",
+   "name": "microSD card in the A7Z, out through the slot in the -Y saddle wall (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "pcb_blue"
+  },
+  {
+   "key": "saddle_a7z_microsd_socket",
+   "name": "A7Z microSD socket (underside, -Y end) (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "saddle_a7z_pcie_fpc",
+   "name": "A7Z PCIe connector (underside, overhangs the rear edge by 1.2 mm) (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "light"
+  },
+  {
+   "key": "saddle_a7z_pmic_area",
+   "name": "A7Z power chip area (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "saddle_a7z_ram",
+   "name": "A7Z memory (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "saddle_a7z_soc_a733",
+   "name": "A7Z processor (Allwinner A733), under the 6530B heatsink and its therm (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "saddle_a7z_uboot_button",
+   "name": "A7Z boot button (underside) (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "saddle_a7z_underside_smd",
+   "name": "A7Z underside components (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "saddle_a7z_usb_c_otg_dp",
+   "name": "A7Z USB-C \u2461 (OTG, DisplayPort) on the rear edge, behind the rear windo (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "metal"
+  },
+  {
+   "key": "saddle_a7z_usb_c_power",
+   "name": "A7Z USB-C \u2460 (power) on the rear edge, behind the rear window, left fre (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "metal"
+  },
+  {
+   "key": "saddle_a7z_wifi_module_fcu760k",
+   "name": "A7Z Wi-Fi module (D-022 saddle pose)",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "saddle_body",
+   "name": "Roof saddle body for the A7Z (V3, D-028): four floor bosses carry the board (screwed from below into the 6530B), one rear window for the three sockets, open header strip at the front with the wall top lowered for the head wires, +Y wall bulge for the antenna pigtail, floor cut over the torso roof opening, exhaust slots, microSD notch in the -Y wall; taped to the shell roofs (new print, orange; white when restocked)",
+   "body": "trunk_base",
+   "colour": "white"
+  },
+  {
    "key": "shell_left",
    "name": "Left torso shell, screwed to the pack (V2.0 print, white)",
    "body": "trunk_base",
@@ -2498,7 +2014,6 @@
   "mic_foam_right",
   "mic_left",
   "mic_right",
-  "saddle_body",
   "saddle_lid",
   "sd_a7z_pcb",
   "sd_antenna",

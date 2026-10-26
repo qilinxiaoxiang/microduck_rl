@@ -158,10 +158,7 @@
     <mesh name="motor_support" file="motor_support.stl"/>
     <mesh name="cmu_jaw_soft__dark" file="../../../../../cmu/model/visual/frozen/jaw_soft__dark.stl"/>
     <mesh name="cmu_jaw_soft__gold" file="../../../../../cmu/model/visual/frozen/jaw_soft__gold.stl"/>
-    <mesh name="cmu_jaw_soft__light" file="../../../../../cmu/model/visual/frozen/jaw_soft__light.stl"/>
-    <mesh name="cmu_jaw_soft__metal" file="../../../../../cmu/model/visual/frozen/jaw_soft__metal.stl"/>
     <mesh name="cmu_jaw_soft__orange" file="../../../../../cmu/model/visual/frozen/jaw_soft__orange.stl"/>
-    <mesh name="cmu_jaw_soft__pcb_blue" file="../../../../../cmu/model/visual/frozen/jaw_soft__pcb_blue.stl"/>
     <mesh name="cmu_jaw_soft__pcb_green" file="../../../../../cmu/model/visual/frozen/jaw_soft__pcb_green.stl"/>
     <mesh name="cmu_ankle_left__black" file="../../../../../cmu/model/visual/meshes/ankle_left__black.stl"/>
     <mesh name="cmu_ankle_left__orange" file="../../../../../cmu/model/visual/meshes/ankle_left__orange.stl"/>
@@ -194,6 +191,7 @@
     <mesh name="cmu_trunk_base__dark__battery" file="../../../../../cmu/model/visual/meshes/trunk_base__dark__battery.stl"/>
     <mesh name="cmu_trunk_base__gold__battery" file="../../../../../cmu/model/visual/meshes/trunk_base__gold__battery.stl"/>
     <mesh name="cmu_trunk_base__light" file="../../../../../cmu/model/visual/meshes/trunk_base__light.stl"/>
+    <mesh name="cmu_trunk_base__metal" file="../../../../../cmu/model/visual/meshes/trunk_base__metal.stl"/>
     <mesh name="cmu_trunk_base__orange__battery" file="../../../../../cmu/model/visual/meshes/trunk_base__orange__battery.stl"/>
     <mesh name="cmu_trunk_base__pcb_blue__battery" file="../../../../../cmu/model/visual/meshes/trunk_base__pcb_blue__battery.stl"/>
     <mesh name="cmu_trunk_base__pcb_green__battery" file="../../../../../cmu/model/visual/meshes/trunk_base__pcb_green__battery.stl"/>
@@ -216,7 +214,7 @@
     <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
     <light pos="0 0 3.5" dir="0 0 -1" type="directional"/>
     <body name="trunk_base" childclass="microduck" pos="0 0 0.12">
-      <inertial pos="-0.0320923 1.193e-05 0.00632828" quat="0.555083 0.444266 0.438778 0.549531" mass="0.26094" diaginertia="0.0002848 0.00025585 0.000138886"/>
+      <inertial pos="-0.0317181 0.000117269 0.0122727" quat="0.61153 0.36326 0.365396 0.600466" mass="0.301656" diaginertia="0.000361235 0.000290841 0.000217636"/>
       <joint name="trunk_base_freejoint" type="free" armature="0" frictionloss="0"/>
       <geom class="self_collision_only" pos="0.004 0 -0.0175215" quat="0.707107 0 0 0.707107" type="mesh" material="power_support_material" mesh="power_support"/>
       <geom class="collision" pos="-0.0359693 0 -0.00385049" quat="0.00617059 0.70708 -0.70708 -0.00617059" type="mesh" material="np_f970_material" mesh="np_f970"/>
@@ -224,6 +222,7 @@
       <geom name="cmu_trunk_base__dark__battery" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.2 0.2 0.22 1" mesh="cmu_trunk_base__dark__battery"/>
       <geom name="cmu_trunk_base__gold__battery" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.8 0.62 0.25 1" mesh="cmu_trunk_base__gold__battery"/>
       <geom name="cmu_trunk_base__light" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.9 0.88 0.82 1" mesh="cmu_trunk_base__light"/>
+      <geom name="cmu_trunk_base__metal" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.72 0.73 0.74 1" mesh="cmu_trunk_base__metal"/>
       <geom name="cmu_trunk_base__orange__battery" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_trunk_base__orange__battery"/>
       <geom name="cmu_trunk_base__pcb_blue__battery" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.15 0.3 0.62 1" mesh="cmu_trunk_base__pcb_blue__battery"/>
       <geom name="cmu_trunk_base__pcb_green__battery" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.15 0.4 0.28 1" mesh="cmu_trunk_base__pcb_green__battery"/>
@@ -269,31 +268,28 @@
         </body>
       </body>
       <body name="neck" pos="0.026 0.0145 0.0324215" quat="0 0 0.707107 -0.707107">
-        <inertial pos="-0.000462959 -0.0249615 0.0154664" quat="0.703184 0.703317 -0.0744843 0.0730068" mass="0.0414917" diaginertia="1.91345e-05 1.69635e-05 5.2857e-06"/>
+        <inertial pos="3.14537e-05 -0.0252315 0.0147578" quat="0.689695 0.700392 -0.124845 0.134857" mass="0.0414547" diaginertia="1.90607e-05 1.73752e-05 5.29586e-06"/>
         <joint name="neck_pitch" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.0472"/>
         <geom name="cmu_neck__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_neck__orange"/>
         <geom name="cmu_neck__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_neck__servo"/>
         <body name="neck_pitch" pos="0 -0.05 0" quat="0 1 0 0">
-          <inertial pos="0.00169167 0.00744211 -0.0183004" quat="0.980322 -0.108562 -0.0580264 -0.154325" mass="0.011849" diaginertia="2.91419e-06 2.71846e-06 1.53104e-06"/>
+          <inertial pos="0.00197273 0.00730564 -0.017427" quat="0.993767 -0.0980162 -0.035334 -0.0396416" mass="0.0117118" diaginertia="2.87222e-06 2.69999e-06 1.60872e-06"/>
           <joint name="head_pitch" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
           <geom name="cmu_neck_pitch__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_neck_pitch__black"/>
           <body name="yaw_roll_motion" pos="0 0.0186931 -0.0145" quat="0 0 -0.707107 -0.707107">
-            <inertial pos="-0.000662563 -0.00449347 0.0182996" quat="0.208355 0.690888 -0.0625975 0.689451" mass="0.0539567" diaginertia="1.12705e-05 9.28245e-06 8.1778e-06"/>
+            <inertial pos="-0.000688783 -0.00443761 0.0182604" quat="0.189557 0.697267 -0.0546518 0.68913" mass="0.0538076" diaginertia="1.11727e-05 9.21598e-06 8.1043e-06"/>
             <joint name="head_yaw" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-2.96706 2.96706"/>
             <geom name="cmu_yaw_roll_motion__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_yaw_roll_motion__black"/>
             <geom name="cmu_yaw_roll_motion__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_yaw_roll_motion__servo"/>
             <body name="jaw_soft" pos="-0.0179 0 0.0145" quat="0.707107 0 -0.707107 0">
-              <inertial pos="0.00654032 0.000640347 -0.0293377" quat="0.999757 0.0158708 -0.0133948 0.00733626" mass="0.215485" diaginertia="0.000341003 0.000281584 0.000163292"/>
+              <inertial pos="0.00543614 0.0012866 -0.0260929" quat="0.999567 0.0293727 -0.000179242 -0.00170784" mass="0.186987" diaginertia="0.00032221 0.00025752 0.000150782"/>
               <joint name="head_roll" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-0.436332 0.436332"/>
               <geom class="collision" pos="-0.0045 0 -0.018" quat="0.5 0.5 0.5 0.5" type="mesh" material="top_head_shell_material" mesh="top_head_shell"/>
               <geom class="collision" pos="-0.0045 0 -0.018" quat="0.5 0.5 0.5 0.5" type="mesh" material="jaw_material" mesh="jaw"/>
               <geom class="collision" pos="-0.0043 0 -0.018" quat="0.5 0.5 0.5 0.5" type="mesh" material="bottom_head_shell_material" mesh="bottom_head_shell"/>
               <geom name="cmu_jaw_soft__dark" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.2 0.2 0.22 1" mesh="cmu_jaw_soft__dark"/>
               <geom name="cmu_jaw_soft__gold" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.8 0.62 0.25 1" mesh="cmu_jaw_soft__gold"/>
-              <geom name="cmu_jaw_soft__light" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.9 0.88 0.82 1" mesh="cmu_jaw_soft__light"/>
-              <geom name="cmu_jaw_soft__metal" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.72 0.73 0.74 1" mesh="cmu_jaw_soft__metal"/>
               <geom name="cmu_jaw_soft__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_jaw_soft__orange"/>
-              <geom name="cmu_jaw_soft__pcb_blue" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.15 0.3 0.62 1" mesh="cmu_jaw_soft__pcb_blue"/>
               <geom name="cmu_jaw_soft__pcb_green" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.15 0.4 0.28 1" mesh="cmu_jaw_soft__pcb_green"/>
               <geom name="cmu_jaw_soft__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_jaw_soft__black"/>
               <geom name="cmu_jaw_soft__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_jaw_soft__servo"/>

@@ -63,6 +63,29 @@
     },
     {
      "type": "mesh",
+     "mesh": "trunk_base__gold",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.60383,
+      0.34239,
+      0.05088,
+      1
+     ],
+     "roughness": 0.35,
+     "metalness": 0.6
+    },
+    {
+     "type": "mesh",
      "mesh": "trunk_base__light",
      "pos": [
       0.0,
@@ -83,6 +106,29 @@
      ],
      "roughness": 0.5,
      "metalness": 0.0
+    },
+    {
+     "type": "mesh",
+     "mesh": "trunk_base__metal",
+     "pos": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "quat": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     "color": [
+      0.477,
+      0.49191,
+      0.50708,
+      1
+     ],
+     "roughness": 0.35,
+     "metalness": 0.7
     },
     {
      "type": "mesh",
@@ -990,52 +1036,6 @@
     },
     {
      "type": "mesh",
-     "mesh": "jaw_soft__light",
-     "pos": [
-      0.0,
-      0.0,
-      0.0
-     ],
-     "quat": [
-      1.0,
-      0.0,
-      0.0,
-      0.0
-     ],
-     "color": [
-      0.78741,
-      0.74841,
-      0.63828,
-      1
-     ],
-     "roughness": 0.5,
-     "metalness": 0.0
-    },
-    {
-     "type": "mesh",
-     "mesh": "jaw_soft__metal",
-     "pos": [
-      0.0,
-      0.0,
-      0.0
-     ],
-     "quat": [
-      1.0,
-      0.0,
-      0.0,
-      0.0
-     ],
-     "color": [
-      0.477,
-      0.49191,
-      0.50708,
-      1
-     ],
-     "roughness": 0.35,
-     "metalness": 0.7
-    },
-    {
-     "type": "mesh",
      "mesh": "jaw_soft__orange",
      "pos": [
       0.0,
@@ -1052,29 +1052,6 @@
       0.89001,
       0.17064,
       0.0049,
-      1
-     ],
-     "roughness": 0.5,
-     "metalness": 0.0
-    },
-    {
-     "type": "mesh",
-     "mesh": "jaw_soft__pcb_blue",
-     "pos": [
-      0.0,
-      0.0,
-      0.0
-     ],
-     "quat": [
-      1.0,
-      0.0,
-      0.0,
-      0.0
-     ],
-     "color": [
-      0.01961,
-      0.07324,
-      0.34239,
       1
      ],
      "roughness": 0.5,

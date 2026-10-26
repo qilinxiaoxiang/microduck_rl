@@ -136,7 +136,8 @@ def main() -> None:
 
     jaw = fitted["jaw"]
     def load_file(rel: str) -> tuple[np.ndarray, np.ndarray]:
-        mesh = trimesh.load(REPO_ROOT.parent / rel, force="mesh")
+        # "cmu/..." files live in this repository (saddle_d022.py output); the rest in the robotics checkout
+        mesh = trimesh.load((REPO_ROOT if rel.startswith("cmu/") else REPO_ROOT.parent) / rel, force="mesh")
         return np.asarray(mesh.vertices, float), np.asarray(mesh.faces, np.int64)
 
     # Groups kept as committed meshes (fitted.json "frozen"): their source parts are no longer in the guide data.

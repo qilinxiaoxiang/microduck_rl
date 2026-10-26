@@ -91,7 +91,17 @@ def test_variant_totals_are_asbuilt_plus_signed_deltas(measured):
     # the deltas are the ones the design states: Pi (9.3 g) -> A7Z (18 g) + antenna (1.5 g) + the rear box lid
     # (7.80 g slicer, on since 2026-10-26) with its four M2 x 10 (0.316 g each); box with lid -> backpack
     lid_g = 7.80 + 4 * 0.31567
-    assert plugged_delta == pytest.approx(-9.3 + 18.0 + 1.5 + lid_g, abs=0.01)
+    # the A7Z left the head for the roof saddle (2026-10-26): + saddle body 17.743 g (V1.33 slicer), - the three Pi-era
+    # board screws E-pi (0.671 g), - the CSI ribbon (1.6 g); the IMU, UART, 5 V and amplifier leads are re-run to the
+    # saddle header (their totals before and after are summed from the manifests)
+    def g(manifest, prefixes):
+        parts = apply_masses.load_manifest(manifest)["parts"]
+        return sum(p["mass_kg"] for p in parts if p["id"].startswith(prefixes)) * 1000
+    leads = tuple(f"add-cable-{c}-" for c in ("imu", "uart", "pi-lead", "amp-lrc", "amp-bclk", "amp-din", "amp-gnd", "amp-vin"))
+    leads_delta = g(make_variants.MANIFEST_DIR / "plugged.json", leads) - g(apply_masses.BASE_MANIFEST, leads)
+    saddle_g = 17.743 - (0.237 + 0.197 + 0.237) - 1.6 + leads_delta
+    assert -4.0 < leads_delta < -3.0  # shorter torso leads (about -6.0 g) against longer amplifier leads (+1.4 g)
+    assert plugged_delta == pytest.approx(-9.3 + 18.0 + 1.5 + lid_g + saddle_g, abs=0.01)
     assert battery_delta == pytest.approx(97.1 - 59.513 - lid_g, abs=0.01)
     # the battery removal is in every variant and asbuilt = official + manifest - 90 g
     base = apply_masses.load_manifest(apply_masses.BASE_MANIFEST)

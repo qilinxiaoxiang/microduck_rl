@@ -18,8 +18,8 @@ number below disagrees with `robot-condition.json`, the JSON wins.
     this repository. The box ran without its rear lid until 2026-10-26; the lid (7.8 g, 9.1 g with its four M2 x 10) is on since.
   - `battery`: the 2S 650 mAh backpack (frame, cap, cell, switch, DFR1202 charger board, plugs and leads) in place
     of the bench box. Its part masses are from the design plan and are labelled estimates until weighed.
-- Head computer: Radxa Cubie A7Z (fitted 2026-10-17, replacing a Raspberry Pi Zero W) at the former Pi position in
-  the head, plus its antenna in the head cap. Radxa publishes no mass for the board; it is entered as 18 g
+- Head computer: Radxa Cubie A7Z (fitted 2026-10-17, replacing a Raspberry Pi Zero W), in the head until 2026-10-26 and
+  since then on a printed roof saddle over the rear box (D-022 layout), with its antenna. Radxa publishes no mass for the board; it is entered as 18 g
   (bounded 15 to 20 g). The camera board is the 4 g entry of the Camera Module 3 that was fitted in October; the
   A7Z camera path is not yet brought up (the camera numbers in `mac/CAMERA.md` were measured on the Pi Zero W).
 - Open items for the model: weigh the A7Z with its header, weigh the battery backpack parts, then edit

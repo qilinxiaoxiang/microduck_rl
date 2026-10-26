@@ -13,8 +13,9 @@ import { mergeVertices, toCreasedNormals } from "three/addons/utils/BufferGeomet
 // fetches use force-cache, so an unbumped version keeps serving the old
 // manifest (12: the 10-24 GLB dropped neck_pitch__orange, and Microduck.app
 // kept asking for it from its WebKit cache; 13: the 10-26 GLB adds the rear
-// box lid to trunk_base__orange).
-export const MESH_VERSION = "13";
+// box lid to trunk_base__orange; 14: the A7Z leaves the head for the roof
+// saddle, adding trunk_base__gold/__metal and dropping three head meshes).
+export const MESH_VERSION = "14";
 
 // Physics model directory: the official mjlab export (MJCF + collision
 // meshes, converted from robot_walk.xml by tools/mjcf_to_kinematics.py).

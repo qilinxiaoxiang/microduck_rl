@@ -1,11 +1,11 @@
 {
- "about": "What is on the CMU robot today, on top of the assembly guide's whole-robot data (make_visual.py). Source: Shawn, 2026-10-20: torso shells and thighs are white, the back carries the two-converter box (bench supply), its rear lid on since 2026-10-26 (Shawn; the layout-F cap, the V1.20 print by inference since the printed V1.17 cap's screw floors tore), the ankles are the V1.24/V1.25 two-half ankle on the V1.22 sleeves with the V1.22 slip-fit feet (CURRENT-STATE.json ankle_bracket, 2026-10-23). The head is the 2026-10-20 A7Z head (A7Z inside, no microphones), the walking robot of FOUNDATION-20261023.md. Colours are the printed filament colours of colour scheme C (guide/print/colour-study-20261014/make_specs.py); the guide's own colours are display colours.",
+ "about": "What is on the CMU robot today, on top of the assembly guide's whole-robot data (make_visual.py). Source: Shawn, 2026-10-20: torso shells and thighs are white, the back carries the two-converter box (bench supply), its rear lid on since 2026-10-26 (Shawn; the layout-F cap, the V1.20 print by inference since the printed V1.17 cap's screw floors tore), the ankles are the V1.24/V1.25 two-half ankle on the V1.22 sleeves with the V1.22 slip-fit feet (CURRENT-STATE.json ankle_bracket, 2026-10-23). The head shells are the 2026-10-20 A7Z head; since 2026-10-26 the A7Z is out of the head on the D-022 roof saddle (body only: the saddle lid, the board screws and the 6530B are not recorded as fitted), the walking robot of FOUNDATION-20261023.md. Colours are the printed filament colours of colour scheme C (guide/print/colour-study-20261014/make_specs.py); the guide's own colours are display colours.",
  "checked": "2026-10-26",
  "not_fitted": [
   "battery_backpack_*",
   "bp_*",
   "touch_*",
-  "saddle_*",
+  "saddle_lid",
   "sd_*",
   "speaker_box*",
   "mic_*",
@@ -19,17 +19,38 @@
   "thigh": "white",
   "right_thigh": "white",
   "smallring": "black",
-  "right_smallring": "black"
+  "right_smallring": "black",
+  "saddle_body": "white"
  },
  "body_overrides": {
   "amplifier": "jaw_soft",
   "idler12": "trunk_base",
-  "idler_cap12": "trunk_base"
+  "idler_cap12": "trunk_base",
+  "saddle_a7z_a7z_pcb": "trunk_base",
+  "saddle_a7z_soc_a733": "trunk_base",
+  "saddle_a7z_ram": "trunk_base",
+  "saddle_a7z_pmic_area": "trunk_base",
+  "saddle_a7z_wifi_module_fcu760k": "trunk_base",
+  "saddle_a7z_usb_c_otg_dp": "trunk_base",
+  "saddle_a7z_usb_c_power": "trunk_base",
+  "saddle_a7z_micro_hdmi": "trunk_base",
+  "saddle_a7z_fan_connector": "trunk_base",
+  "saddle_a7z_ipex_socket": "trunk_base",
+  "saddle_a7z_microsd_socket": "trunk_base",
+  "saddle_a7z_microsd_card": "trunk_base",
+  "saddle_a7z_csi_connector": "trunk_base",
+  "saddle_a7z_pcie_fpc": "trunk_base",
+  "saddle_a7z_uboot_button": "trunk_base",
+  "saddle_a7z_underside_smd": "trunk_base",
+  "saddle_a7z_dupont_housings": "trunk_base",
+  "saddle_a7z_antenna": "trunk_base",
+  "saddle_body": "trunk_base"
  },
  "body_override_reasons": {
   "amplifier": "sits in the head beside the speaker; nearest official mesh is the head-yaw link 4 mm closer than the head",
   "idler12": "motor 12 rides on the neck body, so its rear idler horn turns with the torso side like its output horn",
-  "idler_cap12": "same as idler12"
+  "idler_cap12": "same as idler12",
+  "saddle_body": "the roof saddle and the A7Z on it sit on the torso roof; the neck and head meshes are 25 mm and more away at HOME, the torso is the body they ride on"
  },
  "palette": {
   "orange": [
@@ -154,9 +175,10 @@
   "face_panel": "guide/print/face-a7z/face_panel_a7z.stl",
   "eye_trim": "guide/print/face-a7z/eye_trim_a7z.stl",
   "head_bottom": "guide/print/world/head_bottom_v18.stl",
-  "jaw_support": "build-pack-20260913/redesign-20260913/workflow-review-20261009/central-cad/fusion-C-meshes/jaw_support.stl"
+  "jaw_support": "build-pack-20260913/redesign-20260913/workflow-review-20261009/central-cad/fusion-C-meshes/jaw_support.stl",
+  "saddle_body": "guide/print/a7z-saddle/build/retired-v129/saddle_body-v129.stl"
  },
- "part_files_reason": "The robot wears the V1.24/V1.25 two-half ankle (stock bracket cut at mid shaft: outer half on the horn, inner half on the V1.22 black sleeve, screwed together at the toe since 2026-10-23; microduck-sim/CURRENT-STATE.json ankle_bracket) with the V1.22 slip-fit feet: the guide/gate world files of guide/print/ankle-halves-20261020 and release-V1.22 (guide frame, mm). The guide's ankle and ankle_cheek keys draw these halves, but the files are named here so the model does not follow a later guide revision. The head shells are the 2026-10-20 A7Z head on the walking robot (V1.17 cap and face, V1.8 lower shell, original jaw support), while the guide has moved on to the extension head (U20 face, exit lower shell and jaw support, ear cap); each file matched the 2026-10-20 head meshes within their reduction error (99th percentile 0.3-1 mm) on 2026-10-24.",
+ "part_files_reason": "The robot wears the V1.24/V1.25 two-half ankle (stock bracket cut at mid shaft: outer half on the horn, inner half on the V1.22 black sleeve, screwed together at the toe since 2026-10-23; microduck-sim/CURRENT-STATE.json ankle_bracket) with the V1.22 slip-fit feet: the guide/gate world files of guide/print/ankle-halves-20261020 and release-V1.22 (guide frame, mm). The guide's ankle and ankle_cheek keys draw these halves, but the files are named here so the model does not follow a later guide revision. The head shells are the 2026-10-20 A7Z head on the walking robot (V1.17 cap and face, V1.8 lower shell, original jaw support), while the guide has moved on to the extension head (U20 face, exit lower shell and jaw support, ear cap); each file matched the 2026-10-20 head meshes within their reduction error (99th percentile 0.3-1 mm) on 2026-10-24. The roof saddle on the robot (since 2026-10-26) is the D-022-layout body printed on the V1.33 White plate (sha 38689e46, kept as a7z-saddle/build/retired-v129/saddle_body-v129.stl) while the guide carries the V3 saddle of D-028.",
  "jaw": {
   "parts": [
    "jaw_frame"
@@ -203,38 +225,130 @@
    "name": "Right ankle sleeve (V1.22, black), the inner ankle half runs on it",
    "colour": "black",
    "file": "guide/print/world/ankle_sleeve_right.stl"
+  },
+  {
+   "key": "saddle_a7z_a7z_pcb",
+   "name": "Radxa Cubie A7Z with soldered 40-pin header, on the four floor bosses (D-022 saddle pose)",
+   "colour": "pcb_green",
+   "file": "cmu/model/visual/saddle-d022/sd_a7z_pcb.stl"
+  },
+  {
+   "key": "saddle_a7z_soc_a733",
+   "name": "A7Z processor (Allwinner A733), under the 6530B heatsink and its therm (D-022 saddle pose)",
+   "colour": "dark",
+   "file": "cmu/model/visual/saddle-d022/sd_soc_a733.stl"
+  },
+  {
+   "key": "saddle_a7z_ram",
+   "name": "A7Z memory (D-022 saddle pose)",
+   "colour": "dark",
+   "file": "cmu/model/visual/saddle-d022/sd_ram.stl"
+  },
+  {
+   "key": "saddle_a7z_pmic_area",
+   "name": "A7Z power chip area (D-022 saddle pose)",
+   "colour": "dark",
+   "file": "cmu/model/visual/saddle-d022/sd_pmic_area.stl"
+  },
+  {
+   "key": "saddle_a7z_wifi_module_fcu760k",
+   "name": "A7Z Wi-Fi module (D-022 saddle pose)",
+   "colour": "dark",
+   "file": "cmu/model/visual/saddle-d022/sd_wifi_module_fcu760k.stl"
+  },
+  {
+   "key": "saddle_a7z_usb_c_otg_dp",
+   "name": "A7Z USB-C \u2461 (OTG, DisplayPort) on the rear edge, behind the rear windo (D-022 saddle pose)",
+   "colour": "metal",
+   "file": "cmu/model/visual/saddle-d022/sd_usb_c_otg_dp.stl"
+  },
+  {
+   "key": "saddle_a7z_usb_c_power",
+   "name": "A7Z USB-C \u2460 (power) on the rear edge, behind the rear window, left fre (D-022 saddle pose)",
+   "colour": "metal",
+   "file": "cmu/model/visual/saddle-d022/sd_usb_c_power.stl"
+  },
+  {
+   "key": "saddle_a7z_micro_hdmi",
+   "name": "A7Z micro HDMI on the rear edge, behind the rear window (D-022 saddle pose)",
+   "colour": "metal",
+   "file": "cmu/model/visual/saddle-d022/sd_micro_hdmi.stl"
+  },
+  {
+   "key": "saddle_a7z_fan_connector",
+   "name": "A7Z fan socket J6 (3-pin, pin-1 (+Y) end, towards the rear corner): ta (D-022 saddle pose)",
+   "colour": "light",
+   "file": "cmu/model/visual/saddle-d022/sd_fan_connector.stl"
+  },
+  {
+   "key": "saddle_a7z_ipex_socket",
+   "name": "A7Z antenna socket (IPEX, on the +Y edge about the middle of the board (D-022 saddle pose)",
+   "colour": "gold",
+   "file": "cmu/model/visual/saddle-d022/sd_ipex_socket.stl"
+  },
+  {
+   "key": "saddle_a7z_microsd_socket",
+   "name": "A7Z microSD socket (underside, -Y end) (D-022 saddle pose)",
+   "colour": "dark",
+   "file": "cmu/model/visual/saddle-d022/sd_microsd_socket.stl"
+  },
+  {
+   "key": "saddle_a7z_microsd_card",
+   "name": "microSD card in the A7Z, out through the slot in the -Y saddle wall (D-022 saddle pose)",
+   "colour": "pcb_blue",
+   "file": "cmu/model/visual/saddle-d022/sd_microsd_card.stl"
+  },
+  {
+   "key": "saddle_a7z_csi_connector",
+   "name": "A7Z camera connector (31-pin, underside, pin-1 end; empty, no ribbon) (D-022 saddle pose)",
+   "colour": "light",
+   "file": "cmu/model/visual/saddle-d022/sd_csi_connector.stl"
+  },
+  {
+   "key": "saddle_a7z_pcie_fpc",
+   "name": "A7Z PCIe connector (underside, overhangs the rear edge by 1.2 mm) (D-022 saddle pose)",
+   "colour": "light",
+   "file": "cmu/model/visual/saddle-d022/sd_pcie_fpc.stl"
+  },
+  {
+   "key": "saddle_a7z_uboot_button",
+   "name": "A7Z boot button (underside) (D-022 saddle pose)",
+   "colour": "dark",
+   "file": "cmu/model/visual/saddle-d022/sd_uboot_button.stl"
+  },
+  {
+   "key": "saddle_a7z_underside_smd",
+   "name": "A7Z underside components (D-022 saddle pose)",
+   "colour": "dark",
+   "file": "cmu/model/visual/saddle-d022/sd_underside_smd.stl"
+  },
+  {
+   "key": "saddle_a7z_dupont_housings",
+   "name": "Straight Dupont housings on the A7Z header (one envelope for every plu (D-022 saddle pose)",
+   "colour": "black",
+   "file": "cmu/model/visual/saddle-d022/sd_dupont_housings.stl"
+  },
+  {
+   "key": "saddle_a7z_antenna",
+   "name": "AC019 Wi-Fi antenna strip on the saddle rear wall (inner face) (D-022 saddle pose)",
+   "colour": "gold",
+   "file": "cmu/model/visual/saddle-d022/sd_antenna.stl"
   }
  ],
- "extra_parts_reason": "On the robot but no longer a part of the guide data (guide-20261022-saddle).",
- "not_fitted_reason": "Battery backpack: the battery variant only. Extensions that are designed or printed but not on the walking robot (FOUNDATION-20261023.md, D-022 to D-025): the A7Z roof saddle with its board and fan, the ear microphones, the mouth speaker box, the U20CAM USB camera with its head exit clamp. Head wire clips: never fitted.",
+ "extra_parts_reason": "On the robot but no longer a part of the guide data (guide-20261022-saddle). The A7Z on the roof saddle (saddle_a7z_*, since 2026-10-26): the guide's V3 board parts mapped onto the D-022 saddle pose by saddle_d022.py, because the guide no longer carries the D-022 saddle that is on the robot.",
+ "not_fitted_reason": "Battery backpack: the battery variant only. Extensions that are designed or printed but not on the walking robot (FOUNDATION-20261023.md, D-022 to D-025): the saddle lid (its fit is not recorded) and the V3 saddle board parts sd_* (drawn in the D-022 pose as saddle_a7z_*), the ear microphones, the mouth speaker box, the U20CAM USB camera with its head exit clamp. Head wire clips: never fitted.",
  "frozen": {
   "dir": "visual/frozen",
-  "about": "Parts inside the 2026-10-20 A7Z head on the walking robot that the guide data no longer carries: the A7Z board with its header pins and sockets, the Radxa camera board and ribbon, the antenna, and the speaker retainer. The guide moved to the D-022/D-023/D-025 extension head (guide-20261022-saddle) and its generated data of the A7Z head is not kept, so these are the meshes make_visual.py wrote on 2026-10-20 from guide-20261015-backpack, kept as files (the two head wire clips, never fitted, were taken out of jaw_soft__orange). They sit inside the closed head. The head shells come from part_files; the head servos and the jaw from the guide.",
+  "about": "Parts inside the head on the walking robot that the guide data no longer carries: the speaker with its tape loop, the speaker retainer and the amplifier. The guide moved to the D-022/D-023/D-025 extension head (guide-20261022-saddle) and its generated data of the A7Z head is not kept, so these are the meshes make_visual.py wrote on 2026-10-20 from guide-20261015-backpack, kept as files (the two head wire clips, never fitted, were taken out of jaw_soft__orange). They sit inside the closed head. The head shells come from part_files; the head servos and the jaw from the guide. On 2026-10-26 the A7Z left the head for the roof saddle (Shawn) and the U20CAM replaced the Radxa CSI camera (CURRENT-STATE.json parts_a7z_extensions), so the A7Z with its header, pins, jumper ends, sockets and microSD card, the AC019 antenna with its coax and IPEX plug, and the Radxa camera board with its ribbon were cut out of these meshes: every one of their pieces lies at z <= -46 mm in the jaw_soft frame, every kept piece (speaker, tape, retainer, amplifier) at z >= -33 mm, and the cut kept the connected components above z -40 mm. The board is drawn on the saddle by saddle_d022.py.",
   "groups": [
    {
     "mesh": "jaw_soft__dark",
     "body": "jaw_soft",
     "colour": "dark",
     "parts": [
-     "head_pi_a7z_microsd_socket",
-     "head_pi_a7z_pmic_area",
-     "head_pi_a7z_ram",
-     "head_pi_a7z_soc_a733",
-     "head_pi_a7z_uboot_button",
-     "head_pi_a7z_underside_smd",
-     "head_pi_a7z_wifi_module_fcu760k",
-     "head_pi_zero_w_header_base",
      "speaker"
     ],
     "names": [
-     "A7Z microSD socket",
-     "A7Z power chip area",
-     "A7Z memory",
-     "A7Z processor (Allwinner A733)",
-     "A7Z boot button",
-     "A7Z underside components",
-     "A7Z Wi-Fi module",
-     "Pi zero w header base",
      "Speaker CMS-30204-18SP, 30 x 20 x 4 mm: metal grille with seven holes towards the roof, magnet and two solder pads on the back, pads at the amplifier end"
     ]
    },
@@ -243,164 +357,10 @@
     "body": "jaw_soft",
     "colour": "gold",
     "parts": [
-     "antenna",
-     "camera_ribbon",
-     "head_pi_a7z_ipex_socket",
      "speaker_tape"
     ],
     "names": [
-     "AC019 Wi-Fi antenna (FPC sticker, 42 x 11.9 mm) inside the cap roof",
-     "Camera ribbon, A7Z end (150 mm, 31-pin, contacts towards the board)",
-     "A7Z antenna socket (IPEX)",
      "Foam double-sided tape, two strips making one loop on the collar lip ring (pressed to 0.6 mm)"
-    ]
-   },
-   {
-    "mesh": "jaw_soft__light",
-    "body": "jaw_soft",
-    "colour": "light",
-    "parts": [
-     "head_pi_a7z_csi_connector",
-     "head_pi_a7z_fan_connector",
-     "head_pi_a7z_pcie_fpc"
-    ],
-    "names": [
-     "A7Z camera connector (31-pin, underside, pin-1 end)",
-     "A7Z fan socket",
-     "A7Z PCIe connector"
-    ]
-   },
-   {
-    "mesh": "jaw_soft__metal",
-    "body": "jaw_soft",
-    "colour": "metal",
-    "parts": [
-     "antenna_coax",
-     "antenna_ipex",
-     "head_pi_a7z_micro_hdmi",
-     "head_pi_a7z_usb_c_otg_dp",
-     "head_pi_a7z_usb_c_power",
-     "head_pi_gpio_pin_01_receiving",
-     "head_pi_gpio_pin_02_receiving",
-     "head_pi_gpio_pin_03_receiving",
-     "head_pi_gpio_pin_04_receiving",
-     "head_pi_gpio_pin_05_receiving",
-     "head_pi_gpio_pin_06_receiving",
-     "head_pi_gpio_pin_07_receiving",
-     "head_pi_gpio_pin_09_receiving",
-     "head_pi_gpio_pin_11_receiving",
-     "head_pi_gpio_pin_12_receiving",
-     "head_pi_gpio_pin_17_receiving",
-     "head_pi_gpio_pin_25_receiving",
-     "head_pi_gpio_pin_29_receiving",
-     "head_pi_gpio_pin_31_receiving",
-     "head_pi_gpio_pin_35_receiving",
-     "head_pi_gpio_pin_39_receiving",
-     "head_pi_gpio_pin_40_receiving",
-     "head_pi_zero_w_header_pin_01",
-     "head_pi_zero_w_header_pin_02",
-     "head_pi_zero_w_header_pin_03",
-     "head_pi_zero_w_header_pin_04",
-     "head_pi_zero_w_header_pin_05",
-     "head_pi_zero_w_header_pin_06",
-     "head_pi_zero_w_header_pin_07",
-     "head_pi_zero_w_header_pin_08",
-     "head_pi_zero_w_header_pin_09",
-     "head_pi_zero_w_header_pin_10",
-     "head_pi_zero_w_header_pin_11",
-     "head_pi_zero_w_header_pin_12",
-     "head_pi_zero_w_header_pin_13",
-     "head_pi_zero_w_header_pin_14",
-     "head_pi_zero_w_header_pin_15",
-     "head_pi_zero_w_header_pin_16",
-     "head_pi_zero_w_header_pin_17",
-     "head_pi_zero_w_header_pin_18",
-     "head_pi_zero_w_header_pin_19",
-     "head_pi_zero_w_header_pin_20",
-     "head_pi_zero_w_header_pin_21",
-     "head_pi_zero_w_header_pin_22",
-     "head_pi_zero_w_header_pin_23",
-     "head_pi_zero_w_header_pin_24",
-     "head_pi_zero_w_header_pin_25",
-     "head_pi_zero_w_header_pin_26",
-     "head_pi_zero_w_header_pin_27",
-     "head_pi_zero_w_header_pin_28",
-     "head_pi_zero_w_header_pin_29",
-     "head_pi_zero_w_header_pin_30",
-     "head_pi_zero_w_header_pin_31",
-     "head_pi_zero_w_header_pin_32",
-     "head_pi_zero_w_header_pin_33",
-     "head_pi_zero_w_header_pin_34",
-     "head_pi_zero_w_header_pin_35",
-     "head_pi_zero_w_header_pin_36",
-     "head_pi_zero_w_header_pin_37",
-     "head_pi_zero_w_header_pin_38",
-     "head_pi_zero_w_header_pin_39",
-     "head_pi_zero_w_header_pin_40"
-    ],
-    "names": [
-     "AC019 antenna cable (50 mm coax)",
-     "AC019 IPEX plug on the A7Z antenna socket",
-     "A7Z micro HDMI",
-     "A7Z USB-C (OTG, DisplayPort)",
-     "A7Z USB-C power",
-     "Jumper-wire end on A7Z pin 1",
-     "Jumper-wire end on A7Z pin 2",
-     "Jumper-wire end on A7Z pin 3",
-     "Jumper-wire end on A7Z pin 4",
-     "Jumper-wire end on A7Z pin 5",
-     "Jumper-wire end on A7Z pin 6",
-     "Jumper-wire end on A7Z pin 7",
-     "Jumper-wire end on A7Z pin 9",
-     "Jumper-wire end on A7Z pin 11",
-     "Jumper-wire end on A7Z pin 12",
-     "Jumper-wire end on A7Z pin 17",
-     "Jumper-wire end on A7Z pin 25",
-     "Jumper-wire end on A7Z pin 29",
-     "Jumper-wire end on A7Z pin 31",
-     "Jumper-wire end on A7Z pin 35",
-     "Jumper-wire end on A7Z pin 39",
-     "Jumper-wire end on A7Z pin 40",
-     "Pi zero w header pin 01",
-     "Pi zero w header pin 02",
-     "Pi zero w header pin 03",
-     "Pi zero w header pin 04",
-     "Pi zero w header pin 05",
-     "Pi zero w header pin 06",
-     "Pi zero w header pin 07",
-     "Pi zero w header pin 08",
-     "Pi zero w header pin 09",
-     "Pi zero w header pin 10",
-     "Pi zero w header pin 11",
-     "Pi zero w header pin 12",
-     "Pi zero w header pin 13",
-     "Pi zero w header pin 14",
-     "Pi zero w header pin 15",
-     "Pi zero w header pin 16",
-     "Pi zero w header pin 17",
-     "Pi zero w header pin 18",
-     "Pi zero w header pin 19",
-     "Pi zero w header pin 20",
-     "Pi zero w header pin 21",
-     "Pi zero w header pin 22",
-     "Pi zero w header pin 23",
-     "Pi zero w header pin 24",
-     "Pi zero w header pin 25",
-     "Pi zero w header pin 26",
-     "Pi zero w header pin 27",
-     "Pi zero w header pin 28",
-     "Pi zero w header pin 29",
-     "Pi zero w header pin 30",
-     "Pi zero w header pin 31",
-     "Pi zero w header pin 32",
-     "Pi zero w header pin 33",
-     "Pi zero w header pin 34",
-     "Pi zero w header pin 35",
-     "Pi zero w header pin 36",
-     "Pi zero w header pin 37",
-     "Pi zero w header pin 38",
-     "Pi zero w header pin 39",
-     "Pi zero w header pin 40"
     ]
    },
    {
@@ -415,29 +375,14 @@
     ]
    },
    {
-    "mesh": "jaw_soft__pcb_blue",
-    "body": "jaw_soft",
-    "colour": "pcb_blue",
-    "parts": [
-     "head_pi_a7z_microsd_card"
-    ],
-    "names": [
-     "microSD card in the A7Z"
-    ]
-   },
-   {
     "mesh": "jaw_soft__pcb_green",
     "body": "jaw_soft",
     "colour": "pcb_green",
     "parts": [
-     "amplifier",
-     "camera_board",
-     "pi"
+     "amplifier"
     ],
     "names": [
-     "MAX98357A I2S amplifier with five soldered wires and the terminal block",
-     "Radxa Camera 13M 214 (IMX214), connector edge to the left (+Y), with the first part of its ribbon",
-     "Radxa Cubie A7Z with soldered 40-pin header"
+     "MAX98357A I2S amplifier with five soldered wires and the terminal block"
     ]
    }
   ]

@@ -1,47 +1,71 @@
 {
   "variant": "plugged",
-  "describes": "the robot on the bench supply, 2026-10-19: as built 2026-10-15 (bench box, two XL4015 + 5991) with the Pi Zero W replaced by the Radxa Cubie A7Z and the AC019 antenna in the head cap; Camera Module 3 entry kept (the fitted Radxa Camera 13M 214 is of the same order, not weighed); the bench box's rear lid with its four M2 x 10 is on since 2026-10-26 (Shawn)",
+  "describes": "the robot on the bench supply, 2026-10-19: as built 2026-10-15 (bench box, two XL4015 + 5991) with the Pi Zero W replaced by the Radxa Cubie A7Z and the AC019 antenna in the head cap; Camera Module 3 entry kept (the fitted Radxa Camera 13M 214 is of the same order, not weighed); the bench box's rear lid with its four M2 x 10 is on since 2026-10-26 (Shawn); since 2026-10-26 the A7Z is out of the head on the roof saddle (Shawn): board, header and antenna moved to trunk_base, the saddle body added (V1.33 print, D-022 layout), the Pi-era board screws and the CSI ribbon out of the head, and the IMU, UART, 5 V and amplifier leads re-run to the saddle header from the guide routes",
   "base": "../../whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json",
   "remove_ids": [
-    "add-pi"
+    "add-pi",
+    "add-pi-gpio-header",
+    "add-screw-E-pi-01",
+    "add-screw-E-pi-02",
+    "add-screw-E-pi-03",
+    "add-cable-csi-jaw_soft",
+    "add-cable-imu-jaw_soft",
+    "add-cable-imu-neck",
+    "add-cable-imu-neck_pitch",
+    "add-cable-imu-trunk_base",
+    "add-cable-imu-yaw_roll_motion",
+    "add-cable-uart-jaw_soft",
+    "add-cable-uart-neck",
+    "add-cable-uart-neck_pitch",
+    "add-cable-uart-trunk_base",
+    "add-cable-uart-yaw_roll_motion",
+    "add-cable-pi-lead-jaw_soft",
+    "add-cable-pi-lead-neck",
+    "add-cable-pi-lead-neck_pitch",
+    "add-cable-pi-lead-trunk_base",
+    "add-cable-pi-lead-yaw_roll_motion",
+    "add-cable-amp-lrc-jaw_soft",
+    "add-cable-amp-bclk-jaw_soft",
+    "add-cable-amp-din-jaw_soft",
+    "add-cable-amp-gnd-jaw_soft",
+    "add-cable-amp-vin-jaw_soft"
   ],
   "add": [
     {
       "id": "add-a7z",
-      "body": "jaw_soft",
+      "body": "trunk_base",
       "mass_kg": 0.018,
-      "position_m": [
-        0.013898458364897247,
-        -7.9141346850318e-08,
-        -0.050467040423555716
-      ],
       "dimensions_m": [
-        0.065,
         0.03,
+        0.065,
         0.004
       ],
       "basis": "estimate",
-      "source": "Radxa publishes no mass for the Cubie A7Z (product brief, docs, ameridroid read 2026-10-19); bounded 15-20 g in cmu/model/sole/README.md; replace by the weighed value. Position: the former Pi Zero W position (add-pi)",
-      "label": "estimate"
+      "source": "Radxa publishes no mass for the Cubie A7Z (product brief, docs, ameridroid read 2026-10-19); bounded 15-20 g in cmu/model/sole/README.md; replace by the weighed value. Position: out of the head since 2026-10-26, on the roof saddle, D-022 layout (board x -42.8..-12.8, PCB z 47..48.6, header at the rear; a7z-saddle/build/build.json at commit 2c179f0), PCB centre",
+      "label": "estimate",
+      "position_mm": [
+        -27.8,
+        0.0,
+        48.3
+      ]
     },
     {
       "id": "add-antenna-ac019",
-      "body": "jaw_soft",
+      "body": "trunk_base",
       "mass_kg": 0.0015,
-      "position_m": [
-        0.021811560175060214,
-        -0.00048172145760626067,
-        -0.026562719762204687
-      ],
-      "position_from_id": "add-head_cap_v19",
       "dimensions_m": [
-        0.04,
-        0.01,
-        0.001
+        0.001,
+        0.042,
+        0.012
       ],
       "basis": "estimate",
-      "source": "Radxa AC019 antenna stuck inside the front of the cap roof (D-011); placed at the head cap's COM (add-head_cap_v19 in the base manifest)",
-      "label": "estimate"
+      "source": "Radxa AC019 antenna (1.5 g estimate). Its 40-50 mm pigtail is plugged into the A7Z (CURRENT-STATE parts_a7z_extensions), so it left the head with the board; placed on the rear wall inner face of the roof saddle, D-022 layout (board x -42.8..-12.8, PCB z 47..48.6, header at the rear; a7z-saddle/build/build.json at commit 2c179f0) as designed; where it is stuck on the robot is not recorded",
+      "label": "estimate",
+      "position_mm": [
+        -43.25,
+        0.0,
+        55.5
+      ]
     },
     {
       "id": "add-box-rear_lid",
@@ -144,6 +168,469 @@
       ],
       "basis": "estimate",
       "source": "M2 \u00d7 10 TAP (rear_lid into rear_frame, guide screw C-rear_lid-04); steel, 0.8 fill of shank and head cylinders",
+      "label": "estimate"
+    },
+    {
+      "id": "add-saddle-body",
+      "body": "trunk_base",
+      "mass_kg": 0.017743,
+      "position_mm": [
+        -27.826,
+        -0.106,
+        50.766
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          1.3486920188450454e-05,
+          8.217729366647567e-08,
+          -4.845654732670913e-07
+        ],
+        [
+          8.217729366647567e-08,
+          6.2985300996471365e-06,
+          6.098512262612912e-08
+        ],
+        [
+          -4.845654732670913e-07,
+          6.098512262612912e-08,
+          1.5194419765154718e-05
+        ]
+      ],
+      "basis": "slicer",
+      "source": "A7Z roof saddle body, D-022 layout (board posts, header at the rear), as printed on the V1.33 White plate (printed 2026-10-24, Shawn): release-V1.33/run/delivery/zhengxia_V1.33_White_Elegoo-Centauri-Carbon_3h56m.gcode object saddle_body_1 model 17.74 g (support 6.42 g not on the part; PLA 1.25 g/cm3, 4 walls, 30 % gyroid; parsed with whole/dynamics/v19-20261014/gcode_part_masses.py::parse). Geometry guide/print/a7z-saddle/build/retired-v129/saddle_body-v129.stl, sha 38689e46 = the V1.33 manifest row. On the robot since 2026-10-26 (Shawn, relayed): which printed saddle is fitted is not recorded; V1.33 is the only printed saddle on record and the 6530B that the V1.35 saddle needs is not fitted. Not weighed.",
+      "mesh": "microduck-sim/guide/print/a7z-saddle/build/retired-v129/saddle_body-v129.stl",
+      "label": "slicer"
+    },
+    {
+      "id": "add-saddle-a7z-header",
+      "body": "trunk_base",
+      "mass_kg": 0.0025,
+      "position_mm": [
+        -39.3,
+        0.0,
+        50.0
+      ],
+      "dimensions_m": [
+        0.005,
+        0.051,
+        0.009
+      ],
+      "basis": "estimate",
+      "source": "soldered 2x20 male header (plastic base + 40 pins), engineering estimate (the base entry add-pi-gpio-header, 2.5 g), moved with the A7Z to the roof saddle, D-022 layout (board x -42.8..-12.8, PCB z 47..48.6, header at the rear; a7z-saddle/build/build.json at commit 2c179f0)",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-imu-saddle-trunk_base",
+      "body": "trunk_base",
+      "mass_kg": 0.0010213271073041198,
+      "position_m": [
+        -0.010600177431537685,
+        0.00655101579209195,
+        0.055145779061773134
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "IMU lead (4397 cable, extended) to the saddle header (guide route guide-20261026-camera-up, 70 mm); STEMMA QT 4-wire 28 AWG (~1.5 g/m per conductor) with JST SH ends; 0.0060 g/mm x 70 mm + ends 0.600 g (the base entry's end mass), share 1.00",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-uart-saddle-trunk_base",
+      "body": "trunk_base",
+      "mass_kg": 0.0008563144757958713,
+      "position_m": [
+        -0.017484231979271927,
+        0.0035229302785845006,
+        0.043731635855624895
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "UART link (two jumper wires) to the saddle header (guide route guide-20261026-camera-up, 111 mm); two Dupont jumpers, 26-28 AWG ~2.5 g/m each, 0.1-0.15 g per housing; 0.0050 g/mm x 111 mm + ends 0.300 g (the base entry's end mass), share 1.00",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-pi-lead-saddle-trunk_base",
+      "body": "trunk_base",
+      "mass_kg": 0.0016104075566860997,
+      "position_m": [
+        -0.03196177949796211,
+        0.01647383149025168,
+        0.03817618259979386
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "A7Z 5 V lead (two jumper chains, red + black) to the saddle header (guide route guide-20261026-camera-up, 202 mm); two Dupont jumper chains red + black, 26-28 AWG ~2.5 g/m each, 0.15 g per housing (v19 pi-trunk rate); 0.0050 g/mm x 202 mm + ends 0.600 g (the base entry's end mass), share 1.00",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-lrc-saddle-jaw_soft",
+      "body": "jaw_soft",
+      "mass_kg": 0.000315026419525497,
+      "position_m": [
+        0.008810256727078173,
+        0.023120318405322565,
+        -0.025940144616973075
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier LRC to A7Z pin 35 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 205 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 205 mm + ends 0.100 g (the base entry's end mass), share 0.52",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-lrc-saddle-neck",
+      "body": "neck",
+      "mass_kg": 0.00019856942705389583,
+      "position_m": [
+        0.020077687085795964,
+        -0.03767113289023195,
+        0.008332783091664618
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier LRC to A7Z pin 35 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 205 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 205 mm + ends 0.100 g (the base entry's end mass), share 0.32",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-lrc-saddle-neck_pitch",
+      "body": "neck_pitch",
+      "mass_kg": 4.142598237830387e-05,
+      "position_m": [
+        0.014599999999999997,
+        -0.004321499999999991,
+        0.0012499999999999992
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier LRC to A7Z pin 35 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 205 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 205 mm + ends 0.100 g (the base entry's end mass), share 0.07",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-lrc-saddle-trunk_base",
+      "body": "trunk_base",
+      "mass_kg": 5.65905985234109e-05,
+      "position_m": [
+        -0.012997141922224998,
+        -0.0191,
+        0.06377987630482934
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier LRC to A7Z pin 35 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 205 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 205 mm + ends 0.100 g (the base entry's end mass), share 0.09",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-bclk-saddle-jaw_soft",
+      "body": "jaw_soft",
+      "mass_kg": 0.00032250890127043545,
+      "position_m": [
+        0.00871101450922126,
+        0.022158563486211934,
+        -0.025593393387432543
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier BCLK to A7Z pin 12 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 180 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 180 mm + ends 0.100 g (the base entry's end mass), share 0.59",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-bclk-saddle-neck",
+      "body": "neck",
+      "mass_kg": 0.0001619947016144999,
+      "position_m": [
+        0.021015804578283986,
+        -0.03937158636862267,
+        -0.00019095239491113096
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier BCLK to A7Z pin 12 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 180 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 180 mm + ends 0.100 g (the base entry's end mass), share 0.29",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-bclk-saddle-neck_pitch",
+      "body": "neck_pitch",
+      "mass_kg": 4.236223070612136e-05,
+      "position_m": [
+        0.014599999999999997,
+        -0.004321499999999991,
+        0.0012499999999999992
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier BCLK to A7Z pin 12 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 180 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 180 mm + ends 0.100 g (the base entry's end mass), share 0.08",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-bclk-saddle-trunk_base",
+      "body": "trunk_base",
+      "mass_kg": 2.261585179143775e-05,
+      "position_m": [
+        -0.013900000000000001,
+        0.0114,
+        0.061799999999999994
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier BCLK to A7Z pin 12 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 180 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 180 mm + ends 0.100 g (the base entry's end mass), share 0.04",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-din-saddle-jaw_soft",
+      "body": "jaw_soft",
+      "mass_kg": 0.0003015276502829595,
+      "position_m": [
+        0.00911025211739474,
+        0.02547612165523592,
+        -0.02349017572619439
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier DIN to A7Z pin 40 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 202 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 202 mm + ends 0.100 g (the base entry's end mass), share 0.50",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-din-saddle-neck",
+      "body": "neck",
+      "mass_kg": 0.00021297419279787713,
+      "position_m": [
+        0.020335115279744326,
+        -0.03727454442173108,
+        0.01033273547515355
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier DIN to A7Z pin 40 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 202 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 202 mm + ends 0.100 g (the base entry's end mass), share 0.35",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-din-saddle-neck_pitch",
+      "body": "neck_pitch",
+      "mass_kg": 4.1515043257911194e-05,
+      "position_m": [
+        0.014599999999999997,
+        -0.004321499999999991,
+        0.0012499999999999992
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier DIN to A7Z pin 40 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 202 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 202 mm + ends 0.100 g (the base entry's end mass), share 0.07",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-din-saddle-trunk_base",
+      "body": "trunk_base",
+      "mass_kg": 4.8955691272309754e-05,
+      "position_m": [
+        -0.01146463533470925,
+        -0.024099999999999996,
+        0.06357863711509996
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier DIN to A7Z pin 40 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 202 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 202 mm + ends 0.100 g (the base entry's end mass), share 0.08",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-gnd-saddle-jaw_soft",
+      "body": "jaw_soft",
+      "mass_kg": 0.00029080139521913946,
+      "position_m": [
+        0.009095762927424459,
+        0.024528733263188475,
+        -0.02175493669261998
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier GND to A7Z pin 39 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 201 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 201 mm + ends 0.100 g (the base entry's end mass), share 0.48",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-gnd-saddle-neck",
+      "body": "neck",
+      "mass_kg": 0.0002131629971210347,
+      "position_m": [
+        0.020335115279744326,
+        -0.03727454442173108,
+        0.01033273547515355
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier GND to A7Z pin 39 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 201 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 201 mm + ends 0.100 g (the base entry's end mass), share 0.35",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-gnd-saddle-neck_pitch",
+      "body": "neck_pitch",
+      "mass_kg": 4.155184687031228e-05,
+      "position_m": [
+        0.014599999999999997,
+        -0.004321499999999991,
+        0.0012499999999999992
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier GND to A7Z pin 39 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 201 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 201 mm + ends 0.100 g (the base entry's end mass), share 0.07",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-gnd-saddle-trunk_base",
+      "body": "trunk_base",
+      "mass_kg": 5.676253764293631e-05,
+      "position_m": [
+        -0.012997141922224998,
+        -0.024099999999999996,
+        0.06377987630482934
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier GND to A7Z pin 39 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 201 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 201 mm + ends 0.100 g (the base entry's end mass), share 0.09",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-vin-saddle-jaw_soft",
+      "body": "jaw_soft",
+      "mass_kg": 0.00029791139840286,
+      "position_m": [
+        0.00914642852366813,
+        0.02510090360072297,
+        -0.021272722403869883
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier Vin to A7Z pin 4 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 172 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 172 mm + ends 0.100 g (the base entry's end mass), share 0.56",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-vin-saddle-neck",
+      "body": "neck",
+      "mass_kg": 0.0001389133538782013,
+      "position_m": [
+        0.018219031453840417,
+        -0.040534538717084144,
+        -0.0025657428608134975
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier Vin to A7Z pin 4 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 172 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 172 mm + ends 0.100 g (the base entry's end mass), share 0.26",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-vin-saddle-neck_pitch",
+      "body": "neck_pitch",
+      "mass_kg": 4.271326782387911e-05,
+      "position_m": [
+        0.014599999999999997,
+        -0.004321499999999991,
+        0.0012499999999999992
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier Vin to A7Z pin 4 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 172 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 172 mm + ends 0.100 g (the base entry's end mass), share 0.08",
+      "label": "estimate"
+    },
+    {
+      "id": "add-cable-amp-vin-saddle-trunk_base",
+      "body": "trunk_base",
+      "mass_kg": 5.036867093758433e-05,
+      "position_m": [
+        -0.01146463533470925,
+        0.021599999999999998,
+        0.06357863711509996
+      ],
+      "dimensions_m": [
+        0.02,
+        0.02,
+        0.02
+      ],
+      "basis": "estimate",
+      "source": "Amplifier Vin to A7Z pin 4 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 172 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 172 mm + ends 0.100 g (the base entry's end mass), share 0.10",
       "label": "estimate"
     }
   ]
