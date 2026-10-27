@@ -95,6 +95,13 @@ off-centre cases.
 - Risk carried into step 2: the policy has to discover reaching the floor on the CMU masses; the curriculum starts
   with the object within 1 cm of the landing spot so that discovery is Pollen's static grasp task.
 
+## Step 2 run (Shawn's go 2026-10-27)
+
+Kaggle kernel `microduck-sp-a-1027`, pushed 2026-10-27: two jobs on the two T4s, sp-a-1027 (seed 1) and sp-b-1027
+(seed 2), 4096 envs, 3000 iterations or 11 h each, checkpoint every 100. Each job stops itself at iteration 500 if
+Episode_Reward/grasp_held was never above zero (`grasp_worker.py --check-iter 500`). Fetch:
+`python3 cmu/finetune/kaggle/kaggle_job.py fetch sp-a-1027`.
+
 ## Open items outside the policy
 
 - U20CAM intrinsics and mount calibration (blocks every real camera run).
