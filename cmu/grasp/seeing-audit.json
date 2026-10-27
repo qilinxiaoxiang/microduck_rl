@@ -1,0 +1,412 @@
+{
+ "time": "2026-10-27T01:09:14",
+ "task": "Mjlab-SeeingPick-FromPick-MicroDuck-CMU-Plugged",
+ "device": "cuda",
+ "seed": 1,
+ "envs": 512,
+ "steps": 200,
+ "wall_s": 386,
+ "policies": {
+  "alpha_ground_pick.onnx": "9852e1c75ca03d3cba52cf074d1603da",
+  "stand61.onnx": "275af7d366c53afde74fbd5e69c38d3a"
+ },
+ "landing_xy": [
+  0.0207,
+  0.0046
+ ],
+ "weights": {
+  "upright": 0.2,
+  "body_ang_vel": -0.05,
+  "angular_momentum": -0.02,
+  "dof_pos_limits": -1.0,
+  "action_rate_l2": -2.0,
+  "soft_landing": -1e-05,
+  "ground_pick_return_pose_legs": 6.0,
+  "ground_pick_return_pose_neck": 6.0,
+  "return_upright": 4.0,
+  "neck_vel_descent": -0.1,
+  "feet_grounded": 3.0,
+  "feet_flat": -2.0,
+  "neck_action_rate_l2": -1.0,
+  "joint_torques_l2": -0.005,
+  "self_collisions": -1.0,
+  "grasp_held": 15.0,
+  "grasp_lift": 6.0,
+  "approach_track": 10.0,
+  "object_pushed": 3.0,
+  "head_floor_impact": -3.0,
+  "jaw_floor_impact": -3.0,
+  "approach_lateral": 4.0,
+  "action_overrun": -10.0,
+  "joint_overspeed": 0.15,
+  "beak_floor_touch": -10.0,
+  "static_pose": 6.0,
+  "lip_height": 4.0,
+  "hold_still": 0.2,
+  "com_support": 6.0,
+  "lip_height_wide": 2.0,
+  "head_level": 40.0
+ },
+ "scenarios": {
+  "measure": {
+   "envs": 512,
+   "steps": 200,
+   "fell": 145,
+   "success": 0.0,
+   "reward_per_s": 7.3651,
+   "terms_per_s": {
+    "upright": 0.1248,
+    "body_ang_vel": -0.0566,
+    "angular_momentum": -0.0,
+    "dof_pos_limits": -0.0301,
+    "action_rate_l2": -0.4484,
+    "soft_landing": -0.0,
+    "ground_pick_return_pose_legs": 1.7963,
+    "ground_pick_return_pose_neck": 1.8327,
+    "return_upright": 1.2817,
+    "neck_vel_descent": -0.0495,
+    "feet_grounded": 2.4506,
+    "feet_flat": -0.122,
+    "neck_action_rate_l2": -0.0163,
+    "joint_torques_l2": -0.001,
+    "self_collisions": -0.0077,
+    "grasp_held": 0.0,
+    "grasp_lift": 0.0,
+    "approach_track": 1.2308,
+    "object_pushed": -0.001,
+    "head_floor_impact": -0.0452,
+    "jaw_floor_impact": 0.0,
+    "approach_lateral": -0.0079,
+    "action_overrun": -0.8793,
+    "joint_overspeed": -0.2387,
+    "beak_floor_touch": -0.007,
+    "static_pose": 0.4871,
+    "lip_height": 0.0,
+    "hold_still": -0.4623,
+    "com_support": 0.5737,
+    "lip_height_wide": 0.0088,
+    "head_level": -0.0484
+   },
+   "pad_at_close_m": {
+    "mean": [
+     0.0207,
+     0.0046,
+     0.056
+    ],
+    "sd": [
+     0.0819,
+     0.0333,
+     0.039
+    ]
+   },
+   "xy_err_at_close_m": {
+    "mean": 0.0704,
+    "median": 0.0282,
+    "envs": 438
+   }
+  },
+  "reach": {
+   "envs": 512,
+   "steps": 200,
+   "fell": 158,
+   "success": 0.0,
+   "reward_per_s": 7.2916,
+   "terms_per_s": {
+    "upright": 0.1226,
+    "body_ang_vel": -0.059,
+    "angular_momentum": -0.0,
+    "dof_pos_limits": -0.0292,
+    "action_rate_l2": -0.4652,
+    "soft_landing": -0.0,
+    "ground_pick_return_pose_legs": 1.7458,
+    "ground_pick_return_pose_neck": 1.7796,
+    "return_upright": 1.2436,
+    "neck_vel_descent": -0.0498,
+    "feet_grounded": 2.4151,
+    "feet_flat": -0.1247,
+    "neck_action_rate_l2": -0.0165,
+    "joint_torques_l2": -0.001,
+    "self_collisions": -0.0083,
+    "grasp_held": 0.0,
+    "grasp_lift": 0.0,
+    "approach_track": 1.4662,
+    "object_pushed": -0.0001,
+    "head_floor_impact": -0.0451,
+    "jaw_floor_impact": 0.0,
+    "approach_lateral": -0.0078,
+    "action_overrun": -0.9293,
+    "joint_overspeed": -0.254,
+    "beak_floor_touch": -0.0059,
+    "static_pose": 0.4834,
+    "lip_height": 0.0,
+    "hold_still": -0.4918,
+    "com_support": 0.5625,
+    "lip_height_wide": 0.0088,
+    "head_level": -0.0484
+   },
+   "pad_at_close_m": {
+    "mean": [
+     0.0214,
+     0.005,
+     0.0568
+    ],
+    "sd": [
+     0.0797,
+     0.0334,
+     0.0394
+    ]
+   },
+   "xy_err_at_close_m": {
+    "mean": 0.0543,
+    "median": 0.022,
+    "envs": 436
+   }
+  },
+  "oracle": {
+   "envs": 512,
+   "steps": 200,
+   "fell": 149,
+   "success": 0.0,
+   "reward_per_s": 7.8036,
+   "terms_per_s": {
+    "upright": 0.1246,
+    "body_ang_vel": -0.0571,
+    "angular_momentum": -0.0,
+    "dof_pos_limits": -0.0301,
+    "action_rate_l2": -0.4595,
+    "soft_landing": -0.0,
+    "ground_pick_return_pose_legs": 1.7913,
+    "ground_pick_return_pose_neck": 1.8273,
+    "return_upright": 1.2775,
+    "neck_vel_descent": -0.0494,
+    "feet_grounded": 2.4457,
+    "feet_flat": -0.1213,
+    "neck_action_rate_l2": -0.0164,
+    "joint_torques_l2": -0.001,
+    "self_collisions": -0.0079,
+    "grasp_held": 0.0,
+    "grasp_lift": 0.0,
+    "approach_track": 1.6887,
+    "object_pushed": -0.0008,
+    "head_floor_impact": -0.037,
+    "jaw_floor_impact": 0.0,
+    "approach_lateral": -0.0079,
+    "action_overrun": -0.8895,
+    "joint_overspeed": -0.2363,
+    "beak_floor_touch": -0.0061,
+    "static_pose": 0.4886,
+    "lip_height": 0.0,
+    "hold_still": -0.4565,
+    "com_support": 0.5763,
+    "lip_height_wide": 0.0088,
+    "head_level": -0.0486
+   },
+   "pad_at_close_m": {
+    "mean": [
+     0.0204,
+     0.0046,
+     0.0553
+    ],
+    "sd": [
+     0.0833,
+     0.0299,
+     0.0378
+    ]
+   },
+   "xy_err_at_close_m": {
+    "mean": 0.0015,
+    "median": 0.0003,
+    "envs": 439
+   },
+   "err_slope_vs_offset": -0.007
+  },
+  "blind": {
+   "envs": 512,
+   "steps": 200,
+   "fell": 141,
+   "success": 0.0,
+   "reward_per_s": 7.4803,
+   "terms_per_s": {
+    "upright": 0.1263,
+    "body_ang_vel": -0.0561,
+    "angular_momentum": -0.0,
+    "dof_pos_limits": -0.0298,
+    "action_rate_l2": -0.4521,
+    "soft_landing": -0.0,
+    "ground_pick_return_pose_legs": 1.8262,
+    "ground_pick_return_pose_neck": 1.8602,
+    "return_upright": 1.2998,
+    "neck_vel_descent": -0.0494,
+    "feet_grounded": 2.4696,
+    "feet_flat": -0.1207,
+    "neck_action_rate_l2": -0.0162,
+    "joint_torques_l2": -0.001,
+    "self_collisions": -0.0076,
+    "grasp_held": 0.0,
+    "grasp_lift": 0.0,
+    "approach_track": 1.237,
+    "object_pushed": -0.0032,
+    "head_floor_impact": -0.0341,
+    "jaw_floor_impact": 0.0,
+    "approach_lateral": -0.0079,
+    "action_overrun": -0.878,
+    "joint_overspeed": -0.2331,
+    "beak_floor_touch": -0.0038,
+    "static_pose": 0.4883,
+    "lip_height": 0.0,
+    "hold_still": -0.4664,
+    "com_support": 0.5734,
+    "lip_height_wide": 0.0089,
+    "head_level": -0.0501
+   },
+   "pad_at_close_m": {
+    "mean": [
+     0.02,
+     0.0029,
+     0.0557
+    ],
+    "sd": [
+     0.0827,
+     0.0307,
+     0.0377
+    ]
+   },
+   "xy_err_at_close_m": {
+    "mean": 0.066,
+    "median": 0.039,
+    "envs": 441
+   },
+   "err_slope_vs_offset": 0.234
+  },
+  "blind_1cm": {
+   "envs": 512,
+   "steps": 200,
+   "fell": 141,
+   "success": 0.0,
+   "reward_per_s": 7.6193,
+   "terms_per_s": {
+    "upright": 0.1249,
+    "body_ang_vel": -0.0568,
+    "angular_momentum": -0.0,
+    "dof_pos_limits": -0.03,
+    "action_rate_l2": -0.4431,
+    "soft_landing": -0.0,
+    "ground_pick_return_pose_legs": 1.8008,
+    "ground_pick_return_pose_neck": 1.8362,
+    "return_upright": 1.2855,
+    "neck_vel_descent": -0.05,
+    "feet_grounded": 2.4517,
+    "feet_flat": -0.1198,
+    "neck_action_rate_l2": -0.016,
+    "joint_torques_l2": -0.001,
+    "self_collisions": -0.0074,
+    "grasp_held": 0.0,
+    "grasp_lift": 0.0,
+    "approach_track": 1.4541,
+    "object_pushed": -0.0002,
+    "head_floor_impact": -0.0327,
+    "jaw_floor_impact": 0.0,
+    "approach_lateral": -0.0078,
+    "action_overrun": -0.8674,
+    "joint_overspeed": -0.2323,
+    "beak_floor_touch": -0.0072,
+    "static_pose": 0.4884,
+    "lip_height": 0.0,
+    "hold_still": -0.4807,
+    "com_support": 0.5702,
+    "lip_height_wide": 0.0089,
+    "head_level": -0.049
+   },
+   "pad_at_close_m": {
+    "mean": [
+     0.0224,
+     0.003,
+     0.055
+    ],
+    "sd": [
+     0.0767,
+     0.0402,
+     0.0357
+    ]
+   },
+   "xy_err_at_close_m": {
+    "mean": 0.0549,
+    "median": 0.0231,
+    "envs": 440
+   },
+   "err_slope_vs_offset": 0.83
+  },
+  "stand": {
+   "envs": 512,
+   "steps": 200,
+   "fell": 25,
+   "success": 0.0,
+   "reward_per_s": 3.4466,
+   "terms_per_s": {
+    "upright": 0.1939,
+    "body_ang_vel": -0.0184,
+    "angular_momentum": -0.0,
+    "dof_pos_limits": -0.0178,
+    "action_rate_l2": -0.1893,
+    "soft_landing": -0.0,
+    "ground_pick_return_pose_legs": 0.0101,
+    "ground_pick_return_pose_neck": 0.0048,
+    "return_upright": 0.0069,
+    "neck_vel_descent": -0.0208,
+    "feet_grounded": 2.9164,
+    "feet_flat": -0.0626,
+    "neck_action_rate_l2": -0.0155,
+    "joint_torques_l2": -0.0006,
+    "self_collisions": -0.0061,
+    "grasp_held": 0.0,
+    "grasp_lift": 0.0,
+    "approach_track": 0.4137,
+    "object_pushed": -0.0025,
+    "head_floor_impact": -0.0361,
+    "jaw_floor_impact": 0.0,
+    "approach_lateral": 0.0,
+    "action_overrun": -0.1555,
+    "joint_overspeed": -0.0532,
+    "beak_floor_touch": -0.0062,
+    "static_pose": 0.0289,
+    "lip_height": 0.0,
+    "hold_still": -0.1604,
+    "com_support": 0.8135,
+    "lip_height_wide": 0.0,
+    "head_level": -0.1966
+   },
+   "pad_at_close_m": {
+    "mean": [
+     0.0297,
+     0.0015,
+     0.2047
+    ],
+    "sd": [
+     0.0624,
+     0.0138,
+     0.0061
+    ]
+   },
+   "xy_err_at_close_m": {
+    "mean": 0.0526,
+    "median": 0.0355,
+    "envs": 510
+   },
+   "err_slope_vs_offset": 0.749
+  }
+ },
+ "audit": {
+  "over_oracle": {
+   "reach": 0.934,
+   "blind": 0.959,
+   "blind_1cm": 0.976,
+   "stand": 0.442
+  },
+  "gated": [
+   "blind",
+   "stand"
+  ],
+  "max_ratio": 0.8,
+  "verdict": "FAIL"
+ }
+}

@@ -78,6 +78,23 @@ off-centre cases.
 4. Robot: U20CAM calibration, then Shawn's floor test with orange balls; count successes, slips and retries. Slips
    at low friction -> hot glue in the beak, test again.
 
+## Step 1 results (2026-10-26)
+
+- Env `Mjlab-SeeingPick-FromPick-MicroDuck-CMU-Plugged` built, 10 CPU tests pass (`tests/test_cmu_seeing_pick_cfg.py`).
+- Speed: Kaggle T4, 4096 envs, 40 iterations in 0.224 h including startup, 12.75 s per iteration (sp-bench-1026),
+  so about 3000 iterations fit an 11 h cap.
+- Audit 1 failed: stand61 earned 1.3x the warm-start bow because Pollen's three stand-up terms pay a robot that never
+  bowed. Those terms now pay only after the lips went below 8 cm in the episode.
+- Audit 2 (`seeing-audit.json`, 512 envs): stand earns 0.44x the aimed bow (fixed). Blind bowing earns 0.96x, because
+  no available reference reaches the floor: the warm start's pads stop 5.6 cm up at the bite and it falls in 28 %
+  of episodes on the CMU masses, and an open-loop blend into the static grasp pose (`poses/cmu_sym_lips_1_open20.json`)
+  fell in 9-12 of 16 envs. So grasp_held (weight 15) and grasp_lift (6), the only terms that need aiming, read zero
+  for every reference. By their definitions a held object after `held_from` (0.44) pays about 15 x 0.56 + 6 x 0.5
+  = 11 per second on top of the bow's 7.5, putting blind at about 0.4x of a grasping policy; this is an estimate
+  from the reward code, not a measurement.
+- Risk carried into step 2: the policy has to discover reaching the floor on the CMU masses; the curriculum starts
+  with the object within 1 cm of the landing spot so that discovery is Pollen's static grasp task.
+
 ## Open items outside the policy
 
 - U20CAM intrinsics and mount calibration (blocks every real camera run).
