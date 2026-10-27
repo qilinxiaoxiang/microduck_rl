@@ -141,6 +141,10 @@ def main():
             shutil.copy(f, "/root/assets/")
     for f in glob.glob(os.path.join(data_dir, "assets", "manifests", "*")):
         shutil.copy(f, "/root/assets/manifests/")
+    # assets/policies/*.onnx (cmu/grasp/policies, the seeing_eval candidates) -> /root/assets/policies/
+    os.makedirs("/root/assets/policies", exist_ok=True)
+    for f in glob.glob(os.path.join(data_dir, "assets", "policies", "*")):
+        shutil.copy(f, "/root/assets/policies/")
     record["manifests"] = sorted(os.listdir("/root/assets/manifests"))
     gpu = record["gpu"].split(",")[0].strip().replace(" ", "-")
     base = [f"{VENV}/bin/python", os.path.join(SRC, JOB.get("worker", "cmu/finetune/modal/finetune_worker.py")), "--root", os.path.join(WORK, "runs"),

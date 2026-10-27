@@ -47,6 +47,9 @@ ASSETS = {
 # cmu/model/manifests/{plugged,battery}.json (full part lists) -> assets/manifests/<name> -> /root/assets/manifests/ (--cmu-config)
 for _p in sorted((REPO / "cmu/model/manifests").glob("*.json")):
     ASSETS[f"manifests/{_p.name}"] = _p
+# cmu/grasp/policies/*.onnx (trained seeing-pick candidates) -> /root/assets/policies/ (seeing_eval.py)
+for _p in sorted((REPO / "cmu/grasp/policies").glob("*.onnx")):
+    ASSETS[f"policies/{_p.name}"] = _p
 SKIP_DIRS = {".venv", "logs", "wandb", "__pycache__", ".pytest_cache", ".git", "outputs", "runs", "out", "real-logs"}
 SKIP_DIR_PREFIX = ("models-ft",)  # cmu/whole/runtime-overlay/models-ft*: candidate policies and their suite results
 SKIP_SUFFIX = (".pt", ".onnx", ".gz")
@@ -69,8 +72,13 @@ GRASP_PRESETS = {
 SEEING_AUDIT_WORKER = REPO / "cmu/grasp/seeing_audit.py"
 SEEING_AUDIT_PRESETS = {"smoke": ["--num-envs", "16", "--steps", "90", "--max-hours", "0.25"],
                         "bench": ["--num-envs", "512", "--max-hours", "0.5"]}
+# --worker seeing_eval: cmu/grasp/seeing_eval.py (evaluation battery of cmu/grasp/policies/*.onnx, no training)
+SEEING_EVAL_WORKER = REPO / "cmu/grasp/seeing_eval.py"
+SEEING_EVAL_PRESETS = {"smoke": ["--num-envs", "16", "--steps", "60", "--max-hours", "0.25"],
+                       "bench": ["--num-envs", "512", "--max-hours", "1"]}
 WORKERS = {"finetune": (WORKER, PRESETS), "grasp": (GRASP_WORKER, GRASP_PRESETS),
-           "seeing_audit": (SEEING_AUDIT_WORKER, SEEING_AUDIT_PRESETS)}
+           "seeing_audit": (SEEING_AUDIT_WORKER, SEEING_AUDIT_PRESETS),
+           "seeing_eval": (SEEING_EVAL_WORKER, SEEING_EVAL_PRESETS)}
 MAX_HOURS = 11.5
 
 
