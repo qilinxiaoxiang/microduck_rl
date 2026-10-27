@@ -65,7 +65,12 @@ GRASP_PRESETS = {
     "bench": ["--num-envs", "4096", "--max-iters", "40", "--save-interval", "20", "--max-hours", "0.5"],
     "run": ["--num-envs", "4096", "--save-interval", "100"],
 }
-WORKERS = {"finetune": (WORKER, PRESETS), "grasp": (GRASP_WORKER, GRASP_PRESETS)}
+# --worker seeing_audit: cmu/grasp/seeing_audit.py (the seeing-pick reward audit, no training)
+SEEING_AUDIT_WORKER = REPO / "cmu/grasp/seeing_audit.py"
+SEEING_AUDIT_PRESETS = {"smoke": ["--num-envs", "16", "--steps", "90", "--max-hours", "0.25"],
+                        "bench": ["--num-envs", "512", "--max-hours", "0.5"]}
+WORKERS = {"finetune": (WORKER, PRESETS), "grasp": (GRASP_WORKER, GRASP_PRESETS),
+           "seeing_audit": (SEEING_AUDIT_WORKER, SEEING_AUDIT_PRESETS)}
 MAX_HOURS = 11.5
 
 

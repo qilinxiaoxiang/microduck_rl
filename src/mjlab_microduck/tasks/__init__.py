@@ -449,3 +449,42 @@ for _base_name, _factory, _kw, _rl in (
             rl_cfg=_rl,
             runner_cls=GroundGraspFromPickRunner,
         )
+
+# CMU seeing pick (cmu_seeing_pick_env_cfg.py): the static hover grasp with the object seen by the head camera in
+# body slots 55-60, several object shapes, a placement window and mid-descent kicks (cmu/grasp/PLAN-seeing-pickup.md).
+from .cmu_seeing_pick_env_cfg import (
+    BODY_SLOT_MEAN as _SP_MEAN,
+    BODY_SLOT_START as _SP_START,
+    BODY_SLOT_STD as _SP_STD,
+    make_seeing_pick_env_cfg,
+    seeing_pick_rl_cfg,
+)
+
+
+class SeeingPickFromPickRunner(GroundGraspFromPickRunner):
+    """The ground-pick warm start, plus the body slots: the inherited network saw zeros there (normaliser std 0.01),
+    so their mean / std are set to the camera values' scale and their first-layer columns start at zero. At
+    iteration 0 the policy therefore moves exactly like alpha_ground_pick and learns to use the slots."""
+
+    def _init_actor_from_onnx(self):
+        super()._init_actor_from_onnx()
+        import torch
+
+        actor = self.alg.actor
+        sl = slice(_SP_START, _SP_START + len(_SP_MEAN))
+        with torch.no_grad():
+            norm = actor.obs_normalizer
+            norm._mean[..., sl] = torch.tensor(_SP_MEAN, device=norm._mean.device)
+            norm._std[..., sl] = torch.tensor(_SP_STD, device=norm._std.device)
+            norm._var[..., sl] = norm._std[..., sl] ** 2
+            actor.mlp[0].weight[:, sl] = 0.0
+        print(f"[seeing_pick] body slots {sl.start}-{sl.stop - 1}: normaliser reset, first-layer columns zeroed")
+
+
+register_mjlab_task(
+    task_id="Mjlab-SeeingPick-FromPick-MicroDuck-CMU-Plugged",
+    env_cfg=make_seeing_pick_env_cfg("plugged"),
+    play_env_cfg=make_seeing_pick_env_cfg("plugged", play=True),
+    rl_cfg=seeing_pick_rl_cfg(MicroduckStaticGraspRlCfg),
+    runner_cls=SeeingPickFromPickRunner,
+)
