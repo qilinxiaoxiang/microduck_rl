@@ -102,6 +102,18 @@ Kaggle kernel `microduck-sp-a-1027`, pushed 2026-10-27: two jobs on the two T4s,
 Episode_Reward/grasp_held was never above zero (`grasp_worker.py --check-iter 500`). Fetch:
 `python3 cmu/finetune/kaggle/kaggle_job.py fetch sp-a-1027`.
 
+Result (2026-10-27): both jobs passed the iteration-500 check (grasp_held max 0.05 and 0.16) and ran to the 11 h cap,
+2603 and 2561 iterations. Grasping appeared between iterations 750 and 1000; the placement window grew to +-3 cm (seed 1)
+and +-4 cm (seed 2), with the success EMA flat at about 0.43 from iteration 1250. Evaluation (`seeing-eval.json`,
+512 episodes per case, sp-eval2-1027), success / falls:
+- sp-b-1027_2000 (best on the wide cases): +-1 cm 84 % / 0 %, +-3 cm 78 % / 1 %, +-5 cm 71 % / 2 %, kicked 39 % / 2 %,
+  distractor 77 % / 1 %, camera input zeroed 0 % / 89 %.
+- sp-a-1027 checkpoints 1500-2600: +-1 cm 86-89 %, +-3 cm 80-81 %, +-5 cm 64-65 %, kicked 31-32 %, distractor 79-80 %,
+  camera zeroed 0 % with 96-97 % falls.
+- Warm start: 0 % at +-1 and +-3 cm, 27-29 % falls.
+Checkpoints after 1500 are flat. Weak spots: a kicked object (re-aiming after a roll) and the +-5 cm window the
+curriculum never reached.
+
 ## Open items outside the policy
 
 - U20CAM intrinsics and mount calibration (blocks every real camera run).
