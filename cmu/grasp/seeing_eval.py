@@ -15,6 +15,7 @@ Output: <root>/<run-name>/seeing-eval.json (copied into cmu/grasp/ after the fet
 """
 import argparse
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -45,6 +46,30 @@ def make_env(num_envs, seed, window, kick, distractor, device):
     return env
 
 
+def evaluate(a, name, device):
+    """All cases of one policy in this process; the parent runs one process per policy because the warp
+    allocations of the closed envs are not returned and 20 env builds exhausted a T4 (sp-eval-1027)."""
+    clip = load_rl_cfg(A.TASK).clip_actions
+    cases = a.cases.split(",")
+    if name == "warm_start":
+        pol, cases = A.OnnxMlp(A.BOW, device), [c for c in ("w1", "w3") if c in cases]
+    else:
+        pol = A.OnnxMlp(POLICIES / f"{name}.onnx", device)
+    res, t0 = {}, time.time()
+    for case in cases:
+        window, kick, dist = CASES[case]
+        torch.manual_seed(a.seed)
+        env = make_env(a.num_envs, a.seed, window, kick, dist, device)
+        zero = (A.BODY,) if (case.endswith("blind") or name == "warm_start") else ()
+        r = A.rollout(env, pol, zero, a.steps, clip)
+        env.close()
+        r.pop("terms_per_s")
+        res[case] = r
+        print(f"[seeing-eval] {name} {case}: success {r['success']} fell {r['fell']} "
+              f"err {r.get('xy_err_at_close_m')} ({time.time() - t0:.0f} s)", flush=True)
+    return res
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--run-name", required=True)
@@ -58,35 +83,30 @@ def main():
     p.add_argument("--rate-per-hour", default="0")
     p.add_argument("--pattern", default="*.onnx")
     p.add_argument("--cases", default=",".join(CASES))
+    p.add_argument("--child", default="", help="internal: evaluate this one policy and write part-<name>.json")
     a = p.parse_args()
     device = a.device if (a.device != "cuda" or torch.cuda.is_available()) else sys.exit("no CUDA device")
     out_dir = Path(a.root) / a.run_name
     out_dir.mkdir(parents=True, exist_ok=True)
-    clip = load_rl_cfg(A.TASK).clip_actions
-    cases = a.cases.split(",")
-    runs = [(q.stem, A.OnnxMlp(q, device), cases) for q in sorted(POLICIES.glob(a.pattern))]
-    runs.append(("warm_start", A.OnnxMlp(A.BOW, device), [c for c in ("w1", "w3") if c in cases]))
+    if a.child:
+        (out_dir / f"part-{a.child}.json").write_text(json.dumps(evaluate(a, a.child, device)))
+        return
+    names = [q.stem for q in sorted(POLICIES.glob(a.pattern))] + ["warm_start"]
     res, t0 = {}, time.time()
-    for name, pol, cases in runs:
-        res[name] = {}
-        for case in cases:
-            window, kick, dist = CASES[case]
-            torch.manual_seed(a.seed)
-            env = make_env(a.num_envs, a.seed, window, kick, dist, device)
-            zero = (A.BODY,) if (case.endswith("blind") or name == "warm_start") else ()
-            r = A.rollout(env, pol, zero, a.steps, clip)
-            env.close()
-            r.pop("terms_per_s")
-            res[name][case] = r
-            print(f"[seeing-eval] {name} {case}: success {r['success']} fell {r['fell']} "
-                  f"err {r.get('xy_err_at_close_m')} ({time.time() - t0:.0f} s)", flush=True)
-            if time.time() - t0 > a.max_hours * 3600 * 0.9:
-                break
+    for name in names:
+        if time.time() - t0 > a.max_hours * 3600 * 0.9:
+            print(f"[seeing-eval] time cap: {name} and later not run", flush=True)
+            break
+        rc = subprocess.run([sys.executable, __file__, *sys.argv[1:], "--child", name]).returncode
+        part = out_dir / f"part-{name}.json"
+        res[name] = json.loads(part.read_text()) if rc == 0 and part.exists() else {"error": f"exit {rc}"}
     result = dict(time=time.strftime("%Y-%m-%dT%H:%M:%S"), task=A.TASK, device=str(device), seed=a.seed,
                   envs=a.num_envs, steps=a.steps, wall_s=round(time.time() - t0),
-                  policies={n: A.md5(POLICIES / f"{n}.onnx") for n, _, _ in runs if n != "warm_start"},
+                  policies={n: A.md5(POLICIES / f"{n}.onnx") for n in names if n != "warm_start"},
                   cases={k: dict(window=v[0], kick=v[1], distractor=v[2]) for k, v in CASES.items()}, results=res)
     (out_dir / "seeing-eval.json").write_text(json.dumps(result, indent=1) + "\n")
+    if any("error" in r for r in res.values()):
+        sys.exit(1)
 
 
 if __name__ == "__main__":
