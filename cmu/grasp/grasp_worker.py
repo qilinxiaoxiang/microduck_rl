@@ -7,7 +7,9 @@ Runs on a Kaggle GPU through cmu/finetune/kaggle/kaggle_job.py (`push <preset> -
 
 Output in <root>/<run-name>/: train.log, the checkpoints (model_<it>.pt), <task>_<it>.onnx per checkpoint and
 run_record.json (task, flags, exit code, stop reason, wall time, ONNX list). The time cap kills the trainer; the
-checkpoints saved before that are kept and exported.
+checkpoints saved before that are kept and exported. --check-iter N stops the trainer the same way at iteration N when
+Episode_Reward/<--check-term> has never been above zero (Kaggle output is readable only after the session ends, so
+the mid-run check runs inside the job).
 """
 import argparse
 import glob
@@ -36,6 +38,8 @@ def main():
     ap.add_argument("--device", default="cuda", help="cpu runs the trainer with --gpu-ids None")
     ap.add_argument("--gpu", default="")             # accepted for kernel_entry.py compatibility
     ap.add_argument("--rate-per-hour", default="0")  # Kaggle is free; the time cap is the only cap
+    ap.add_argument("--check-iter", type=int, default=0, help="0 = off")
+    ap.add_argument("--check-term", default="grasp_held")
     a = ap.parse_args()
 
     out = Path(a.root) / a.run_name
@@ -54,14 +58,36 @@ def main():
     t0 = time.time()
     with open(out / "train.log", "w") as log:
         p = subprocess.Popen(cmd, cwd=REPO, env=env, stdout=log, stderr=subprocess.STDOUT)
-        try:
-            rec["exit"] = p.wait(timeout=a.max_hours * 3600)
-            rec["stop"] = "max_iters reached" if rec["exit"] == 0 else "trainer failed"
-        except subprocess.TimeoutExpired:
-            p.kill()
-            p.wait()
-            rec["exit"] = 0
-            rec["stop"] = f"time cap {a.max_hours} h"
+        it_re = re.compile(r"Learning iteration (\d+)/")
+        term_re = re.compile(rf"Episode_Reward/{re.escape(a.check_term)}: ([-0-9.eE+]+)")
+        best, deadline, checked = 0.0, t0 + a.max_hours * 3600, a.check_iter <= 0
+        while True:
+            try:
+                rec["exit"] = p.wait(timeout=30)
+                rec["stop"] = "max_iters reached" if rec["exit"] == 0 else "trainer failed"
+                break
+            except subprocess.TimeoutExpired:
+                pass
+            if time.time() > deadline:
+                p.kill()
+                p.wait()
+                rec["exit"] = 0
+                rec["stop"] = f"time cap {a.max_hours} h"
+                break
+            if not checked:
+                text = (out / "train.log").read_text(errors="replace")
+                vals = [float(v) for v in term_re.findall(text)]
+                best = max([best] + vals)
+                its = it_re.findall(text)
+                if its and int(its[-1]) >= a.check_iter:
+                    checked = True
+                    rec["check"] = dict(iteration=int(its[-1]), term=a.check_term, max=best)
+                    if best <= 0.0:
+                        p.kill()
+                        p.wait()
+                        rec["exit"] = 0
+                        rec["stop"] = f"check: {a.check_term} never above 0 by iteration {its[-1]}"
+                        break
     rec["train_hours"] = round((time.time() - t0) / 3600, 3)
 
     ckpts = sorted(glob.glob(str(REPO / "logs" / "rsl_rl" / "**" / f"*{a.run_name}*" / "model_*.pt"), recursive=True),
