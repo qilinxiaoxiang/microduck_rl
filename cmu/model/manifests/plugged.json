@@ -1,6 +1,6 @@
 {
  "schema": "signed mass parts for add_signed_inertias (dynamics/evaluate.py)",
- "build": "plugged (the robot on the bench supply, 2026-10-19: as built 2026-10-15 (bench box, two XL4015 + 5991) with the Pi Zero W replaced by the Radxa Cubie A7Z and the AC019 antenna in the head cap; Camera Module 3 entry kept (the fitted Radxa Camera 13M 214 is of the same order, not weighed); the bench box's rear lid with its four M2 x 10 is on since 2026-10-26 (Shawn); since 2026-10-26 the A7Z is out of the head on the roof saddle (Shawn): board, header and antenna moved to trunk_base, the saddle body added (V1.33 print, D-022 layout), the Pi-era board screws and the CSI ribbon out of the head, and the IMU, UART, 5 V and amplifier leads re-run to the saddle header from the guide routes). Derived by cmu/model/make_variants.py from cmu/model/variants/plugged.json on top of cmu/whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json; do not edit, edit the variant file and rerun.",
+ "build": "plugged (the robot on the bench supply, 2026-10-19: as built 2026-10-15 (bench box, two XL4015 + 5991) with the Pi Zero W replaced by the Radxa Cubie A7Z and the AC019 antenna in the head cap; Camera Module 3 entry kept (the fitted Radxa Camera 13M 214 is of the same order, not weighed); the bench box's rear lid with its four M2 x 10 is on since 2026-10-26 (Shawn); since 2026-10-26 the A7Z is out of the head on the roof saddle (Shawn): board, header and antenna moved to trunk_base, the saddle added: V1.35 body (D-028 V3, lid not fitted) with the A7Z screwed to the Radxa 6530B (Shawn 2026-10-26: \u978d\u5ea7\u662f1.35, \u76d6\u6ca1\u6709\u76d6), the Pi-era board screws and the CSI ribbon out of the head, and the IMU, UART, 5 V and amplifier leads re-run to the saddle header from the guide routes; the U20CAM lead rides stiff above the neck and the saddle (Shawn 2026-10-26)). Derived by cmu/model/make_variants.py from cmu/model/variants/plugged.json on top of cmu/whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json; do not edit, edit the variant file and rerun.",
  "frame": "official MJCF body frames, m; guide geometry mapped from trunk_base qpos0 frame",
  "excluded": [
   "BNO085 zip ties on the V1.8 shelf (< 0.3 g)",
@@ -197,7 +197,7 @@
    {
     "id": "add-saddle-body",
     "body": "trunk_base",
-    "g": 17.743,
+    "g": 15.357,
     "label": "slicer"
    },
    {
@@ -343,11 +343,23 @@
     "body": "trunk_base",
     "g": 0.05,
     "label": "estimate"
+   },
+   {
+    "id": "add-heatsink-6530b",
+    "body": "trunk_base",
+    "g": 25.0,
+    "label": "estimate"
+   },
+   {
+    "id": "add-cable-u20cam-trunk",
+    "body": "trunk_base",
+    "g": 20.0,
+    "label": "estimate"
    }
   ],
   "removed_g": 24.035,
-  "added_g": 55.192,
-  "net_delta_g": 31.157
+  "added_g": 97.806,
+  "net_delta_g": 73.771
  },
  "parts": [
   {
@@ -4079,12 +4091,12 @@
     0.004
    ],
    "basis": "estimate",
-   "source": "Radxa publishes no mass for the Cubie A7Z (product brief, docs, ameridroid read 2026-10-19); bounded 15-20 g in cmu/model/sole/README.md; replace by the weighed value. Position: out of the head since 2026-10-26, on the roof saddle, D-022 layout (board x -42.8..-12.8, PCB z 47..48.6, header at the rear; a7z-saddle/build/build.json at commit 2c179f0), PCB centre",
+   "source": "Radxa publishes no mass for the Cubie A7Z (product brief, docs, ameridroid read 2026-10-19); bounded 15-20 g in cmu/model/sole/README.md; replace by the weighed value. Position: on the V1.35 saddle (D-028 V3: board x -41.7..-11.7, PCB z 48..49.6, header at the front; a7z-saddle/build/build.json), PCB centre.",
    "label": "estimate",
    "position_m": [
-    -0.027800000000000002,
+    -0.026699999999999998,
     0.0,
-    0.048299999999999996
+    0.048799999999999996
    ]
   },
   {
@@ -4097,12 +4109,12 @@
     0.012
    ],
    "basis": "estimate",
-   "source": "Radxa AC019 antenna (1.5 g estimate). Its 40-50 mm pigtail is plugged into the A7Z (CURRENT-STATE parts_a7z_extensions), so it left the head with the board; placed on the rear wall inner face of the roof saddle, D-022 layout (board x -42.8..-12.8, PCB z 47..48.6, header at the rear; a7z-saddle/build/build.json at commit 2c179f0) as designed; where it is stuck on the robot is not recorded",
+   "source": "Radxa AC019 antenna (1.5 g estimate) on the V1.35 saddle front wall inner face (D-028 V3, antenna y -11..31, z 50..62 in a7z-saddle/build/build.json); where it is stuck on the robot is not recorded",
    "label": "estimate",
    "position_m": [
-    -0.04325,
-    0.0,
-    0.0555
+    -0.00675,
+    0.01,
+    0.056
    ]
   },
   {
@@ -4211,32 +4223,32 @@
   {
    "id": "add-saddle-body",
    "body": "trunk_base",
-   "mass_kg": 0.017743,
+   "mass_kg": 0.015357,
    "inertia_about_com_kg_m2": [
     [
-     1.3486920188450454e-05,
-     8.217729366647567e-08,
-     -4.845654732670913e-07
+     1.2028834033600729e-05,
+     -3.1131817637799646e-07,
+     -3.5186524866127095e-07
     ],
     [
-     8.217729366647567e-08,
-     6.2985300996471365e-06,
-     6.098512262612912e-08
+     -3.1131817637799646e-07,
+     4.447014548397346e-06,
+     -1.3236124991778847e-07
     ],
     [
-     -4.845654732670913e-07,
-     6.098512262612912e-08,
-     1.5194419765154718e-05
+     -3.5186524866127095e-07,
+     -1.3236124991778847e-07,
+     1.3849278454789277e-05
     ]
    ],
    "basis": "slicer",
-   "source": "A7Z roof saddle body, D-022 layout (board posts, header at the rear), as printed on the V1.33 White plate (printed 2026-10-24, Shawn): release-V1.33/run/delivery/zhengxia_V1.33_White_Elegoo-Centauri-Carbon_3h56m.gcode object saddle_body_1 model 17.74 g (support 6.42 g not on the part; PLA 1.25 g/cm3, 4 walls, 30 % gyroid; parsed with whole/dynamics/v19-20261014/gcode_part_masses.py::parse). Geometry guide/print/a7z-saddle/build/retired-v129/saddle_body-v129.stl, sha 38689e46 = the V1.33 manifest row. On the robot since 2026-10-26 (Shawn, relayed): which printed saddle is fitted is not recorded; V1.33 is the only printed saddle on record and the 6530B that the V1.35 saddle needs is not fitted. Not weighed.",
-   "mesh": "microduck-sim/guide/print/a7z-saddle/build/retired-v129/saddle_body-v129.stl",
+   "source": "A7Z roof saddle V3 body (D-028), as printed on the V1.35 Orange plate and fitted (Shawn 2026-10-26: \u978d\u5ea7\u662f1.35, lid not fitted): release-V1.35/run/delivery/zhengxia_V1.35_Orange_Elegoo-Centauri-Carbon_1h37m.gcode object saddle_body_1 model 15.36 g (support 6.30 g not on the part; PLA 1.25 g/cm3; parsed with whole/dynamics/v19-20261014/gcode_part_masses.py::parse). Geometry guide/print/a7z-saddle/build/saddle_body-world.stl (13.08 cm3). The V1.35 lid (3.3 g) is not fitted. Not weighed.",
+   "mesh": "microduck-sim/guide/print/a7z-saddle/build/saddle_body-world.stl",
    "label": "slicer",
    "position_m": [
-    -0.027826,
-    -0.000106,
-    0.050766
+    -0.026232,
+    0.0047409999999999996,
+    0.047708
    ]
   },
   {
@@ -4249,10 +4261,10 @@
     0.009
    ],
    "basis": "estimate",
-   "source": "soldered 2x20 male header (plastic base + 40 pins), engineering estimate (the base entry add-pi-gpio-header, 2.5 g), moved with the A7Z to the roof saddle, D-022 layout (board x -42.8..-12.8, PCB z 47..48.6, header at the rear; a7z-saddle/build/build.json at commit 2c179f0)",
+   "source": "soldered 2x20 male header (plastic base + 40 pins), engineering estimate (the base entry add-pi-gpio-header, 2.5 g), on the V1.35 saddle at the board's front edge (D-028 V3, dupont_housings x -17.7..-12.7 in a7z-saddle/build/build.json)",
    "label": "estimate",
    "position_m": [
-    -0.039299999999999995,
+    -0.0152,
     0.0,
     0.05
    ]
@@ -4670,6 +4682,54 @@
    "basis": "estimate",
    "source": "Amplifier Vin to A7Z pin 4 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 172 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 172 mm + ends 0.100 g (the base entry's end mass), share 0.10",
    "label": "estimate"
+  },
+  {
+   "id": "add-heatsink-6530b",
+   "body": "trunk_base",
+   "mass_kg": 0.025,
+   "inertia_about_com_kg_m2": [
+    [
+     9.192884862503844e-06,
+     -2.34127159112049e-10,
+     8.311288208932623e-09
+    ],
+    [
+     -2.34127159112049e-10,
+     1.3651934669426285e-06,
+     -7.063986665951475e-09
+    ],
+    [
+     8.311288208932623e-09,
+     -7.063986665951475e-09,
+     1.023660840284828e-05
+    ]
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Radxa Heatsink 6530B (aluminium 65 x 30 x 11.5 with blower fan; Radxa docs list no mass, read 2026-10-26) with its 1.5 mm pad and four M2 x 6: 25 g estimate (solid envelope 13.2 cm3 x 2.7 g/cm3 = 36 g, fins and fan pocket taken as about 30 % void, fan 3-4 g); weigh it. Fitted: the V1.35 saddle holds the A7Z only by the four M2 x 6 into the 6530B's bosses (D-028 V3), and the V1.35 saddle is on the robot (Shawn 2026-10-26). Envelope a7z-saddle/build/heatsink_6530b-world.stl.",
+   "position_m": [
+    -0.02984,
+    6.500000000000001e-05,
+    0.056808
+   ]
+  },
+  {
+   "id": "add-cable-u20cam-trunk",
+   "body": "trunk_base",
+   "mass_kg": 0.02,
+   "dimensions_m": [
+    0.06,
+    0.03,
+    0.015
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Innomaker U20CAM lead outside the head: stiff, rides above the neck and the saddle, not wound on the saddle and not hanging (Shawn 2026-10-26). 1 m lead (D-028), about 0.8 m of it outside the head at ~4 mm USB 2.0 cable ~20 g/m = 16 g, plus its plug at the saddle's rear port 4 g; placed as one block between the neck and the saddle top. Length outside the head and the plug type not measured.",
+   "position_m": [
+    -0.015,
+    0.008,
+    0.072
+   ]
   }
  ]
 }
