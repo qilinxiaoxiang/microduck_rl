@@ -11,7 +11,8 @@ reads one JSON line per 0.1 s from it:
 Only reads: Present Position, Present Voltage and the BNO085, through walk_wired.py's own Link and walk_brain.py's
 own joint and gravity conversions, so the numbers are the ones the brain would log. It never writes a register
 (no torque, goal, mode or limit). It holds the robot I/O lock (walk_wired.HW_LOCK) and exits within 0.5 s when a
-walk_wired.py process appears (that process waits for the lock) or when its parent is gone. Port, baud and IMU bus
+walk_wired.py or duck_selfcheck.py process appears (that process waits for the lock), when its own file or a brain
+module it imports is replaced (a deploy), or when its parent is gone. Port, baud and IMU bus
 default to what ~/duck-run.sh passes walk_wired.py.
 """
 import argparse
@@ -46,8 +47,21 @@ def run_args():
     return pick("--port", "/dev/ttyAS2"), int(pick("--baud", 500000)), int(pick("--imu-bus", 7))
 
 
+def code_stamp():
+    """Modification times of this reader and the brain modules it runs: a deploy that replaces any of them makes the
+    running reader quit, so duck-telemetry.py restarts it on the new code instead of an old copy staying in memory."""
+    stamp = []
+    for name in ("duck_sense.py", "walk_wired.py", "walk_brain.py", "jaw_ctl.py", "battery.py"):
+        try:
+            stamp.append(os.stat(os.path.join(HERE, name)).st_mtime_ns)
+        except OSError:
+            stamp.append(None)
+    return stamp
+
+
 def brain_running():
-    """A python process running walk_wired.py (a shell or pgrep that only names the file does not count)."""
+    """A python process running walk_wired.py or the boot self-check (duck_selfcheck.py, which takes HW_LOCK for the IMU
+    and servo checks); a shell or pgrep that only names the file does not count."""
     for pid in os.listdir("/proc"):
         if not pid.isdigit():
             continue
@@ -56,7 +70,8 @@ def brain_running():
                 argv = f.read().split(b"\0")
         except OSError:
             continue
-        if b"python" in os.path.basename(argv[0]) and any(os.path.basename(a) == b"walk_wired.py" for a in argv[1:3]):
+        if b"python" in os.path.basename(argv[0]) and any(os.path.basename(a) in (b"walk_wired.py", b"duck_selfcheck.py")
+                                                          for a in argv[1:3]):
             return True
     return False
 
@@ -81,9 +96,10 @@ def main():
     jaw = JawCtl()
     volts, n = {}, 0
     next_t = time.monotonic()
+    sources = code_stamp()
     while True:
-        if os.getppid() != parent or (n % BRAIN_EVERY == 0 and brain_running()):
-            return  # the lock and the port close with the process
+        if os.getppid() != parent or (n % BRAIN_EVERY == 0 and (brain_running() or code_stamp() != sources)):
+            return  # the lock and the port close with the process; duck-telemetry.py starts the new code 2 s later
         pos = link.sync_read(ADDR_PRESENT_POSITION, 4, IDS + [JAW_ID], timeout=0.02)
         if n % VOLT_EVERY == 0:
             got = link.sync_read(ADDR_PRESENT_VOLTAGE, 2, IDS, timeout=0.02)

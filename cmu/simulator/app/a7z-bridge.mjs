@@ -49,13 +49,13 @@ export function a7zBridge({script, commandScript, stabilizeScript,
     apply: "serve",
     configureServer(server) {
       const clients = new Set(), history = [];
-      let child = null, buffer = "", lastLine = 0, linger = null, retry = null, childBus = null;
+      let child = null, buffer = "", lastLine = 0, linger = null, retry = null, childBus = null, paused = false;
       // a python process running walk_wired.py, not any command line that mentions it (a grep, an editor, a shell)
       const macBrain = () => spawnSync("pgrep", ["-f", "^[^ ]*[Pp]ython[^ ]*( -[^ ]+)* ([^ ]*/)?walk_wired\\.py"]).status === 0;
       const send = message => { const text = `data: ${JSON.stringify(message)}\n\n`; for (const c of clients) c.write(text); };
       function start() {
         clearTimeout(retry);
-        if (child || !clients.size) return;
+        if (child || !clients.size || paused) return;
         const bus = !macBrain();
         const proc = spawn("ssh", [...SSH_OPTS, host, `exec nice -n 10 python3 -u - duck-telemetry fast touch${bus ? " bus" : ""}`],
           {stdio: ["pipe", "pipe", "pipe"]});
@@ -257,6 +257,44 @@ export function a7zBridge({script, commandScript, stabilizeScript,
           if (!stabViewers.size && stab) { stab.proc.kill(); camSend({stab: null}); }
           if (!viewers.size) camLinger = setTimeout(() => { clearTimeout(camRetry); cam?.proc.kill(); }, CAMERA_LINGER_S * 1000);
         });
+      });
+
+      // Boot self-check (robotics guide/firmware/pi/duck_selfcheck.py, duck-selfcheck.service): GET returns the A7Z's
+      // latest.json; POST reruns it. The telemetry session holds the servo bus, i2c-7 and i2c-0 through duck_sense.py,
+      // so a rerun stops it first and restarts it after; a brain on the A7Z keeps its devices (the check skips them).
+      const SELFCHECK = "~/rt/microduck-sim/guide/firmware/pi/duck_selfcheck.py", SELFCHECK_OUT = "~/duck-logs/selfcheck/latest.json";
+      let selfRun = null;
+      const remote = (cmd, timeoutS) => new Promise(resolve => {
+        const p = spawn("ssh", [...SSH_OPTS, host, cmd], {stdio: ["ignore", "pipe", "pipe"]});
+        let out = "", err = "";
+        const kill = setTimeout(() => p.kill(), timeoutS * 1000);
+        p.stdout.on("data", d => { out += d; });
+        p.stderr.on("data", d => { err += d; });
+        p.on("close", code => { clearTimeout(kill); resolve({code, out, err: err.split("\n").filter(l => l && !/quantum|store now|upgraded/.test(l)).pop() ?? ""}); });
+      });
+      const parsed = r => { try { return {ok: true, record: JSON.parse(r.out)}; } catch { return {ok: false, error: r.err || "还没有体检记录"}; } };
+      async function rerunSelfcheck() {
+        paused = true;
+        const old = child;
+        if (old) { old.kill(); await new Promise(done => { old.once("exit", done); setTimeout(done, 3000); }); }
+        await new Promise(done => setTimeout(done, 1500));   // duck_sense.py on the A7Z lets go of the bus and IMU
+        try {
+          return parsed(await remote(`DUCK_SELFCHECK_TRIGGER=app python3 ${SELFCHECK} >/dev/null 2>&1; cat ${SELFCHECK_OUT}`, 60));
+        } finally {
+          paused = false; start();
+        }
+      }
+      server.middlewares.use("/api/a7z/selfcheck", async (req, res) => {
+        let answer;
+        if (req.method === "POST") {
+          selfRun ??= rerunSelfcheck().finally(() => { selfRun = null; });
+          answer = await selfRun;
+          if (answer.ok) send({selfcheck: answer.record});
+        } else {
+          answer = parsed(await remote(`cat ${SELFCHECK_OUT}`, 10));
+        }
+        res.writeHead(answer.ok ? 200 : 502, {"Content-Type": "application/json"});
+        res.end(JSON.stringify(answer));
       });
 
       server.middlewares.use("/api/a7z/cmd", (req, res) => {

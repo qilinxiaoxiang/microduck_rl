@@ -24,53 +24,53 @@
    ],
    "runs": [
     {
-     "max_tilt": 7.0,
-     "max_action": 2.07,
-     "action_jumps": 11,
+     "max_tilt": 12.9,
+     "max_action": 1.97,
+     "action_jumps": 18,
      "end_mode": "walk",
      "kick": {
       "at": 4.0,
       "foot": "left",
       "started": 4.0,
       "done": 4.48,
-      "peak_tilt": 7.0,
+      "peak_tilt": 12.9,
       "stance_tilt": 0.6,
-      "foot_lift_m": 0.08,
-      "stable_after_s": 1.2
+      "foot_lift_m": 0.0705,
+      "stable_after_s": 1.4
      },
      "seed": 0
     },
     {
-     "max_tilt": 9.2,
-     "max_action": 2.06,
-     "action_jumps": 14,
+     "max_tilt": 13.7,
+     "max_action": 1.97,
+     "action_jumps": 17,
      "end_mode": "walk",
      "kick": {
       "at": 4.0,
       "foot": "left",
       "started": 4.0,
       "done": 4.5,
-      "peak_tilt": 9.2,
+      "peak_tilt": 13.7,
       "stance_tilt": 0.6,
-      "foot_lift_m": 0.0797,
-      "stable_after_s": 1.3
+      "foot_lift_m": 0.0707,
+      "stable_after_s": 1.7
      },
      "seed": 1
     },
     {
-     "max_tilt": 6.5,
-     "max_action": 1.99,
-     "action_jumps": 9,
+     "max_tilt": 12.8,
+     "max_action": 1.97,
+     "action_jumps": 19,
      "end_mode": "walk",
      "kick": {
       "at": 4.0,
       "foot": "left",
       "started": 4.0,
       "done": 4.5,
-      "peak_tilt": 6.5,
-      "stance_tilt": 0.5,
-      "foot_lift_m": 0.0802,
-      "stable_after_s": 0.98
+      "peak_tilt": 12.8,
+      "stance_tilt": 0.6,
+      "foot_lift_m": 0.0706,
+      "stable_after_s": 1.4
      },
      "seed": 2
     }
@@ -87,53 +87,53 @@
    ],
    "runs": [
     {
-     "max_tilt": 8.2,
-     "max_action": 1.93,
-     "action_jumps": 8,
+     "max_tilt": 10.6,
+     "max_action": 1.98,
+     "action_jumps": 14,
      "end_mode": "walk",
      "kick": {
       "at": 4.0,
       "foot": "right",
       "started": 4.0,
       "done": 4.48,
-      "peak_tilt": 8.2,
+      "peak_tilt": 10.6,
       "stance_tilt": 0.6,
-      "foot_lift_m": 0.0848,
-      "stable_after_s": 0.2
+      "foot_lift_m": 0.0731,
+      "stable_after_s": 0.9
      },
      "seed": 0
     },
     {
-     "max_tilt": 8.1,
-     "max_action": 1.93,
-     "action_jumps": 8,
+     "max_tilt": 11.0,
+     "max_action": 1.98,
+     "action_jumps": 11,
      "end_mode": "walk",
      "kick": {
       "at": 4.0,
       "foot": "right",
       "started": 4.0,
       "done": 4.5,
-      "peak_tilt": 8.1,
+      "peak_tilt": 11.0,
       "stance_tilt": 0.6,
-      "foot_lift_m": 0.0846,
-      "stable_after_s": 0.34
+      "foot_lift_m": 0.073,
+      "stable_after_s": 1.14
      },
      "seed": 1
     },
     {
-     "max_tilt": 8.2,
-     "max_action": 1.96,
-     "action_jumps": 10,
+     "max_tilt": 10.6,
+     "max_action": 1.98,
+     "action_jumps": 13,
      "end_mode": "walk",
      "kick": {
       "at": 4.0,
       "foot": "right",
       "started": 4.0,
       "done": 4.5,
-      "peak_tilt": 8.2,
-      "stance_tilt": 0.5,
-      "foot_lift_m": 0.0834,
-      "stable_after_s": 0.32
+      "peak_tilt": 10.6,
+      "stance_tilt": 0.6,
+      "foot_lift_m": 0.0733,
+      "stable_after_s": 1.0
      },
      "seed": 2
     }
@@ -152,53 +152,53 @@
    ],
    "runs": [
     {
-     "max_tilt": 8.0,
-     "max_action": 2.14,
-     "action_jumps": 11,
+     "max_tilt": 12.4,
+     "max_action": 2.02,
+     "action_jumps": 16,
      "end_mode": "walk",
      "kick": {
       "at": 4.0,
       "foot": "left",
       "started": 4.0,
       "done": 4.48,
-      "peak_tilt": 8.0,
-      "stance_tilt": 3.0,
-      "foot_lift_m": 0.0871,
-      "stable_after_s": 1.16
+      "peak_tilt": 12.4,
+      "stance_tilt": 0.8,
+      "foot_lift_m": 0.0719,
+      "stable_after_s": 1.48
      },
      "seed": 0
     },
     {
-     "max_tilt": 8.3,
-     "max_action": 2.14,
-     "action_jumps": 13,
+     "max_tilt": 13.1,
+     "max_action": 2.02,
+     "action_jumps": 16,
      "end_mode": "walk",
      "kick": {
       "at": 4.0,
       "foot": "left",
       "started": 4.0,
       "done": 4.5,
-      "peak_tilt": 8.3,
-      "stance_tilt": 3.0,
-      "foot_lift_m": 0.0871,
-      "stable_after_s": 1.04
+      "peak_tilt": 13.1,
+      "stance_tilt": 0.8,
+      "foot_lift_m": 0.0719,
+      "stable_after_s": 2.1
      },
      "seed": 1
     },
     {
-     "max_tilt": 7.8,
-     "max_action": 2.14,
-     "action_jumps": 10,
+     "max_tilt": 13.3,
+     "max_action": 2.02,
+     "action_jumps": 16,
      "end_mode": "walk",
      "kick": {
       "at": 4.0,
       "foot": "left",
       "started": 4.0,
       "done": 4.5,
-      "peak_tilt": 7.8,
-      "stance_tilt": 3.0,
-      "foot_lift_m": 0.0871,
-      "stable_after_s": 0.98
+      "peak_tilt": 13.3,
+      "stance_tilt": 0.8,
+      "foot_lift_m": 0.0719,
+      "stable_after_s": 1.2
      },
      "seed": 2
     }
@@ -219,8 +219,8 @@
    ],
    "runs": [
     {
-     "max_tilt": 7.7,
-     "max_action": 1.01,
+     "max_tilt": 7.2,
+     "max_action": 1.25,
      "action_jumps": 5,
      "end_mode": "walk",
      "kick": {
@@ -228,44 +228,44 @@
       "foot": "right",
       "started": 6.0,
       "done": 6.48,
-      "peak_tilt": 7.7,
-      "stance_tilt": 3.8,
-      "foot_lift_m": 0.0118,
+      "peak_tilt": 7.2,
+      "stance_tilt": 4.3,
+      "foot_lift_m": 0.0082,
       "stable_after_s": 1.9
      },
      "seed": 0
     },
     {
-     "max_tilt": 8.7,
-     "max_action": 1.21,
-     "action_jumps": 8,
+     "max_tilt": 6.8,
+     "max_action": 1.2,
+     "action_jumps": 6,
      "end_mode": "walk",
      "kick": {
       "at": 6.0,
       "foot": "right",
       "started": 6.0,
       "done": 6.5,
-      "peak_tilt": 8.7,
-      "stance_tilt": 3.8,
-      "foot_lift_m": 0.0119,
-      "stable_after_s": 1.82
+      "peak_tilt": 6.8,
+      "stance_tilt": 4.4,
+      "foot_lift_m": 0.0076,
+      "stable_after_s": 1.88
      },
      "seed": 1
     },
     {
-     "max_tilt": 6.2,
-     "max_action": 0.97,
-     "action_jumps": 3,
+     "max_tilt": 7.1,
+     "max_action": 1.18,
+     "action_jumps": 5,
      "end_mode": "walk",
      "kick": {
       "at": 6.0,
       "foot": "right",
       "started": 6.0,
       "done": 6.48,
-      "peak_tilt": 6.0,
-      "stance_tilt": 3.9,
-      "foot_lift_m": 0.0104,
-      "stable_after_s": 1.86
+      "peak_tilt": 7.1,
+      "stance_tilt": 4.3,
+      "foot_lift_m": 0.0072,
+      "stable_after_s": 1.8
      },
      "seed": 2
     }
@@ -282,68 +282,104 @@
    ],
    "runs": [
     {
-     "max_tilt": 10.6,
-     "max_action": 1.7,
-     "action_jumps": 5,
+     "max_tilt": 21.2,
+     "max_action": 2.57,
+     "action_jumps": 27,
      "end_mode": "walk",
      "sit": {
       "start": 4.0,
       "flag1": 4.82,
       "rise": 10.0,
-      "done": 12.0,
-      "min_trunk_z": 0.0559,
-      "seated_tilt": 0.8,
-      "seated_trunk_z": 0.0573,
+      "done": 11.46,
+      "min_trunk_z": 0.0585,
+      "seated_tilt": 0.3,
+      "seated_trunk_z": 0.0587,
+      "seated_max_tilt": 0.3,
+      "seated_mouth_min_z": 0.1651,
+      "seated_head_q": {
+       "head_pitch": 0.334,
+       "head_yaw": 0.012,
+       "head_roll": 0.023
+      },
+      "head_default": {
+       "head_pitch": 0.349,
+       "head_yaw": 0.0,
+       "head_roll": 0.0
+      },
       "at": 4.0,
       "unsit_at": 10.0,
       "stance_tilt": 0.6,
-      "peak_tilt": 10.6,
-      "stable_after_s": 0.18,
-      "end_trunk_z": 0.1155
+      "peak_tilt": 21.2,
+      "stable_after_s": 0.28,
+      "end_trunk_z": 0.115
      },
      "seed": 0
     },
     {
-     "max_tilt": 10.3,
-     "max_action": 1.7,
-     "action_jumps": 3,
+     "max_tilt": 13.8,
+     "max_action": 1.93,
+     "action_jumps": 19,
      "end_mode": "walk",
      "sit": {
       "start": 4.0,
       "flag1": 4.82,
       "rise": 10.0,
-      "done": 12.0,
-      "min_trunk_z": 0.0561,
-      "seated_tilt": 0.9,
-      "seated_trunk_z": 0.0574,
+      "done": 11.3,
+      "min_trunk_z": 0.0585,
+      "seated_tilt": 0.4,
+      "seated_trunk_z": 0.0587,
+      "seated_max_tilt": 0.4,
+      "seated_mouth_min_z": 0.1659,
+      "seated_head_q": {
+       "head_pitch": 0.328,
+       "head_yaw": 0.014,
+       "head_roll": 0.023
+      },
+      "head_default": {
+       "head_pitch": 0.349,
+       "head_yaw": 0.0,
+       "head_roll": 0.0
+      },
       "at": 4.0,
       "unsit_at": 10.0,
       "stance_tilt": 0.6,
-      "peak_tilt": 10.3,
-      "stable_after_s": 0.16,
-      "end_trunk_z": 0.1155
+      "peak_tilt": 13.8,
+      "stable_after_s": 0.32,
+      "end_trunk_z": 0.1148
      },
      "seed": 1
     },
     {
-     "max_tilt": 10.4,
-     "max_action": 1.69,
-     "action_jumps": 5,
-     "end_mode": "walk",
+     "max_tilt": 37.2,
+     "max_action": 4.42,
+     "action_jumps": 32,
+     "end_mode": "sit",
      "sit": {
       "start": 4.0,
       "flag1": 4.82,
       "rise": 10.0,
-      "done": 12.0,
-      "min_trunk_z": 0.0558,
-      "seated_tilt": 0.9,
-      "seated_trunk_z": 0.0573,
+      "done": null,
+      "min_trunk_z": 0.0563,
+      "seated_tilt": 0.3,
+      "seated_trunk_z": 0.0585,
+      "seated_max_tilt": 0.3,
+      "seated_mouth_min_z": 0.1652,
+      "seated_head_q": {
+       "head_pitch": 0.333,
+       "head_yaw": 0.014,
+       "head_roll": 0.02
+      },
+      "head_default": {
+       "head_pitch": 0.349,
+       "head_yaw": 0.0,
+       "head_roll": 0.0
+      },
       "at": 4.0,
       "unsit_at": 10.0,
-      "stance_tilt": 0.5,
-      "peak_tilt": 10.4,
-      "stable_after_s": 0.16,
-      "end_trunk_z": 0.1154
+      "stance_tilt": null,
+      "peak_tilt": 37.2,
+      "stable_after_s": null,
+      "end_trunk_z": 0.0582
      },
      "seed": 2
     }
@@ -362,68 +398,104 @@
    ],
    "runs": [
     {
-     "max_tilt": 11.4,
-     "max_action": 1.7,
-     "action_jumps": 5,
+     "max_tilt": 19.9,
+     "max_action": 2.67,
+     "action_jumps": 29,
      "end_mode": "walk",
      "sit": {
       "start": 4.0,
       "flag1": 4.82,
       "rise": 10.0,
-      "done": 12.0,
-      "min_trunk_z": 0.056,
-      "seated_tilt": 0.9,
-      "seated_trunk_z": 0.0573,
+      "done": 11.46,
+      "min_trunk_z": 0.0586,
+      "seated_tilt": 0.3,
+      "seated_trunk_z": 0.0588,
+      "seated_max_tilt": 0.3,
+      "seated_mouth_min_z": 0.165,
+      "seated_head_q": {
+       "head_pitch": 0.336,
+       "head_yaw": 0.011,
+       "head_roll": 0.025
+      },
+      "head_default": {
+       "head_pitch": 0.349,
+       "head_yaw": 0.0,
+       "head_roll": 0.0
+      },
       "at": 4.0,
       "unsit_at": 10.0,
-      "stance_tilt": 3.0,
-      "peak_tilt": 11.4,
-      "stable_after_s": 0.18,
-      "end_trunk_z": 0.1155
+      "stance_tilt": 0.8,
+      "peak_tilt": 19.9,
+      "stable_after_s": 1.08,
+      "end_trunk_z": 0.1152
      },
      "seed": 0
     },
     {
-     "max_tilt": 11.0,
-     "max_action": 1.7,
-     "action_jumps": 4,
+     "max_tilt": 14.0,
+     "max_action": 1.9,
+     "action_jumps": 22,
      "end_mode": "walk",
      "sit": {
       "start": 4.0,
       "flag1": 4.82,
       "rise": 10.0,
-      "done": 12.0,
-      "min_trunk_z": 0.0563,
-      "seated_tilt": 0.8,
-      "seated_trunk_z": 0.0574,
+      "done": 11.3,
+      "min_trunk_z": 0.0583,
+      "seated_tilt": 0.5,
+      "seated_trunk_z": 0.0585,
+      "seated_max_tilt": 0.5,
+      "seated_mouth_min_z": 0.1658,
+      "seated_head_q": {
+       "head_pitch": 0.327,
+       "head_yaw": 0.011,
+       "head_roll": 0.02
+      },
+      "head_default": {
+       "head_pitch": 0.349,
+       "head_yaw": 0.0,
+       "head_roll": 0.0
+      },
       "at": 4.0,
       "unsit_at": 10.0,
-      "stance_tilt": 3.0,
-      "peak_tilt": 11.0,
-      "stable_after_s": 0.16,
-      "end_trunk_z": 0.1155
+      "stance_tilt": 0.8,
+      "peak_tilt": 14.0,
+      "stable_after_s": 0.34,
+      "end_trunk_z": 0.1149
      },
      "seed": 1
     },
     {
-     "max_tilt": 10.8,
-     "max_action": 1.7,
-     "action_jumps": 5,
+     "max_tilt": 20.4,
+     "max_action": 2.78,
+     "action_jumps": 30,
      "end_mode": "walk",
      "sit": {
       "start": 4.0,
       "flag1": 4.82,
       "rise": 10.0,
-      "done": 12.0,
-      "min_trunk_z": 0.0558,
-      "seated_tilt": 0.9,
-      "seated_trunk_z": 0.0573,
+      "done": 11.66,
+      "min_trunk_z": 0.0579,
+      "seated_tilt": 0.3,
+      "seated_trunk_z": 0.0583,
+      "seated_max_tilt": 0.3,
+      "seated_mouth_min_z": 0.1644,
+      "seated_head_q": {
+       "head_pitch": 0.339,
+       "head_yaw": 0.008,
+       "head_roll": 0.018
+      },
+      "head_default": {
+       "head_pitch": 0.349,
+       "head_yaw": 0.0,
+       "head_roll": 0.0
+      },
       "at": 4.0,
       "unsit_at": 10.0,
-      "stance_tilt": 3.0,
-      "peak_tilt": 10.8,
-      "stable_after_s": 0.16,
-      "end_trunk_z": 0.1155
+      "stance_tilt": 0.8,
+      "peak_tilt": 20.4,
+      "stable_after_s": 0.76,
+      "end_trunk_z": 0.1151
      },
      "seed": 2
     }
@@ -440,38 +512,38 @@
    ],
    "runs": [
     {
-     "max_tilt": 35.5,
-     "max_action": 1.72,
-     "action_jumps": 2,
+     "max_tilt": 34.5,
+     "max_action": 1.68,
+     "action_jumps": 5,
      "end_mode": "walk",
      "groundpick": {
-      "mouth_min_z": 0.02,
+      "mouth_min_z": 0.0224,
       "mouth_at_min": [
-       0.0661,
-       0.0054
+       0.0697,
+       0.0046
       ],
       "pose_at_min": {
-       "left_hip_yaw": 0.378,
-       "left_hip_roll": 0.152,
-       "left_hip_pitch": -1.38,
-       "left_knee": 0.56,
-       "left_ankle": 1.37,
-       "neck_pitch": -1.377,
-       "head_pitch": -0.289,
-       "head_yaw": -0.007,
-       "head_roll": 0.037,
-       "right_hip_yaw": -0.178,
-       "right_hip_roll": -0.09,
-       "right_hip_pitch": 1.335,
-       "right_knee": -0.609,
-       "right_ankle": -1.347
+       "left_hip_yaw": 0.398,
+       "left_hip_roll": 0.164,
+       "left_hip_pitch": -1.307,
+       "left_knee": 0.631,
+       "left_ankle": 1.39,
+       "neck_pitch": -1.352,
+       "head_pitch": -0.303,
+       "head_yaw": -0.022,
+       "head_roll": 0.057,
+       "right_hip_yaw": -0.185,
+       "right_hip_roll": -0.1,
+       "right_hip_pitch": 1.347,
+       "right_knee": -0.61,
+       "right_ankle": -1.38
       },
-      "tilt_at_min": 35.4,
-      "max_tilt": 35.54649283004619,
+      "tilt_at_min": 34.5,
+      "max_tilt": 34.52491449496646,
       "phase_at_min": 0.33,
-      "trunk_z_at_min": 0.092,
-      "end_tilt": 0.7,
-      "stable_after_s": 0.68,
+      "trunk_z_at_min": 0.0907,
+      "end_tilt": 0.6,
+      "stable_after_s": 1.4,
       "stance_tilt": 0.6,
       "at": 4.0,
       "phase": 0.33,
@@ -481,38 +553,38 @@
      "seed": 0
     },
     {
-     "max_tilt": 35.7,
-     "max_action": 1.66,
-     "action_jumps": 3,
+     "max_tilt": 34.6,
+     "max_action": 1.68,
+     "action_jumps": 7,
      "end_mode": "walk",
      "groundpick": {
-      "mouth_min_z": 0.0197,
+      "mouth_min_z": 0.022,
       "mouth_at_min": [
-       0.0658,
+       0.0698,
        0.005
       ],
       "pose_at_min": {
-       "left_hip_yaw": 0.379,
-       "left_hip_roll": 0.153,
-       "left_hip_pitch": -1.379,
-       "left_knee": 0.561,
-       "left_ankle": 1.366,
-       "neck_pitch": -1.379,
-       "head_pitch": -0.293,
-       "head_yaw": -0.007,
-       "head_roll": 0.033,
-       "right_hip_yaw": -0.186,
-       "right_hip_roll": -0.091,
-       "right_hip_pitch": 1.348,
-       "right_knee": -0.601,
-       "right_ankle": -1.35
+       "left_hip_yaw": 0.402,
+       "left_hip_roll": 0.167,
+       "left_hip_pitch": -1.304,
+       "left_knee": 0.644,
+       "left_ankle": 1.402,
+       "neck_pitch": -1.358,
+       "head_pitch": -0.312,
+       "head_yaw": -0.022,
+       "head_roll": 0.056,
+       "right_hip_yaw": -0.181,
+       "right_hip_roll": -0.102,
+       "right_hip_pitch": 1.34,
+       "right_knee": -0.621,
+       "right_ankle": -1.382
       },
-      "tilt_at_min": 35.6,
-      "max_tilt": 35.66274457091888,
+      "tilt_at_min": 34.4,
+      "max_tilt": 34.600923814953994,
       "phase_at_min": 0.33,
-      "trunk_z_at_min": 0.0921,
-      "end_tilt": 0.8,
-      "stable_after_s": 0.62,
+      "trunk_z_at_min": 0.0903,
+      "end_tilt": 0.7,
+      "stable_after_s": 1.38,
       "stance_tilt": 0.6,
       "at": 4.0,
       "phase": 0.33,
@@ -522,39 +594,39 @@
      "seed": 1
     },
     {
-     "max_tilt": 35.6,
-     "max_action": 1.66,
-     "action_jumps": 1,
+     "max_tilt": 34.5,
+     "max_action": 1.68,
+     "action_jumps": 9,
      "end_mode": "walk",
      "groundpick": {
-      "mouth_min_z": 0.02,
+      "mouth_min_z": 0.0223,
       "mouth_at_min": [
-       0.066,
-       0.0054
+       0.0699,
+       0.0053
       ],
       "pose_at_min": {
-       "left_hip_yaw": 0.379,
-       "left_hip_roll": 0.153,
-       "left_hip_pitch": -1.379,
-       "left_knee": 0.56,
-       "left_ankle": 1.37,
-       "neck_pitch": -1.378,
-       "head_pitch": -0.291,
-       "head_yaw": -0.007,
-       "head_roll": 0.033,
-       "right_hip_yaw": -0.18,
-       "right_hip_roll": -0.089,
-       "right_hip_pitch": 1.337,
-       "right_knee": -0.608,
-       "right_ankle": -1.349
+       "left_hip_yaw": 0.4,
+       "left_hip_roll": 0.166,
+       "left_hip_pitch": -1.299,
+       "left_knee": 0.645,
+       "left_ankle": 1.405,
+       "neck_pitch": -1.358,
+       "head_pitch": -0.305,
+       "head_yaw": -0.02,
+       "head_roll": 0.057,
+       "right_hip_yaw": -0.175,
+       "right_hip_roll": -0.1,
+       "right_hip_pitch": 1.325,
+       "right_knee": -0.629,
+       "right_ankle": -1.378
       },
-      "tilt_at_min": 35.4,
-      "max_tilt": 35.60210183037843,
+      "tilt_at_min": 34.1,
+      "max_tilt": 34.468125816189264,
       "phase_at_min": 0.33,
-      "trunk_z_at_min": 0.092,
-      "end_tilt": 0.8,
-      "stable_after_s": 0.56,
-      "stance_tilt": 0.5,
+      "trunk_z_at_min": 0.0902,
+      "end_tilt": 0.5,
+      "stable_after_s": 1.38,
+      "stance_tilt": 0.6,
       "at": 4.0,
       "phase": 0.33,
       "hold_s": 2.0,
@@ -577,39 +649,39 @@
    ],
    "runs": [
     {
-     "max_tilt": 35.7,
-     "max_action": 1.71,
-     "action_jumps": 2,
+     "max_tilt": 34.6,
+     "max_action": 1.68,
+     "action_jumps": 4,
      "end_mode": "walk",
      "groundpick": {
-      "mouth_min_z": 0.0204,
+      "mouth_min_z": 0.0222,
       "mouth_at_min": [
-       0.0662,
-       0.0064
+       0.0702,
+       0.0069
       ],
       "pose_at_min": {
-       "left_hip_yaw": 0.368,
-       "left_hip_roll": 0.155,
-       "left_hip_pitch": -1.396,
-       "left_knee": 0.551,
-       "left_ankle": 1.381,
-       "neck_pitch": -1.372,
-       "head_pitch": -0.289,
-       "head_yaw": -0.003,
-       "head_roll": -0.01,
-       "right_hip_yaw": -0.173,
-       "right_hip_roll": -0.084,
-       "right_hip_pitch": 1.331,
-       "right_knee": -0.607,
-       "right_ankle": -1.343
+       "left_hip_yaw": 0.399,
+       "left_hip_roll": 0.17,
+       "left_hip_pitch": -1.308,
+       "left_knee": 0.647,
+       "left_ankle": 1.421,
+       "neck_pitch": -1.359,
+       "head_pitch": -0.306,
+       "head_yaw": -0.005,
+       "head_roll": 0.054,
+       "right_hip_yaw": -0.168,
+       "right_hip_roll": -0.095,
+       "right_hip_pitch": 1.301,
+       "right_knee": -0.65,
+       "right_ankle": -1.378
       },
-      "tilt_at_min": 35.3,
-      "max_tilt": 35.68678056178186,
+      "tilt_at_min": 33.9,
+      "max_tilt": 34.558153865002986,
       "phase_at_min": 0.33,
-      "trunk_z_at_min": 0.0919,
-      "end_tilt": 0.7,
-      "stable_after_s": 0.68,
-      "stance_tilt": 3.0,
+      "trunk_z_at_min": 0.0898,
+      "end_tilt": 0.8,
+      "stable_after_s": 1.38,
+      "stance_tilt": 0.8,
       "at": 4.0,
       "phase": 0.33,
       "hold_s": 2.0,
@@ -618,39 +690,39 @@
      "seed": 0
     },
     {
-     "max_tilt": 35.8,
+     "max_tilt": 34.7,
      "max_action": 1.68,
-     "action_jumps": 3,
+     "action_jumps": 7,
      "end_mode": "walk",
      "groundpick": {
-      "mouth_min_z": 0.0198,
+      "mouth_min_z": 0.022,
       "mouth_at_min": [
-       0.0658,
-       0.0061
+       0.07,
+       0.006
       ],
       "pose_at_min": {
-       "left_hip_yaw": 0.37,
-       "left_hip_roll": 0.155,
-       "left_hip_pitch": -1.394,
-       "left_knee": 0.555,
-       "left_ankle": 1.375,
-       "neck_pitch": -1.377,
-       "head_pitch": -0.295,
-       "head_yaw": -0.003,
-       "head_roll": -0.012,
-       "right_hip_yaw": -0.179,
-       "right_hip_roll": -0.087,
-       "right_hip_pitch": 1.35,
-       "right_knee": -0.597,
-       "right_ankle": -1.348
+       "left_hip_yaw": 0.403,
+       "left_hip_roll": 0.173,
+       "left_hip_pitch": -1.306,
+       "left_knee": 0.642,
+       "left_ankle": 1.405,
+       "neck_pitch": -1.357,
+       "head_pitch": -0.312,
+       "head_yaw": -0.006,
+       "head_roll": 0.058,
+       "right_hip_yaw": -0.184,
+       "right_hip_roll": -0.097,
+       "right_hip_pitch": 1.333,
+       "right_knee": -0.627,
+       "right_ankle": -1.379
       },
-      "tilt_at_min": 35.6,
-      "max_tilt": 35.82995632147946,
+      "tilt_at_min": 34.4,
+      "max_tilt": 34.712018421885226,
       "phase_at_min": 0.33,
-      "trunk_z_at_min": 0.0919,
-      "end_tilt": 0.8,
-      "stable_after_s": 0.62,
-      "stance_tilt": 3.0,
+      "trunk_z_at_min": 0.0903,
+      "end_tilt": 0.7,
+      "stable_after_s": 1.34,
+      "stance_tilt": 0.8,
       "at": 4.0,
       "phase": 0.33,
       "hold_s": 2.0,
@@ -659,39 +731,39 @@
      "seed": 1
     },
     {
-     "max_tilt": 35.7,
-     "max_action": 1.68,
-     "action_jumps": 1,
+     "max_tilt": 34.5,
+     "max_action": 1.69,
+     "action_jumps": 8,
      "end_mode": "walk",
      "groundpick": {
-      "mouth_min_z": 0.0201,
+      "mouth_min_z": 0.0223,
       "mouth_at_min": [
-       0.066,
-       0.0062
+       0.0698,
+       0.006
       ],
       "pose_at_min": {
-       "left_hip_yaw": 0.369,
-       "left_hip_roll": 0.154,
-       "left_hip_pitch": -1.389,
-       "left_knee": 0.554,
-       "left_ankle": 1.371,
-       "neck_pitch": -1.375,
-       "head_pitch": -0.291,
-       "head_yaw": -0.003,
-       "head_roll": -0.011,
-       "right_hip_yaw": -0.175,
-       "right_hip_roll": -0.086,
-       "right_hip_pitch": 1.345,
-       "right_knee": -0.596,
-       "right_ankle": -1.343
+       "left_hip_yaw": 0.402,
+       "left_hip_roll": 0.171,
+       "left_hip_pitch": -1.305,
+       "left_knee": 0.638,
+       "left_ankle": 1.401,
+       "neck_pitch": -1.356,
+       "head_pitch": -0.306,
+       "head_yaw": -0.005,
+       "head_roll": 0.058,
+       "right_hip_yaw": -0.184,
+       "right_hip_roll": -0.097,
+       "right_hip_pitch": 1.328,
+       "right_knee": -0.624,
+       "right_ankle": -1.374
       },
-      "tilt_at_min": 35.5,
-      "max_tilt": 35.72342280460654,
+      "tilt_at_min": 34.3,
+      "max_tilt": 34.51434446768572,
       "phase_at_min": 0.33,
-      "trunk_z_at_min": 0.092,
-      "end_tilt": 0.7,
-      "stable_after_s": 0.58,
-      "stance_tilt": 3.0,
+      "trunk_z_at_min": 0.0904,
+      "end_tilt": 0.4,
+      "stable_after_s": 1.32,
+      "stance_tilt": 0.8,
       "at": 4.0,
       "phase": 0.33,
       "hold_s": 2.0,

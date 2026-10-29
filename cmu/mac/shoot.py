@@ -456,8 +456,8 @@ def seg_sitfind(args, log, cmd):
     seated tilt 1.3 deg, head reached 88 % of the command)."""
     import cv2
     import orange_target
-    from approach import FRAME_H, FRAME_W, PITCH_FILE, LogTail, ShmCamera
-    from duck_kin import RADXA_13M_UPRIGHT as K, DuckKin
+    from approach import LogTail, ShmCamera
+    from duck_kin import DuckKin
     with open(args.sitlook) as f:
         look = json.load(f)
     aim = look["aim"]
@@ -465,12 +465,10 @@ def seg_sitfind(args, log, cmd):
     tail = Tail(log)
     out_path = log.replace("duck_wired_log_", "duck_wired_").replace(".jsonl", ".out")
     out_pos = os.path.getsize(out_path) if os.path.exists(out_path) else 0
-    cam = ShmCamera()
-    try:
-        off = float(json.load(open(PITCH_FILE))["pitch_offset_deg"])
-    except (OSError, ValueError, KeyError):
-        off = 0.0
-    kin, states = DuckKin(pitch_offset_deg=off), LogTail(log)
+    cam = ShmCamera(require_calibration=False)   # aiming only; the range filter is coarse
+    FRAME_W, FRAME_H = cam.w, cam.h
+    kin, states = DuckKin(), LogTail(log)   # the U20CAM (u20cam_intrinsics.json, u20cam_mount.json; CAMERA.md)
+    K = kin.K
 
     def find(fr):
         """The part on the table near the robot: the blob's base projected onto the plane of the feet within

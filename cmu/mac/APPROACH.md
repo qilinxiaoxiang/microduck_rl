@@ -130,19 +130,15 @@ ssh a7z 'cd ~/rt/microduck-sim/guide/firmware/mac && ~/.venvs/duck-policy/bin/py
 
    Pass: no guard trip, stepping, `head_reached` head_pitch near 1.0.
 
-4. Camera and calibration, standing. Object on the floor 0.30 m straight ahead of the point between the feet:
+4. Camera calibration, standing: the U20CAM intrinsics and mount (CAMERA.md, "U20CAM calibration"). approach.py
+   refuses to walk until both have passed. Then check with the object 0.50 m straight ahead of the point between
+   the feet:
 
 ```bash
 ssh a7z 'cd ~/rt/microduck-sim/guide/firmware/mac && ~/.venvs/duck-policy/bin/python approach.py --observe 8'
 ```
 
-   It must print `base x ... y ...` lines. Then fit the camera pitch (saved to ~/.duck_cam_pitch.json):
-
-```bash
-ssh a7z 'cd ~/rt/microduck-sim/guide/firmware/mac && ~/.venvs/duck-policy/bin/python approach.py --calibrate 0.30'
-```
-
-   Move the object to 0.50 m and run `--observe 8` again. Pass: x within 3 cm of 0.48 (the base edge is printed).
+   Pass: x within 3 cm of 0.48 (the base edge is printed).
 
 5. Approaches, only after 1-4 pass. Object 0.6 m straight ahead first, then 0.5 m ahead and 0.2 m right, 0.3 m ahead
    and 0.45 m left (turns in place first), then one where Shawn moves the object 15 cm sideways when the robot is

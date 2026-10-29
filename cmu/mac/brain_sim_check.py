@@ -61,7 +61,10 @@ from battery import stop_command, stop_settled  # noqa: E402
 from walk_wired import HARD_MAX_ACTION, HARD_WINDOW, MAX_TILT_DEG, MAX_TILT_GP_DEG, MAX_TILT_SIT_DEG, OVER_LIMIT_TICKS  # noqa: E402
 from walk_wired import QUACK_HEAD_S, quack_head_block, quack_head_pose  # noqa: E402
 from walk_wired import CMD_ALPHA, GripStop, hold_allowed  # noqa: E402
+from walk_wired import SP_DONE_PHASE  # noqa: E402
 import walk_brain  # noqa: E402
+import jaw_ctl  # noqa: E402
+import jaw_limits as jl  # noqa: E402
 from hold import DOWN_RATE, PAD_HI, PADS, UP_RATE, HoldEstimator  # noqa: E402
 
 MODELS = os.path.join(WHOLE, "runtime-overlay", "models")
@@ -147,6 +150,645 @@ class Hand:
         d.xfrc_applied[self.head] = f
 
 
+# ── Seeing pick (--sp-at) ─────────────────────────────────────────────────────────────────────────────────────────────
+# The as-built model (microduck_rl robot_groundcontact.xml) has no jaw joint: the jaw mesh is part of the head body
+# jaw_soft. The policy was trained on microduck_rl-grasp's ground-grasp robot (src/mjlab_microduck/robot/ground_grasp.py
+# add_mouth), which gives the jaw its own body on hinge passive_mouth (-0.0873..0.55 rad, + opens) and replaces the
+# underside hulls by boxes. SP_* below copy those numbers (that module imports mjlab, which this venv lacks). The jaw
+# here is driven like the robot's ID15: an XL330 BAM model at walk_wired's jaw gain (jaw_ctl.KP_JAW) with the current
+# limit of its current-based position mode (jaw_ctl.GOAL_CURRENT_MA), not the training env's 1.0 N m/rad, 0.5 N m servo.
+SP_MOUTH_PIVOT = np.array([0.0037, 0.0, -0.0182])  # head-local: up, left, back
+SP_MOUTH_RANGE = (-0.0873, 0.55)
+SP_JAW_MASS = 0.010
+SP_UNDERSIDE_HULLS = ("bottom_head_shell", "soft_mouth_top", "jaw", "jaw_soft")
+SP_CLOSED_RAD = 0.0  # the CAD closed jaw (plate 0.2 mm under the upper beak box): jaw_ctl's "closed" reference
+# training (cmu_seeing_pick_env_cfg.py at microduck_rl-grasp 0a520062): object, camera, landing spot
+SP_LANDING_XY = (0.087, 0.0)  # microduck_static_grasp_env_cfg.OBJECT_NOMINAL_XY: the static pose's pad midpoint
+SP_BALL_RADIUS = (0.0053, 0.0072)
+SP_BOX_HALF_XY, SP_BOX_HALF_Z = (0.005, 0.010), (0.005, 0.009)
+SP_CYL_RADIUS, SP_CYL_HALF_H = (0.005, 0.009), (0.004, 0.008)
+SP_MASS = (0.0005, 0.010)
+SP_FRICTION = (0.35, 1.1)
+SP_CAM_PERIOD_TICKS = 5
+SP_CAM_DELAY_S = (0.10, 0.30)
+SP_CAM_DROP = (0.0, 0.3)
+SP_CAM_STALL_PROB, SP_CAM_STALL_S = 0.02, (0.5, 1.5)
+SP_CAM_BIAS, SP_CAM_NOISE, SP_CAM_NOISE_SIZE = 0.01, 0.004, 0.001
+SP_CAM_HALF_FOV = (math.radians(51.0), math.radians(35.0))
+SP_CAM_MIN_DEPTH = 0.015
+SP_INIT_AGE_S = (0.1, 0.4)
+SP_HELD_LIFT = 0.01
+SP_HELD_FROM = 0.44  # microduck_static_grasp_env_cfg.TIMELINE held_from: grasp_held pays from here
+SP_SUCCESS_TICKS = 20  # seeing_audit.SUCCESS_STEPS: held on at least this many ticks = a training-env success
+SP_STOPPED_DEG_PER_TICK = 0.3  # --sp-holding stopped: 15 deg/s  # mdp.grasp_state "held": pinched, off the floor, lifted > 1 cm
+
+
+def _uf(u, f):
+    return np.array([u, 0.0, -f])
+
+
+def sp_add_mouth(spec, beak_mu, beak_priority=False):
+    """ground_grasp.add_mouth on the as-built spec: jaw body on passive_mouth, beak boxes, lip and pad sites.
+    beak_priority: the beak boxes get MuJoCo priority 1, so their friction is the beak-object friction whatever the
+    object's own (a lined lip; without it MuJoCo takes the larger of the pair)."""
+    head = spec.body("jaw_soft")
+    jaw = head.add_body(name="jaw", pos=SP_MOUTH_PIVOT)
+    jaw.mass = SP_JAW_MASS
+    jaw.inertia = [4e-6, 4e-6, 4e-6]
+    jaw.ipos = _uf(-0.0134, 0.054) - SP_MOUTH_PIVOT
+    jaw.explicitinertial = True
+    head.mass = head.mass - SP_JAW_MASS
+    j = jaw.add_joint(name="passive_mouth", type=mujoco.mjtJoint.mjJNT_HINGE, axis=[0, 1, 0], range=list(SP_MOUTH_RANGE))
+    j.limited = mujoco.mjtLimited.mjLIMITED_TRUE
+    j.damping = np.zeros((3, 1))  # BAM sets damping and friction every step (as ev.load does for the 14 servos)
+    j.frictionloss = 0.0
+    j.solref_friction = [-5e4, -2e2]
+    j.solimp_friction = [.99, .9999, .001, .5, 2]
+    removed = []
+    for g in list(head.geoms):
+        if g.meshname in SP_UNDERSIDE_HULLS and not (g.contype == 0 and g.conaffinity == 0):
+            removed.append(g.meshname)
+            spec.delete(g)
+    kw = dict(type=mujoco.mjtGeom.mjGEOM_BOX, group=3, contype=1, conaffinity=1)
+    beak = dict(condim=4, friction=[beak_mu, 0.02, 0.0001])
+    if beak_priority:
+        beak["priority"] = 1
+    head.add_geom(name="head_rear_collision", pos=_uf(-0.00685, 0.00175), size=[0.01005, 0.0459, 0.04025], **kw)
+    head.add_geom(name="upper_beak_collision", pos=_uf(-0.00525, 0.060), size=[0.00395, 0.0459, 0.018], **kw, **beak)
+    jaw.add_geom(name="jaw_plate_collision", pos=_uf(-0.0134, 0.05985) - SP_MOUTH_PIVOT,
+                 size=[0.0040, 0.0440, 0.01785], **kw, **beak)
+    for other in ("yaw_roll_motion", "neck_pitch"):
+        ex = spec.add_exclude()
+        ex.bodyname1, ex.bodyname2 = "jaw", other
+    head.add_site(name="lip_up", pos=_uf(-0.0092, 0.0770), group=4)
+    head.add_site(name="pad_up", pos=_uf(-0.0092, 0.0680), group=4)
+    jaw.add_site(name="lip_low", pos=_uf(-0.0134, 0.0777) - SP_MOUTH_PIVOT, group=4)
+    jaw.add_site(name="jaw_tip_bottom", pos=_uf(-0.0174, 0.0777) - SP_MOUTH_PIVOT, group=4)
+    jaw.add_site(name="pad_low", pos=_uf(-0.0094, 0.0680) - SP_MOUTH_PIVOT, group=4)
+    return removed
+
+
+def sp_add_object(spec, obj):
+    body = spec.worldbody.add_body(name="sp_object", pos=[-1.0, 0.0, obj["half"][2] + 0.0005])
+    body.add_freejoint(name="sp_object_free")
+    kw = dict(name="sp_object_geom", mass=obj["mass"], condim=4, friction=[obj["mu"], 0.02, 0.0001],
+              contype=1, conaffinity=1, rgba=[1.0, 0.45, 0.05, 1.0])
+    if obj["shape"] == "ball":
+        body.add_geom(type=mujoco.mjtGeom.mjGEOM_ELLIPSOID, size=list(obj["half"]), **kw)
+    elif obj["shape"] == "box":
+        body.add_geom(type=mujoco.mjtGeom.mjGEOM_BOX, size=list(obj["half"]), **kw)
+    else:
+        body.add_geom(type=mujoco.mjtGeom.mjGEOM_CYLINDER, size=[obj["half"][0], obj["half"][2], 0.0], **kw)
+
+
+def sp_add_jaw_actuator(spec, limit):
+    a = spec.add_actuator(name="jaw_servo", target="passive_mouth", trntype=mujoco.mjtTrn.mjTRN_JOINT)
+    a.set_to_motor()
+    a.ctrllimited = False
+    a.forcelimited = True
+    a.forcerange = [-limit, limit]
+    a.gear = [1, 0, 0, 0, 0, 0]
+
+
+def sp_object_draw(args, rng):
+    """The object of one run: shape from --sp-shape, sizes, mass and friction from the flags or drawn per seed from
+    the training ranges."""
+    u = lambda lo_hi: float(rng.uniform(*lo_hi))  # noqa: E731
+    shape = args.sp_shape
+    if shape == "ball":
+        half = [u(SP_BALL_RADIUS) for _ in range(3)]
+    elif shape == "box":
+        half = [u(SP_BOX_HALF_XY), u(SP_BOX_HALF_XY), u(SP_BOX_HALF_Z)]
+    else:
+        r = u(SP_CYL_RADIUS)
+        half = [r, r, u(SP_CYL_HALF_H)]
+    if args.sp_half is not None:  # exact half extents (m): x, y, z (ball: three radii; cylinder: r, r, half height)
+        half = list(args.sp_half)
+    if args.sp_size is not None:  # largest horizontal width (m): scale all three half extents
+        half = [h * args.sp_size / (2 * max(half[:2])) for h in half]
+    mass = args.sp_mass / 1000 if args.sp_mass is not None else u(SP_MASS)
+    mu = args.sp_friction if args.sp_friction is not None else u(SP_FRICTION)
+    return dict(shape=shape, half=[round(h, 5) for h in half], mass=round(mass, 5), mu=round(mu, 3),
+                size=round(2 * max(half[:2]), 5))
+
+
+class SimCamera:
+    """The training env's head camera (_camera_update) in the runtime's terms: a frame every 5 ticks (10 fps), a
+    detection when the object centre is inside the 102 x 70 deg cone of the head_camera site and more than 1.5 cm in
+    front of it, dropped with probability `drop`, frozen through stalls, delivered `delay` later with a per-run bias
+    and per-frame noise. What the control file would hold: the newest delivered detection with its capture time."""
+
+    def __init__(self, rng, delay_s, drop, bias, noise, size_noise, stalls=True):
+        self.rng, self.drop, self.bias, self.noise, self.size_noise = rng, drop, np.array(bias), noise, size_noise
+        self.delay = int(min(15, max(1, round(delay_s / 0.02))))
+        self.offset = int(rng.integers(0, SP_CAM_PERIOD_TICKS))
+        self.stalls = stalls
+        self.frames = collections.deque(maxlen=32)  # (capture tick, capture t, measurement or None)
+        self.last = None
+        self.stall_until = -1
+        self.n = dict(frames=0, visible=0, detected=0, delivered=0, stall_frames=0)
+        self.last_delivery_t, self.last_visible_t = None, None
+
+    def measure(self, xy, size, t):
+        xy = np.asarray(xy) + self.bias + self.rng.normal(0, self.noise, 2)
+        return {"x": round(float(xy[0]), 5), "y": round(float(xy[1]), 5),
+                "size": round(float(size + self.rng.normal(0, self.size_noise)), 5), "t": round(float(t), 4)}
+
+    def step(self, k, t, visible, xy, size):
+        if (k + self.offset) % SP_CAM_PERIOD_TICKS == 0:
+            self.n["frames"] += 1
+            if self.stalls and k >= self.stall_until and self.rng.random() < SP_CAM_STALL_PROB:
+                self.stall_until = k + int(round(self.rng.uniform(*SP_CAM_STALL_S) / 0.02))
+            stalled = k < self.stall_until
+            self.n["stall_frames"] += stalled
+            self.n["visible"] += visible
+            if visible:
+                self.last_visible_t = t
+            ok = visible and not stalled and self.rng.random() >= self.drop
+            self.n["detected"] += ok
+            self.frames.append((k, t, self.measure(xy, size, t) if ok else None))
+        for fk, ft, meas in self.frames:
+            if fk == k - self.delay and meas is not None:
+                self.last = meas
+                self.n["delivered"] += 1
+                self.last_delivery_t = t
+        return self.last
+
+
+def sp_contacts(m, d, obj_geom, named):
+    """{name: summed normal force (N)} of the object's contacts with each named geom set, plus 'floor'."""
+    f6, out = np.zeros(6), {k: 0.0 for k in named}
+    for i in range(d.ncon):
+        g1, g2 = d.contact[i].geom1, d.contact[i].geom2
+        if obj_geom not in (g1, g2):
+            continue
+        other = g2 if g1 == obj_geom else g1
+        for k, gs in named.items():
+            if other in gs:
+                mujoco.mj_contactForce(m, d, i, f6)
+                out[k] += float(f6[0])
+    return out
+
+
+def floor_force(m, d, floor, geoms):
+    f6, tot = np.zeros(6), 0.0
+    for i in range(d.ncon):
+        g1, g2 = d.contact[i].geom1, d.contact[i].geom2
+        if (g1 == floor and g2 in geoms) or (g2 == floor and g1 in geoms):
+            mujoco.mj_contactForce(m, d, i, f6)
+            tot += float(f6[0])
+    return tot
+
+
+def sp_install_model_hook(args, obj):
+    """ev.load builds the robot from the MJCF and applies microduck_rl/cmu/model/visual.py to the spec before it
+    compiles; this wraps that call to add the jaw, the object and the jaw actuator (evaluate_delay.py unchanged)."""
+    sys.path.insert(0, str(ev.MODEL_DIR.parents[3] / "cmu" / "model"))
+    import visual  # noqa: E402  (the module ev.load imports the hook from)
+    from bam.model import load_model
+    bj = load_model(motor_name="xl330", model="m6")
+    limit = min(args.volt * bj.kt.value / bj.R.value, args.sp_jaw_current / 1000 * bj.kt.value)
+    orig = visual.apply_visual_to_spec
+    report = {}
+
+    def hooked(spec, *a, **kw):
+        n = orig(spec, *a, **kw)
+        report["removed_hulls"] = sp_add_mouth(spec, args.sp_beak_mu, args.sp_beak_priority)
+        sp_add_object(spec, obj)
+        sp_add_jaw_actuator(spec, limit)
+        for k in list(spec.keys):  # the MJCF keyframes do not list the new joints; nothing here uses them
+            spec.delete(k)
+        return n
+
+    visual.apply_visual_to_spec = hooked
+    report["jaw_torque_limit_nm"] = round(limit, 4)
+    return report
+
+
+class SeePick:
+    """--sp-at: the object, the camera stand-in, the jaw as walk_wired.py drives it, and the run's numbers."""
+
+    def __init__(self, m, d, args, obj, rng, model_report):
+        from bam.model import load_model
+        from bam.mujoco import MujocoController
+        self.m, self.d, self.a, self.obj, self.rng = m, d, args, obj, rng
+        bj = load_model(motor_name="xl330", model="m6")
+        bj.actuator.kp = args.sp_jaw_kp
+        bj.actuator.vin = args.volt
+        bj.actuator.max_current = args.sp_jaw_current / 1000  # Goal Current of mode 5 (current-based position)
+        qpos, qvel = d.qpos.copy(), d.qvel.copy()
+        self.jctl = MujocoController(bj, ["jaw_servo"], m, d)  # its mj_setConst leaves d at qpos0: restore the pose
+        d.qpos[:], d.qvel[:] = qpos, qvel
+        mujoco.mj_forward(m, d)
+        jid = m.joint("passive_mouth").id
+        self.jq = m.jnt_qposadr[jid]
+        rest = SP_CLOSED_RAD + math.radians(walk_brain.SP_JAW_REST_DEG)
+        d.qpos[self.jq] = rest
+        self.jctl.q_target[:] = rest
+        self.jaw_queue = collections.deque([rest] * (args.action_delay + 1), maxlen=args.action_delay + 1)
+        self.jaw_meas = collections.deque(maxlen=args.sensor_delay + 1)
+        # before the seeing pick the jaw rests at SP_JAW_REST_DEG with torque on (assumed; walk_wired leaves the jaw
+        # untouched until a jaw command or the seeing pick, and its state before that is not modelled)
+        self.goal_deg = walk_brain.SP_JAW_REST_DEG
+        self.zero = jl.JawZero(SP_CLOSED_RAD, SP_CLOSED_RAD + 0.3)  # sim joint rad = "hardware rad", + opens
+        self.body = m.body("sp_object").id
+        self.oq = m.jnt_qposadr[m.joint("sp_object_free").id]
+        self.odof = m.jnt_dofadr[m.joint("sp_object_free").id]
+        self.ogeom = m.geom("sp_object_geom").id
+        self.floor = m.geom("floor").id
+        self.named = {"jaw": {m.geom("jaw_plate_collision").id}, "upper": {m.geom("upper_beak_collision").id},
+                      "floor": {self.floor}}
+        heads = {m.body("jaw_soft").id, m.body("jaw").id}
+        self.head_geoms = {g for g in range(m.ngeom) if m.geom_bodyid[g] in heads and m.geom_contype[g]}
+        self.site = {s: m.site(s).id for s in ("lip_up", "jaw_tip_bottom", "pad_up", "pad_low", "head_camera")}
+        self.trunk = m.body("trunk_base").id
+        u = lambda lo_hi: float(rng.uniform(*lo_hi))  # noqa: E731
+        delay = args.sp_camera_delay if args.sp_camera_delay is not None else u(SP_CAM_DELAY_S)
+        drop = args.sp_camera_drop if args.sp_camera_drop is not None else u(SP_CAM_DROP)
+        bias = args.sp_camera_bias if args.sp_camera_bias is not None else list(rng.uniform(-SP_CAM_BIAS, SP_CAM_BIAS, 2))
+        self.cam = SimCamera(rng, delay, drop, bias, args.sp_camera_noise, SP_CAM_NOISE_SIZE, stalls=not args.sp_no_stalls)
+        self.cam_cfg = dict(delay_s=round(delay, 3), delay_ticks=self.cam.delay, drop=round(drop, 3),
+                            bias_m=[round(float(b), 4) for b in bias], noise_m=args.sp_camera_noise, stalls=not args.sp_no_stalls,
+                            half_fov_deg=[round(math.degrees(x), 1) for x in SP_CAM_HALF_FOV], min_depth_m=SP_CAM_MIN_DEPTH)
+        self.model_report = model_report
+        self.switched, self.done_t, self.spawn, self.k = None, None, None, 0
+        self.rows = []
+        self.cap = dict(ticks_open=0, min_cap_deg=None, min_cap_at=None, ticks_cap_below_trained=0,
+                        first_below_trained=None, ticks_clamped=0, first_clamp=None, closed_zone_ticks=0,
+                        clamp_names={}, max_head_pitch_open_deg=None)
+        self.ev = dict(first_pinched_t=None, first_holding_bit_t=None, close_at=None, lip_min_m=None,
+                       lip_min_phase=None, beak_floor_force_max_n=0.0, beak_floor_ticks=0, max_tilt=0.0,
+                       min_trunk_z=None, max_action=0.0, first_lost_view_t=None,
+                       # the object's travel in the foot frame: first beak touch -> pinch, and over the trained close
+                       # window (phase 0.34 -> 0.40); the jaw command when --sp-close-on-contact started the close
+                       first_contact=None, push_contact_to_pinch_mm=None, close_window=None, contact_close=None)
+        self.close_shift = 0.0  # --sp-close-on-contact: phase advance of the jaw timeline after the first touch
+        self.holding_now = False
+        self.state = {}
+
+    # -- the scene -------------------------------------------------------------------------------------------------
+    def trunk_frame(self):
+        p = self.d.xpos[self.trunk].copy()
+        yaw = _yaw(self.d.xquat[self.trunk])
+        return p, yaw
+
+    def foot_xy(self, pw):
+        p, yaw = self.trunk_frame()
+        dx, dy = pw[0] - p[0], pw[1] - p[1]
+        c, s = math.cos(yaw), math.sin(yaw)
+        return np.array([c * dx + s * dy, -s * dx + c * dy])
+
+    def place(self):
+        p, yaw = self.trunk_frame()
+        off = np.array(SP_LANDING_XY) + np.array(self.a.sp_offset)
+        c, s = math.cos(yaw), math.sin(yaw)
+        x, y = p[0] + c * off[0] - s * off[1], p[1] + s * off[0] + c * off[1]
+        z = self.obj["half"][2] + 0.0005
+        oyaw = float(self.rng.uniform(-math.pi, math.pi)) if self.a.sp_object_yaw is None else math.radians(self.a.sp_object_yaw)
+        self.d.qpos[self.oq:self.oq + 7] = [x, y, z, math.cos(oyaw / 2), 0, 0, math.sin(oyaw / 2)]
+        self.d.qvel[self.odof:self.odof + 6] = 0
+        mujoco.mj_forward(self.m, self.d)
+        self.spawn = np.array([x, y, z])
+        self.obj_yaw_deg = round(math.degrees(oyaw), 1)
+        self.root0 = (p.copy(), yaw)  # the standing root at the switch: seeing_audit's frame for pad_at_close
+
+    def root0_xy(self, pw):
+        p, yaw = self.root0
+        dx, dy = pw[0] - p[0], pw[1] - p[1]
+        c, s = math.cos(yaw), math.sin(yaw)
+        return [round(c * dx + s * dy, 4), round(-s * dx + c * dy, 4)]
+
+    def visible(self):
+        cp = self.d.site_xpos[self.site["head_camera"]]
+        R = self.d.site_xmat[self.site["head_camera"]].reshape(3, 3)
+        p = R.T @ (self.d.xpos[self.body] - cp)  # site frame: x optical axis, y left, z up
+        depth = p[0]
+        return bool(depth > SP_CAM_MIN_DEPTH and abs(p[1]) < depth * math.tan(SP_CAM_HALF_FOV[0])
+                    and abs(p[2]) < depth * math.tan(SP_CAM_HALF_FOV[1]))
+
+    def opening_deg(self):
+        q = self.jaw_meas[0] if self.jaw_meas else float(self.d.qpos[self.jq])
+        return self.zero.opening_deg(q), q
+
+    def holding(self):
+        """jaw_ctl.JawCtl.holding: a grip command and the measured jaw at least GRIP_MIN_DEG from closed. --sp-holding
+        stopped also asks the jaw to have stopped (under SP_STOPPED_DEG_PER_TICK over the last two reads)."""
+        deg, _ = self.opening_deg()
+        bit = self.goal_deg == "grip" and deg >= jaw_ctl.GRIP_MIN_DEG
+        if bit and self.a.sp_holding == "stopped" and len(self.jaw_meas) >= 2:
+            step = abs(math.degrees(self.jaw_meas[-1] - self.jaw_meas[-2]))
+            self._jaw_steps = (getattr(self, "_jaw_steps", [])[-1:] + [step])
+            bit = max(self._jaw_steps) < SP_STOPPED_DEG_PER_TICK
+        return bit
+
+    # -- per tick --------------------------------------------------------------------------------------------------
+    def sense(self):
+        """Start of a tick: the jaw's present position as the next read returns it (same delay as the body servos)."""
+        q = float(self.d.qpos[self.jq])
+        if not self.jaw_meas:
+            self.jaw_meas.extend([q] * self.jaw_meas.maxlen)
+        self.jaw_meas.append(q)
+
+    def want(self, t):
+        """The control-file command while the seeing pick runs: mode, the newest delivered detection, holding bit."""
+        if self.switched is None:
+            self.place()
+            self.switched = t
+            init_age = float(self.rng.uniform(*SP_INIT_AGE_S))
+            self.cam.last = self.cam.measure(self.foot_xy(self.d.xpos[self.body]), self.obj["size"], t - init_age)
+            self.cam_cfg["init_age_s"] = round(init_age, 3)
+        self.k = int(round((t - self.switched) / 0.02))
+        vis = self.visible()
+        if not vis and self.ev["first_lost_view_t"] is None:
+            self.ev["first_lost_view_t"] = round(t - self.switched, 2)
+        last = self.cam.step(self.k, t, vis, self.foot_xy(self.d.xpos[self.body]), self.obj["size"])
+        self.holding_now = self.holding()
+        return {"mode": "seepick", "object": dict(last), "_holding": self.holding_now}
+
+    def active(self, t):
+        return self.a.sp_at is not None and t >= self.a.sp_at and self.done_t is None
+
+    def after_tick(self, t, brain, info):
+        """walk_wired.py after brain.tick: jaw goal from info["sp_jaw"], the hand-back at SP_DONE_PHASE, and later in
+        the same tick jaw.write(link, brain.goal or measured_head, measured_head) through jaw_limits."""
+        phase = info.get("sp_phase")
+        if brain.mode == "seepick" and "sp_jaw" in info:
+            self.goal_deg = info["sp_jaw"]
+            if self.a.sp_close_on_contact and phase is not None:
+                # start the trained close (0.34 -> 0.40, then grip) at the first beak-object touch when that comes
+                # before phase 0.34; the policy's inputs are untouched (only the holding bit may come earlier)
+                sj = walk_brain.SP_JAW
+                if self.close_shift == 0.0 and sj["open_end"] <= phase < sj["close_start"] and self.ev["first_contact"]:
+                    self.close_shift = sj["close_start"] - phase
+                    self.ev["contact_close"] = dict(t_from_switch=round(t - self.switched, 2), phase=phase,
+                                                    advance_phase=round(self.close_shift, 4),
+                                                    advance_s=round(self.close_shift * walk_brain.SP_PERIOD, 2))
+                if self.close_shift:
+                    self.goal_deg = walk_brain.seepick_jaw(phase + self.close_shift)
+        if brain.mode == "seepick" and info.get("action") is not None:  # walk_brain.clamp_goal at work
+            for k, n in enumerate(walk_brain.OBSERVATION_DOF_ORDER):
+                lo, hi = walk_brain.JOINT_RANGE.get(n, (-9, 9))
+                v = brain.default[n] + float(info["action"][k])
+                if v < lo - 1e-9 or v > hi + 1e-9:
+                    gc = self.ev.setdefault("goal_clamped_ticks", {})
+                    gc[n] = gc.get(n, 0) + 1
+                    pk = self.ev.setdefault("goal_clamp_peak_rad", {})
+                    over = v - hi if v > hi else v - lo
+                    pk[n] = round(over, 3) if abs(over) > abs(pk.get(n, 0.0)) else pk.get(n, 0.0)
+        if brain.mode == "seepick" and phase is not None and phase >= SP_DONE_PHASE and self.done_t is None:
+            self.done_t = round(t, 2)
+            self.state["handback"] = self.snapshot(brain)
+        if brain.q is None:
+            return
+        measured_head = {n: float(brain.q[n]) for n in jl.POSE_JOINTS}
+        commanded = brain.goal or measured_head
+        deg = jaw_ctl.SQUEEZE_DEG if self.goal_deg == "grip" else float(self.goal_deg)
+        targets = {"jaw": self.zero.jaw_rad_at(deg)}
+        targets.update({n: float(commanded[n]) for n in jl.POSE_JOINTS if n in commanded})
+        _, meas_q = self.opening_deg()
+        if self.a.sp_no_cap:
+            out, clamps = dict(targets), []
+        else:
+            out, clamps = jl.limit_targets(targets, self.zero, measured_jaw_rad=meas_q, measured_head=measured_head)
+        head_used = {n: out[n] for n in jl.POSE_JOINTS if n in out}
+        cap, closed, contact = jl.pose_jaw_cap_deg(head_used, measured_head)
+        meant_open = brain.mode == "seepick" and phase is not None and \
+            walk_brain.SP_JAW["open_start"] < phase < walk_brain.SP_JAW["close_end"]
+        if meant_open:
+            c = self.cap
+            c["ticks_open"] += 1
+            hp = math.degrees(commanded["head_pitch"])
+            c["max_head_pitch_open_deg"] = round(hp if c["max_head_pitch_open_deg"] is None else max(hp, c["max_head_pitch_open_deg"]), 1)
+            if c["min_cap_deg"] is None or cap < c["min_cap_deg"]:
+                c["min_cap_deg"] = round(cap, 2)
+                c["min_cap_at"] = dict(t_from_switch=round(t - self.switched, 2), phase=phase, contact_deg=round(contact, 2),
+                                       commanded_head={n: round(float(commanded[n]), 3) for n in jl.POSE_JOINTS},
+                                       measured_head={n: round(v, 3) for n, v in measured_head.items()})
+            full_open = walk_brain.SP_JAW["open_end"] <= phase <= walk_brain.SP_JAW["close_start"]
+            if full_open and cap < walk_brain.SP_JAW_OPEN_DEG - 1e-6:
+                c["ticks_cap_below_trained"] += 1
+                if c["first_below_trained"] is None:
+                    c["first_below_trained"] = dict(t_from_switch=round(t - self.switched, 2), phase=phase, cap_deg=round(cap, 2))
+            jaw_clamps = [x for x in clamps if x.startswith("jaw")]
+            if jaw_clamps:
+                c["ticks_clamped"] += 1
+                if c["first_clamp"] is None:
+                    c["first_clamp"] = dict(t_from_switch=round(t - self.switched, 2), phase=phase, wanted_deg=round(deg, 2),
+                                            cap_deg=round(cap, 2), clamps=clamps)
+            c["closed_zone_ticks"] += closed
+            for x in clamps:
+                c["clamp_names"][x] = c["clamp_names"].get(x, 0) + 1
+        self.jaw_queue.append(out["jaw"])
+        self.jctl.q_target[0] = self.jaw_queue[0]
+        if self.a.sp_log is not None and self.switched is not None:
+            self.rows.append(dict(t=round(t, 2), mode=brain.mode, phase=phase, jaw_goal=self.goal_deg,
+                                  jaw_written_deg=round(self.zero.opening_deg(out["jaw"]), 2),
+                                  jaw_measured_deg=round(self.zero.opening_deg(meas_q), 2), holding=self.holding_now,
+                                  cap_deg=round(cap, 2), contact_deg=round(contact, 2), clamps=clamps,
+                                  head_cmd={n: round(float(commanded[n]), 3) for n in jl.POSE_JOINTS},
+                                  head_meas={n: round(v, 3) for n, v in measured_head.items()},
+                                  body=info.get("sp_body"),
+                                  obj_xyz=[round(float(v), 4) for v in self.d.xpos[self.body]],
+                                  pad_up_xyz=[round(float(v), 4) for v in self.d.site_xpos[self.site["pad_up"]]],
+                                  pad_low_xyz=[round(float(v), 4) for v in self.d.site_xpos[self.site["pad_low"]]],
+                                  obj_contact_n={k: round(v, 3) for k, v in
+                                                 sp_contacts(self.m, self.d, self.ogeom, self.named).items()},
+                                  action_max=None if info.get("action") is None else
+                                  round(max(abs(a) for a in info["action"]), 3)))
+
+    def substep(self):
+        self.jctl.update()
+
+    def snapshot(self, brain):
+        d = self.d
+        f = sp_contacts(self.m, d, self.ogeom, self.named)
+        pinched = f["jaw"] > 0 and f["upper"] > 0
+        lift = float(d.xpos[self.body][2] - self.spawn[2])
+        return dict(pinched=pinched, floor=f["floor"] > 0, lift_m=round(lift, 4),
+                    held=bool(pinched and f["floor"] <= 0 and lift > SP_HELD_LIFT),
+                    object_z_m=round(float(d.xpos[self.body][2]), 4), holding_bit=self.holding(),
+                    jaw_opening_deg=round(self.opening_deg()[0], 2), squeeze_n={k: round(v, 3) for k, v in f.items()},
+                    object_foot_xy=[round(float(v), 4) for v in self.foot_xy(d.xpos[self.body])])
+
+    def observe(self, t, brain, info, tilt, trunk_z):
+        """After the physics of a tick: the grasp and posture numbers."""
+        if self.switched is None:
+            return
+        d, e = self.d, self.ev
+        e["max_tilt"] = max(e["max_tilt"], tilt)
+        e["min_trunk_z"] = round(trunk_z if e["min_trunk_z"] is None else min(e["min_trunk_z"], trunk_z), 4)
+        if info.get("action") is not None:
+            e["max_action"] = round(max(e["max_action"], max(abs(a) for a in info["action"])), 3)
+        if self.done_t is not None and brain.mode != "seepick":
+            return
+        phase = info.get("sp_phase")
+        lip = 0.5 * (d.site_xpos[self.site["lip_up"], 2] + d.site_xpos[self.site["jaw_tip_bottom"], 2])
+        if self.rows and self.rows[-1]["t"] == round(t, 2):
+            pad = 0.5 * (d.site_xpos[self.site["pad_up"]] + d.site_xpos[self.site["pad_low"]])
+            fo = sp_contacts(self.m, d, self.ogeom, self.named)
+            self.rows[-1].update(tilt=round(tilt, 1), lip_z=round(float(lip), 4), pad_z=round(float(pad[2]), 4),
+                                 pad_foot_xy=[round(float(v), 4) for v in self.foot_xy(pad)],
+                                 obj_foot_xy=[round(float(v), 4) for v in self.foot_xy(d.xpos[self.body])],
+                                 obj_z=round(float(d.xpos[self.body][2]), 4), visible=self.visible(),
+                                 obj_force={k: round(v, 3) for k, v in fo.items()},
+                                 beak_floor_n=round(floor_force(self.m, d, self.floor, self.head_geoms), 3))
+        if e["lip_min_m"] is None or lip < e["lip_min_m"]:
+            e["lip_min_m"], e["lip_min_phase"] = round(float(lip), 4), phase
+        ff = floor_force(self.m, d, self.floor, self.head_geoms)
+        if ff > 0:
+            e["beak_floor_ticks"] += 1
+            e["beak_floor_force_max_n"] = round(max(e["beak_floor_force_max_n"], ff), 3)
+        f = sp_contacts(self.m, d, self.ogeom, self.named)
+        # the object's travel is reported three ways: in the foot frame (forward/left, moves with the robot), in the
+        # world (the roll on the floor) and relative to the pad centre (out of the beak); mm
+        pad_c = 0.5 * (d.site_xpos[self.site["pad_up"]] + d.site_xpos[self.site["pad_low"]])
+        where = dict(object_foot_xy=[round(float(v), 4) for v in self.foot_xy(d.xpos[self.body])],
+                     object_world_xy=[round(float(v), 4) for v in d.xpos[self.body][:2]],
+                     object_rel_pad_xy=[round(float(v), 4) for v in self.foot_xy(d.xpos[self.body]) - self.foot_xy(pad_c)])
+
+        def travel(since):
+            out = {}
+            for k, name in (("object_foot_xy", "foot"), ("object_world_xy", "world"), ("object_rel_pad_xy", "rel_pad")):
+                dxy = np.asarray(where[k]) - np.asarray(since[k])
+                out[name + "_mm"] = dict(x=round(float(dxy[0]) * 1000, 1), y=round(float(dxy[1]) * 1000, 1),
+                                         norm=round(float(np.linalg.norm(dxy)) * 1000, 1))
+            return out
+
+        if (f["jaw"] > 0 or f["upper"] > 0) and e["first_contact"] is None:
+            e["first_contact"] = dict(t_from_switch=round(t - self.switched, 2), phase=phase,
+                                      which="both" if f["jaw"] > 0 and f["upper"] > 0 else ("jaw" if f["jaw"] > 0 else "upper"),
+                                      jaw_measured_deg=round(self.opening_deg()[0], 2), **where)
+        if f["jaw"] > 0 and f["upper"] > 0 and e["first_pinched_t"] is None:
+            e["first_pinched_t"] = round(t - self.switched, 2)
+            if e["first_contact"] is not None:
+                e["push_contact_to_pinch_mm"] = dict(s=round(t - self.switched - e["first_contact"]["t_from_switch"], 2),
+                                                     **travel(e["first_contact"]))
+        if phase is not None and e["close_at"] is not None and e["close_window"] is None and \
+                phase >= walk_brain.SP_JAW["close_end"]:
+            e["close_window"] = dict(phase=phase, pinched=f["jaw"] > 0 and f["upper"] > 0,
+                                     jaw_measured_deg=round(self.opening_deg()[0], 2), **where, **travel(e["close_at"]))
+        if self.holding_now and e["first_holding_bit_t"] is None:
+            e["first_holding_bit_t"] = round(t - self.switched, 2)
+        pinched = f["jaw"] > 0 and f["upper"] > 0
+        # the training success measure (seeing_audit.SUCCESS_STEPS): grasp_held pays (pinched, off the floor, lifted
+        # more than 1 cm, phase >= TIMELINE held_from 0.44) on at least 20 ticks before the hand-back
+        if phase is not None and phase >= SP_HELD_FROM and pinched and f["floor"] <= 0 and \
+                float(d.xpos[self.body][2] - self.spawn[2]) > SP_HELD_LIFT:
+            e["held_ticks"] = e.get("held_ticks", 0) + 1
+        if self.holding_now and not pinched:
+            e["holding_bit_without_pinch_ticks"] = e.get("holding_bit_without_pinch_ticks", 0) + 1
+        if pinched and not self.holding_now:
+            e["pinch_without_holding_bit_ticks"] = e.get("pinch_without_holding_bit_ticks", 0) + 1
+        if phase is not None and phase >= walk_brain.SP_JAW["close_start"] and e["close_at"] is None:
+            pad = pad_c
+            e["close_at"] = dict(t_from_switch=round(t - self.switched, 2), phase=phase,
+                                 pad_xy_err_m=round(float(np.linalg.norm(pad[:2] - d.xpos[self.body][:2])), 4),
+                                 pad_z_m=round(float(pad[2]), 4),
+                                 pad_foot_xy=[round(float(v), 4) for v in self.foot_xy(pad)],
+                                 pad_root0_xy=self.root0_xy(pad), object_root0_xy=self.root0_xy(d.xpos[self.body]),
+                                 jaw_measured_deg=round(self.opening_deg()[0], 2), tilt=round(tilt, 1),
+                                 body_slots=info.get("sp_body"), **where)
+
+    def summary(self, brain):
+        out = dict(object=dict(self.obj, yaw_deg=getattr(self, "obj_yaw_deg", None)), offset_m=list(self.a.sp_offset),
+                   landing_xy=list(SP_LANDING_XY), spawn_world=None if self.spawn is None else [round(float(v), 4) for v in self.spawn],
+                   camera=dict(self.cam_cfg, **self.cam.n, last_delivery_from_switch_s=None if self.cam.last_delivery_t is None
+                               else round(self.cam.last_delivery_t - self.switched, 2),
+                               last_visible_from_switch_s=None if self.cam.last_visible_t is None
+                               else round(self.cam.last_visible_t - self.switched, 2)),
+                   jaw=dict(kp=self.a.sp_jaw_kp, goal_current_ma=self.a.sp_jaw_current, cap_applied=not self.a.sp_no_cap,
+                            beak_priority=bool(self.a.sp_beak_priority), close_on_contact=bool(self.a.sp_close_on_contact),
+                            beak_mu=self.a.sp_beak_mu, **self.model_report),
+                   switched_at=self.switched, handback_at=self.done_t,
+                   handback_from_switch_s=None if self.done_t is None or self.switched is None else round(self.done_t - self.switched, 2),
+                   events=self.ev, jaw_cap=self.cap, at_handback=self.state.get("handback"))
+        if self.switched is not None:
+            out["at_end"] = self.snapshot(brain)
+        return out
+
+
+class SpTrace:
+    """--sp-trace FILE: per seepick tick the 61 obs and 14 actions the policy saw and gave (captured at the ONNX call),
+    the goals written, the true joint positions after the tick's physics (Brain order), trunk height and tilt, lip and
+    pad heights, pad and object in the foot frame, beak-floor force and object contacts. Same fields as
+    microduck_rl-grasp cmu/grasp/gap_trace.py writes from the training env (gap study, 2026-10-27)."""
+
+    def __init__(self, brain, path):
+        self.f = open(path, "w")
+        self.last = None
+        sess = brain.sessions["seepick"]
+        tracer = self
+
+        class Wrapped:
+            def get_inputs(self):
+                return sess.get_inputs()
+
+            def get_modelmeta(self):
+                return sess.get_modelmeta()
+
+            def run(self, out, feed):
+                res = sess.run(out, feed)
+                tracer.last = (np.asarray(list(feed.values())[0])[0].tolist(), np.asarray(res[0])[0].tolist())
+                return res
+
+        brain.sessions["seepick"] = Wrapped()
+
+    @staticmethod
+    def box_min_z(m, d, name):
+        """Lowest corner of a box geom (m, world z)."""
+        g = m.geom(name).id
+        R, c, h = d.geom_xmat[g].reshape(3, 3), d.geom_xpos[g], m.geom_size[g]
+        return round(min(float((c + R @ (np.array([sx, sy, sz]) * h))[2]) for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)), 4)
+
+    @staticmethod
+    def head_contacts(m, d, sp):
+        """Every active contact of a head or jaw geom: [geom, other geom, distance mm, normal force N]."""
+        out, f6 = [], np.zeros(6)
+        for i in range(d.ncon):
+            g1, g2 = d.contact[i].geom1, d.contact[i].geom2
+            if g1 in sp.head_geoms or g2 in sp.head_geoms:
+                g, o = (g1, g2) if g1 in sp.head_geoms else (g2, g1)
+                mujoco.mj_contactForce(m, d, i, f6)
+                out.append([m.geom(g).name or f"g{g}", m.geom(o).name or f"g{o}", round(float(d.contact[i].dist) * 1000, 2),
+                            round(float(f6[0]), 3)])
+        return out
+
+    def row(self, t, brain, info, goal, m, d, sp, qa, z0, names, tilt, tz):
+        if brain.mode != "seepick" or info.get("sp_phase") is None or self.last is None or info.get("action") is None:
+            return
+        obs, act = self.last
+        self.last = None
+        order = walk_brain.OBSERVATION_DOF_ORDER
+        qd = {n: float(d.qpos[qa[k]] - z0[k]) for k, n in enumerate(names)}
+        s = sp.site
+        pad = 0.5 * (d.site_xpos[s["pad_up"]] + d.site_xpos[s["pad_low"]])
+        f = sp_contacts(m, d, sp.ogeom, sp.named)
+        self.f.write(json.dumps(dict(
+            t=round(t, 3), phase=info["sp_phase"], obs=[round(v, 4) for v in obs], action=[round(v, 4) for v in act],
+            target=None if goal is None else [round(float(goal[n]), 4) for n in order],
+            q=[round(qd[n], 4) for n in order], jaw_rad=round(float(d.qpos[sp.jq]), 4),
+            trunk_z=round(tz, 4), tilt_deg=round(tilt, 2),
+            lip_up_z=round(float(d.site_xpos[s["lip_up"], 2]), 4),
+            lip_low_z=round(float(d.site_xpos[m.site("lip_low").id, 2]), 4),
+            jaw_tip_bottom_z=round(float(d.site_xpos[s["jaw_tip_bottom"], 2]), 4), pad_z=round(float(pad[2]), 4),
+            pad_foot_xy=[round(float(v), 4) for v in sp.foot_xy(pad)],
+            obj_foot_xy=[round(float(v), 4) for v in sp.foot_xy(d.xpos[sp.body])],
+            obj_z=round(float(d.xpos[sp.body][2]), 4),
+            beak_floor_n=round(floor_force(m, d, sp.floor, sp.head_geoms), 3),
+            jaw_contact=f["jaw"] > 0, upper_contact=f["upper"] > 0, pinched=f["jaw"] > 0 and f["upper"] > 0,
+            head_contacts=self.head_contacts(m, d, sp),
+            box_min_z={g: self.box_min_z(m, d, g) for g in ("upper_beak_collision", "jaw_plate_collision", "head_rear_collision")},
+            floor_dist_mm={g: round(1000 * mujoco.mj_geomDistance(m, d, m.geom(g).id, sp.floor, 0.05, None), 2)
+                           for g in ("upper_beak_collision", "jaw_plate_collision")})) + "\n")
+        self.f.flush()
+
+
+# The body-BVH refit now runs inside evaluate_delay.load for every caller (2026-10-29,
+# bvh-refit-baselines-20261029/README.md). --bvh-refit stays an accepted flag so older command lines run; it repeats
+# the refit, which finds nothing to change ("bvh refit: {}").
+refit_body_bvh = ev.refit_body_bvh
+
+
 def foot_load(m, d, floor, foot_geoms):
     """Summed normal force (N) of the foot-floor contacts."""
     f6, tot = np.zeros(6), 0.0
@@ -172,7 +814,21 @@ def run(args):
     if args.com_x:
         c0["mass_parts"] = [dict(body="trunk_base", mass_kg=-0.05, position_m=[0, 0, 0.0]),
                             dict(body="trunk_base", mass_kg=0.05, position_m=[args.com_x / 1000 * 0.76 / 0.05, 0, 0.0])]
+    sp_rng = np.random.default_rng([args.seed, 7]) if args.sp_at is not None else None
+    sp_obj = sp_object_draw(args, sp_rng) if args.sp_at is not None else None
+    sp_model = sp_install_model_hook(args, sp_obj) if args.sp_at is not None else None
     m, d, c, names, bam = ev.load(c0)
+    if args.bvh_refit:  # no-op since ev.load refits (2026-10-29); a second refit must find nothing to change
+        print("bvh refit:", json.dumps(refit_body_bvh(m)), flush=True)
+    if sp_model is not None:  # the training env's contact solver settings on request (gap study 2026-10-29)
+        if args.sp_cone == "elliptic":
+            m.opt.cone = mujoco.mjtCone.mjCONE_ELLIPTIC
+        if args.sp_impratio is not None:
+            m.opt.impratio = args.sp_impratio
+        sp_model["contact"] = dict(cone=args.sp_cone, impratio=float(m.opt.impratio), bvh_refit=True)  # ev.load refits
+        if args.sp_cone != "elliptic" or (args.sp_impratio or 1.0) < 10:
+            print("seepick: WITHOUT --sp-cone elliptic --sp-impratio 10 the sim is not the one the policy was trained in "
+                  "(a pinched object creeps out of the beak): seepick-gap-20261029/README.md", flush=True)
     if args.bam_friction_scale != 1.0:  # sim-ID knob (2026-10-17): scale BAM's stiction/load-friction budget, as the training env's friction DR does
         for pname in ("friction_base", "friction_stribeck", "load_friction_base", "load_friction_stribeck", "load_friction_motor",
                       "load_friction_external", "load_friction_motor_stribeck", "load_friction_external_stribeck"):
@@ -232,6 +888,14 @@ def run(args):
         gp_rise_at = gp_reached + args.gp_hold_s
         gp_done_at = gp_rise_at + (1.0 - args.gp_phase) * 4.0 + 0.5
         T = max(T, gp_done_at + 3.0)
+    sp = None
+    if args.sp_at is not None:
+        # seeing pick: stand61 until sp_at, then {"mode": "seepick", "object": ...} until the phase reaches
+        # walk_wired.SP_DONE_PHASE, then walk mode at zero command (stand61) for --sp-after s
+        sp = SeePick(m, d, args, sp_obj, sp_rng, sp_model)
+        args.vx = 0.0
+        T = max(T, args.sp_at + walk_brain.SP_PERIOD * SP_DONE_PHASE / (1.0 - args.drop) + 0.3 + args.sp_after)
+    sp_trace = SpTrace(brain, args.sp_trace) if args.sp_trace and sp is not None else None
     mouth = m.site("mouth_tip").id
     feet = [m.geom(g).id for g in ("left_foot_collision", "right_foot_collision")]
     gp = dict(mouth_min_z=None, mouth_at_min=None, pose_at_min=None, tilt_at_min=None, max_tilt=0.0, phase_at_min=None)
@@ -285,6 +949,8 @@ def run(args):
         if not sq:
             sq.extend([sample] * sq.maxlen)
         sq.append(sample)
+        if sp is not None:
+            sp.sense()
         # --imu-hz holds the last IMU sample between samples (a sensor stress case). The robot's current IMU rate lives in microduck-sim/CURRENT-STATE.json, never in this comment
         imu_new = args.imu_hz <= 0 or tick == 0 or int(t * args.imu_hz) != int((t - 0.02) * args.imu_hz)
         if imu_new:
@@ -346,6 +1012,8 @@ def run(args):
                     if quack_ok[qt]:
                         want["head"] = quack_head_pose({"head_roll": args.quack_roll, "head_yaw": args.quack_yaw,
                                                         "head_pitch": args.quack_pitch}, t - qt, brain)
+        if sp is not None and sp.active(t) and guard["stop"] is None:
+            want = sp.want(t)
         if stop_at is not None and t >= stop_at:
             want = stop_command(True, brain.mode)
             if args.stop_ramp is not None and t - stop_at >= args.stop_ramp:
@@ -403,7 +1071,8 @@ def run(args):
                                                       for k, n in enumerate(walk_brain.OBSERVATION_DOF_ORDER)})
                         brain.goal = dict(goal)
                         guard["clipped"] += 1
-                max_tilt = {"groundpick": MAX_TILT_GP_DEG, "sit": MAX_TILT_SIT_DEG}.get(brain.mode, MAX_TILT_DEG)
+                max_tilt = {"groundpick": MAX_TILT_GP_DEG, "seepick": MAX_TILT_GP_DEG,
+                            "sit": MAX_TILT_SIT_DEG}.get(brain.mode, MAX_TILT_DEG)
                 if why is None and info["gb"][2] > -math.cos(math.radians(max_tilt)):
                     if args.hold and est.e > 0.3:
                         guard["tilt_skipped"] += 1
@@ -411,7 +1080,7 @@ def run(args):
                         why = f"body tilt over {max_tilt} deg"
                 if why is not None:
                     guard["stop"], guard["why"] = round(t, 2), why
-                    guard["stop_to"] = "monitor" if brain.mode in ("groundpick", "sit") else "stand"
+                    guard["stop_to"] = "monitor" if brain.mode in ("groundpick", "seepick", "sit") else "stand"
                     if guard["stop_to"] == "monitor":
                         brain.hold_head()  # walk_wired.py: the legs hold their goals, the head where it is
                     if guard["last_goal"] is not None:
@@ -419,6 +1088,8 @@ def run(args):
                         brain.goal = dict(guard["last_goal"])
             if goal is not None:
                 guard["last_goal"] = dict(goal)
+        if sp is not None:
+            sp.after_tick(t, brain, info)  # walk_wired: jaw goal, hand-back, jaw.write under jaw_limits
         if info.get("kick_done") is not None and kick_done_t is None:
             kick_done_t = round(t, 2)  # walk_wired.py rewrites the control file to walk at zero command here
         if brain.mode == "kick" and kick_start_t is None:
@@ -457,6 +1128,8 @@ def run(args):
         for k_sub in range(sub):
             hand.apply(t + k_sub * m.opt.timestep)
             c.update()
+            if sp is not None:
+                sp.substep()
             mujoco.mj_step(m, d)
         load_now = min(1.0, max(0.0, foot_load(m, d, floor, foot_geoms) / mg))
         tau_legs = float(sum(abs(d.actuator_force[act_id[n]]) for n in leg_names))
@@ -488,6 +1161,10 @@ def run(args):
         maxtilt = max(maxtilt, tilt)
         tz = float(d.xpos[trunk, 2])
         hist.append((round(t, 2), tilt, float(np.linalg.norm(d.sensordata[gyro_adr:gyro_adr + 3])), tz))
+        if sp is not None:
+            sp.observe(t, brain, info, tilt, tz)
+        if sp_trace is not None:
+            sp_trace.row(t, brain, info, goal, m, d, sp, qa, z0, names, tilt, tz)
         if args.kick_at is not None:
             fz = float(d.geom_xpos[kick_geom, 2])
             if kick_start_t is None:
@@ -548,9 +1225,9 @@ def run(args):
                 path_xy = xy
         if tick % 25 == 0:
             rows.append((round(t, 1), brain.mode, info["gb"][0], round(float(d.xpos[trunk, 0]), 3), round(tilt, 1)))
-        low = brain.mode in ("groundpick", "sit")
+        low = brain.mode in ("groundpick", "seepick", "sit")
         carried = hand.active(t)  # the hand holds it up: a tilt is the hang, not a fall
-        if (tilt > (80 if low else 45) and not carried) or d.xpos[trunk, 2] < (0.03 if brain.mode == "sit" else 0.04):
+        if (tilt > (80 if low else 45) and not carried) or d.xpos[trunk, 2] < (0.03 if brain.mode in ("sit", "seepick") else 0.04):
             fell, fall_dir = round(t, 2), _lean_dir(R)
             break
     if gp_at is not None:
@@ -592,6 +1269,10 @@ def run(args):
         sitr = dict(sit, at=args.sit_at, unsit_at=args.unsit_at, stance_tilt=base,
                     peak_tilt=round(max(h[1] for h in seg), 1) if seg else None, stable_after_s=stable_s,
                     end_trunk_z=round(hist[-1][3], 4) if hist else None)
+    if sp is not None and args.sp_log:
+        with open(args.sp_log, "w") as f:
+            for r in sp.rows:
+                f.write(json.dumps(r) + "\n")
     holdr = hold_summary(args, hrows, hand, guard, stable_after, leg_names) if scen else None
     if holdr is not None and args.wired_hold:
         g0 = args.grip_at
@@ -603,6 +1284,9 @@ def run(args):
                 kick=kick, sit=sitr, hold=holdr, quack_head_ran={str(k): v for k, v in quack_ok.items()},
                 quack_head_reached={str(k): {n: round(v, 3) for n, v in r.items()} for k, r in quack_reach.items()},
                 quack_peak_tilt={str(k): round(max(h[1] for h in window(k, k + QUACK_HEAD_S + 1.0)), 1) for k in quack_ok},
+                seepick=None if sp is None else dict(sp.summary(brain), guard=dict(
+                    wired=bool(args.wired_guards), stop_at=guard["stop"], why=guard["why"], clipped_ticks=guard["clipped"],
+                    hard_max_action=HARD_MAX_ACTION, max_tilt_deg=MAX_TILT_GP_DEG)),
                 groundpick=None if gp_at is None else dict(gp, at=gp_at, phase=args.gp_phase, hold_s=args.gp_hold_s,
                                                            done_at=round(gp_done_at, 2)),
                 head=None if not (args.head_yaw or args.head_pitch is not None) else dict(head_yaw=args.head_yaw, head_pitch=args.head_pitch,
@@ -829,7 +1513,45 @@ def main():
     ap.add_argument("--no-settle", action="store_true", help="with --wired-hold: keep walk61 after a grip stop (GripStop.settle off)")
     ap.add_argument("--wired-guards", action="store_true", help="walk_wired.py's walk-mode stops (3.0 rad hard limit, 30 deg tilt)")
     ap.add_argument("--until", type=float, default=0.0, help="s; run at least this long")
+    ap.add_argument("--bvh-refit", action="store_true", help="accepted for older command lines, no effect: evaluate_delay.load refits the collision bounding volumes itself since 2026-10-29 (prints the empty change set)")
     ap.add_argument("--tick-log", default=None, help="write one JSON row per 20 ms tick (q, dq, gb, gyro_body, action) like /tmp/duck_wired_log_*.jsonl")
+    sp = ap.add_argument_group("seeing pick (walk_brain mode seepick, seepick61.onnx)")
+    sp.add_argument("--sp-at", type=float, default=None, help="s; switch stand61 to seepick here (forces vx 0)")
+    sp.add_argument("--sp-offset", type=float, nargs=2, default=[0.0, 0.0], metavar=("DX", "DY"),
+                    help="m; object offset from the trained landing spot SP_LANDING_XY in the foot frame")
+    sp.add_argument("--sp-shape", choices=("ball", "box", "cylinder"), default="ball")
+    sp.add_argument("--sp-half", type=float, nargs=3, default=None, metavar=("HX", "HY", "HZ"), help="m; exact half extents (overrides the draw)")
+    sp.add_argument("--sp-size", type=float, default=None, help="m; largest horizontal width (default: drawn from the training range)")
+    sp.add_argument("--sp-mass", type=float, default=None, help="g (default: drawn from 0.5-10 g)")
+    sp.add_argument("--sp-friction", type=float, default=None, help="object sliding friction (default: drawn from 0.35-1.1)")
+    sp.add_argument("--sp-object-yaw", type=float, default=None, help="deg (default: drawn)")
+    sp.add_argument("--sp-beak-mu", type=float, default=0.01,
+                    help="beak box friction; MuJoCo takes the larger of the pair, so the default 0.01 makes the beak-object "
+                         "friction the object's own (the training env's 1.5 overrode every object friction)")
+    sp.add_argument("--sp-camera-delay", type=float, default=None, help="s capture to policy (default: drawn from 0.1-0.3)")
+    sp.add_argument("--sp-camera-drop", type=float, default=None, help="per-frame detection drop probability (default: drawn from 0-0.3)")
+    sp.add_argument("--sp-camera-bias", type=float, nargs=2, default=None, metavar=("BX", "BY"), help="m (default: drawn within +-1 cm)")
+    sp.add_argument("--sp-camera-noise", type=float, default=SP_CAM_NOISE, help="m per frame (training 0.004)")
+    sp.add_argument("--sp-no-stalls", action="store_true", help="no camera stalls (training: 2 %% of frames start a 0.5-1.5 s stall)")
+    sp.add_argument("--sp-jaw-kp", type=int, default=jaw_ctl.KP_JAW, help="ID15 position P gain (walk_wired --jaw-kp)")
+    sp.add_argument("--sp-jaw-current", type=float, default=float(jaw_ctl.GOAL_CURRENT_MA), help="mA; ID15 Goal Current in mode 5")
+    sp.add_argument("--sp-holding", choices=("runtime", "stopped"), default="stopped",
+                    help="holding bit: jaw_ctl.holding (stopped: open >= GRIP_MIN_DEG and still), or the rule before 2026-10-27 without the still check (runtime)")
+    sp.add_argument("--sp-no-cap", action="store_true", help="do not apply jaw_limits to the jaw goal (it is still evaluated)")
+    sp.add_argument("--sp-beak-priority", action="store_true",
+                    help="beak boxes at MuJoCo priority 1: --sp-beak-mu is the beak-object friction whatever the object's "
+                         "(a lined lip: inner tube about 1.1, bare PLA 0.35-0.5)")
+    sp.add_argument("--sp-close-on-contact", action="store_true",
+                    help="start the trained close (0.34->0.40) at the first beak-object touch when it comes earlier "
+                         "(study of the close timing; the deployed timeline is walk_brain.SP_JAW)")
+    sp.add_argument("--sp-trace", default=None, help="write SpTrace rows (61 obs, 14 actions, goals, joints, beak) per seepick tick")
+    sp.add_argument("--sp-cone", choices=("pyramidal", "elliptic"), default="pyramidal",
+                    help="MuJoCo friction cone of the whole model (the as-built MJCF compiles pyramidal; the training env runs elliptic)")
+    sp.add_argument("--sp-impratio", type=float, default=None,
+                    help="MuJoCo impratio (the as-built MJCF compiles 1; the training env runs 10, its sticky friction: "
+                         "microduck_ground_grasp_env_cfg, a pinched block creeps out of the wedge at pyramidal / 1)")
+    sp.add_argument("--sp-after", type=float, default=3.0, help="s simulated after the hand-back to stand61")
+    sp.add_argument("--sp-log", default=None, help="JSONL: per tick jaw goal/written/measured, cap, head pose, body slots")
     args = ap.parse_args()
     global tick_log
     tick_log = open(args.tick_log, "w") if args.tick_log else None
@@ -852,4 +1574,6 @@ def main():
 
 
 if __name__ == "__main__":
+    import sim_host_guard
+    sim_host_guard.one_sim_on_laptop("brain_sim_check")
     main()

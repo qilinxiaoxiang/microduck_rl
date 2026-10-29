@@ -10,7 +10,7 @@ Close the launcher window to keep playing. Reopen Microduck to switch scenes. Co
 
 ## Shut down the robot brain
 
-**优雅关机 · A7Z 大脑** runs [duck-shutdown.sh](duck-shutdown.sh) against the `a7z` SSH alias. Shutdown has priority: it first stops every Python program radxa runs on the A7Z (SIGTERM, SIGKILL after 3 s, then `sync` so logs are on disk), refuses only if one survives that, then sends `sudo -n systemctl poweroff`, and reports progress below the button. Green **已关机** appears only after the A7Z stops answering both ping and SSH for five seconds in a row; orange means the A7Z was already unreachable, so no command was sent; red means the shutdown did not complete. The servo rail is unaffected. Power the A7Z again to restart it.
+**优雅关机 · A7Z 大脑** runs [duck-shutdown.sh](duck-shutdown.sh) against the `a7z` SSH alias. Shutdown has priority: it first stops every Python process radxa runs on the A7Z, matched by process name (SIGTERM, SIGKILL after 3 s, then `sync` so logs are on disk), and refuses only if a robot program survives that; the monitor's own viewers (duck-telemetry, duck_sense.py, the camera window's `a7z_cam.py --mjpeg`) do not count, since an open page restarts them and poweroff ends them, then sends `sudo -n systemctl poweroff`, and reports progress below the button. Green **已关机** appears only after the A7Z stops answering both ping and SSH for five seconds in a row; orange means the A7Z was already unreachable, so no command was sent; red means the shutdown did not complete. The servo rail is unaffected. Power the A7Z again to restart it.
 
 ## Watch the real robot
 

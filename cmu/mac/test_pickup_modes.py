@@ -108,7 +108,7 @@ class PickupModes(WiredBattery):
                     (2.0, write_cmd(cmd_path, {"mode": "monitor", "jaw": 40})),
                     (3.0, write_cmd(cmd_path, {"mode": "monitor", "jaw_torque": False}))]
         text, last_log, w, saved = self.run_jaw({"mode": "monitor", "jaw": "open"}, hooks, end=4.0, cal=cal)
-        self.assertIn("jaw torque on at tick 1500 (0.0 deg open), mode 5, goal current 100 mA", text)
+        self.assertIn(f"jaw torque on at tick 1500 (0.0 deg open), mode 5, goal current {jaw_ctl.GOAL_CURRENT_MA} mA", text)
         self.assertEqual(w.read(JAW, jaw_ctl.ADDR_OPERATING_MODE, 1), 5)
         self.assertEqual(w.read(JAW, jaw_ctl.ADDR_GOAL_CURRENT, 2), jaw_ctl.GOAL_CURRENT_MA)
         self.assertEqual(w.read(JAW, jaw_ctl.ADDR_CURRENT_LIMIT, 2), jaw_ctl.CURRENT_LIMIT_MA)
@@ -141,6 +141,41 @@ class PickupModes(WiredBattery):
         self.assertIn("jaw torque on", text)
         self.assertTrue(last_log["jaw_holding"])
         self.assertAlmostEqual(last_log["jaw_deg"], 100 / TICKS_PER_DEG, places=1)
+
+    def test_seepick_runs_the_policy_with_the_object_and_drives_the_jaw(self):
+        cal = {"closed_tick": 1500, "open_tick": 1700}
+        obj = {"x": 0.1, "y": -0.01, "size": 0.012, "t": 1e9 - 0.2}   # FakeClock wall time starts at 1e9
+        text, last_log, w, saved = self.run_jaw({"mode": "seepick", "object": obj}, lambda d, p: [], end=6.0, cal=cal)
+        self.assertIn("mode -> seepick", text)
+        sp = [ln for ln in self.log_lines if ln.get("policy") == "seepick"]
+        self.assertTrue(sp, "the seeing-pick policy never ran")
+        self.assertEqual(sp[0]["kp"], wb.KP_RL)
+        body = sp[0]["sp_body"]
+        self.assertEqual(body[:3], [0.1, -0.01, 0.012])
+        self.assertAlmostEqual(body[3], sp[0]["t"] - obj["t"], delta=0.02)   # age from the capture time (log t is after the tick)
+        # the jaw follows the trained timeline: open (22 deg) at phase 0.2, grip after 0.40
+        mid = next(ln for ln in sp if ln["sp_phase"] >= 0.2)
+        self.assertAlmostEqual(mid["sp_jaw"], wb.SP_JAW_OPEN_DEG)
+        self.assertEqual(next(ln for ln in sp if ln["sp_phase"] >= 0.41)["sp_jaw"], "grip")
+        goals = [v for addr, i, v in w.log if i == JAW and addr == jaw_ctl.ADDR_GOAL]
+        self.assertIn(1500 + round(-3 * TICKS_PER_DEG), goals)   # the grip squeeze
+        self.assertIn("STOP -> zero command: seeing pick complete", text)
+        self.assertEqual(last_log["mode"], "walk")
+        self.assertEqual(last_log["jaw_goal"], "grip")   # still squeezing after the hand-back
+
+    def test_seepick_jaw_timeline_and_body_aging(self):
+        self.assertEqual(wb.seepick_jaw(0.0), wb.SP_JAW_REST_DEG)
+        self.assertAlmostEqual(wb.seepick_jaw(0.06), wb.SP_JAW_OPEN_DEG / 2)
+        self.assertAlmostEqual(wb.seepick_jaw(0.37), wb.SP_JAW_OPEN_DEG / 2)
+        self.assertEqual(wb.seepick_jaw(0.40), "grip")
+        b = wb.seepick_body([0] * 6, None, False, 10.0)
+        self.assertEqual(b[3], wb.SP_AGE_MAX)   # never seen: oldest
+        b = wb.seepick_body(b, {"x": 0.09, "y": 0.0, "size": 0.01, "t": 9.8}, True, 10.0)
+        self.assertAlmostEqual(float(b[3]), 0.2, places=5)
+        self.assertEqual(float(b[4]), 1.0)
+        b = wb.seepick_body(b, None, False, 10.02)
+        self.assertAlmostEqual(float(b[3]), 0.22, places=5)   # the held measurement ages
+        self.assertAlmostEqual(float(b[0]), 0.09, places=5)
 
     def test_uncalibrated_jaw_command_is_refused_once(self):
         text, last_log, w, saved = self.run_jaw({"mode": "monitor", "jaw": "open"}, lambda d, p: [], end=1.0)

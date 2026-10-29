@@ -33,11 +33,15 @@ CAL_PATH = os.path.join(PI_DIR, "jaw_calibration.json")
 ADDR_OPERATING_MODE, ADDR_CURRENT_LIMIT, ADDR_TORQUE, ADDR_P_GAIN = 11, 38, 64, 84
 ADDR_GOAL_CURRENT, ADDR_GOAL, ADDR_PRESENT_CURRENT, ADDR_PRESENT_POS = 102, 116, 126, 132
 MODE_CURRENT_POSITION = 5
-GOAL_CURRENT_MA = 100     # grip force limit; the phase 1 runtime accepted 20..150 mA (XL330 1 mA per LSB)
+GOAL_CURRENT_MA = 150     # grip force limit at the EEPROM ceiling (Shawn 2026-10-29, D-031): in the corrected seeing-pick
+                          # rehearsal 100 mA held 24/54 and 150 mA 49/54, ball 5 -> 23 of 27 (seepick-gap-20261029/README.md);
+                          # the phase 1 runtime accepted 20..150 mA (XL330 1 mA per LSB); 100 mA held a finger 2026-10-21
 CURRENT_LIMIT_MA = 150    # EEPROM Current Limit, the ceiling Goal Current may use
 KP_JAW = 200              # position P gain in mode 5; 400 buzzed audibly on the unloaded jaw (2026-10-16)
 SQUEEZE_DEG = -3.0        # "grip" aims this far past closed; the servo stops on the object or at the closed stop
 GRIP_MIN_DEG = 3.0        # measured opening at or above this while gripping = something is between the bills
+STOPPED_DEG = 0.3         # and the jaw moved less than this per read over the last two reads (15 deg/s at 50 Hz):
+                          # a jaw still sweeping shut on nothing is not holding (seepick rehearsal 2026-10-27)
 OPEN_DEG = 20.0           # "open" shortcut; the pose cap may lower it
 TICK = 2 * math.pi / 4096
 POSE_JOINTS = jl.POSE_JOINTS  # neck_pitch, head_pitch, head_yaw, head_roll
@@ -59,7 +63,7 @@ class JawCtl:
         self.zero = None
         self.on = False            # jaw torque enabled by this process
         self.goal_deg = None       # wanted opening (deg) or "grip"; None = nothing written
-        self.last_tick = None      # latest Present Position
+        self._ticks = []           # the last three Present Position reads, newest last (last_tick)
         self.last_goal_tick = None
         self.clamps = []
         self.mode_checked = None
@@ -96,6 +100,16 @@ class JawCtl:
             raise ValueError(f"{e}; both marks are saved, move the beak and mark again") from None
         return self.cal
 
+    @property
+    def last_tick(self):
+        """Latest Present Position (walk_wired sets it on every read; None until the first)."""
+        return self._ticks[-1] if self._ticks else None
+
+    @last_tick.setter
+    def last_tick(self, tick):
+        if tick is not None:
+            self._ticks = self._ticks[-2:] + [tick]
+
     def opening_deg(self, tick=None):
         tick = self.last_tick if tick is None else tick
         if tick is None or self.zero is None:
@@ -115,9 +129,13 @@ class JawCtl:
         return hw_rad_to_tick(out["jaw"]), clamps
 
     def holding(self):
-        """True while a grip command stopped short of the closed reference (an object between the bills)."""
+        """True while a grip command stopped short of the closed reference (an object between the bills): the jaw
+        at least GRIP_MIN_DEG open and still (under STOPPED_DEG per read over the last two reads)."""
         deg = self.opening_deg()
-        return self.goal_deg == "grip" and deg is not None and deg >= GRIP_MIN_DEG
+        if self.goal_deg != "grip" or deg is None or deg < GRIP_MIN_DEG or len(self._ticks) < 3:
+            return False
+        d = [self.opening_deg(t) for t in self._ticks]
+        return max(abs(d[1] - d[0]), abs(d[2] - d[1])) < STOPPED_DEG
 
     # --- bus access through walk_wired.Link (sync_read / sync_write on the shared port) ---------------------------
     @staticmethod

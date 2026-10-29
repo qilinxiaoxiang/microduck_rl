@@ -24,6 +24,13 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
                                             0.375..0.425 is the lowest pose (mouth tip near the floor), 1.0
                                             rises and rests standing. walk_wired.py returns to walk mode
                                             (stand61) once the rise is complete.
+  {"mode": "seepick", "object": {"x": 0.10, "y": 0.0, "size": 0.012, "t": 1793000000.0}}
+                                            the seeing pick (seepick61.onnx, cmu/grasp seeing-pick policy) at KP 200:
+                                            the phase runs 0 -> 1 in 4 s as in training; body slots 55..60 carry the
+                                            object as the camera last saw it (foot frame m, size m, capture time t
+                                            in time.time() seconds, given here as age), the jaw's holding bit and 0.
+                                            The jaw follows the trained mouth timeline (SP_JAW below); walk_wired.py
+                                            drives it, feeds the holding bit and returns to stand61 after the rise.
   {"mode": "kick", "foot": "left", "id": 7} Pollen's ball kick (kick_left61 / kick_right61.onnx), one shot per new id
                                             and only from stand or walk mode: KICK_TICKS policy ticks (0.5 s) with an
                                             all-zero command, then walk mode at zero command (stand61). The action
@@ -33,8 +40,12 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
   {"mode": "sit"}                           Pollen's sitstand policy (sitstand61.onnx) from stand or walk mode (or
                                             from monitor mode on a robot already seated: straight to the seat): the
                                             posture flag in command slot vx is 0 for SIT_PREP_S, then 1 (sit). Any
-                                            other command stands it back up first: flag 0 for UNSIT_S (requests during
-                                            the SIT_SETTLE_S glide into the seat wait for it), then that command runs.
+                                            other command stands it back up first (requests during the SIT_SETTLE_S
+                                            glide into the seat wait for it): flag 0 until the robot is up (both knees
+                                            under SIT_KNEE_MIN, pitch rate under RISE_QUIET_RATE and the trunk within
+                                            RISE_UPRIGHT_DEG, all for RISE_UP_S), then that command runs. A rise
+                                            not up after RISE_GIVEUP_S sits back down (flag 1, "sit: RISE FAILED")
+                                            and stays seated until {"mode": "sit"} re-arms it.
                                             {"mode": "monitor"} holds the last goals at once; after a guard trip
                                             the head joints hold where they are (hold_head).
 
@@ -77,6 +88,28 @@ MAX_AGE = 0.040  # compensation and the policy were validated up to 40 ms sample
 # close to the ground as the policy dares without touching; it was trained without a jaw joint or an object.
 GP_PERIOD = 4.0
 GP_REST_PHASE = 0.80
+# Seeing pick (seepick61.onnx, made by seepick_model.py from a microduck_rl cmu/grasp candidate; task
+# Mjlab-SeeingPick-FromPick-MicroDuck-CMU-Plugged): the ground-pick phase command over the same 4 s period, and the body
+# slots [x, y, size, age, holding, 0] (cmu_seeing_pick_env_cfg.seeing_object_command): the object in the foot frame
+# (below the trunk origin, x along the heading), its largest width, seconds since that camera frame was captured
+# (training: 0.1-0.3 s camera delay, 10 fps, capped at SP_AGE_MAX), and 1 while the jaw holds something. The mouth is
+# scripted on the phase in training (MouthScheduleAction: open from 0.02 to 0.10 to 0.386 rad = 22 deg, closed over
+# 0.34-0.40); here the same timeline in jaw_ctl degrees, "grip" once closed (current-limited squeeze).
+SP_PERIOD = 4.0
+SP_AGE_MAX = 2.0
+SP_JAW_OPEN_DEG = 22.0
+SP_JAW_REST_DEG = 2.0
+SP_JAW = dict(open_start=0.02, open_end=0.10, close_start=0.34, close_end=0.40)
+
+
+def seepick_jaw(phase):
+    """Jaw goal for walk_wired (degrees from closed, or "grip") at seeing-pick phase phi: the trained mouth timeline."""
+    t = SP_JAW
+    if phase >= t["close_end"]:
+        return "grip"
+    o = min(1.0, max(0.0, (phase - t["open_start"]) / (t["open_end"] - t["open_start"])))
+    c = min(1.0, max(0.0, (phase - t["close_start"]) / (t["close_end"] - t["close_start"])))
+    return max(SP_JAW_REST_DEG, SP_JAW_OPEN_DEG * o * (1.0 - c))
 # Head pose command (walk61/stand61 = Pollen BEST_alpha_walking/BEST_alpha_stand, command_names twist,head_pose,
 # body_pose): slots 55..58 are the wanted neck_pitch, head_pitch, head_yaw, head_roll as deltas from the default pose,
 # trained up to +-1.10, +-1.10, +-1.40, +-0.31 rad (velocity env head_pose_range curriculum). Pollen's runtime and
@@ -97,7 +130,18 @@ KICK_FEET = ("left", "right")
 # a stand-up during the ~2 s glide into the seat (sitstand_ramp_s 2.0); here such a request waits for it.
 SIT_PREP_S = 0.8
 SIT_SETTLE_S = 2.0
-UNSIT_S = 2.0
+# The rise ends on evidence, not on the simulator's 2 s timer (sit-rise-20261029/README.md). On the current as-built
+# mass model (microduck_rl 87979d52 plugged manifest, 7.0 V) sitstand61's rise is marginal: in-process it tilts the
+# trunk 17-33 deg and finishes 0.8-1.8 s after the flag flips, and through fake_pi + this brain over UDP its knees cycle
+# 1.4 -> 0.6 -> 1.4 rad twice a second and never finish, so a fixed timer handed stand61 a random point of that cycle
+# (8 of 8 seats fell). The robot is up when both knees are under SIT_KNEE_MIN, the pitch rate is under RISE_QUIET_RATE
+# and the trunk is within RISE_UPRIGHT_DEG of upright, all held for RISE_UP_S (the upright test keeps a robot lying on
+# its back, knees straight, from counting as up). A rise not up after RISE_GIVEUP_S sits back down (flag 1): the seat
+# is the trained, stable state, and the robot stays there until {"mode": "sit"} re-arms the stand-up.
+RISE_UP_S = 0.3
+RISE_QUIET_RATE = 1.0  # rad/s, body pitch rate
+RISE_UPRIGHT_DEG = 12.0  # body tilt as the brain reads it (the IMU pitch trim included); standing reads 0-5 deg
+RISE_GIVEUP_S = 4.0  # in-process rises are up 0.8-1.8 s after the flag (2.4 s with robotd's low-pass)
 # A seat folds both knees to about 1.3 rad (plugged as-built sim at 7.0 V: 1.33 / -1.36, trunk 58 mm lower). On the
 # robot on 2026-10-21 the legs never moved through 53 s of "seated" (knees 0.02 / -0.03 rad): the loaded leg servos did
 # not follow the policy's first small moves, so its closed-loop descent never started. A seat the timer declares is
@@ -351,8 +395,8 @@ class Brain:
     or None to write nothing) and the P gain (0 = leave unchanged).
     """
 
-    POLICY_MODES = ("walk", "groundpick", "kick", "sit")  # modes driven by an ONNX policy at KP_RL
-    TORQUE_MODES = ("stand", "walk", "groundpick", "sit")  # modes that switch torque on
+    POLICY_MODES = ("walk", "groundpick", "seepick", "kick", "sit")  # modes driven by an ONNX policy at KP_RL
+    TORQUE_MODES = ("stand", "walk", "groundpick", "seepick", "sit")  # modes that switch torque on
 
     def __init__(self, models, compensation=True, walk_ramp=0.0, yaw_trim_file=None, getup=None):
         self.getup_mode = GETUP if getup is None else getup
@@ -362,7 +406,7 @@ class Brain:
         self.fall_for = 0.0  # s the fall prediction has held (debounce)
         self.lying_for = 0.0  # s the trunk has read lying (FALLEN_Z)
         self.fall_t = None  # time of the last detector tick
-        names = ["walk", "stand"] + [k for k in ("groundpick", "sitstand", "kick_left", "kick_right")
+        names = ["walk", "stand"] + [k for k in ("groundpick", "seepick", "sitstand", "kick_left", "kick_right")
                                      if os.path.exists(os.path.join(models, k + "61.onnx"))]
         self.sessions = {k: ort.InferenceSession(os.path.join(models, k + "61.onnx"), session_options()) for k in names}
         for k, sess in self.sessions.items():
@@ -384,6 +428,8 @@ class Brain:
         self.stepped = False  # walk61 has run in this walk mode: a zero command then stays on walk61
         self.last_action = np.zeros(14, dtype=np.float32)
         self.gp_phase = 0.0  # ground-pick phase phi handed to the policy; follows want["phase"] at 1/GP_PERIOD per s
+        self.sp_phase = 0.0  # seeing-pick phase, 0 -> 1 at 1/SP_PERIOD per s up to want["phase"] (default 1)
+        self.sp_body = np.zeros(6, dtype=np.float32)  # seeing-pick body slots last handed to the policy
         self.head_cmd = np.zeros(4, dtype=np.float32)  # smoothed head pose deltas handed to walk61/stand61
         self.base_want = {"mode": "monitor"}  # the command in force outside a kick (the last one accepted)
         self.kick = None  # running kick: {"foot", "id", "ticks", "t0"}
@@ -489,16 +535,27 @@ class Brain:
             leaving = mode != "sit"
             if leaving:
                 self.sit_next = want
+            elif s.get("failed"):
+                s["failed"] = False  # {"mode": "sit"} after a failed rise: the next stand or walk command tries again
+                print("sit: stand-up re-armed", flush=True)
             if mode == "monitor" or (leaving and s["phase"] == "prep"):
                 self.base_want = want
                 return want  # still standing (flag 0) or a hold: switch now
-            if leaving and s["phase"] == "seated":
-                s.update(phase="rise", t=now)
-                print(f"sit: standing up (posture flag 0) for {UNSIT_S} s", flush=True)
-            if s["phase"] == "rise" and now - s["t"] >= UNSIT_S:
-                nxt = self.sit_next or dict(WALK_ZERO)
-                self.base_want = nxt
-                return nxt
+            if leaving and s["phase"] == "seated" and not s.get("failed"):
+                s.update(phase="rise", t=now, up_since=None)
+                print(f"sit: standing up (posture flag 0) until up, at most {RISE_GIVEUP_S} s", flush=True)
+            if s["phase"] == "rise":
+                if s.get("up_since") is not None and now - s["up_since"] >= RISE_UP_S:
+                    print(f"sit: up after {now - s['t']:.2f} s, handing over", flush=True)
+                    nxt = self.sit_next or dict(WALK_ZERO)
+                    self.base_want = nxt
+                    return nxt
+                if now - s["t"] >= RISE_GIVEUP_S:
+                    print(f"sit: RISE FAILED, not up {RISE_GIVEUP_S} s after the stand-up command (knees, pitch rate or "
+                          f"tilt out of range: {s.get('why', 'no reading')}); sitting back down (posture flag 1). "
+                          "Write {\"mode\": \"sit\"} and then a stand or walk command to try again.", flush=True)
+                    s.update(phase="down", t=now, failed=True, up_since=None)
+                    self.sit_next = None
             # a head command while seated reaches the sitstand policy (it was trained with one in both postures)
             return {"mode": "sit", "head": want["head"]} if mode == "sit" and want.get("head") else {"mode": "sit"}
         if mode == "sit" and self.mode != "sit":
@@ -641,8 +698,8 @@ class Brain:
                 print(f"getup: {self.getup['phase']} ended by the switch to {self.mode}", flush=True)
             self.getup, self.fall_for, self.lying_for = None, 0.0, 0.0
             start = self.goal or q
-            if self.mode == "groundpick" and "groundpick" not in self.sessions:
-                raise RuntimeError("no groundpick61.onnx in the models directory")
+            if self.mode in ("groundpick", "seepick") and self.mode not in self.sessions:
+                raise RuntimeError(f"no {self.mode}61.onnx in the models directory")
             if self.mode != "sit":
                 self.sit = None
             if self.mode == "stand":
@@ -653,6 +710,13 @@ class Brain:
                 # as in Pollen's simulator, where one action buffer serves every mode
                 self.ramp, self.goal = None, dict(start)
                 self.gp_phase = 0.0
+                self.head_cmd[:] = 0
+                if not was_policy:
+                    self.last_action[:] = 0
+            elif self.mode == "seepick":
+                # as groundpick: the trained start is standing on stand61, phase 0
+                self.ramp, self.goal = None, dict(start)
+                self.sp_phase, self.sp_body[:] = 0.0, 0.0
                 self.head_cmd[:] = 0
                 if not was_policy:
                     self.last_action[:] = 0
@@ -711,7 +775,7 @@ class Brain:
         if hold and hold.get("kp"):
             kp = {n: int(hold["kp"][n]) for n in NAMES}
         upright = grav_body[2] < -0.5
-        if self.mode in ("groundpick", "sit"):
+        if self.mode in ("groundpick", "seepick", "sit"):
             # the trunk pitches in the crouch and the seat: "upright" for the policy step means not fallen over
             upright = grav_body[2] < -0.2
         if self.mode == "walk" and self.getup_mode == "nogate":
@@ -741,6 +805,15 @@ class Brain:
                 a = 2 * math.pi * self.gp_phase
                 command, head, policy = [math.cos(a), math.sin(a), 0.0], np.zeros(4, dtype=np.float32), "groundpick"
                 info["gp_phase"] = round(self.gp_phase, 4)
+            elif self.mode == "seepick":
+                target = float(np.clip(float(want.get("phase", 1.0)), 0.0, 1.0))
+                if target > self.sp_phase:
+                    self.sp_phase = min(target, self.sp_phase + 0.02 / SP_PERIOD)
+                a = 2 * math.pi * self.sp_phase
+                command, head, policy = [math.cos(a), math.sin(a), 0.0], np.zeros(4, dtype=np.float32), "seepick"
+                self.sp_body[:] = seepick_body(self.sp_body, want.get("object"), want.get("_holding"), now)
+                info["sp_phase"], info["sp_body"] = round(self.sp_phase, 4), [round(float(v), 4) for v in self.sp_body]
+                info["sp_jaw"] = seepick_jaw(self.sp_phase)
             elif self.mode == "kick":
                 # robotd: a skill's twist is its own (zero for a kick) and the head/body slots are zero-padded
                 command, head = [0.0, 0.0, 0.0], np.zeros(4, dtype=np.float32)
@@ -760,6 +833,17 @@ class Brain:
                               "or walk command stands it up as usual.", flush=True)
                 if "stalled" in self.sit:
                     info["sit_stalled"] = self.sit["stalled"]
+                if self.sit["phase"] == "rise":  # the evidence route() ends the rise on (RISE_UP_S of it)
+                    knees = max(abs(q["left_knee"]), abs(q["right_knee"]))
+                    tilt = math.degrees(math.acos(max(-1.0, min(1.0, -float(grav_body[2])))))
+                    rate = abs(float(gyro_body[1]))
+                    up = knees < SIT_KNEE_MIN and rate < RISE_QUIET_RATE and tilt < RISE_UPRIGHT_DEG
+                    self.sit["why"] = f"knees {knees:.2f} rad, pitch rate {rate:.2f} rad/s, tilt {tilt:.1f} deg"
+                    if not up:
+                        self.sit["up_since"] = None
+                    elif self.sit.get("up_since") is None:
+                        self.sit["up_since"] = now
+                    info["sit_up"] = up
             else:
                 vx, vy, vth = float(want.get("vx", 0)), float(want.get("vy", 0)), float(want.get("vtheta", 0))
                 dt = 0.02 if self.turn_t is None else min(0.1, max(0.0, now - self.turn_t))
@@ -804,7 +888,8 @@ class Brain:
                 policy = "walk" if self.stepped else "stand"
                 if np.any(head != 0):
                     info["head_cmd"] = np.round(head, 3).tolist()
-            obs = np.concatenate([state, self.last_action, command, head, np.zeros(6)]).astype(np.float32)
+            body = self.sp_body if self.mode == "seepick" else np.zeros(6)
+            obs = np.concatenate([state, self.last_action, command, head, body]).astype(np.float32)
             sess = self.sessions[policy]
             info["policy"] = policy
             action = sess.run(None, {sess.get_inputs()[0].name: obs[None]})[0][0]
@@ -825,6 +910,20 @@ class Brain:
                     info["kick_done"] = self.end_kick()["id"]
         # not upright, IMU invalid or state too old: keep the last goal, never release
         return self.goal, kp, info
+
+
+def seepick_body(prev, obj, holding, now):
+    """Body slots [x, y, size, age, holding, 0] from the newest camera object {"x", "y", "size", "t"} (foot frame m,
+    capture time in time.time() s), or the previous measurement aging when there is none, as in training (the last
+    valid measurement is held and its age grows to SP_AGE_MAX)."""
+    out = np.array(prev, dtype=np.float32)
+    if obj is not None:
+        out[0], out[1], out[2] = float(obj["x"]), float(obj["y"]), float(obj.get("size", out[2]))
+        out[3] = float(np.clip(now - float(obj["t"]), 0.0, SP_AGE_MAX))
+    else:
+        out[3] = SP_AGE_MAX if not np.any(out[:3]) else min(SP_AGE_MAX, float(out[3]) + 0.02)
+    out[4], out[5] = 1.0 if holding else 0.0, 0.0
+    return out
 
 
 def clamp_goal(goal):

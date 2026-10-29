@@ -15,6 +15,8 @@ import time as real_time
 import unittest
 from unittest import mock
 
+import numpy as np
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "pi"))
@@ -36,6 +38,42 @@ def write_cmd(path, cmd):
         with open(path, "w") as fh:
             json.dump(cmd, fh)
     return hook
+
+
+# The as-built sim's seat (brain_sim_check --sit-at 3, t = 12 s), NAMES order; a seat folds both knees to about 1.3 rad.
+SEAT_Q = [-0.0798, -1.31, 0.4587, -0.1703, 0.0138, 0.089, 1.3085, -0.4648, 0.1703, 0.0706, 0.3559, 0.3728, -0.0046, 0.0383]
+FLAG_SLOT = 3 + 3 + 14 + 14 + 14  # gyro, gravity, q, dq, last action, then the command: posture flag in its vx slot
+
+
+class ScriptedSitStand:
+    """sitstand61 stand-in for the fake world (whose present positions follow the goals at once, with no physics):
+    flag 1 asks for the seat, flag 0 for the policy default pose (knees straight), or for the seat again when
+    `rises` is False (a rise that never comes up, as the knees of the 2026-10-29 fake_pi seats)."""
+
+    def __init__(self, real, default, rises=True):
+        self.real, self.rises = real, rises
+        seat = dict(zip(wb.NAMES, SEAT_Q))
+        self.sit = np.array([seat[n] - default[n] for n in wb.OBSERVATION_DOF_ORDER], dtype=np.float32)
+
+    def get_inputs(self):
+        return self.real.get_inputs()
+
+    def get_modelmeta(self):
+        return self.real.get_modelmeta()
+
+    def run(self, outputs, feeds):
+        obs = next(iter(feeds.values()))[0]
+        sitting = obs[FLAG_SLOT] > 0.5 or not self.rises
+        return [(self.sit if sitting else np.zeros(14, dtype=np.float32))[None]]
+
+
+def brain_with_sitstand(rises=True):
+    class SitBrain(wb.Brain):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            self.sessions["sitstand"] = ScriptedSitStand(self.sessions["sitstand"], self.default, rises)
+
+    return SitBrain
 
 
 def tilted_sensor_quat(deg):
@@ -167,8 +205,9 @@ class Teleop(unittest.TestCase):
     def test_sit_flag_timing_and_stand_up(self):
         w = World(shutdown=52, hw_err=0, volts_dv=74)
         hooks = lambda d, p: [(1.0, write_cmd(p, {"mode": "sit"})), (5.0, write_cmd(p, WALK0))]  # noqa: E731
-        text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, WALK0, end=8.5, supply="bench",
-                                                              hooks=hooks)
+        with mock.patch.object(ww, "Brain", brain_with_sitstand()):
+            text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, WALK0, end=8.5, supply="bench",
+                                                                  hooks=hooks)
         sit = [ln for ln in self.log_lines if ln.get("policy") == "sitstand"]
         self.assertTrue(sit)
         t_sit0 = sit[0]["t"] - 1e9
@@ -180,7 +219,9 @@ class Teleop(unittest.TestCase):
         self.assertAlmostEqual(rise[0], 5.0, delta=0.05)  # seated by then: the stand-up starts at the command
         self.assertTrue(all(ln["sit_flag"] == 0.0 for ln in sit if ln["sit_phase"] == "rise"))
         back = next(ln["t"] - 1e9 for ln in self.log_lines if ln["t"] - 1e9 > 5.0 and ln.get("policy") == "stand")
-        self.assertAlmostEqual(back - rise[0], 2.0, delta=0.05)  # flag 0 for 2 s, then stand61
+        # flag 0 until up: the stand-in straightens the knees on the first flag-0 tick, then RISE_UP_S of evidence
+        self.assertAlmostEqual(back - rise[0], wb.RISE_UP_S, delta=0.07)
+        self.assertIn("sit: up after", text)
         self.assertTrue(all(ln["kp"] == wb.KP_RL for ln in sit))
         self.assertEqual(last_log["mode"], "walk")
         self.assertEqual(last_log["policy"], "stand")
@@ -188,13 +229,95 @@ class Teleop(unittest.TestCase):
     def test_stand_up_asked_during_the_glide_waits_for_the_seat(self):
         w = World(shutdown=52, hw_err=0, volts_dv=74)
         hooks = lambda d, p: [(1.0, write_cmd(p, {"mode": "sit"})), (2.3, write_cmd(p, WALK0))]  # noqa: E731
-        text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, WALK0, end=7.5, supply="bench",
-                                                              hooks=hooks)
+        with mock.patch.object(ww, "Brain", brain_with_sitstand()):
+            text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, WALK0, end=7.5, supply="bench",
+                                                                  hooks=hooks)
         sit = [ln for ln in self.log_lines if ln.get("policy") == "sitstand"]
         flag1 = next(ln["t"] - 1e9 for ln in sit if ln["sit_flag"] == 1.0)
         rise = next(ln["t"] - 1e9 for ln in sit if ln["sit_phase"] == "rise")
         self.assertAlmostEqual(rise - flag1, 2.0, delta=0.05)
         self.assertEqual(last_log["policy"], "stand")
+
+    def test_a_rise_that_never_comes_up_sits_back_down_and_waits_for_a_sit(self):
+        # 2026-10-29 (sit-rise-20261029): through fake_pi the rise cycled 1.4 -> 0.6 -> 1.4 rad and never finished; the
+        # 2 s timer handed stand61 a random point of the cycle and 8 of 8 seats fell
+        w = World(shutdown=52, hw_err=0, volts_dv=74)
+        hooks = lambda d, p: [(1.0, write_cmd(p, {"mode": "sit"})), (4.0, write_cmd(p, WALK0))]  # noqa: E731
+        with mock.patch.object(ww, "Brain", brain_with_sitstand(rises=False)):
+            text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, WALK0, end=12.0, supply="bench",
+                                                                  hooks=hooks)
+        sit = [ln for ln in self.log_lines if ln.get("policy") == "sitstand"]
+        rise = next(ln["t"] - 1e9 for ln in sit if ln["sit_phase"] == "rise")
+        back_down = next(ln["t"] - 1e9 for ln in sit if ln["t"] - 1e9 > rise and ln["sit_phase"] == "down")
+        self.assertAlmostEqual(back_down - rise, wb.RISE_GIVEUP_S, delta=0.05)
+        self.assertEqual(text.count("sit: RISE FAILED"), 1)
+        self.assertFalse(any(ln.get("policy") == "stand" and ln["t"] - 1e9 > rise for ln in self.log_lines))
+        self.assertTrue(all(ln["sit_flag"] == 1.0 for ln in sit if ln["t"] - 1e9 >= back_down))
+        # the control file still says walk: the seat holds, no second rise until {"mode": "sit"} re-arms it
+        self.assertEqual(sum(1 for a, b in zip(sit, sit[1:]) if a["sit_phase"] != "rise" and b["sit_phase"] == "rise"), 1)
+        self.assertEqual(last_log["mode"], "sit")
+        self.assertEqual(last_log["sit_phase"], "seated")
+
+    def test_a_failed_rise_is_re_armed_by_a_sit_and_the_next_stand_up_hands_over_when_up(self):
+        w = World(shutdown=52, hw_err=0, volts_dv=74)
+        stand_ins = []
+
+        class SitBrain(wb.Brain):  # the stand-in never comes up until the hook below lets it
+            def __init__(self, *a, **k):
+                super().__init__(*a, **k)
+                self.sessions["sitstand"] = ScriptedSitStand(self.sessions["sitstand"], self.default, rises=False)
+                stand_ins.append(self.sessions["sitstand"])
+
+        def hooks(d, p):
+            def lets_it_rise():
+                stand_ins[-1].rises = True
+            return [(1.0, write_cmd(p, {"mode": "sit"})), (4.0, write_cmd(p, WALK0)), (10.9, lets_it_rise),
+                    (11.0, write_cmd(p, {"mode": "sit"})), (11.5, write_cmd(p, WALK0))]
+
+        with mock.patch.object(ww, "Brain", SitBrain):
+            text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, WALK0, end=14.0, supply="bench",
+                                                                  hooks=hooks)
+        self.assertEqual(text.count("sit: RISE FAILED"), 1)
+        self.assertEqual(text.count("sit: stand-up re-armed"), 1)
+        self.assertEqual(text.count("sit: up after"), 1)
+        second = [ln["t"] - 1e9 for ln in self.log_lines if ln.get("sit_phase") == "rise" and ln["t"] - 1e9 > 11.0]
+        back = next(ln["t"] - 1e9 for ln in self.log_lines if ln["t"] - 1e9 > 11.0 and ln.get("policy") == "stand")
+        self.assertAlmostEqual(back - second[0], wb.RISE_UP_S, delta=0.07)
+        self.assertEqual(last_log["mode"], "walk")
+
+    def test_straight_knees_on_a_tilted_body_are_not_up(self):
+        # lying on its back after a failed rise the knees are straight too (in-process sim, 2026-10-29): the trunk must
+        # be upright before stand61 takes over
+        w = World(shutdown=52, hw_err=0, volts_dv=74)
+        hooks = lambda d, p: [(1.0, write_cmd(p, {"mode": "sit"})), (4.0, write_cmd(p, WALK0))]  # noqa: E731
+        with mock.patch.object(ww, "Brain", brain_with_sitstand()), \
+                mock.patch.object(twb, "make_link", tilting_link(4.0, 20.0)):
+            text, marker, wants, reads, last_log = self.run_wired(w, lambda t: 74, WALK0, end=9.0, supply="bench",
+                                                                  hooks=hooks)
+        self.assertNotIn("STOP", text)  # 20 deg: inside walk_wired's 30 deg sit guard
+        self.assertNotIn("sit: up after", text)
+        self.assertIn("sit: RISE FAILED", text)
+        # 20 deg forward less the 4 deg IMU pitch trim, as the brain reads it
+        self.assertIn("knees 0.00 rad, pitch rate 0.00 rad/s, tilt 16.0 deg", text)
+        self.assertFalse(any(ln.get("policy") == "stand" and ln["t"] - 1e9 > 4.0 for ln in self.log_lines))
+
+    def test_rise_route_hands_over_only_on_held_evidence(self):
+        brain = wb.Brain.__new__(wb.Brain)
+        brain.kick, brain.mode, brain.sit_next = None, "sit", None
+        brain.base_want, brain._refused = {"mode": "sit"}, None
+        brain.sit = {"phase": "seated", "t": 0.0}
+        self.assertEqual(brain.route(WALK0, 10.0), {"mode": "sit"})  # the stand-up starts
+        self.assertEqual(brain.sit["phase"], "rise")
+        self.assertEqual(brain.route(WALK0, 12.5), {"mode": "sit"})  # 2.5 s, no evidence: the old timer is gone
+        brain.sit["up_since"] = 12.6
+        self.assertEqual(brain.route(WALK0, 12.6 + wb.RISE_UP_S - 0.02), {"mode": "sit"})
+        self.assertEqual(brain.route(WALK0, 12.6 + wb.RISE_UP_S), WALK0)
+        brain.sit = {"phase": "rise", "t": 10.0, "up_since": None}
+        self.assertEqual(brain.route(WALK0, 10.0 + wb.RISE_GIVEUP_S), {"mode": "sit"})
+        self.assertEqual((brain.sit["phase"], brain.sit["failed"]), ("down", True))
+        self.assertEqual(brain.route(WALK0, 20.0), {"mode": "sit"})  # seated again; the walk command waits
+        self.assertEqual(brain.sit["phase"], "seated")
+        self.assertEqual(brain.route({"mode": "monitor"}, 20.1), {"mode": "monitor"})  # a hold still leaves at once
 
     def test_monitor_leaves_a_sit_at_once_and_sit_from_a_standing_monitor_is_refused(self):
         w = World(shutdown=52, hw_err=0, volts_dv=74)

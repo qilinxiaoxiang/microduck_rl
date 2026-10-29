@@ -43,6 +43,43 @@ def add_signed_inertias(m, parts):
         quat=np.zeros(4);mujoco.mju_mat2Quat(quat,vectors.ravel())
         m.body_mass[i]=mass;m.body_ipos[i]=com;m.body_inertia[i]=values;m.body_iquat[i]=quat
 
+def refit_body_bvh(m):
+    """Make every body's collision bounding volumes cover its colliding geoms in the body's CURRENT inertial frame.
+    MuJoCo stores a body's BVH (bvh_aabb) in its inertial frame at compile time; add_signed_inertias edits
+    body_ipos/body_iquat after compile, so bodies whose principal axes turned keep a box in the old axes and the
+    midphase drops contacts outside it (head, trunk, thighs, hips: up to 40 mm of geometry outside; the beak sank 40 mm
+    into the floor with no contact in the get-up runs). Each node of a body's tree is set to the whole-body box, a
+    conservative bound: every geom pair of the body is then tested. Idempotent. Returns {body: [old root, new root]}
+    for the bodies that changed (guide/firmware/mac/bvh-refit-baselines-20261029/README.md)."""
+    d = mujoco.MjData(m)
+    mujoco.mj_forward(m, d)
+    changed = {}
+    for b in range(1, m.nbody):
+        adr, num = m.body_bvhadr[b], m.body_bvhnum[b]
+        if adr < 0 or num <= 0:
+            continue
+        R, p = d.ximat[b].reshape(3, 3), d.xipos[b]
+        pts = []
+        for g in range(m.ngeom):
+            if m.geom_bodyid[g] != b or not (m.geom_contype[g] or m.geom_conaffinity[g]):
+                continue
+            Rg, cg, a = d.geom_xmat[g].reshape(3, 3), d.geom_xpos[g], m.geom_aabb[g]
+            for sx in (-1, 1):
+                for sy in (-1, 1):
+                    for sz in (-1, 1):
+                        pts.append(R.T @ (cg + Rg @ (a[:3] + np.array([sx, sy, sz]) * a[3:]) - p))
+        if not pts:
+            continue
+        pts = np.array(pts)
+        lo, hi = pts.min(0), pts.max(0)
+        box = np.r_[(lo + hi) / 2, (hi - lo) / 2 + 1e-4]
+        old = m.bvh_aabb[adr].copy()
+        if np.any(np.abs(old[:3] - box[:3]) > old[3:] + 1e-6) or np.any(np.abs(old[:3] - box[:3]) + box[3:] > old[3:] + 1e-4):
+            changed[m.body(b).name] = [old.round(4).tolist(), box.round(4).tolist()]
+        for k in range(adr, adr + num):
+            m.bvh_aabb[k] = box
+    return changed
+
 def load(config):
     spec = mujoco.MjSpec.from_file(str(MODEL_DIR/'scene.xml'))
     if config.get('scene'):
@@ -130,6 +167,7 @@ def load(config):
              position_m=old['uniform_mesh_com_in_body_m'],
              inertia_about_com_kg_m2=(-removed*np.array(old['uniform_mesh_inertia_per_kg_m2'])).tolist()))
     if mass_parts:add_signed_inertias(m,mass_parts)
+    refit_body_bvh(m)   # the BVHs were built in the compile-time inertial frames (bvh-refit-baselines-20261029)
     d=mujoco.MjData(m)
     controller=MujocoController(bam,names,m,d,
         vin_drop_gain=config.get('vin_drop_gain',0.0),  # cmu/ copy: bam 62bd8ce API, see sync_from_robotics.py

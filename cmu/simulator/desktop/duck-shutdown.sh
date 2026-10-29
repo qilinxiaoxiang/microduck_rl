@@ -6,8 +6,11 @@ ssh_opts="-T -o BatchMode=yes -o ConnectTimeout=5"
 address=$(ssh -G "$host" 2>/dev/null | awk '/^hostname /{print $2}')
 
 echo "正在连接 A7Z（$host）…"
-# The launcher's live-status reader (duck-telemetry) is not a robot program: leave it out of the count.
-busy_cmd="pgrep -u radxa -af '[p]ython' | grep -v duck-telemetry; true"
+# Python processes by process name (comm), so a shell whose command line only mentions python is not one. The
+# monitor's own viewers (duck-telemetry, its standby reader duck_sense.py, the camera window's a7z_cam.py --mjpeg) are
+# not robot programs, and an open app page restarts them within 2 s of being stopped: poweroff ends them, so they stay
+# out of the count.
+busy_cmd="pgrep -u radxa -a '^python' | grep -Ev 'duck-telemetry|duck_sense[.]py|a7z_cam[.]py --mjpeg'; true"
 if ! busy=$(ssh $ssh_opts "$host" "$busy_cmd" 2>/dev/null); then
     if ping -c 1 -t 2 "$address" >/dev/null 2>&1; then
         echo "A7Z 在线但 SSH 连不上，没有关机。"; exit 3
@@ -19,7 +22,7 @@ fi
 if [ -n "$busy" ]; then
     n=$(echo "$busy" | wc -l | tr -d ' ')
     echo "A7Z 上有 $n 个程序在运行，正在停止：$(echo "$busy" | head -1 | cut -c1-80)"
-    ssh $ssh_opts "$host" "pkill -TERM -u radxa python3; pkill -TERM -u radxa -f '[/]bin/python '; for i in 1 2 3 4 5 6; do pgrep -u radxa -f '[p]ython' >/dev/null || break; sleep 0.5; done; pkill -KILL -u radxa python3; pkill -KILL -u radxa -f '[/]bin/python '; sync" >/dev/null 2>&1
+    ssh $ssh_opts "$host" "pkill -TERM -u radxa '^python'; for i in 1 2 3 4 5 6; do [ -n \"\$($busy_cmd)\" ] || break; sleep 0.5; done; pkill -KILL -u radxa '^python'; sync" >/dev/null 2>&1
     left=$(ssh $ssh_opts "$host" "$busy_cmd" 2>/dev/null)
     if [ -n "$left" ]; then
         echo "有程序停不下来，没有关机：$(echo "$left" | head -1)"; exit 4

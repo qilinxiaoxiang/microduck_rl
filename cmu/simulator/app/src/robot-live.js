@@ -55,6 +55,43 @@ function showTouch(t) {
   else state.textContent = `读到 ${t.ok} 次，丢 ${t.bad} 次（${t.bus === "gpio" ? "程序拨针脚读" : "内核 I2C " + t.bus}）`;
 }
 
+// ── Boot self-check: duck_selfcheck.py's latest.json on the A7Z (duck-selfcheck.service runs it once per boot),
+// read through the bridge; the button reruns it (the bridge pauses telemetry while it runs, about 15 s) ──
+let lastCheck = null;
+function showChecks(rec) {
+  lastCheck = rec;
+  const list = $("#checks"), state = $("#checkState");
+  list.replaceChildren(...rec.items.map(it => {
+    const li = document.createElement("li");
+    li.className = it.ok === true ? "ok" : it.ok === false ? "bad" : "skip";
+    const b = Object.assign(document.createElement("b"), {textContent: it.label});
+    const span = Object.assign(document.createElement("span"), {textContent: it.detail});
+    const text = document.createElement("div");
+    text.append(b, document.createElement("br"), span);
+    li.append(document.createElement("i"), text);
+    return li;
+  }));
+  const how = rec.trigger === "boot" ? `开机后 ${rec.uptime_s} 秒自动测的` : "手动重测的";
+  const stale = bootId && rec.boot_id !== bootId ? "（这是上次开机的结果，这次开机还没测完）" : "";
+  state.textContent = `${clock(rec.t)} ${how}，${rec.failed ? `${rec.failed} 项有问题` : "全部正常"}${stale}`;
+  state.className = rec.failed || stale ? "bad" : "";
+}
+async function loadChecks(post = false) {
+  const btn = $("#checkRun");
+  if (post) { btn.disabled = true; btn.textContent = "体检中…"; $("#checkState").textContent = "正在体检，大约 15 秒（会响一声“嘀”）"; }
+  try {
+    const r = await (await fetch("/api/a7z/selfcheck", {method: post ? "POST" : "GET"})).json();
+    if (r.ok) showChecks(r.record);
+    else { $("#checkState").textContent = `读不到体检结果：${r.error}`; $("#checkState").className = "bad"; }
+  } catch (e) {
+    $("#checkState").textContent = `读不到体检结果：${e.message}`; $("#checkState").className = "bad";
+  } finally {
+    btn.disabled = false; btn.textContent = "重新体检";
+  }
+}
+$("#checkRun").onclick = () => loadChecks(true);
+loadChecks();
+
 // ── Head camera: an <img> on the bridge's MJPEG stream, frame rate and errors from {camera} records. The page only
 // watches: the A7Z camera runs while the find-and-walk task (approach.py) has it on, and the picture appears by itself
 // then. The camera runs from boot (duck-camera.service); the switch (Shawn 2026-10-26) turns it off, and on again for
@@ -133,6 +170,7 @@ function ingest(record) {
     return;
   }
   if (record.command) { remote.showFile(record.command); return; }
+  if (record.selfcheck) { showChecks(record.selfcheck); return; }
   if (record.link) {
     if (record.link === "closed" && record.error && !online) $("#link").title = record.error;
     return;
@@ -148,6 +186,7 @@ function ingest(record) {
   if (record.temps) {
     if (bootId && record.boot && record.boot !== bootId) event("A7Z 重启过（boot id 变了）", record.t);
     if (record.boot) bootId = record.boot;
+    if (lastCheck && lastCheck.boot_id !== bootId && !lastCheck.reloading) { lastCheck.reloading = true; setTimeout(loadChecks, 5000); }
     if (!cpuStart) cpuStart = record;
     latest = record; latestAt = Date.now(); health.push(record);
     while (health.length && health[0].t < record.t - 1800) health.shift();

@@ -55,4 +55,6 @@ def main():
 
 
 if __name__ == "__main__":
+    import sim_host_guard
+    sim_host_guard.one_sim_on_laptop("teleop_sim_batch")
     main()

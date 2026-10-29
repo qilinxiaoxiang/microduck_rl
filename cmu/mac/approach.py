@@ -32,9 +32,11 @@ dead reckoning to STOP_R; out of a side, the robot arcs that way with the head t
 (at most SIDE_TURN_MAX, then it stops and looks). At STOP_R it stops (the stride coasts 4-5 cm), so the object ends about 10 cm ahead of the foot-frame origin (the beak tip is at
 x 0.07, the toes at -0.045); standing, the head looks down and MEASURE_N detections give the position.
 
+The head camera is the U20CAM (D-023); duck_kin projects with u20cam_intrinsics.json and u20cam_mount.json. The run
+refuses to start while the intrinsics are the datasheet default or the mount has no fit (cam_calib.py, CAMERA.md).
+
   ~/.venvs/duck-policy/bin/python approach.py [--pitch-offset D]       on the A7Z, walk_wired running
   ~/.venvs/duck-policy/bin/python approach.py --observe 10             detections and floor positions only, no motion
-  ~/.venvs/duck-policy/bin/python approach.py --calibrate 0.30         object 0.30 m straight ahead: fit the pitch offset
 """
 import argparse
 import collections
@@ -565,19 +567,42 @@ class Approach:
 
 
 # --- the robot side (A7Z) ----------------------------------------------------------------------------------------
-FRAME_W, FRAME_H = 480, 640
+def camera_ready(kin, frame_w=None, frame_h=None):
+    """None when duck_kin's camera is calibrated for the U20CAM the A7Z publishes, else why not and the command that
+    fixes it (CAMERA.md, "U20CAM calibration")."""
+    K, mount = kin.K, kin.mount
+    run = "~/.venvs/duck-policy/bin/python cam_calib.py"
+    if K.source == "datasheet":
+        return f"the camera intrinsics are the datasheet default (u20cam_intrinsics.json): run `{run} --intrinsics` first"
+    if frame_w and frame_h and abs(frame_w / frame_h - K.width / K.height) > 1e-3:
+        return (f"the camera publishes {frame_w} x {frame_h} but the intrinsics are for {K.width} x {K.height}: "
+                f"run `{run} --intrinsics` again")
+    if mount is None or not mount.get("fit"):
+        return f"the camera mount has no fit (u20cam_mount.json): run `{run} --mount` with the robot on stand61"
+    fp = mount["fit"].get("intrinsics") or {}
+    now = dict(model=K.model, fx=round(K.fx, 3), fy=round(K.fy, 3), cx=round(K.cx, 3), cy=round(K.cy, 3),
+               dist=[round(d, 6) for d in K.dist])
+    if any(fp.get(k) != v for k, v in now.items()):
+        return (f"the mount was fitted with other intrinsics ({fp.get('date')}): refit it on the new ones, "
+                f"`{run} --mount --from {mount['fit'].get('captures')}`")
+    return None
 
 
 class ShmCamera:
-    """The head camera through a7z_cam.py, which keeps the camera open: the newest upright FRAME_W x FRAME_H BGR frame with its
-    capture time and index. A daemon this run started is stopped by close() (the capture heats the closed head,
-    a7z_cam.py); one that was already running stays."""
+    """The head camera through a7z_cam.py, which keeps the camera open: the newest upright W x H BGR frame
+    (a7z_cam.W x a7z_cam.H, 640 x 360 for the U20CAM) with its capture time and index. A daemon this run started is
+    stopped by close() (the capture heats the closed head, a7z_cam.py); one that was already running stays.
+    By default it refuses to open while duck_kin's U20CAM calibration is missing (camera_ready); callers that do not
+    measure positions (the calibration itself, shoot.py's aiming, --observe) pass require_calibration=False."""
 
-    def __init__(self):
+    def __init__(self, require_calibration=True):
         import a7z_cam
-        if (a7z_cam.W, a7z_cam.H) != (FRAME_W, FRAME_H):
-            sys.exit(f"the head camera publishes {a7z_cam.W} x {a7z_cam.H} (U20CAM) but duck_kin projects with the Radxa 13M "
-                     f"{FRAME_W} x {FRAME_H} intrinsics and camera site: calibrate the U20CAM's intrinsics and mount first")
+        self.w, self.h = a7z_cam.W, a7z_cam.H
+        if require_calibration:
+            from duck_kin import DuckKin
+            why = camera_ready(DuckKin(), self.w, self.h)
+            if why:
+                sys.exit(f"not calibrated: {why}")
         self.dc = a7z_cam
         self.started = not a7z_cam.running()
         if not a7z_cam.ensure():
@@ -589,7 +614,7 @@ class ShmCamera:
         fr = self.dc.read_frame()
         if fr is None:
             return None
-        return np.frombuffer(fr[0], np.uint8).reshape(FRAME_H, FRAME_W, 3), fr[1], fr[2]
+        return np.frombuffer(fr[0], np.uint8).reshape(self.h, self.w, 3), fr[1], fr[2]
 
     def close(self):
         if self.started:
@@ -648,95 +673,56 @@ def send_file(path):
     return send
 
 
-PITCH_FILE = os.path.expanduser("~/.duck_cam_pitch.json")
-
-
-def calibrate(kin, cam, tail, detect, distance, samples=15):
-    """Object on the floor `distance` m straight ahead of the foot-frame origin, robot standing: the camera pitch offset
-    (deg) whose projection of the blob's base puts it there."""
-    rows, last = [], None
-    end = time.time() + 20
-    while len(rows) < samples and time.time() < end:
-        fr, st = cam.latest(), tail.latest()
-        if fr and st and fr[2] != last:
-            last = fr[2]
-            s = tail.at(fr[1]) or st
-            det = detect(fr[0], below_horizon(kin, s, FRAME_W, FRAME_H))
-            if det:
-                x0, y0, bw, bh = det["bbox"]
-                rows.append((s, det.get("base_cx", det["cx"]), y0 + bh))
-        time.sleep(0.05)
-    if not rows:
-        return None
-    best = None
-    for off in np.arange(-25.0, 25.01, 0.25):
-        kin.set_pitch_offset(float(off))
-        xs = [kin.pixel_to_ground(u, v, s["q"], s["gb"], FRAME_W, FRAME_H) for s, u, v in rows]
-        if any(x is None for x in xs):
-            continue
-        err = float(np.mean([abs(x[0] - distance) for x in xs]))
-        if best is None or err < best[1]:
-            best = (float(off), err, len(rows))
-    kin.set_pitch_offset(0.0)
-    return best
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cmd", default="/tmp/duck_cmd.json")
     ap.add_argument("--log", default=None, help="walk_wired log (default: the --log of the running walk_wired)")
-    ap.add_argument("--pitch-offset", type=float, default=None, help=f"deg; default from {PITCH_FILE}, else 0")
+    ap.add_argument("--pitch-offset", type=float, default=0.0,
+                    help="deg, extra nose-down on top of the fitted mount (tests only; cam_calib.py --mount fits the mount)")
     ap.add_argument("--hsv-lo", default="5,120,120")
     ap.add_argument("--hsv-hi", default="22,255,255")
     ap.add_argument("--obj-radius", type=float, default=0.02)
     ap.add_argument("--observe", type=float, default=None, help="s; print detections only, no motion")
-    ap.add_argument("--calibrate", type=float, default=None, help="m; object straight ahead at this distance")
     ap.add_argument("--max-s", type=float, default=90.0)
     ap.add_argument("--trace", default=os.path.expanduser(f"~/duck-logs/approach_{time.strftime('%m%d-%H%M%S')}.jsonl"))
     args = ap.parse_args()
     import orange_target
     from duck_kin import DuckKin
+    off = args.pitch_offset
+    kin = DuckKin(pitch_offset_deg=off)
+    import a7z_cam
+    why = camera_ready(kin, a7z_cam.W, a7z_cam.H)
+    if why and args.observe is None:
+        sys.exit(f"not calibrated: {why}")
     log_path = args.log or find_log()
     if not log_path:
         sys.exit("no walk_wired log found: start the brain from the app first")
-    off = args.pitch_offset
-    if off is None:
-        try:
-            off = float(json.load(open(PITCH_FILE))["pitch_offset_deg"])
-        except (OSError, ValueError, KeyError):
-            off = 0.0
-    kin = DuckKin(pitch_offset_deg=off)
     lo, hi = (tuple(int(v) for v in a.split(",")) for a in (args.hsv_lo, args.hsv_hi))
     detect = lambda f, accept=None: orange_target.detect(f, lo, hi, MIN_AREA, accept=accept)  # noqa: E731
     tail = LogTail(log_path)
-    cam = ShmCamera()
-    print(f"log {log_path}, pitch offset {off:+.2f} deg, arcs vtheta +-{VTH_ARC}, stop at r {STOP_R}", flush=True)
+    cam = ShmCamera(require_calibration=args.observe is None)
+    print(f"log {log_path}, camera {kin.K.model} {kin.K.width}x{kin.K.height} ({kin.K.source}), mount "
+          f"{(kin.mount or {}).get('source')}, extra pitch {off:+.2f} deg, arcs vtheta +-{VTH_ARC}, stop at r {STOP_R}",
+          flush=True)
+    if why:
+        print(f"WARNING, positions are not trustworthy: {why}", flush=True)
     try:
         t0 = time.time()
         while cam.latest() is None and time.time() - t0 < 10:
             time.sleep(0.1)
         if cam.latest() is None:
             sys.exit("no camera frame in 10 s")
-        if args.calibrate is not None:
-            best = calibrate(kin, cam, tail, detect, args.calibrate)
-            if best is None:
-                sys.exit("no orange object seen")
-            json.dump({"pitch_offset_deg": best[0], "fit_mm": round(best[1] * 1000, 1), "distance_m": args.calibrate,
-                       "samples": best[2], "at": time.strftime("%Y-%m-%dT%H:%M:%S")}, open(PITCH_FILE, "w"))
-            print(f"pitch offset {best[0]:+.2f} deg (mean |x - {args.calibrate}| {best[1] * 1000:.1f} mm, {best[2]} frames)"
-                  f" saved to {PITCH_FILE}")
-            return
         if args.observe is not None:
-            kin.set_pitch_offset(off)
             end = time.time() + args.observe
             while time.time() < end:
                 fr, st = cam.latest(), tail.latest()
                 s = tail.at(fr[1]) if fr else None
-                det = detect(fr[0], below_horizon(kin, s, FRAME_W, FRAME_H)) if fr else None
+                fh, fw = fr[0].shape[:2] if fr else (cam.h, cam.w)
+                det = detect(fr[0], below_horizon(kin, s, fw, fh)) if fr else None
                 xy = None
                 if det and s:
                     x0, y0, bw, bh = det["bbox"]
-                    xy = kin.pixel_to_ground(det.get("base_cx", det["cx"]), y0 + bh, s["q"], s["gb"], FRAME_W, FRAME_H)
+                    xy = kin.pixel_to_ground(det.get("base_cx", det["cx"]), y0 + bh, s["q"], s["gb"], fw, fh)
                 head = {k: round(st["q"][k], 2) for k in ("neck_pitch", "head_pitch", "head_yaw")} if st else None
                 print(f"{time.strftime('%H:%M:%S')} mode {st['mode'] if st else '-'} head {head} -> " +
                       (f"base x {xy[0]:.3f} y {xy[1]:.3f} m, {det['area']} px" if xy else

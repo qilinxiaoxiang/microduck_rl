@@ -34,7 +34,7 @@ def add(src_dir, dst_dir, names):
 add(MAC, "mac", [
     "walk_brain.py", "walk_wired.py", "brain_sim_check.py", "brain_sim_batch.py", "jaw_ctl.py", "fake_pi.py",
     "pickup.py", "pickup_sim.py", "target_ground.py", "orange_target.py", "duck_cam.py", "stance_switch.py",
-    "sim_walk_check.py", "measure_gap.py", "walk_trial.py", "pose_snapshot.py",
+    "sim_walk_check.py", "measure_gap.py", "walk_trial.py", "pose_snapshot.py", "sim_host_guard.py", "cam_calib.py",
     "test_pickup.py", "test_pickup_modes.py", "test_stance_switch.py", "test_target_ground.py", "test_walk_wired_battery.py",
     "PICKUP.md", "CAMERA.md", "stance_poses.json", "stance_poses_big.json", "stance_poses_small.json",
     "brain-sim-check.json", "battery-stop-sim.json",

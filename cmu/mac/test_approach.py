@@ -17,7 +17,8 @@ import duck_kin  # noqa: E402
 STAND = {"left_hip_yaw": 0.0, "left_hip_roll": 0.0, "left_hip_pitch": 0.4525, "left_knee": -0.0046, "left_ankle": 0.4587,
          "neck_pitch": 0.3497, "head_pitch": 0.3497, "head_yaw": 0.0, "head_roll": 0.0, "right_hip_yaw": 0.0,
          "right_hip_roll": 0.0, "right_hip_pitch": -0.4525, "right_knee": 0.0046, "right_ankle": -0.4587}
-KIN = duck_kin.DuckKin()
+KIN = duck_kin.DuckKin()   # the U20CAM (u20cam_intrinsics.json, u20cam_mount.json)
+W, H = KIN.K.width, KIN.K.height
 
 
 class FakeDuck:
@@ -49,7 +50,7 @@ class FakeDuck:
         self.t += dt
         if int(self.t / 0.125) != int((self.t - dt) / 0.125):
             self.frame_i += 1
-            self.frame = (np.zeros((640, 480, 3), np.uint8), self.t - self.frame_age, self.frame_i)
+            self.frame = (np.zeros((H, W, 3), np.uint8), self.t - self.frame_age, self.frame_i)
 
     def state(self):
         return dict(t=self.t, mode=self.mode, torque=True, gb=(0.0, 0.0, -1.0), q=dict(self.q), yaw=self.th, ok=self.ok)
@@ -65,11 +66,11 @@ class FakeDuck:
             return None
         bx, by = x * (r - 0.02) / r, y * (r - 0.02) / r   # the base edge, obj_radius nearer than the centre
         uv = KIN.ground_to_pixel(bx, by, self.q, (0.0, 0.0, -1.0))
-        if uv is None or not 0 <= uv[0] < 480:
+        if uv is None or not 0 <= uv[0] < W:
             return None
-        if self.cut_px and 640 <= uv[1] < 640 + self.cut_px:   # base under the picture, top still in it
-            return dict(cx=uv[0], cy=630, base_cx=uv[0], bbox=(uv[0] - 10, 620, 20, 20), area=200)
-        if not 0 <= uv[1] < 640:
+        if self.cut_px and H <= uv[1] < H + self.cut_px:   # base under the picture, top still in it
+            return dict(cx=uv[0], cy=H - 10, base_cx=uv[0], bbox=(uv[0] - 10, H - 20, 20, 20), area=200)
+        if not 0 <= uv[1] < H:
             return None
         return dict(cx=uv[0], cy=uv[1] - 10, base_cx=uv[0], bbox=(uv[0] - 10, uv[1] - 20, 20, 20), area=400)
 
