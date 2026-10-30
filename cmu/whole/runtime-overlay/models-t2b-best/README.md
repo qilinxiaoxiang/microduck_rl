@@ -27,4 +27,7 @@ guard stop (`t2b_run_record.json`, `t2b_progress.csv`).
   - drop8_imu35 over six seeds (`cmu/simcheck/drop8_seeds_t2.jsonl`): t2b falls on seed 0, 1 of 6. walk61 0 of 6,
     T1 3 of 6, t2a 1 of 6.
 
-Not robot-tested. Under the plan it does not go to the robot until G2 and G3 pass or Shawn waives them.
+Not robot-tested yet. Shawn waived G2 and G3 on 2026-10-30 ("豁免，上机测 t2b") so that G4, the robot test, can show
+whether the anchor removes T1's jitter on hardware. Copied to the A7Z overlay the same evening (sha256 of walk61.onnx
+94480e97...); robot steps: `guide/firmware/mac/t1_robot_test.py restart t2b`, stop on a fall, walking tilt above 9 deg
+or more than 5 action jumps per s.
