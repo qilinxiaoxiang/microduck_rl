@@ -125,7 +125,8 @@ AUDIT_FILE = HERE / "reward-audit.json"
 # the ratio limit sits between the two measured values and is a thin margin, so re-calibrate on the next known outcome.
 AUDIT_MAX_RATIO = 0.83
 AUDIT_MAX_WALK_FALLS = 0.5
-AUDIT_KEY = {"none": "asbuilt", "default": "delta_asbuilt", "staged": "staged_asbuilt", "lowcmd": "lowcmd_asbuilt"}
+AUDIT_KEY = {"none": "asbuilt", "default": "delta_asbuilt", "staged": "staged_asbuilt", "lowcmd": "lowcmd_asbuilt",
+             "t1": "t1_asbuilt"}  # t1 is audited and run with --cmu-config plugged (the A7Z roof-saddle robot)
 
 
 @app.function(volumes={"/vol": vol}, timeout=600)

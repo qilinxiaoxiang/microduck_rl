@@ -286,3 +286,85 @@ rested on them and is withdrawn, as is the proposed IMU-hold delta. At the real 
 com+5, imu_pitch4, volt6.3) it999 never falls, walks 24-43 % further, steps at 0.20 m/s where walk61 cannot, with about
 1 deg more peak tilt and 1-9 vs 1-2 action jumps per 10 s. Delivered as `cmu/whole/runtime-overlay/models-ft3-it999/`
 (walk61.onnx = ft3.onnx, iteration 999; ft3_it750.onnx for reference); not yet run on the robot.
+
+## Run t1 plan (2026-10-30): delta "t1", the body follows the head (PLAN-continuous-vision.md section 5)
+
+Problem advanced: final-goal steps 2 and 3 (walk to the item, bend with the beak open). The pet-style loop needs the
+walking policy to carry the neck and head where the gaze loop (`mac/gaze.py`) points them and to keep stepping while it
+does, at any speed from a creep to the robot-tested 0.25 m/s. Source policy: the deployed `walk61.onnx` (CURRENT-STATE
+`walking_policy`), not the ft3 candidate (fell on the robot three of three times at 0.20 m/s).
+
+### What walk61 does today (measured)
+
+- Robot (PICKUP.md, stand61): the neck lifts to about -0.09 rad absolute whatever is commanded (-0.4 to -0.8 asked);
+  walking bursts with the head commanded down fell twice.
+- As-built CPU sim, plugged manifest (`cmu/mac/brain_sim_check.py --model asbuilt --manifest cmu/model/manifests/plugged.json
+  --volt 7.0 --walk-at 3 --walk-s 6 --neck-pitch N`, new flag, 2026-10-30; absolute neck targets, finals from the model zero):
+
+      vx     neck cmd   neck reached   head_pitch   path in 6 s   max tilt
+      0.00    -0.1        +0.002         0.336        0.003 m       1.9 deg
+      0.00    -0.4        -0.125         0.255        0.005 m       2.0
+      0.00    -0.8        -0.262         0.162        0.007 m       3.0
+      0.25    -0.1        -0.054         0.341        0.009 m       1.9    <- no stepping: a head command stops walk61
+      0.25    -0.4        -0.286         0.294        0.007 m       2.2
+      0.25    -0.8        -0.557         0.262        0.006 m       3.5
+
+  The sim reproduces both robot findings (the neck reaches a third of the command standing; any head command stops the
+  stepping), so this is the policy's behaviour, not the sim-to-real gap, and the sim can measure the fix. walk61 was
+  trained with head commands resampled every 2-5 s at the full ranges, yet the audit shows it pays head_pose_bias only
+  -0.23/s: with the 0.5 rad Gaussian and weight-3 L1 bias the cheapest answer to "neck down" was a partial neck and a
+  dropped head_pitch, and standing collected most of the reward while the head was moving (the ft1 structure again).
+
+### Delta t1 (`finetune_worker.py::DELTA_T1`, every other setting is walk61's training recipe)
+
+- Twist command: `lin_vel_x` uniform 0..0.30 (forward only; the robot-tested 0.25 inside the range), `lin_vel_y`
+  +-0.10, `ang_vel_z` +-1.0 as trained; 15 % of envs hold the exact zero command (the robot's idle), turn-in-place 15 %.
+- Head command (slots 55-58, deltas from HOME): neck_pitch -1.10..+0.40, head_pitch -0.30..+1.00 (the gaze loop's
+  0.35..1.35 absolute), head_yaw +-0.90, head_roll +-0.05; each sample held 3-8 s. All inside the caps walk61 was
+  trained to (+-1.10/1.10/1.40/0.31), so the baked normalizer sees nothing new.
+- Rewards: `track_linear_velocity` -> ft3's EMA form (std^2 0.05, tau 0.5 s, weight 2.0) so stepping at 0.15-0.30 m/s
+  beats standing by 0.7-1.5/s before air_time; `head_pose_bias` weight 3 -> 5, tau 1.0 -> 0.5 s (the acceptance is the
+  DC head error 0.5 s after a command); `head_pose_tracking` unchanged (std 0.5, weight 2; a tight instantaneous std
+  killed walking in Pollen's run 5yay13u4); `air_time` 3.0, `action_rate_l2` final -1.0 unchanged.
+- Actor input: the 61-number contract as deployed (48 proprioception: gravity, gyro, joint positions and velocities,
+  last action, feet; then twist 3, head 4, body 6). The actor does not see the camera; the gaze loop writes the head
+  slots and the walk command, as `walk_brain.py` does now. Critic as in walk61's recipe (adds the true base velocity).
+- Robot model: `--cmu-config plugged` (A7Z on the roof saddle, bench supply; `cmu/model/README.md`), not the 2026-10-15
+  as-built manifest with the Pi Zero W head. Not modelled there: saddle lid, U20CAM cable (recorded in that README).
+
+### Degenerate-policy audit (tests/test_t1_delta.py, from the cfg constants; the GPU audit confirms it before the run)
+
+    policy                                   head reward /s    stepping reward /s        verdict
+    tracks neck and head (DC error 0.08)       1.52             air_time 1.0 + EMA term 1.4-1.9 at 0.15-0.30 m/s
+    ignores the neck (walk61 today)            0.86 (mean over the neck range)            loses 0.66/s
+    stands still under 0.15..0.30 m/s          same head terms   EMA term 0.1-1.3 (loses 0.7-1.9/s) and no air_time
+    creeps at 0.05 m/s vs standing             indistinguishable (0.1/s): the lowest trained speed is 0.10 m/s
+
+    sim done criterion: DC head error 0.10 rad (not the plan's 0.05: a 0.05 rad error costs under 0.1/s in any term and the
+    robot's stand61 already shows 0.11 rad on the head at a 0.3 command)
+
+### Jobs (Kaggle T4, free, `cmu/finetune/kaggle/kaggle_job.py`; 15.9 h of the weekly 30 h left on 2026-10-30, reset 10-31 00:00)
+
+    python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name audit-t1 -- --eval-variants t1_asbuilt \
+        --onnx /root/assets/walk61.onnx,/root/assets/stand61.onnx --cmu-config plugged --num-envs 2048 --eval-steps 750 --max-hours 0.5
+    python3 cmu/finetune/kaggle/kaggle_job.py push smoke --run-name smoke-t1 -- --delta t1 --cmu-config plugged --max-lr 0.0003 --track-guard 1.3
+    python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name t1 -- --delta t1 --cmu-config plugged --max-iters 1000 --max-hours 3 \
+        --max-lr 0.0003 --track-guard 1.3
+
+The audit (walk61 and stand61 rolled out in the t1 env, 2048 envs x 15 s, about 5 min) must show stand/walk under 0.83
+and walk61 falls under 0.5 per env-minute, and it records walk61's head error per joint under the t1 commands (the
+`head_err_rad` field) as the baseline the run must beat. Smoke: 64 envs, 6 iterations, model_0.onnx == walk61, ONNX
+export (about 4 min). Run: 100 critic-only warm-up iterations, then PPO at lr <= 3e-4 under the reward and tracking
+guards, 1000 iterations (about 80 min on a T4). Note for the guard: its low-speed baseline is walk61 under t1 commands,
+which includes head-command episodes where walk61 does not step, so the baseline is lower than in ft3.
+
+### Acceptance
+
+- Sim (before the robot): the six-row table above rerun with the exported policy: at vx 0.25 with neck -0.4 and -0.8 the
+  duck walks (path over 0.6 m in 6 s, as walk61 does without a head command) and the neck ends within 0.10 rad of the
+  command; standing, the same neck accuracy; plus the as-built suite against walk61 (`cmu/simcheck/sim_suite.sh`,
+  real-condition cases) with no new falls.
+- Robot (Shawn runs the procedure): standing, neck -0.8 then back to the default; then a 0.25 m/s walk with the neck at
+  -0.4; then the gaze loop (`mac/gaze.py`) on a hand-held ball with the body following.
+- Not covered by t1: speeds below 0.10 m/s (the reward cannot separate them from standing), turning under the head
+  (section 5's yaw-from-head-yaw is a brain-side mapping on top of this policy), and the bend (T2).

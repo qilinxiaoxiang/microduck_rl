@@ -142,7 +142,29 @@ DELTA_LOWCMD = dict(DELTA_STAGED, track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.
 # microduck_velocity_env_cfg.py). Only two changes from Pollen's recipe: the foot friction range, and ft3's EMA velocity
 # tracking, without which a fine-tune of walk61 drifts to standing (ft1/ft2). Actuator, voltage and noise stay Pollen's.
 DELTA_SLIP = dict(foot_friction=(0.2, 1.3), track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)))
-DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP}
+# t1 (2026-10-30, cmu/grasp/PLAN-continuous-vision.md section 5): the body follows the head. walk61 on the robot holds
+# the neck near HOME whatever is commanded (-0.09 rad absolute for -0.4..-0.8 asked, PICKUP.md) and stops stepping while a
+# head command is active; the as-built CPU sim (brain_sim_check.py --neck-pitch, plugged manifest, 2026-10-30) shows the
+# same policy behaviour (standing: -0.4 commanded -> -0.125 reached, -0.8 -> -0.26; with vx 0.25 and any neck command the
+# duck does not step at all, path 0.007 m in 6 s), so this is the policy, not the sim-to-real gap, and the sim measures it.
+# Changes to Pollen's recipe, nothing else (actuator, masses, noise, pushes stay as walk61 was trained):
+#   twist: forward only, vx uniform 0..0.30 (the robot-tested 0.25 inside the range), small vy, yaw as trained; 15 % of
+#          envs get the exact zero command (the deployment idle), was 25 % at the end of Pollen's curriculum;
+#   head_pose: fixed final ranges biased to looking down (neck delta -1.10..+0.40, head_pitch -0.30..+1.00 = the gaze
+#          loop's 0.35..1.35 absolute, yaw +-0.90, roll +-0.05), held 3-8 s per sample (a tracked target moves slowly);
+#   rewards: ft3's EMA velocity tracking (std^2 0.05, tau 0.5 s) so stepping at 0.15-0.30 m/s beats standing by
+#          0.7-1.5/s; head_pose_bias (L1 on the EMA head error) weight 3 -> 5 and tau 1.0 -> 0.5 s (the done criterion is
+#          the DC error after 0.5 s); head_pose_tracking stays at std 0.5 (a tight instantaneous std killed walking,
+#          Pollen's run 5yay13u4). tests/test_t1_delta.py scores the degenerate policies from these constants.
+DELTA_T1 = dict(
+    track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)),
+    twist_ranges=dict(lin_vel_x=(0.0, 0.30), lin_vel_y=(-0.10, 0.10), ang_vel_z=(-1.0, 1.0)),
+    rel_standing_envs=0.15,
+    head_ranges=((-1.10, 0.40), (-0.30, 1.00), (-0.90, 0.90), (-0.05, 0.05)),   # neck_pitch, head_pitch, head_yaw, head_roll deltas from HOME
+    head_resample_s=(3.0, 8.0),
+    head_bias=dict(weight=5.0, tau_s=0.5),
+)
+DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP, "t1": DELTA_T1}
 
 
 def track_linear_velocity_ema(env, std: float, command_name: str, tau_s: float = 0.5, asset_cfg=None):
@@ -194,6 +216,25 @@ def apply_delta(env_cfg, delta: dict):
         term.func = track_linear_velocity_ema
         term.params = dict(command_name=term.params["command_name"], std=delta["track_lin_vel"]["std"],
                            tau_s=delta["track_lin_vel"]["tau_s"])
+    # t1 keys. Curricula are collapsed to their final stage in a fine-tune (CURRICULA_DONE_STEP), and the curriculum
+    # functions write the final stage back into the live cfg on every call, so the final stage is edited as well.
+    if "twist_ranges" in delta:
+        for k, v in delta["twist_ranges"].items():
+            setattr(env_cfg.commands["twist"].ranges, k, tuple(v))
+    if "rel_standing_envs" in delta:
+        env_cfg.commands["twist"].rel_standing_envs = delta["rel_standing_envs"]
+        env_cfg.curriculum["standing_envs"].params["standing_stages"][-1]["rel_standing_envs"] = delta["rel_standing_envs"]
+    if "head_ranges" in delta:
+        ranges = tuple(tuple(r) for r in delta["head_ranges"])
+        env_cfg.commands["head_pose"].ranges = ranges
+        env_cfg.curriculum["head_pose_range"].params["range_stages"][-1]["ranges"] = ranges
+    if "head_resample_s" in delta:
+        env_cfg.commands["head_pose"].resampling_time_range = tuple(delta["head_resample_s"])
+    if "head_bias" in delta:
+        hb = delta["head_bias"]
+        env_cfg.rewards["head_pose_bias"].weight = hb["weight"]
+        env_cfg.rewards["head_pose_bias"].params["tau_s"] = hb["tau_s"]
+        env_cfg.curriculum["head_pose_bias_weight"].params["weight_stages"][-1]["weight"] = hb["weight"]
     return env_cfg
 
 
@@ -268,6 +309,10 @@ def eval_policy(env, actor, steps: int, device: str) -> dict:
     err_sum, along_sum, mov_n, low_sum, low_n = 0.0, 0.0, 0, 0.0, 0
     term_sum = torch.zeros(len(rm.active_terms), device=env.device)
     rew_sum = 0.0
+    # head tracking (t1): |measured - HOME - command| per head joint, averaged over envs and steps (plain walk model:
+    # the measured angle is the servo joint; the backlash twin is not used here)
+    head_ids = [robot.joint_names.index(n) for n in ("neck_pitch", "head_pitch", "head_yaw", "head_roll")]
+    head_err = torch.zeros(4, device=env.device)
     with torch.inference_mode():
         for _ in range(steps):
             act = actor(obs)  # deterministic output
@@ -276,6 +321,8 @@ def eval_policy(env, actor, steps: int, device: str) -> dict:
             age += 1
             term_sum += rm._step_reward.sum(0)  # per-step values before the dt scale, i.e. reward per simulated second
             rew_sum += float(rew.sum())
+            hcmd = cm.get_command("head_pose")
+            head_err += ((robot.data.joint_pos[:, head_ids] - robot.data.default_joint_pos[:, head_ids]) - hcmd).abs().sum(0)
             cmd, v = cm.get_command("twist"), robot.data.root_link_lin_vel_b
             moving = cmd[:, 0].abs() > 0.15  # envs asked to walk forward/back at a clear speed
             if moving.any():
@@ -298,6 +345,8 @@ def eval_policy(env, actor, steps: int, device: str) -> dict:
                 survived_to_end=int((age >= steps).sum()),
                 track_err_xy=round(err_sum / max(mov_n, 1), 3), speed_along_cmd=round(along_sum / max(mov_n, 1), 3),
                 moving_samples=mov_n, low_cmd_speed=round(low_sum / max(low_n, 1), 3),
+                head_err_rad={name: round(float(x) / (n * steps), 4) for name, x in
+                              zip(("neck_pitch", "head_pitch", "head_yaw", "head_roll"), head_err)},
                 reward_per_s=round(rew_sum / (n * steps) / env.unwrapped.step_dt, 3),
                 terms_per_s={name: round(float(x) / (n * steps), 4) for name, x in zip(rm.active_terms, term_sum)})
 

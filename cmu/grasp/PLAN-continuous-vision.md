@@ -116,6 +116,12 @@ Body behaviour from the track: yaw rate from the head yaw (turn under the head),
 range falling continuously to a creep at the hand-over range, zero inside it. The stopping range is a parameter of
 the D skill (bite window for a ball, about 0.5 m for a person).
 
+Status 2026-10-30: drafted as `cmu/finetune/modal/finetune_worker.py::DELTA_T1` with `tests/test_t1_delta.py` (7 CPU
+tests, pass) and the plan, measurements, degenerate audit, jobs and acceptance in `cmu/finetune/modal/FINETUNE-DELTA.md`
+("Run t1 plan"). The as-built CPU sim reproduces walk61's robot behaviour (neck reaches a third of the command, any
+head command stops the stepping), so T1 fixes the policy and the sim can accept it. The lowest speed the reward can
+separate from standing is 0.10 m/s, not 0.05. Waiting for Shawn's nod before the Kaggle audit, smoke and run.
+
 ## 6. Layer D, contact skills
 
 **T2, bite (needs Shawn's go).** Fine-tune seepick61 with its object input replaced.
