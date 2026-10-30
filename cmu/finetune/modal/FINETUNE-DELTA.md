@@ -434,3 +434,19 @@ walk61 did not. The suite's verdict is "worse than the reference" on those two m
 with the neck down, keep stepping under head commands, stand with the neck held) it does; whether the extra tilt
 transfers as a fall is the robot test's question. Candidate delivered as `cmu/whole/runtime-overlay/models-t1-best/`
 (README there has the robot procedure); walk61 stays deployed.
+
+### Robot test (2026-10-30 10:27-10:29; robotics repo `microduck-sim/guide/firmware/mac/robot-runs-20261030-t1/`)
+
+The extra tilt transfers as a fall. The neck part of the goal holds on the robot; the gait does not.
+
+- Neck: command -0.4 -> -0.38..-0.42 while walking at 0.25 m/s; -0.8 -> -0.70..-0.92 walking, then -0.816 held for
+  10 s standing at 1.9 deg tilt (walk61 on the robot: -0.09).
+- Plain walk at 0.25 m/s, no head command: fell sideways 3.4 s in (tilt 6.5 -> 12 deg over 3 s, then 29 deg while
+  still walking, guard at 36 deg). The two head-command walks stayed up but tilted 18-20 deg at the stop.
+- Against walk61's five 0.25 m/s walks on the same robot the same day: peak tilt 13.8-29.3 deg vs 7.4-8.6, action p95
+  1.77-2.06 vs 0.91-1.19, tick-to-tick action jumps over 0.5 rad 17-22 per s vs 1.4-2.7, servo read misses alike
+  (3-5 % vs 1-6 %).
+
+The sim suite ranked the jitter the right way round (14 vs 1 jumps per 10 s at vx 0.25) but no sim case fell, so a
+sim pass on tilt and falls does not clear a fine-tune for the robot while its action jumps exceed walk61's. That is
+the second fine-tune (after ft3) to fail on the robot in this way. Not deployable; walk61 stays deployed.

@@ -42,10 +42,11 @@ and more action jumps than walk61, the pattern ft3 showed before it lost balance
     stress: volt6.3 2.43 m no fall; drop8_imu35 falls left at 7-9 s (both seeds; walk61 does not); bare printed feet on a
     smooth floor fall forward at 15 s (the robot has soles; the sole case walks 2.0 m).
 
-## Status: candidate for a robot test; not yet run on the robot
+## Status: failed the robot test on 2026-10-30; not deployable
 
-Robot procedure (Shawn runs it, torque stays on): start the brain with this directory as `--models`; a 0.25 m/s walk of
-3 s with no head command first (the walk61 comparison); then 0.25 m/s for 3 s with neck -0.4; then after a 2 s walk,
-stop and hold neck -0.8 for 10 s; then the gaze loop (`guide/firmware/mac/gaze.py`) on a hand-held ball. A fall or a
-tilt wobble above walk61's ends the test. The deployed policy stays walk61 until Shawn says otherwise
+Robot test (robotics repo `microduck-sim/guide/firmware/mac/robot-runs-20261030-t1/`, driven by
+`guide/firmware/mac/t1_robot_test.py`): the neck follows on the robot (-0.4 -> -0.38..-0.42 walking; -0.8 -> -0.816
+held 10 s standing after a walk; walk61 reached -0.09), but the plain 0.25 m/s walk fell sideways at 3.4 s, and all
+three walks peaked at 13.8-29 deg tilt with 17-22 action jumps over 0.5 rad per s, against walk61's 7.4-8.6 deg and
+1.4-2.7 per s on the same robot. The gaze-loop step was not run. walk61 stays deployed
 (`microduck-sim/CURRENT-STATE.json`, `walking_policy`).

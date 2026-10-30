@@ -124,7 +124,9 @@ separate from standing is 0.10 m/s, not 0.05. Shawn nodded; Kaggle audit and smo
 81 min, one T4). Sim done criterion met by `cmu/whole/runtime-overlay/models-t1-best` (iteration 800): walks 1.0-1.3 m in
 6 s at vx 0.25 with the neck at -0.4 and -0.8 (neck error under 0.09 rad), stands afterwards with the neck held, walks
 with head pitch 1.2; the suite shows no falls in the real cases and more distance, but 3-4 deg more tilt and more action
-jumps than walk61 (`cmu/simcheck/reference-t1-best.jsonl`). Robot test pending (FINETUNE-DELTA.md, "Run t1 result").
+jumps than walk61 (`cmu/simcheck/reference-t1-best.jsonl`). Robot test 2026-10-30 (FINETUNE-DELTA.md, "Robot test"): the neck follows on the robot, but
+the plain 0.25 m/s walk fell and every walk wobbled twice as far as walk61 with ten times its action jumps; not
+deployable, walk61 stays deployed.
 
 ## 6. Layer D, contact skills
 
