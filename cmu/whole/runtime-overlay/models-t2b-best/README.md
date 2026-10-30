@@ -31,3 +31,10 @@ Not robot-tested yet. Shawn waived G2 and G3 on 2026-10-30 ("豁免，上机测 
 whether the anchor removes T1's jitter on hardware. Copied to the A7Z overlay the same evening (sha256 of walk61.onnx
 94480e97...); robot steps: `guide/firmware/mac/t1_robot_test.py restart t2b`, stop on a fall, walking tilt above 9 deg
 or more than 5 action jumps per s.
+
+## Robot test (G4), 2026-10-30
+
+Default-head walk at 0.25 m/s like walk61 (peak tilt 8.7 deg, 1.7 action jumps per s); with a neck command it
+shakes like T1 (neck -0.4: 16.4 deg, 14 jumps per s; -0.8: 10.8 deg, 13.6 per s; standing neck -0.64 against -0.8).
+No fall. Not deployable. The as-built sim shows 0-2 jumps per 10 s for the same neck commands, so it misses this
+failure. Detail: robotics `microduck-sim/guide/firmware/mac/robot-runs-20261030-t1/t2b/README.md`.
