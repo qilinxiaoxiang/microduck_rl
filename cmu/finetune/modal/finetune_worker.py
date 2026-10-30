@@ -177,17 +177,23 @@ DELTA_T2A = dict(DELTA_T1, default_head_envs=0.2, anchor=dict(beta=0.5, states=2
 DELTA_T2B = dict(DELTA_T2A, anchor=dict(DELTA_T2A["anchor"], beta=2.0))
 # t3 (2026-10-30, FINETUNE-DELTA.md "Run t3 plan"): t2b walked like walk61 with the default head and shook like T1 as
 # soon as the neck was commanded (robot 14 jumps/s), which is where the t2 anchor did not reach. Three changes: (1) the
-# sim gap the jitter study identified goes into the training DR: BAM friction 1.0-1.5 and gyro vibration proportional to
-# leg speed (k 0.15-0.35, study value 0.25), actor observation only; (2) a second-difference action term on every
-# state (weight: placeholder -1.0 for the audit, then set so its mass on walk61's own rollouts matches
-# action_rate_l2's, recorded in the delta before the run); (3) the anchor also covers head-command states with a
+# sim gap the jitter study identified goes into the training DR: BAM friction 1.0-1.4 (the study's calibrated value is
+# the top; at 1.0-1.5 the audit-t3 run of 2026-10-30 had walk61 falling 0.527 per env-minute, over the 0.5 limit, and
+# the 10/17 study already found x1.5 stops stepping) and gyro vibration proportional to leg speed (k 0.15-0.35, study
+# value 0.25), actor observation only; (2) a second-difference action term on every state (weight: -1.0 placeholder for
+# the audit, then set so its mass on walk61's own rollouts matches action_rate_l2's, recorded in the delta before the
+# run; audit-t3 at 1.0-1.5 gave -0.59); (3) the anchor also covers head-command states with a
 # counterfactual target: walk61's own leg actions on the same state with the head command zeroed, leg outputs only, at
 # beta_legs (walk61 does not step with a head command, so walk61(s) itself would teach standing).
-DELTA_T3A = dict(DELTA_T2B, joint_friction=(1.0, 1.5), gyro_vibration=dict(k_range=(0.15, 0.35)),
+DELTA_T3A = dict(DELTA_T2B, joint_friction=(1.0, 1.4), gyro_vibration=dict(k_range=(0.15, 0.35)),
                  action_acc=dict(weight=-1.0), anchor=dict(DELTA_T2B["anchor"], beta_legs=0.0))
 DELTA_T3B = dict(DELTA_T3A, anchor=dict(DELTA_T3A["anchor"], beta_legs=1.0))
+# audit-only diagnostics (no AUDIT_KEY, never trained): t2b plus one t3 DR change each, to attribute walk61's fall rate
+DELTA_T3_FRIC = dict(DELTA_T2B, joint_friction=(1.0, 1.5))
+DELTA_T3_VIB = dict(DELTA_T2B, gyro_vibration=dict(k_range=(0.15, 0.35)))
 DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP, "t1": DELTA_T1,
-          "t2a": DELTA_T2A, "t2b": DELTA_T2B, "t3a": DELTA_T3A, "t3b": DELTA_T3B}
+          "t2a": DELTA_T2A, "t2b": DELTA_T2B, "t3a": DELTA_T3A, "t3b": DELTA_T3B,
+          "t3fric": DELTA_T3_FRIC, "t3vib": DELTA_T3_VIB}
 
 # columns of the 61-input actor vector: 48 proprioception, then twist(3), head_pose(4), body_pose(6)
 ACTOR_TWIST, ACTOR_HEAD = slice(48, 51), slice(51, 55)

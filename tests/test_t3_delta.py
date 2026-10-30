@@ -35,7 +35,7 @@ def test_t3_is_t2b_plus_three_changes_and_registered():
         d = fw.DELTAS[name]
         base = {k: v for k, v in d.items() if k not in ("joint_friction", "gyro_vibration", "action_acc", "anchor")}
         assert base == {k: v for k, v in fw.DELTA_T2B.items() if k != "anchor"}
-        assert tuple(d["joint_friction"]) == (1.0, 1.5)
+        assert tuple(d["joint_friction"]) == (1.0, 1.4)
         assert tuple(d["gyro_vibration"]["k_range"]) == (0.15, 0.35)
         assert d["action_acc"]["weight"] < 0
         assert d["anchor"]["beta"] == 2.0 and d["anchor"]["beta_legs"] == beta_legs
@@ -46,7 +46,7 @@ def test_t3_is_t2b_plus_three_changes_and_registered():
 def test_cfg_edits_reach_the_actor_only():
     c = load_env_cfg(fw.TASK, play=False)
     fw.apply_delta(c, dict(fw.DELTA_T3A))
-    assert tuple(c.events["randomize_joint_friction"].params["scale_range"]) == (1.0, 1.5)
+    assert tuple(c.events["randomize_joint_friction"].params["scale_range"]) == (1.0, 1.4)
     av = c.observations["actor"].terms["base_ang_vel"]
     assert av.func is mdp.base_ang_vel_imu_misaligned_vibration
     assert tuple(av.params["k_range"]) == (0.15, 0.35) and "max_angle_deg" in av.params
