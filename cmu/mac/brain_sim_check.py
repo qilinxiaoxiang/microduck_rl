@@ -65,6 +65,7 @@ from walk_wired import SP_DONE_PHASE  # noqa: E402
 import walk_brain  # noqa: E402
 import jaw_ctl  # noqa: E402
 import jaw_limits as jl  # noqa: E402
+import tether  # noqa: E402
 from hold import DOWN_RATE, PAD_HI, PADS, UP_RATE, HoldEstimator  # noqa: E402
 
 MODELS = os.path.join(WHOLE, "runtime-overlay", "models")
@@ -839,6 +840,10 @@ def run(args):
         for g in ("left_foot_collision", "right_foot_collision"):
             m.geom_solref[m.geom(g).id] = args.sole_solref
             m.geom_solmix[m.geom(g).id] = 1e3
+    if args.sole_torsion is not None:  # in-place turn check 2026-10-30: the model's condim 3 soles have no twisting friction
+        for g in ("left_foot_collision", "right_foot_collision"):
+            m.geom_condim[m.geom(g).id] = 4
+            m.geom_friction[m.geom(g).id][1] = args.sole_torsion
     idx = {n: names.index(n) for n in NAMES}  # Brain order (servo IDs 1..14) -> model actuator order
     z0 = np.array([math.radians(zero.get(n, 0)) for n in names])
     p0 = np.array([BRAIN_STAND[n] for n in names])  # the Brain's stand pose (pi/stand_pose.py), not static_gap.STAND
@@ -863,6 +868,16 @@ def run(args):
     sq = collections.deque(maxlen=args.sensor_delay + 1)
     fell, fall_dir, maxtilt, x0, rows, first_policy = None, None, 0.0, None, [], None
     yaw_walk, yaw_prev, turns = 0.0, None, []
+    tet = None
+    if args.tether is not None:  # per-run lead parameters from the seed; --tether KEY=VALUE pins any of them
+        trng = np.random.default_rng(args.seed + 1000)
+        U = lambda lo, hi, shape: trng.uniform(lo, hi, shape)
+        prm = tether.sample(np, 1, U)
+        for kv in args.tether:
+            k_, v_ = kv.split("=")
+            prm[k_] = np.array([[float(x) for x in v_.split(",")]]) if k_ == "exit_b" else np.array([float(v_)])
+        tet = dict(prm=prm, state=None, U=U, yaw=0.0, p=None, log=[])
+        print("tether", {k: np.round(v, 4).tolist() for k, v in prm.items()}, flush=True)
     path_m, path_xy = 0.0, None  # trunk path over the walk window, sampled every 0.5 s (stride sway averages out)
     rng = np.random.default_rng(args.seed)
     imu_hold, imu_t = None, 0.0
@@ -971,8 +986,8 @@ def run(args):
                     vth = v
             want = {"mode": "walk", "vx": args.vx if walking else 0.0, "vy": 0.0,
                     "vtheta": vth if walking else 0.0}
-            if (args.head_yaw or args.head_pitch is not None) and t >= args.walk_at:
-                want["head"] = {"head_yaw": args.head_yaw, "head_pitch": args.head_pitch}
+            if (args.head_yaw or args.head_pitch is not None or args.neck_pitch is not None) and t >= args.walk_at:
+                want["head"] = {"head_yaw": args.head_yaw, "head_pitch": args.head_pitch, "neck_pitch": args.neck_pitch}
             if dance is not None and t >= args.walk_at:  # shoot.py's singing take: the step in force at this time
                 step = None
                 for st_ in dance["steps"]:
@@ -1025,7 +1040,8 @@ def run(args):
         # --load-from-legs: the share the robot would read from its leg currents (summed |torque| of the ten leg
         # actuators between the calibrated hanging and standing sums), not the true foot force
         load_in = load_now if args.load_from_legs is None else min(1.0, max(0.0, (tau_legs - args.load_from_legs[1]) / (args.load_from_legs[0] - args.load_from_legs[1])))
-        est.update(0.02, counts=counts, age=0.0, load=None if args.hold_uncal else load_in)
+        est.update(0.02, counts=counts, age=0.0, load=None if args.hold_uncal else load_in,
+                   gyro=float(np.linalg.norm(w_body)))
         if guard["stop"] is not None:  # walk_wired wrote stand (monitor out of a sit or crouch) to the control file
             want = {"mode": guard["stop_to"]}
         if args.wired_hold:  # walk_wired.py's order: grip stop on the file command, then the smoothing, then the gate
@@ -1122,7 +1138,26 @@ def run(args):
         c.q_target = aq[0] + z0
         # --yaw-torque: a steady turn about the vertical on the trunk while walking, a stand-in for whatever turns the
         # real robot left (10/21-22: +22 to +42 deg/s at vx 0.25, cause not isolated)
-        d.xfrc_applied[trunk, 5] = args.yaw_torque if args.walk_at <= t < args.walk_at + args.walk_s else 0.0
+        # --yaw-spring: a cable twisted by the turn (2026-10-30 in-place turn check), restoring torque per rad of heading change
+        d.xfrc_applied[trunk, 5] = (args.yaw_torque - args.yaw_spring * yaw_walk
+                                    if args.walk_at <= t < args.walk_at + args.walk_s else 0.0)
+        if tet is not None:  # --tether: the charger lead (tether.py) from the walk command on
+            R = d.xmat[trunk].reshape(3, 3)
+            p_exit = d.xpos[trunk] + R @ tet["prm"]["exit_b"][0]
+            yaw_c = tet["yaw"] + ((_yaw(d.xquat[trunk]) - tet["yaw"] + math.pi) % (2 * math.pi) - math.pi)
+            tet["yaw"] = yaw_c
+            if t >= args.walk_at:
+                if tet["state"] is None:
+                    tet["state"] = tether.start(np, tet["prm"], d.xpos[trunk][None, :2], np.array([yaw_c]), p_exit[None, :2])
+                    tet["p"] = p_exit.copy()
+                v_exit = (p_exit - tet["p"]) / 0.02
+                tet["p"] = p_exit.copy()
+                tether.step_snags(np, tet["state"], 0.02, tet["U"])
+                f, tq = tether.wrench(np, tet["prm"], tet["state"], p_exit[None], v_exit[None], d.xipos[trunk][None], np.array([yaw_c]))
+                d.xfrc_applied[trunk, 0:3] = f[0]
+                d.xfrc_applied[trunk, 3:5] = tq[0][:2]
+                d.xfrc_applied[trunk, 5] += tq[0][2]  # on top of --yaw-torque/--yaw-spring, set above this tick
+                tet["log"].append((round(t, 2), np.round(f[0], 3).tolist(), round(float(tq[0][2]), 4)))
         if args.walk_at <= t < args.walk_at + args.walk_s and "turn" in info:
             turns.append(info["turn"])
         for k_sub in range(sub):
@@ -1289,7 +1324,7 @@ def run(args):
                     hard_max_action=HARD_MAX_ACTION, max_tilt_deg=MAX_TILT_GP_DEG)),
                 groundpick=None if gp_at is None else dict(gp, at=gp_at, phase=args.gp_phase, hold_s=args.gp_hold_s,
                                                            done_at=round(gp_done_at, 2)),
-                head=None if not (args.head_yaw or args.head_pitch is not None) else dict(head_yaw=args.head_yaw, head_pitch=args.head_pitch,
+                head=None if not (args.head_yaw or args.head_pitch is not None or args.neck_pitch is not None) else dict(head_yaw=args.head_yaw, head_pitch=args.head_pitch, neck_pitch=args.neck_pitch,
                                                          final={n: round(float(d.qpos[qa[k]] - z0[k]), 3) for k, n in enumerate(names) if "head" in n or "neck" in n}),
                 compensation=args.compensation, first_policy_tick_s=first_policy, max_action=round(max_action, 2), action_jumps=action_jumps,
                 drop=args.drop, imu_hz=args.imu_hz, floor_mu=args.floor_mu, fell_at=fell, fall_dir=fall_dir,
@@ -1440,6 +1475,8 @@ def main():
     ap.add_argument("--vtheta-seq", nargs=2, type=float, action="append", default=[], metavar=("S", "VTHETA"),
                     help="from S seconds into the walk, command this vtheta (repeatable; e.g. a right arc then a left arc)")
     ap.add_argument("--yaw-torque", type=float, default=0.0, help="N m about world up on the trunk while walking (+ = left)")
+    ap.add_argument("--tether", nargs="*", default=None, metavar="KEY=VALUE", help="charger lead on the trunk (tether.py), parameters drawn from --seed; KEY=VALUE pins one (e.g. k_twist=0.01, exit_b=-0.06,0.015,-0.03)")
+    ap.add_argument("--yaw-spring", type=float, default=0.0, help="N m per rad of heading change since the walk began, against it (twisted cable)")
     ap.add_argument("--yaw-trim-file", default=None, help="walk_brain yaw trim file, read at start and updated after the walk")
     ap.add_argument("--sensor-delay", type=int, default=1)
     ap.add_argument("--action-delay", type=int, default=1)
@@ -1464,6 +1501,7 @@ def main():
     ap.add_argument("--dance", default=None, help="dance.json: head and in-place turn steps from --walk-at on (shoot.py sing)")
     ap.add_argument("--head-yaw", type=float, default=0.0, help="rad; head pose command in walk mode from --walk-at on")
     ap.add_argument("--head-pitch", type=float, default=None, help="rad; absolute head_pitch target with --head-yaw")
+    ap.add_argument("--neck-pitch", type=float, default=None, help="rad; absolute neck_pitch target in walk mode from --walk-at on (T1 check: does the policy lower the neck?)")
     ap.add_argument("--quack-at", type=float, nargs="*", default=[],
                     help="s; walk_wired.py quack head tilts (QUACK_HEAD_S raised-cosine profile) starting at these times")
     ap.add_argument("--quack-roll", type=float, default=0.18, help="rad; head_roll delta of the --quack-at tilts")
@@ -1491,6 +1529,8 @@ def main():
                     help="axis of --foot-play: pitch (the ankle axis), roll (forward) or yaw (vertical), at the stand pose")
     ap.add_argument("--sole-solref", type=float, nargs=2, default=None, metavar=("TIMECONST", "DAMPRATIO"),
                     help="foot-floor contact softness (MuJoCo solref; the model's own is 0.02 1): a compliant sole")
+    ap.add_argument("--sole-torsion", type=float, default=None, metavar="M",
+                    help="foot-floor torsional friction (m, contact condim 4); the model's own soles have none (condim 3)")
     ap.add_argument("--grip-at", type=float, default=None, help="s; head pads L1, R1, M covered from here (hold.py estimator input)")
     ap.add_argument("--release-at", type=float, default=None, help="s; the hand leaves the pads (and lets go of the head)")
     ap.add_argument("--lift-at", type=float, default=None, help="s; the hand lifts the head --lift-height over 0.6 s from here")

@@ -43,6 +43,7 @@ add(MAC, "mac", [
     "test_teleop_modes.py", "teleop_sim_batch.py", "teleop-sim-check.json",
     "test_walk_wired_touch.py",  # Present Current and head touch pads in the tick log
     "hold.py", "test_hold.py",  # graded hold: walk_wired.py and brain_sim_check.py import it
+    "tether.py", "test_tether.py",  # charger-lead wrench: brain_sim_check.py --tether and the fine-tune tether event import it
     "approach.py", "approach_sim.py", "duck_kin.py", "duck_kin.json", "duck_kin_export.py", "turn_test.py",
     "test_approach.py", "test_duck_kin.py", "APPROACH.md", "a7z_cam.py",  # walk to the object while turning (step 2)
     "shoot.py", "shoot.sh", "SHOOT.md", "dance.json", "sitlook.json", "test_shoot_sitfind.py",  # the five filmed homepage takes (2026-10-24)
