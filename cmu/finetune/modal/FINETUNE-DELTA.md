@@ -450,3 +450,51 @@ The extra tilt transfers as a fall. The neck part of the goal holds on the robot
 The sim suite ranked the jitter the right way round (14 vs 1 jumps per 10 s at vx 0.25) but no sim case fell, so a
 sim pass on tilt and falls does not clear a fine-tune for the robot while its action jumps exceed walk61's. That is
 the second fine-tune (after ft3) to fail on the robot in this way. Not deployable; walk61 stays deployed.
+
+### Why T1 jitters, and what published work does about it (2026-10-30, after the robot test)
+
+**Speed-matched check first** (`cmu/simcheck/speed_matched.py`, plugged, the suite's base flags; rows in
+`cmu/simcheck/speed_matched_t1*.jsonl`). At the same command T1 walks almost twice as fast as walk61 (vx 0.25: 2.06 m
+against 1.17 m in 10 s), because walk61 under-tracks. At the same actual speed most of the gap disappears:
+
+    T1 command      neck    dist 10 s   peak tilt   max|a|   jumps > 0.5 rad / 10 s
+    0.10            -       1.16 m      7.3 deg     1.03     3
+    0.12            -       1.33        8.2         1.02     4
+    0.15            -       1.47        8.5         1.03     3
+    0.10            -0.4    0.79        5.9         1.28     5      neck reached -0.46
+    0.15            -0.4    1.25        7.0         1.15     3      neck -0.46
+    0.10            -0.8    0.59        5.7         1.46     5      neck -0.85
+    0.15            -0.8    1.08        6.5         1.28     5      neck -0.74
+    walk61 0.25     -       1.17        6.3         0.91     1      (reference-walk61-plugged.jsonl)
+    T1 0.25         -       2.06        9.6         1.08     14     (reference-t1-best.jsonl)
+
+Jumps are the same measure as the robot log. On the robot both policies jumped about 15 times more often than in the sim
+(walk61 1.4-2.7 per s against 0.1; T1 17-22 against 1.4), so the sim ranks the jitter correctly and the robot amplifies
+it. Most of T1's jitter is the cost of actually walking at the commanded 0.25 m/s; at walk61's own speed T1 is within
+about 1 deg tilt and 2-4 jumps per 10 s of it, and it keeps stepping with the neck down, which walk61 cannot.
+
+**Published recipes and our gap** (sources read 2026-10-30):
+
+- Lipschitz-constrained policies (Chen et al., IROS 2025, arXiv 2410.11825, https://lipschitz-constrained-policy.github.io):
+  a gradient penalty lambda * E||grad_s log pi(a|s)||^2 on the whole observation, lambda 0.002 (ablation 0.001-0.01).
+  Sim action jitter: 3.21 with it, 5.74 with smoothness rewards, 7.86 with a low-pass filter, 42.19 with nothing; the
+  filter lowered task return and "dampen[s] or limit[s] exploration". Real humanoids (GR1, H1, Berkeley) run LCP
+  alone. Our recipe has only the smoothness-reward kind (action_rate_l2, final weight -1.0); no policy-side constraint.
+- CAPS (Mysore et al., ICRA 2021, arXiv 2012.06644): temporal (consecutive actions) and spatial (nearby states) losses
+  added to the policy objective; about 80 % less power on a real quadrotor. Same family as LCP.
+- humanoid-gym (RobotEra, `humanoid_env.py::_reward_action_smoothness`): first difference + second difference of the
+  actions + 0.05 x L1 of the actions. We penalise the first difference only.
+- Fine-tuning forgets (Wolczyk et al., ICML 2024, arXiv 2402.02868): fine-tuning erodes the pretrained behaviour in
+  states not visited early; behaviour cloning (KL(pi_pretrained || pi) on pretraining states) worked best, vanilla
+  fine-tuning was no better than training from scratch. Our fine-tunes have no anchor to walk61.
+- Step-wise Gaussian exploration gives shaky motion on hardware (Raffin et al., CoRL 2021, gSDE). Our fine-tunes restart
+  the exploration std at 0.25 i.i.d. per tick (ended at 0.19).
+- Runtime low-pass filters: used with smoothing rewards, not instead of them (a Butterworth 4 Hz on a biped, arXiv
+  2401.16889; Disney's Olaf low-passes upsampled targets; both from search summaries, papers not read in full); trained-unfiltered policies deployed filtered break transfer
+  (AGENTS.md), and our 2026-10-16 EMA 0.5 trial on the goals did not reduce the walking jumps (walk_wired.py note).
+
+**Next, in cost order.** (1) No training: T1 on the robot at vx 0.10-0.15 with the neck at -0.4 and -0.8
+(`guide/firmware/mac/t1_robot_test.py walk_at 0.10 -0.4`); the sim says it walks at walk61's speed with walk61's
+smoothness and the neck down. (2) If a faster T1 is needed, a fine-tune with the LCP penalty (lambda 0.002) and a
+second-difference term, anchored to walk61 by a KL term on walk61's own states, judged by the sim jump count at
+matched speed before any robot time. Training needs Shawn's nod after the plan.
