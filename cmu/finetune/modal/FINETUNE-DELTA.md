@@ -605,3 +605,34 @@ Shawn approved the t2 plan, including drop8_imu35 as a G3 gate for this run ("ç‚
       python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name t2a --pair-run-name t2b -- --delta t2a --cmu-config plugged \
           --max-iters 1000 --max-hours 3 --max-lr 0.0003 --track-guard 1.3 -- --delta t2b --cmu-config plugged \
           --max-iters 1000 --max-hours 3 --max-lr 0.0003 --track-guard 1.3
+
+### t2 results (2026-10-30): the anchor keeps walk61's gait; the neck reaches less far; not robot-tested
+
+Both jobs ran 1000 iterations without a guard stop (t2a 78.5 min, t2b 81.6 min). Warm-up kept 200k walk61 states each
+(about 106k at vx 0). Anchor distance on the buffer settled at 0.30 (t2a) and 0.20 (t2b); speed along the command
+rose 0.035 -> 0.12 (t2a) and -> 0.093 (t2b), against T1's 0.18. Best saves: t2a iteration with peak reward 128.5,
+t2b iteration 850. Candidate directory `cmu/whole/runtime-overlay/models-t2b-best` (README there).
+
+- **G1** (649 states of walk61's robot walks, gate 0.25): t2b 0.208 final / 0.221 best, PASS; t2a 0.320 / 0.303,
+  FAIL; T1 0.711. No t2b joint differs by more than 0.07 rad on average (T1 up to 0.27).
+- **G2** (`t1_sim_accept.py`; `cmu/finetune/t2b_accept_*.json`, `t2a_accept_best.json`), rows the plan names:
+
+      row                             t2b best       t2b it999      t2a best       T1 it800
+      walk 0.25, neck -0.4            -0.367/0.59 m  -0.356/0.54 m  -0.380/0.93 m  -0.393/1.09 m
+      walk 0.25, neck -0.8            -0.686/0.56 m  -0.623/0.53 m  -0.670/0.86 m  -0.711/0.95 m
+      walk 2 s then stand, neck -0.4  -0.367         -0.354         -0.387         -0.379
+      walk 2 s then stand, neck -0.8  -0.682         -0.619         -0.736         -0.740
+
+  Every variant misses the neck -0.8 tolerance (0.10) by 0.01-0.08 while walking. t2b also misses the 0.6 m path
+  threshold under a neck command; that threshold was set from T1's speed. Plain walks at vx 0.25 in the same sim
+  (seed 0, 6 s): walk61 0.45 m, t2b 0.66 m, t2b best 0.70 m, T1 1.24 m, so t2b under a neck command still steps
+  faster than walk61 without one.
+- **G3** (`sim_suite.py --variant plugged`, t2b best, `cmu/simcheck/reference-t2b-best.jsonl`): real cases nominal,
+  com+5 and imu_pitch4 match or beat walk61; vx0.25 has 4 action jumps per 10 s against the allowed 3 (walk61 1,
+  T1 14); vx0.2 fails the tilt and jump limits because walk61 stands still there (0 m) and t2b walks (1.02 m, 7.5 deg).
+  Action jumps on the real cases 2-4 per 10 s against T1's 5-27. drop8_imu35 over seeds 0-5
+  (`cmu/simcheck/drop8_seeds_t2.jsonl`): falls walk61 0/6, T1 3/6, t2b best 1/6 (seed 0), t2a best 1/6 (seed 3).
+
+Verdict under the plan: G1 passes for t2b, G2 and G3 fail, so t2b does not go to the robot without Shawn's waiver.
+The anchor did what it was for in the sim (T1's 0.71 rad rewrite of walk61's gait down to 0.22, action jumps back to
+walk61's range, drop8 falls 3/6 -> 1/6), and cost neck depth at -0.8 (0.69 against T1's 0.71 and the 0.70 needed).
