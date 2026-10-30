@@ -37,7 +37,7 @@ def test_t3_is_t2b_plus_three_changes_and_registered():
         assert base == {k: v for k, v in fw.DELTA_T2B.items() if k != "anchor"}
         assert tuple(d["joint_friction"]) == (1.0, 1.4)
         assert tuple(d["gyro_vibration"]["k_range"]) == (0.15, 0.35)
-        assert d["action_acc"]["weight"] < 0
+        assert d["action_acc"]["weight"] == -0.58  # mass-matched to action_rate_l2 on walk61 (audit-t3b)
         assert d["anchor"]["beta"] == 2.0 and d["anchor"]["beta_legs"] == beta_legs
     src = (REPO / "cmu" / "finetune" / "modal" / "finetune.py").read_text()
     assert '"t3a": "t3a_asbuilt"' in src and '"t3b": "t3a_asbuilt"' in src

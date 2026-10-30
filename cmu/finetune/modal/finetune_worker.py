@@ -182,11 +182,12 @@ DELTA_T2B = dict(DELTA_T2A, anchor=dict(DELTA_T2A["anchor"], beta=2.0))
 # the 10/17 study already found x1.5 stops stepping) and gyro vibration proportional to leg speed (k 0.15-0.35, study
 # value 0.25), actor observation only; (2) a second-difference action term on every state (weight: -1.0 placeholder for
 # the audit, then set so its mass on walk61's own rollouts matches action_rate_l2's, recorded in the delta before the
-# run; audit-t3 at 1.0-1.5 gave -0.59); (3) the anchor also covers head-command states with a
+# run; audit-t3b gave -0.58); (3) the anchor also covers head-command states with a
 # counterfactual target: walk61's own leg actions on the same state with the head command zeroed, leg outputs only, at
 # beta_legs (walk61 does not step with a head command, so walk61(s) itself would teach standing).
 DELTA_T3A = dict(DELTA_T2B, joint_friction=(1.0, 1.4), gyro_vibration=dict(k_range=(0.15, 0.35)),
-                 action_acc=dict(weight=-1.0), anchor=dict(DELTA_T2B["anchor"], beta_legs=0.0))
+                 action_acc=dict(weight=-0.58),  # audit-t3b: walk61 masses/s action_rate -0.199, action_acc at -1.0 -0.342
+                 anchor=dict(DELTA_T2B["anchor"], beta_legs=0.0))
 DELTA_T3B = dict(DELTA_T3A, anchor=dict(DELTA_T3A["anchor"], beta_legs=1.0))
 # audit-only diagnostics (no AUDIT_KEY, never trained): t2b plus one t3 DR change each, to attribute walk61's fall rate
 DELTA_T3_FRIC = dict(DELTA_T2B, joint_friction=(1.0, 1.5))

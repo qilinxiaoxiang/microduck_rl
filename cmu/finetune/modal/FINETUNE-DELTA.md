@@ -739,3 +739,9 @@ walk61 itself), then the Kaggle audit and smoke, then the paired run. Nothing st
   calibrated 1.4, and the 10/17 study already found x1.5 stops stepping, so the range is now 1.0-1.4 (commit 5cdee5d5).
 - **Audit 2** (`audit-t3b`): `t3a_asbuilt` at friction 1.0-1.4 plus two audit-only diagnostics, `t3fric_asbuilt` (t2b +
   friction 1.0-1.5 only) and `t3vib_asbuilt` (t2b + vibration only), to attribute the fall rate. Result below.
+  Audit 2 result (`audit-t3b`, 11 min, `cmu/finetune/kaggle/out/audit-t3b/runs/audit-t3b/eval.json`), walk61 falls per
+  env-minute: t2b env 0.193 (audit-t1) -> friction 1.0-1.5 alone 0.328, vibration alone 0.344, t3a (friction 1.0-1.4 +
+  vibration) 0.432; the two gaps add about 0.14 each. stand61 falls 1.25-1.40 in every variant. t3a_asbuilt: stand/walk
+  0.815 at action_acc -1.0, 0.804 at the mass-matched **-0.58** (walk61 action_rate_l2 -0.199/s, action_acc_l2 -0.342/s
+  at -1.0), falls 0.432 <= 0.5, **PASS**; `reward-audit.json` key `t3a_asbuilt` written from this run (the entry's
+  action_acc_l2 column is rescaled to -0.58). `DELTA_T3A/B` action_acc weight -0.58.
