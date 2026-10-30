@@ -323,4 +323,4 @@ job. Acceptance against walk61 in the as-built eval sim (`cmu/simcheck/sim_suite
 `brain_sim_check.py --tether` seeds 0-4: in-place turns faster than walk61's 12-23 deg/s with the lead and no slower
 than its 28 deg/s without; walking distance and falls no worse with or without the lead; action jumps and peak tilt
 no worse than walk61 in the real cases (ft3 lost balance on the robot while beating walk61 in sim, so the jitter rows
-decide). Not run: waiting for Shawn's go.
+decide). Started 2026-10-30 18:40 EDT on Shawn's go: smoke `tether-smoke`/`tether-smoke-b` (64 envs, 6 iterations, source digest 7c061ff19b546ae5) COMPLETE with the `tether_lead` event active and ONNX exported; run `tether-a` (seed 1) / `tether-b` (seed 2) as one paired Kaggle kernel `microduck-tether-a`.
