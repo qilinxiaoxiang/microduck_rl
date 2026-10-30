@@ -126,7 +126,7 @@ AUDIT_FILE = HERE / "reward-audit.json"
 AUDIT_MAX_RATIO = 0.83
 AUDIT_MAX_WALK_FALLS = 0.5
 AUDIT_KEY = {"none": "asbuilt", "default": "delta_asbuilt", "staged": "staged_asbuilt", "lowcmd": "lowcmd_asbuilt",
-             "t1": "t1_asbuilt"}  # t1 is audited and run with --cmu-config plugged (the A7Z roof-saddle robot)
+             "t1": "t1_asbuilt", "t2a": "t1_asbuilt", "t2b": "t1_asbuilt"}  # t1 (and t2, same rewards) is audited and run with --cmu-config plugged (the A7Z roof-saddle robot)
 
 
 @app.function(volumes={"/vol": vol}, timeout=600)

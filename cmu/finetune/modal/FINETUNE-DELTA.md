@@ -574,3 +574,34 @@ training. Code before any push: buffer collection and the anchor step in `finetu
 `alg.update` like the learning-rate clamp), a `t2` delta with `default_head_envs`, `AUDIT_KEY` t2 -> t1_asbuilt,
 CPU tests (buffer filter keeps only default-head and 0 / 0.25-0.30 states; the anchor loss is zero for walk61 itself
 and falls under one step on a perturbed actor), then the smoke.
+
+## Run t2 (2026-10-30): implementation, smoke and launch
+
+Shawn approved the t2 plan, including drop8_imu35 as a G3 gate for this run ("点头，跑", 2026-10-30).
+
+- **Code** (`finetune_worker.py`): `DELTA_T2A` / `DELTA_T2B` = `DELTA_T1` + `default_head_envs` 0.2 (the head command's
+  `zero_command_prob`) + `anchor` (beta 0.5 / 2.0, 200k states, minibatch 4096, vx 0 or 0.25-0.30). While the actor is
+  frozen in the warm-up, `collect_anchor_states` keeps up to 2000 filtered actor inputs per iteration from the rollout
+  storage with walk61's mean actions; at the end of the warm-up they are written to `anchor_states.pt`;
+  `anchor_step` runs one optimizer step on `anchor_loss` after every PPO update (after the learning-rate clamp) and
+  `progress.csv` gains a last column `anchor_dist` (mean vector-norm distance on the minibatch). For anchored runs the
+  actor's observation normalizer is frozen at walk61's (`until = 1`); without that rsl_rl keeps updating it, and T1's
+  exported normalizer had drifted 0.025 in mean and 0.042 in divisor. At start the worker checks that actor columns
+  48-50 and 51-54 equal the twist and head commands. `finetune.py` AUDIT_KEY maps t2a/t2b to t1_asbuilt (same
+  rewards).
+- **Tests**: `tests/test_t2_anchor.py` (delta = T1 + anchor, default-head share applied, the filter keeps exactly the
+  default-head vx 0 / 0.25-0.30 rows, `actor_mean` on walk61's weights reproduces walk61.onnx within 1e-4, the anchor
+  loss is 0 for walk61 and falls after one Adam step on a perturbed copy); with `test_t1_delta.py` 12 passed.
+- **G1 tool**: robotics `guide/firmware/mac/robot-runs-20261030-t1/action_distance.py`; it gives T1 0.711 rad and
+  walk61 0.000 on the 649 states of `walk61_see_walks.jsonl` (gate 0.25, exit 1 on a miss).
+- **Smoke** (Kaggle, paired smoke-t2a / smoke-t2b, 64 envs, 6 iterations, 2.2 min each): both exit 0 and export ONNX;
+  model_0 == walk61 (0.0); the input-column check passed; 679 anchor states kept (331 at vx 0); anchor_dist 0.065 /
+  0.062 at iteration 5; the exported normalizers equal walk61's exactly. smoke-t2a was stopped by the tracking guard at
+  iteration 5 because 64-env episodes are too short to step (walk61's own low-command speed there is 0.03 m/s, the
+  floor); the guard is T1's, unchanged.
+- **Launch**: paired Kaggle job `microduck-t2a` (t2a GPU 0, t2b GPU 1), 4096 envs, 1000 iterations, 3 h cap,
+  `--cmu-config plugged --max-lr 0.0003 --track-guard 1.3`, the T1 flags otherwise:
+
+      python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name t2a --pair-run-name t2b -- --delta t2a --cmu-config plugged \
+          --max-iters 1000 --max-hours 3 --max-lr 0.0003 --track-guard 1.3 -- --delta t2b --cmu-config plugged \
+          --max-iters 1000 --max-hours 3 --max-lr 0.0003 --track-guard 1.3
