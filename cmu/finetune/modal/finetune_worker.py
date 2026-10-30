@@ -175,18 +175,34 @@ DELTA_T1 = dict(
 # std), which would move every input the anchor compares. Rewards are T1's.
 DELTA_T2A = dict(DELTA_T1, default_head_envs=0.2, anchor=dict(beta=0.5, states=200_000, batch=4096, vx_band=(0.25, 0.30)))
 DELTA_T2B = dict(DELTA_T2A, anchor=dict(DELTA_T2A["anchor"], beta=2.0))
+# t3 (2026-10-30, FINETUNE-DELTA.md "Run t3 plan"): t2b walked like walk61 with the default head and shook like T1 as
+# soon as the neck was commanded (robot 14 jumps/s), which is where the t2 anchor did not reach. Three changes: (1) the
+# sim gap the jitter study identified goes into the training DR: BAM friction 1.0-1.5 and gyro vibration proportional to
+# leg speed (k 0.15-0.35, study value 0.25), actor observation only; (2) a second-difference action term on every
+# state (weight: placeholder -1.0 for the audit, then set so its mass on walk61's own rollouts matches
+# action_rate_l2's, recorded in the delta before the run); (3) the anchor also covers head-command states with a
+# counterfactual target: walk61's own leg actions on the same state with the head command zeroed, leg outputs only, at
+# beta_legs (walk61 does not step with a head command, so walk61(s) itself would teach standing).
+DELTA_T3A = dict(DELTA_T2B, joint_friction=(1.0, 1.5), gyro_vibration=dict(k_range=(0.15, 0.35)),
+                 action_acc=dict(weight=-1.0), anchor=dict(DELTA_T2B["anchor"], beta_legs=0.0))
+DELTA_T3B = dict(DELTA_T3A, anchor=dict(DELTA_T3A["anchor"], beta_legs=1.0))
 DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP, "t1": DELTA_T1,
-          "t2a": DELTA_T2A, "t2b": DELTA_T2B}
+          "t2a": DELTA_T2A, "t2b": DELTA_T2B, "t3a": DELTA_T3A, "t3b": DELTA_T3B}
 
 # columns of the 61-input actor vector: 48 proprioception, then twist(3), head_pose(4), body_pose(6)
 ACTOR_TWIST, ACTOR_HEAD = slice(48, 51), slice(51, 55)
+# the 14 action outputs: 0-4 left leg, 5-8 neck/head, 9-13 right leg (ctrl index = joint index on the walk model)
+LEG_OUT = [0, 1, 2, 3, 4, 9, 10, 11, 12, 13]
 
 
-def anchor_mask(x: torch.Tensor, vx_band) -> torch.Tensor:
-    """Rows of actor inputs x (N, 61) the anchor keeps: exact default head command and forward command 0 or in vx_band."""
-    head_default = (x[:, ACTOR_HEAD] == 0).all(dim=1)
+def anchor_mask(x: torch.Tensor, vx_band, heads: bool = False) -> torch.Tensor:
+    """Rows of actor inputs x (N, 61) the anchor keeps: forward command 0 or in vx_band, and (unless heads) the exact
+    default head command."""
     vx = x[:, ACTOR_TWIST.start]
-    return head_default & ((vx == 0) | ((vx >= vx_band[0]) & (vx <= vx_band[1])))
+    keep = (vx == 0) | ((vx >= vx_band[0]) & (vx <= vx_band[1]))
+    if not heads:
+        keep &= (x[:, ACTOR_HEAD] == 0).all(dim=1)
+    return keep
 
 
 def actor_mean(actor, x: torch.Tensor) -> torch.Tensor:
@@ -197,6 +213,32 @@ def actor_mean(actor, x: torch.Tensor) -> torch.Tensor:
 def anchor_loss(actor, x: torch.Tensor, mu0: torch.Tensor, beta: float) -> torch.Tensor:
     """beta x mean over states of the squared action distance to the anchor policy's mean actions mu0."""
     return beta * torch.square(actor_mean(actor, x) - mu0).sum(dim=1).mean()
+
+
+def anchor_targets(actor, x: torch.Tensor, anchor: dict):
+    """Anchor rows, targets and per-output weights for a batch of actor inputs x under the frozen walk61 actor.
+
+    Default-head rows: target walk61(x), weight beta on all 14 outputs. Head-command rows (only when beta_legs > 0):
+    target walk61(x with the head command zeroed), weight beta_legs on the leg outputs and 0 on the head outputs.
+    Rows with no forward command in the band, and head rows when beta_legs is 0, are dropped.
+    """
+    beta_legs = float(anchor.get("beta_legs", 0.0))
+    keep = anchor_mask(x, anchor["vx_band"], heads=beta_legs > 0)
+    x = x[keep]
+    head_default = (x[:, ACTOR_HEAD] == 0).all(dim=1)
+    w = torch.zeros(len(x), 14, device=x.device, dtype=x.dtype)
+    w[head_default] = anchor["beta"]
+    w[torch.nonzero(~head_default).flatten()[:, None], torch.tensor(LEG_OUT, device=x.device)[None, :]] = beta_legs
+    x0 = x.clone()
+    x0[:, ACTOR_HEAD] = 0.0
+    with torch.no_grad():
+        mu0 = actor_mean(actor, x0)  # equals walk61(x) on default-head rows
+    return x, mu0, w
+
+
+def anchor_loss_w(actor, x: torch.Tensor, mu0: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+    """Mean over states of sum_j w_j (mu_j(s) - mu0_j)^2; with w = beta on every output it is anchor_loss."""
+    return (w * torch.square(actor_mean(actor, x) - mu0)).sum(dim=1).mean()
 
 
 def track_linear_velocity_ema(env, std: float, command_name: str, tau_s: float = 0.5, asset_cfg=None):
@@ -269,6 +311,19 @@ def apply_delta(env_cfg, delta: dict):
         env_cfg.curriculum["head_pose_bias_weight"].params["weight_stages"][-1]["weight"] = hb["weight"]
     if "default_head_envs" in delta:
         env_cfg.commands["head_pose"].zero_command_prob = delta["default_head_envs"]
+    # t3 keys
+    if "gyro_vibration" in delta:
+        import mjlab_microduck.tasks.mdp as microduck_mdp
+
+        term = env_cfg.observations["actor"].terms["base_ang_vel"]
+        assert term.func is microduck_mdp.base_ang_vel_imu_misaligned, term.func  # the recipe's actor gyro (IMU misalignment DR)
+        term.func = microduck_mdp.base_ang_vel_imu_misaligned_vibration
+        term.params = dict(term.params, k_range=tuple(delta["gyro_vibration"]["k_range"]))
+    if "action_acc" in delta:
+        import mjlab_microduck.tasks.mdp as microduck_mdp
+        from mjlab.managers import RewardTermCfg
+
+        env_cfg.rewards["action_acc_l2"] = RewardTermCfg(func=microduck_mdp.action_acc_l2, weight=float(delta["action_acc"]["weight"]))
     return env_cfg
 
 
@@ -546,7 +601,7 @@ def main():
                 return orig_step(rewards, dones, extras, intrinsic_rewards)
             self.logger.process_env_step = hooked_step
             orig_update = self.alg.update
-            self.anchor_x, self.anchor_mu, self.anchor_parts = None, None, []
+            self.anchor_x, self.anchor_mu, self.anchor_w, self.anchor_parts = None, None, None, []
             self.anchor_dist_sum, self.anchor_n = 0.0, 0
 
             def clamped_update():
@@ -563,38 +618,42 @@ def main():
             self.alg.update = clamped_update
 
         def collect_anchor_states(self):
-            """Keep default-head, vx 0 / vx_band actor inputs of this rollout with the frozen walk61 actor's mean actions."""
+            """Keep vx 0 / vx_band actor inputs of this rollout (default head; head-command rows too when beta_legs > 0)
+            with the frozen walk61 actor's targets and per-output weights (anchor_targets)."""
             actor = self.alg.actor
             obs = self.alg.storage.observations
             x = torch.cat([obs[g] for g in actor.obs_groups], dim=-1).flatten(0, 1)
-            x = x[anchor_mask(x, anchor["vx_band"])]
+            x, mu0, w = anchor_targets(actor, x, anchor)
             per_iter = math.ceil(anchor["states"] / max(1, args.warmup_iters))
             if len(x) > per_iter:
-                x = x[torch.randperm(len(x), device=x.device)[:per_iter]]
-            with torch.no_grad():
-                self.anchor_parts.append((x.clone(), actor_mean(actor, x)))
+                sel = torch.randperm(len(x), device=x.device)[:per_iter]
+                x, mu0, w = x[sel], mu0[sel], w[sel]
+            self.anchor_parts.append((x.clone(), mu0, w))
 
         def finish_anchor_states(self):
             if not self.anchor_parts:
-                raise RuntimeError("anchor: the warm-up kept no default-head state with vx 0 or in the band")
+                raise RuntimeError("anchor: the warm-up kept no state with vx 0 or in the band")
             self.anchor_x = torch.cat([p[0] for p in self.anchor_parts])[: anchor["states"]]
             self.anchor_mu = torch.cat([p[1] for p in self.anchor_parts])[: anchor["states"]]
+            self.anchor_w = torch.cat([p[2] for p in self.anchor_parts])[: anchor["states"]]
             self.anchor_parts = []
-            torch.save(dict(x=self.anchor_x.cpu(), mu=self.anchor_mu.cpu()), run_dir / "anchor_states.pt")
+            torch.save(dict(x=self.anchor_x.cpu(), mu=self.anchor_mu.cpu(), w=self.anchor_w.cpu()), run_dir / "anchor_states.pt")
             standing = int((self.anchor_x[:, ACTOR_TWIST.start] == 0).sum())
-            print(f"[anchor] {len(self.anchor_x)} walk61 states kept ({standing} at vx 0), beta {anchor['beta']}", flush=True)
+            heads = int((~(self.anchor_x[:, ACTOR_HEAD] == 0).all(dim=1)).sum())
+            print(f"[anchor] {len(self.anchor_x)} walk61 states kept ({standing} at vx 0, {heads} with a head command), "
+                  f"beta {anchor['beta']}, beta_legs {anchor.get('beta_legs', 0.0)}", flush=True)
 
         def anchor_step(self):
-            """One supervised step toward walk61's mean actions on a minibatch of the warm-up states."""
+            """One supervised step toward walk61's targets on a minibatch of the warm-up states."""
             idx = torch.randint(len(self.anchor_x), (anchor["batch"],), device=self.anchor_x.device)
-            x, mu0 = self.anchor_x[idx], self.anchor_mu[idx]
-            loss = anchor_loss(self.alg.actor, x, mu0, anchor["beta"])
+            x, mu0, w = self.anchor_x[idx], self.anchor_mu[idx], self.anchor_w[idx]
+            loss = anchor_loss_w(self.alg.actor, x, mu0, w)
             self.alg.optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.alg.actor.parameters(), self.alg.max_grad_norm)
             self.alg.optimizer.step()
-            with torch.no_grad():
-                dist = float((actor_mean(self.alg.actor, x) - mu0).norm(dim=1).mean())
+            with torch.no_grad():  # distance on the anchored outputs only (w > 0)
+                dist = float(((actor_mean(self.alg.actor, x) - mu0) * (w > 0)).norm(dim=1).mean())
             self.anchor_dist_sum += dist
             self.anchor_n += 1
             return float(loss)
@@ -689,6 +748,7 @@ def main():
         if anchor and not runner.warm:
             st = torch.load(run_dir / "anchor_states.pt")
             runner.anchor_x, runner.anchor_mu = st["x"].to(device), st["mu"].to(device)
+            runner.anchor_w = st["w"].to(device) if "w" in st else torch.full_like(runner.anchor_mu, anchor["beta"])
             print(f"[anchor] resumed with {len(runner.anchor_x)} stored walk61 states", flush=True)
     else:
         mean, std = load_walk61_into_actor(runner.alg.actor, args.onnx, args.init_std)
@@ -711,8 +771,8 @@ def main():
         assert x.shape[1] == 61, x.shape
         assert torch.allclose(x[:, ACTOR_HEAD], cm.get_command("head_pose")), "actor input columns 51-54 are not the head command"
         assert torch.allclose(x[:, ACTOR_TWIST], cm.get_command("twist")[:, :3]), "actor input columns 48-50 are not the twist command"
-        print(f"[anchor] beta {anchor['beta']}, {anchor['states']} states, minibatch {anchor['batch']}, vx 0 or {anchor['vx_band']}; "
-              f"actor normalizer frozen; input columns checked against the commands", flush=True)
+        print(f"[anchor] beta {anchor['beta']}, beta_legs {anchor.get('beta_legs', 0.0)}, {anchor['states']} states, minibatch {anchor['batch']}, "
+              f"vx 0 or {anchor['vx_band']}; actor normalizer frozen; input columns checked against the commands", flush=True)
     if runner.warm:
         for p in runner.alg.actor.parameters():
             p.requires_grad_(False)

@@ -8326,3 +8326,45 @@ def beak_floor_contact_in_window(
     phase = _gp_phase(env, command_name)
     gate = (phase >= phase_start) & (phase < phase_end)
     return gate & (beak_floor_touch(env, sensor_names, threshold) > 0)
+
+
+# =============================================================================
+# t3 fine-tune (cmu/finetune/modal/FINETUNE-DELTA.md "Run t3 plan"): the sim gap identified on 2026-10-30
+# =============================================================================
+
+_LEG_SERVO_IDX = [0, 1, 2, 3, 4, 9, 10, 11, 12, 13]  # servo joint order: 0-4 left leg, 5-8 neck/head, 9-13 right leg
+
+
+def base_ang_vel_imu_misaligned_vibration(
+    env: ManagerBasedRlEnv,
+    max_angle_deg: float = 1.0,
+    k_range: tuple[float, float] = (0.15, 0.35),
+    asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+) -> torch.Tensor:
+    """``base_ang_vel_imu_misaligned`` plus motion-driven vibration: Gaussian noise per axis with
+    std = k x rms leg joint speed this tick, k drawn per env in ``k_range`` at episode start.
+
+    Jitter study 2026-10-30 (robotics ``guide/firmware/mac/jitter-20261018/``): the robot's trunk gyro carries
+    power above 5 Hz that grows with how hard the legs move (foot strikes, play); k = 0.25 reproduced five of six
+    robot rows. Actor observation only; the critic keeps the clean gyro.
+    """
+    asset: Entity = env.scene[asset_cfg.name]
+    gyro = base_ang_vel_imu_misaligned(env, max_angle_deg, asset_cfg)
+    k = getattr(env, "_gyro_vib_k", None)
+    if k is None or k.shape[0] != env.num_envs:
+        k = torch.empty(env.num_envs, 1, device=env.device).uniform_(*k_range)
+        env._gyro_vib_k = k
+    fresh = env.episode_length_buf <= 1
+    if bool(fresh.any()):
+        k[fresh] = torch.empty(int(fresh.sum()), 1, device=env.device).uniform_(*k_range)
+    legs = _servo_joint_vel(env, asset)[:, _LEG_SERVO_IDX]
+    sd = k * torch.sqrt(torch.mean(torch.square(legs), dim=1, keepdim=True))
+    return gyro + torch.randn_like(gyro) * sd
+
+
+def action_acc_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
+    """Second difference of the raw actions, ||a_t - 2 a_{t-1} + a_{t-2}||^2 (humanoid-gym's second
+    action-smoothness term). >= 0, use a negative weight. The robot's jitter is an alternating pattern on hip pitch
+    and knee that a first difference (action_rate_l2) prices at the same rate as a smooth stride."""
+    am = env.action_manager
+    return torch.sum(torch.square(am.action - 2.0 * am.prev_action + am.prev_prev_action), dim=1)
