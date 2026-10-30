@@ -119,3 +119,38 @@ curriculum never reached.
 - U20CAM intrinsics and mount calibration (blocks every real camera run).
 - Colour table for the text command (green, orange, ...) checked on real frames.
 - The INMP441 microphones are in hand, not fitted; voice is deferred (text command for now).
+
+## Always-on vision (Shawn, 2026-10-30 05:15: "视觉要始终参与", FSD-like, adjust from the picture at all times)
+
+Where the camera is in the loop today, on the robot, and where it is not:
+
+- **Walking (steering): closed.** approach.py re-aims the head and sets vtheta from every frame.
+- **Walking (distance, stop): open.** walk61 only steps at vx 0.25 and ignores neck commands, there is no odometry,
+  and the standing picture starts 0.10-0.12 m in front of the foot-frame origin, so the last 20 cm are a timer plus
+  dead reckoning, then a look, then a step (05:07 run: the stop sent at 0.106 m slid 6.7 cm, the ball ended under the
+  beak and a turn stepped on it). This is the look-step-look pattern Shawn rejected.
+- **Bend and bite: closed in principle, wrong in practice.** The pick policy was trained with the object position
+  updated every step (slots 55-58, with age) and walk_brain re-reads the command's object every tick; seepick.py
+  feeds every sighting during the bend. But the sightings come from the standing mount calibration projected through
+  the bent neck, and they are 3-6 cm off: run 4 (03:22, the only hold) had the live feed switched off (--track-gate 0,
+  readings 0.126-0.156 m against the tape's 0.098); the 04:45 miss fed 0.103-0.135 m for a ball at 0.131. The loop
+  is closed on bad eyes.
+
+What closes it, in order:
+
+1. **Bend-pose camera model (no training, this week).** Fit the neck chain (pivot position, lens shift) from the
+   195 ground-pick frames of 2026-10-30 at phases 0.12-0.33 with the ruler ticks in view, so the projection is
+   within 1 cm through the whole descent; then the existing live feed is a real closed loop and the pick window can
+   open to the trained +-5 cm.
+2. **Policy T1, walking with the head free and slow steps (training, needs Shawn's go).** Fine-tune walk61 so it
+   takes neck_pitch and head commands (the camera can keep the object in the picture down to the feet) and follows
+   vx 0.05-0.25 (a slow approach instead of a timer). Actor input: the 61-number contract with neck_pitch added to
+   the head slots; reward keeps the commanded head/neck pose and the commanded speed. Degenerate-policy audit before
+   launch (literature-before-experiments: note the published recipe for head-command walking first).
+3. **Policy T2, pick from the picture (training, needs Shawn's go).** Replace slots 55-57 (projected floor x, y,
+   size) with the detection in image space (u, v, blob width) plus the head/neck joint angles the policy already
+   sees, so the policy learns its own projection and no mount calibration sits between the camera and the bite;
+   train with the real bend-time camera error and latency, object offsets +-5 cm, 150 mA jaw, PLA lips.
+4. **One continuous controller.** With T1 and T2 the coordinator stops being phases: every frame -> detection ->
+   head/neck command to keep it in view, walk command from bearing and range, hand-over to the pick policy when the
+   object is inside its trained window, the pick policy watching through the bend.
