@@ -498,3 +498,12 @@ about 1 deg tilt and 2-4 jumps per 10 s of it, and it keeps stepping with the ne
 smoothness and the neck down. (2) If a faster T1 is needed, a fine-tune with the LCP penalty (lambda 0.002) and a
 second-difference term, anchored to walk61 by a KL term on walk61's own states, judged by the sim jump count at
 matched speed before any robot time. Training needs Shawn's nod after the plan.
+
+**Robot check of the speed explanation (2026-10-30 11:00, robotics `guide/firmware/mac/robot-runs-20261030-t1/`,
+"Follow-up"): it failed.** T1 at 0.10 m/s with the neck at -0.4 stayed up but made 13.5 action jumps per s (walk61 at
+0.25: 1.4-2.7; T1 at 0.25: 17-22) and tilted 15.5 deg at the stop; at 0.15 m/s with the neck at -0.8 it fell at 2.7 s
+after holding about 11 deg of roll to one side. Slowing down removed about a third of the jitter. The matched-speed sim
+rows (3-5 jumps per 10 s) do not carry over: the robot's amplification of T1's jitter is far larger than of walk61's,
+so the jitter is a property of the fine-tuned policy, and the remaining route is the training-side one above (LCP
+gradient penalty, a second-difference term, a KL anchor to walk61), with the acceptance judged on the robot's jump
+rate, since the sim's jump count ranked T1 correctly but underestimated it by an amount that differs per policy.
