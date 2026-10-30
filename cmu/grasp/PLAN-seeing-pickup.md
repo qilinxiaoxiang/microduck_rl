@@ -154,3 +154,15 @@ What closes it, in order:
 4. **One continuous controller.** With T1 and T2 the coordinator stops being phases: every frame -> detection ->
    head/neck command to keep it in view, walk command from bearing and range, hand-over to the pick policy when the
    object is inside its trained window, the pick policy watching through the bend.
+
+**Every frame, and depth from motion (Shawn, 05:25).** The camera is monocular; one frame gives range only through
+the floor-plane assumption and the kinematic camera pose, which is exactly what is wrong in the bent poses. So the
+perception layer becomes a per-frame filter with the object as a static landmark: state = object x, y on the floor
+plus the camera-chain errors that matter (neck pivot offset, lens shift, head-pitch gain); measurements = the blob's
+pixel position every frame; motion model = the camera pose from the joints and the IMU (known motion, so this is
+better conditioned than structure-from-motion with an unknown camera). As the head pitches, the neck bends and the
+body walks, the pixel track of a still ball pins down both its position and the chain errors; the filter's output
+is what the walk controller and the pick policy consume every frame, and it keeps running through the bend. The
+same idea goes into T2: the actor gets a short history of (u, v, width, head and neck angles) or a recurrent core,
+so it reconstructs range from the motion itself instead of trusting a projection. Item 1 (bend camera model) is the
+offline version of this filter on the 195 recorded frames and seeds its parameters.
