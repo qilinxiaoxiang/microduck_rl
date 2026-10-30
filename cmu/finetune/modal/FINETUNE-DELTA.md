@@ -745,3 +745,7 @@ walk61 itself), then the Kaggle audit and smoke, then the paired run. Nothing st
   0.815 at action_acc -1.0, 0.804 at the mass-matched **-0.58** (walk61 action_rate_l2 -0.199/s, action_acc_l2 -0.342/s
   at -1.0), falls 0.432 <= 0.5, **PASS**; `reward-audit.json` key `t3a_asbuilt` written from this run (the entry's
   action_acc_l2 column is rescaled to -0.58). `DELTA_T3A/B` action_acc weight -0.58.
+- **Smoke** (`smoke-t3a` / `smoke-t3b` paired, 4 min, both rc 0): model_0.onnx vs walk61.onnx max abs diff 0 on 256
+  random observations; anchor buffer t3a 1206 states (901 at vx 0, 0 with a head command: beta_legs 0 drops them),
+  t3b 4006 states (2261 at vx 0, 2800 with a head command), `anchor_states.pt` weight rows: default-head 2.0 on all
+  outputs, head rows 1.0 on the leg outputs and 0 on the head outputs; ONNX exported.
