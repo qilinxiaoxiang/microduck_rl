@@ -304,5 +304,95 @@
     "head_pose_bias": -0.6461
    }
   }
+ },
+ "t1_asbuilt": {
+  "stand_over_walk": 0.748,
+  "max_ratio": 0.83,
+  "walk_falls_per_env_minute": 0.193,
+  "max_walk_falls": 0.5,
+  "verdict": "PASS",
+  "walk_speed": 0.072,
+  "stand_speed": -0.015,
+  "margin_per_s": 1.924,
+  "run": "audit-t1 (Kaggle T4, cmu-config plugged)",
+  "time": "2026-10-30T08:21:03",
+  "walk": {
+   "steps": 750,
+   "envs": 2048,
+   "episodes": 99,
+   "falls": 99,
+   "timeouts": 0,
+   "falls_per_env_minute": 0.193,
+   "mean_ep_len_s": 9.54,
+   "survived_to_end": 1952,
+   "track_err_xy": 0.234,
+   "speed_along_cmd": 0.072,
+   "moving_samples": 658311,
+   "low_cmd_speed": 0.062,
+   "head_err_rad": {
+    "neck_pitch": 0.1185,
+    "head_pitch": 0.0585,
+    "head_yaw": 0.0715,
+    "head_roll": 0.0388
+   },
+   "reward_per_s": 7.622,
+   "terms_per_s": {
+    "track_linear_velocity": 1.4488,
+    "track_angular_velocity": 1.1302,
+    "upright": 1.8244,
+    "pose": 0.7536,
+    "body_ang_vel": -0.0198,
+    "angular_momentum": -0.0,
+    "dof_pos_limits": -0.0005,
+    "action_rate_l2": -0.0856,
+    "air_time": 0.9386,
+    "foot_clearance": -0.0031,
+    "foot_swing_height": -0.0016,
+    "foot_slip": -0.0001,
+    "self_collisions": -0.0009,
+    "head_pose_tracking": 1.922,
+    "body_pose_tracking": 0.0,
+    "head_pose_bias": -0.2845
+   }
+  },
+  "stand": {
+   "steps": 750,
+   "envs": 2048,
+   "episodes": 2333,
+   "falls": 495,
+   "timeouts": 1838,
+   "falls_per_env_minute": 0.967,
+   "mean_ep_len_s": 4.88,
+   "survived_to_end": 37,
+   "track_err_xy": 0.276,
+   "speed_along_cmd": -0.015,
+   "moving_samples": 679984,
+   "low_cmd_speed": -0.016,
+   "head_err_rad": {
+    "neck_pitch": 0.346,
+    "head_pitch": 0.201,
+    "head_yaw": 0.138,
+    "head_roll": 0.1057
+   },
+   "reward_per_s": 5.698,
+   "terms_per_s": {
+    "track_linear_velocity": 1.2,
+    "track_angular_velocity": 1.1878,
+    "upright": 1.8435,
+    "pose": 0.7474,
+    "body_ang_vel": -0.0148,
+    "angular_momentum": -0.0,
+    "dof_pos_limits": -0.002,
+    "action_rate_l2": -0.0681,
+    "air_time": 0.033,
+    "foot_clearance": -0.0013,
+    "foot_swing_height": -0.0036,
+    "foot_slip": -0.0002,
+    "self_collisions": -0.0001,
+    "head_pose_tracking": 1.6365,
+    "body_pose_tracking": 0.0,
+    "head_pose_bias": -0.8604
+   }
+  }
  }
 }

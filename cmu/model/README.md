@@ -57,7 +57,10 @@ Total mass and whole-robot centre of mass at the HOME pose (STAND keyframe), in 
 
 - `official`: 737.24 g; COM x +0.56, y -0.01, z +21.75.
 - `asbuilt`: 827.84 g (+90.60 g); COM x -1.65, y -0.26, z +23.66 (shift -2.21, -0.25, +1.91 mm).
-- `plugged`: 838.04 g (+100.80 g); COM x -1.17, y -0.26, z +24.93 (shift -1.73, -0.24, +3.18 mm).
+- `plugged`: 838.04 g (+100.80 g); COM x -1.17, y -0.26, z +24.93 (shift -1.73, -0.24, +3.18 mm). Since the 2026-10-26
+  saddle update (A7Z, header and antenna on the roof saddle, V1.35 saddle body, Radxa 6530B, rear lid, re-run leads):
+  901.61 g (+164.37 g); COM x -5.31, y +0.24, z +24.49 (`apply_masses.py --variant plugged`, 2026-10-30; this is what
+  the t1 fine-tune trains on).
 - `battery`: 875.63 g (+138.39 g); COM x -4.20, y -0.21, z +23.71 (shift -4.76, -0.20, +1.96 mm).
 
 The plugged delta against asbuilt is +10.20 g (18 + 1.5 - 9.3). The battery delta against plugged is +37.59 g (97.1 - 59.51). Each body's before and after grams are printed by the CLI.

@@ -358,6 +358,17 @@ export (about 4 min). Run: 100 critic-only warm-up iterations, then PPO at lr <=
 guards, 1000 iterations (about 80 min on a T4). Note for the guard: its low-speed baseline is walk61 under t1 commands,
 which includes head-command episodes where walk61 does not step, so the baseline is lower than in ft3.
 
+### Audit and smoke (2026-10-30 04:15-04:22 EDT, Kaggle T4, both PASS; Shawn's nod 04:0x)
+
+    variant       stand/walk   walk61 falls/env-min   margin   walk61 head error (rad, mean |err|)          walk61 speed along / low-cmd
+    t1_asbuilt      0.748           0.193            1.92/s   neck 0.119, head_pitch 0.059, yaw 0.072       0.072 / 0.062 m/s
+
+stand61 in the t1 env: falls 0.97/env-min, neck error 0.346 rad, head_pose_bias -0.86/s. Gate: ratio under 0.83 and falls
+under 0.5, PASS (`reward-audit.json`, key `t1_asbuilt`). The walk61 head error (0.12 rad on the neck) is the baseline the
+run must beat; the sim mass is the plugged variant at 901.6 g (saddle, 6530B, re-run leads; `cmu/model/README.md`).
+Smoke-t1: `model_0.onnx` equals walk61 (max diff 0.00e+00), 6 iterations at 64 envs in 2.3 min, ONNX exported, exit 0.
+Run `t1` pushed 04:3x (`microduck-t1`, 4096 envs, 1000 iterations, 3 h cap, lr <= 3e-4, tracking guard 1.3).
+
 ### Acceptance
 
 - Sim (before the robot): the six-row table above rerun with the exported policy: at vx 0.25 with neck -0.4 and -0.8 the
