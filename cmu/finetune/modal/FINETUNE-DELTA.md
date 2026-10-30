@@ -721,3 +721,21 @@ with head columns zeroed, leg columns only, beta_legs), `DELTA_T3A/B`, `AUDIT_KE
 (`test_t3_delta.py`: ranges applied, noise rms scales with leg speed, acc term zero on a constant action and positive
 on an alternating one, counterfactual target equals walk61's leg actions on the zero-head state, anchor loss zero for
 walk61 itself), then the Kaggle audit and smoke, then the paired run. Nothing starts before Shawn's nod.
+
+### Run t3 progress (2026-10-30 evening, Shawn's nod "点头，跑")
+
+- **Code** (fork commits 1bb0560c, 5cdee5d5, 912a596c): `base_ang_vel_imu_misaligned_vibration` and `action_acc_l2` in
+  `mdp.py`; `apply_delta` keys `gyro_vibration` (actor base_ang_vel only) and `action_acc`; `anchor_targets` /
+  `anchor_loss_w` (per-state weight vector: beta on all 14 outputs for default-head rows, beta_legs on the 10 leg outputs
+  and 0 on the head outputs for head-command rows, target walk61 on the head-zeroed state); `DELTA_T3A/B`;
+  `tests/test_t3_delta.py` 6 tests, with `test_t1_delta.py` and `test_t2_anchor.py` 18 passed. `cmu/finetune/g2_jitter.py`
+  runs G2 (walk61 reference plus each candidate's default / neck -0.4 / neck -0.8 rows under
+  `--gyro-noise-dq 0.25 --bam-friction-scale 1.4`, three seeds, 10 s walks).
+- **Audit 1** (`audit-t3`, Kaggle T4, 6 min, `cmu/finetune/kaggle/out/audit-t3/runs/audit-t3/eval.json`, friction
+  1.0-1.5, vibration k 0.15-0.35, action_acc at -1.0): walk61 reward mass per second action_rate_l2 -0.200 (t1 env
+  -0.086: the vibration noise makes walk61's own actions 2.3x rougher, the robot's mechanism), action_acc_l2 -0.341 ->
+  mass-matched action_acc weight -0.59; stand/walk 0.817 measured, 0.807 at -0.59 (max 0.83); **walk61 falls 0.527 per
+  env-minute, over the 0.5 limit** (t1 env 0.193, stand61 1.46). Friction 1.5 was my own extension past the study's
+  calibrated 1.4, and the 10/17 study already found x1.5 stops stepping, so the range is now 1.0-1.4 (commit 5cdee5d5).
+- **Audit 2** (`audit-t3b`): `t3a_asbuilt` at friction 1.0-1.4 plus two audit-only diagnostics, `t3fric_asbuilt` (t2b +
+  friction 1.0-1.5 only) and `t3vib_asbuilt` (t2b + vibration only), to attribute the fall rate. Result below.
