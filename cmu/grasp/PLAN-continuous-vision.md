@@ -148,6 +148,20 @@ Compute: the Mac mini by default; Modal only with a budget Shawn approves. Order
   head scans today.
 - **A2 bring-up on the Mac mini** as in section 3, measured against its acceptance.
 
+### Status 2026-10-30 06:30 (Shawn's go for N1, N2, A2 at 06:15)
+
+- N2 done and run on the robot: `guide/firmware/mac/gaze.py`, record in `camera-calib-20261030/gaze-20261030/README.md`.
+  Ball centred in 0.58 s, held 19 s; the head yaw servo reached 0.62 of the command and the picture loop absorbed it.
+- A2 done on the Mac mini: `guide/firmware/mac/tracker/` (YOLO-World v2 m on MPS plus BoT-SORT), 9.85 fps live, age
+  p50 0.206 s / p90 0.247 s, 0 drops, id held through a 2 s blank with 25 px sway (`tracker/ACCEPTANCE.md`).
+  Open: head/neck angles and gravity at t_cap are not yet joined to the line (layer B does that next).
+- N1 not accepted: `camera-calib-20261030/bend-20261030/README.md`. A neck pivot offset pz -12.8 +- 0.9 mm takes the
+  rise-phase ticks from -20/-8/-0.6 mm to +0.9/+4.0/+4.4 mm (held-out worst 6.7 mm against 5); the four held bow
+  phases have no legible tick, so their x error is unmeasured; a residual lateral offset and ruler slope point at a
+  height or link-length error one bow pose cannot separate from the pivot. The mount file is unchanged. Next data,
+  with Shawn at the robot: a ruler with large digits read at three or four bow heights (ground-pick phases 0.05-0.33
+  and head pitches between), which is also the T2 sim camera's acceptance set.
+
 ## 8. Dropped
 
 The phase machine (search, ready, approach, settle, measure, aim, align, burst, pick) and its constants; the
