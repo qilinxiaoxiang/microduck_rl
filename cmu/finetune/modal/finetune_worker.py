@@ -192,9 +192,20 @@ DELTA_T3B = dict(DELTA_T3A, anchor=dict(DELTA_T3A["anchor"], beta_legs=1.0))
 # audit-only diagnostics (no AUDIT_KEY, never trained): t2b plus one t3 DR change each, to attribute walk61's fall rate
 DELTA_T3_FRIC = dict(DELTA_T2B, joint_friction=(1.0, 1.5))
 DELTA_T3_VIB = dict(DELTA_T2B, gyro_vibration=dict(k_range=(0.15, 0.35)))
+# tether (2026-10-30): walk61 with the charger lead (cmu/mac/tether.py: hanging weight, floor drag growing with the
+# distance walked, snags, a taut pull capped by the bank sliding, twist with slip). On the robot in-place turns
+# stalled after 40-90 deg (cmu/mac/turn-inplace-20261030/README.md): the hip yaws use 1-2 % of the XL330 torque
+# because walk61 never met a yaw disturbance in training. Changes from Pollen's recipe: the lead on 80 % of the
+# envs, and ft3's EMA velocity tracking, without which a fine-tune of walk61 drifts to standing (ft1/ft2).
+DELTA_TETHER = dict(tether=dict(fraction=0.8), track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)))
+# t3+tether (2026-10-30, Shawn: "t3 过了就训"): the 'tether' run turned in place at 23-29 deg/s with the lead but
+# jittered 8-82 action jumps per suite case against walk61's 0-5, the gap t3 trains in; so the lead goes on t3 unchanged.
+DELTA_T3A_TETHER = dict(DELTA_T3A, tether=DELTA_TETHER["tether"])
+DELTA_T3B_TETHER = dict(DELTA_T3B, tether=DELTA_TETHER["tether"])
 DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP, "t1": DELTA_T1,
           "t2a": DELTA_T2A, "t2b": DELTA_T2B, "t3a": DELTA_T3A, "t3b": DELTA_T3B,
-          "t3fric": DELTA_T3_FRIC, "t3vib": DELTA_T3_VIB}
+          "t3fric": DELTA_T3_FRIC, "t3vib": DELTA_T3_VIB, "tether": DELTA_TETHER,
+          "t3a_tether": DELTA_T3A_TETHER, "t3b_tether": DELTA_T3B_TETHER}
 
 # columns of the 61-input actor vector: 48 proprioception, then twist(3), head_pose(4), body_pose(6)
 ACTOR_TWIST, ACTOR_HEAD = slice(48, 51), slice(51, 55)
@@ -248,6 +259,65 @@ def anchor_loss_w(actor, x: torch.Tensor, mu0: torch.Tensor, w: torch.Tensor) ->
     return (w * torch.square(actor_mean(actor, x) - mu0)).sum(dim=1).mean()
 
 
+class tether_lead:
+    """Step event: the charger lead's wrench on trunk_base every env step (cmu/mac/tether.py), per-env parameters
+    drawn at each episode start; a `fraction` of the envs carry it, the rest walk free."""
+
+    def __init__(self, cfg, env):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "mac"))
+        import tether as T
+        self.T, self.env = T, env
+        self.robot = env.scene[cfg.params["asset_cfg"].name]
+        self.body = self.robot.body_names.index("trunk_base")
+        self.n, self.dev = env.num_envs, env.device
+        self.U = lambda lo, hi, shape: torch.empty(shape, device=self.dev).uniform_(lo, hi)
+        self.prm = T.sample(torch, self.n, self.U)
+        self.on = torch.zeros(self.n, dtype=torch.bool, device=self.dev)
+        self.fresh = torch.ones(self.n, dtype=torch.bool, device=self.dev)
+        self.state, self.p_prev, self.yaw_prev, self.yaw = None, None, None, None
+
+    def reset(self, env_ids=None):
+        if env_ids is None:
+            env_ids = slice(None)
+        self.fresh[env_ids] = True
+
+    def _exit(self):
+        from mjlab.utils.lab_api.math import quat_apply
+        q = self.robot.data.root_link_quat_w
+        return self.robot.data.root_link_pos_w + quat_apply(q, self.prm["exit_b"]), q
+
+    def __call__(self, env, env_ids, fraction: float, asset_cfg):
+        del env_ids, asset_cfg
+        T = self.T
+        p, q = self._exit()
+        raw = torch.atan2(2 * (q[:, 0] * q[:, 3] + q[:, 1] * q[:, 2]), 1 - 2 * (q[:, 2] ** 2 + q[:, 3] ** 2))
+        if self.state is None:
+            self.yaw = raw.clone()
+            self.state = T.start(torch, self.prm, self.robot.data.root_link_pos_w[:, :2], raw, p[:, :2])
+            self.p_prev = p.clone()
+        self.yaw = self.yaw + torch.remainder(raw - self.yaw + math.pi, 2 * math.pi) - math.pi
+        f = self.fresh
+        if f.any():  # new episode: new lead, new bank place, untwisted
+            new = T.sample(torch, self.n, self.U)
+            for k in self.prm:
+                self.prm[k][f] = new[k][f]
+            self.on[f] = torch.rand(int(f.sum()), device=self.dev) < fraction
+            p, q = self._exit()
+            self.yaw[f] = raw[f]
+            st = T.start(torch, self.prm, self.robot.data.root_link_pos_w[:, :2], self.yaw, p[:, :2])
+            for k in self.state:
+                self.state[k][f] = st[k][f]
+            self.p_prev[f] = p[f]
+            self.fresh[:] = False
+        dt = float(env.step_dt)
+        v = (p - self.p_prev) / dt
+        self.p_prev = p.clone()
+        T.step_snags(torch, self.state, dt, self.U)
+        force, torque = T.wrench(torch, self.prm, self.state, p, v, self.robot.data.root_com_pos_w, self.yaw)
+        m = self.on.float()[:, None]
+        self.robot.write_external_wrench_to_sim((force * m)[:, None], (torque * m)[:, None], body_ids=[self.body])
+
+
 def track_linear_velocity_ema(env, std: float, command_name: str, tau_s: float = 0.5, asset_cfg=None):
     """mjlab's track_linear_velocity on an EMA of the base linear velocity (body frame) instead of the instantaneous one.
 
@@ -292,6 +362,12 @@ def apply_delta(env_cfg, delta: dict):
         env_cfg.rewards["action_rate_l2"].weight = delta["action_rate"]
         stages = env_cfg.curriculum["action_rate_weight"].params["weight_stages"]
         stages[-1]["weight"] = delta["action_rate"]
+    if delta.get("tether"):
+        from mjlab.managers import EventTermCfg
+        from mjlab.managers.scene_entity_config import SceneEntityCfg
+        env_cfg.events["tether_lead"] = EventTermCfg(func=tether_lead, mode="step",
+                                                     params=dict(fraction=delta["tether"]["fraction"],
+                                                                 asset_cfg=SceneEntityCfg("robot")))
     if delta.get("track_lin_vel"):
         term = env_cfg.rewards["track_linear_velocity"]  # weight 2.0 unchanged: same reward mass, filtered velocity
         term.func = track_linear_velocity_ema

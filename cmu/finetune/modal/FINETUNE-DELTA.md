@@ -749,3 +749,40 @@ walk61 itself), then the Kaggle audit and smoke, then the paired run. Nothing st
   random observations; anchor buffer t3a 1206 states (901 at vx 0, 0 with a head command: beta_legs 0 drops them),
   t3b 4006 states (2261 at vx 0, 2800 with a head command), `anchor_states.pt` weight rows: default-head 2.0 on all
   outputs, head rows 1.0 on the leg outputs and 0 on the head outputs; ONNX exported.
+## Run plan "tether" (2026-10-30): walk61 with the charger lead, for walking and in-place turns
+
+Problem: on the robot (bench supply, 3 m braided USB-C lead to a power bank on the floor) in-place turns stall after
+40-90 deg and the duck steps in place (`cmu/mac/turn-inplace-20261030/README.md` in the robotics tree). The as-built
+sim reproduces the stall only with a restoring yaw torque of about 0.010 N m/rad, a lead twisted by the turn; the hip
+yaws then use 1-2 % of the XL330 torque. walk61 met no yaw disturbance in training (pushes are x/y velocity only), so
+it learned to turn with almost no hip-yaw torque and does not push harder when a turn is blocked.
+
+The delta: `DELTA_TETHER` = Pollen's recipe + ft3's EMA velocity tracking (`track_lin_vel` tau 0.5 s, std sqrt(0.05),
+without which ft1/ft2 drifted to standing) + the step event `tether_lead`, which puts the lead's wrench
+(`cmu/mac/tether.py`) on `trunk_base` every env step in 80 % of the envs, parameters drawn per episode: hanging weight,
+floor drag on the length dragged so far (it grows with the distance walked), random snags (drag x2-4 for 1-4 s),
+a taut pull toward the power bank capped by the bank sliding (0.5-1.5 N), and a twist torque of 0-0.02 N m/rad that
+slips past 0.005-0.03 N m (Shawn: keep it moderate, no lead that never lets go). Exit point at the backpack's lower
+rear corner, side drawn left or right. Nothing else changes: the actor still sees the same 61 inputs (no lead state,
+no heading error); it can only notice the lead through its gyro, joint readings and the command it is not meeting.
+
+### Audit (2026-10-30, `tether_audit.py`, CPU, 128 envs x 15 s, as-built masses, `reward-audit-tether.json`)
+
+    variant          walk61 reward/s   stand61 reward/s   stand/walk   walk61 falls/env-min   walk61 turn in place (yaw rate along the command / |command|)
+    lowcmd_asbuilt       7.521              5.722            0.761            0.188                 0.248 / 0.709 rad/s
+    tether_asbuilt       7.459              5.876            0.788            0.156                 0.165 / 0.671 rad/s
+
+Standing still collects 79 % of walking's reward with the lead, under the worker's 0.8 gate, so the delta does not pay
+the policy to stand; the margin is thinner than without the lead (0.76), so the tracking guard stays on. The lead
+takes a third off walk61's in-place turning in the training sim (0.25 to 0.17 rad/s), the effect the robot shows,
+and leaves walking and falls about where they were. stand61 falls 1.8-1.9 times per env-minute under walking commands.
+
+### Run settings and acceptance
+
+Kaggle T4 (free, about 80 min per 1000 iterations), `--cmu-config plugged` (the robot runs on the lead, no battery),
+4096 envs, 1000 iterations, warm-up 100, `--max-lr 3e-4`, `--track-guard 1.3`, `--max-hours 2`; two seeds as a paired
+job. Acceptance against walk61 in the as-built eval sim (`cmu/simcheck/sim_suite.py`, real cases only) plus
+`brain_sim_check.py --tether` seeds 0-4: in-place turns faster than walk61's 12-23 deg/s with the lead and no slower
+than its 28 deg/s without; walking distance and falls no worse with or without the lead; action jumps and peak tilt
+no worse than walk61 in the real cases (ft3 lost balance on the robot while beating walk61 in sim, so the jitter rows
+decide). Not run: waiting for Shawn's go.
