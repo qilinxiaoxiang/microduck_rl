@@ -165,6 +165,12 @@ Compute: the Mac mini by default; Modal only with a budget Shawn approves. Order
   the bow draws its height over the floor from that measured spread, and the policy sees picture features, which is
   the reason this error cannot sit between the eye and the bite.
 
+- N1 closed the practical way (07:40, Shawn: 以实际的为准): the camera height in the bow is measured per held pose from the
+  ruler ticks and carried as `bow_height_correction` (-13 mm at neck <= -1.2, zero standing) in `u20cam_mount.json`,
+  applied by `DuckKin.camera_pose`; every tick of the four sweeps projects within 5 mm (`test_bow_correction.py`).
+  Which link or servo causes it stays open and does not block anything; the T2 sim camera takes the same -13 mm with
+  the per-pose spread (-8 to -15 mm) as its randomisation.
+
 ## 8. Dropped
 
 The phase machine (search, ready, approach, settle, measure, aim, align, burst, pick) and its constants; the
