@@ -155,12 +155,15 @@ Compute: the Mac mini by default; Modal only with a budget Shawn approves. Order
 - A2 done on the Mac mini: `guide/firmware/mac/tracker/` (YOLO-World v2 m on MPS plus BoT-SORT), 9.85 fps live, age
   p50 0.206 s / p90 0.247 s, 0 drops, id held through a 2 s blank with 25 px sway (`tracker/ACCEPTANCE.md`).
   Open: head/neck angles and gravity at t_cap are not yet joined to the line (layer B does that next).
-- N1 not accepted: `camera-calib-20261030/bend-20261030/README.md`. A neck pivot offset pz -12.8 +- 0.9 mm takes the
-  rise-phase ticks from -20/-8/-0.6 mm to +0.9/+4.0/+4.4 mm (held-out worst 6.7 mm against 5); the four held bow
-  phases have no legible tick, so their x error is unmeasured; a residual lateral offset and ruler slope point at a
-  height or link-length error one bow pose cannot separate from the pivot. The mount file is unchanged. Next data,
-  with Shawn at the robot: a ruler with large digits read at three or four bow heights (ground-pick phases 0.05-0.33
-  and head pitches between), which is also the T2 sim camera's acceptance set.
+- N1 not accepted after four sweeps (07:10; Shawn re-placed the ruler three times): `camera-calib-20261030/bend-20261030/README.md`.
+  The finding is a scale error, not an angle: along the ruler the pictures show 13-20 px per mm where the chain
+  predicts 9-12 (ratio 1.65; 1.30 with the best pivot fit), so in the bow the real camera is 20-60 % closer to the
+  floor than the rigid chain says, by different amounts at neck -1.3 and -1.6. A pivot offset (pz -12.9 mm) fixes the
+  floor x at one pose and not the scale; the candidates (neck link length, head gain in the bow, servo give under the
+  head's weight) need neck poses between -0.6 and -1.1 with the trunk level, which only T1's walker can hold. Holds
+  deeper than phase 0.12 are blur (lens 2 cm from the floor). Mount unchanged. Consequence for T2: the sim camera in
+  the bow draws its height over the floor from that measured spread, and the policy sees picture features, which is
+  the reason this error cannot sit between the eye and the bite.
 
 ## 8. Dropped
 
