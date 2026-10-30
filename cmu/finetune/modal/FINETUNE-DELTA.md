@@ -379,3 +379,58 @@ Run `t1` pushed 04:3x (`microduck-t1`, 4096 envs, 1000 iterations, 3 h cap, lr <
   -0.4; then the gaze loop (`mac/gaze.py`) on a hand-held ball with the body following.
 - Not covered by t1: speeds below 0.10 m/s (the reward cannot separate them from standing), turning under the head
   (section 5's yaw-from-head-yaw is a brain-side mapping on top of this policy), and the bend (T2).
+
+## Run t1 (2026-10-30): 1000 iterations on one Kaggle T4, no guard stop
+
+`microduck-t1` kernel, 4096 envs, 0.21 it/s, 81 min, stop reason max_iters, best reward 129.7 at iteration 800
+(`cmu/whole/runtime-overlay/models-t1-best/t1_progress.csv`, `t1_run_record.json`). Per-save task metrics (warm-up
+baseline = frozen walk61 under t1 commands):
+
+    iter   track_err   speed_along_cmd   low_cmd_speed   mean_reward   ep_len   action_std
+    100     0.270        0.035             0.026            71.2        828      0.250  (baseline)
+    200     0.220        0.119             0.107           115.8        953      0.202
+    500     0.205        0.176             0.160           123.5        965      0.193
+    800     0.208        0.177             0.159           129.7        967      0.187  (model_best)
+    999     0.207        0.182             0.165           127.5        966      0.186
+
+Every task metric moved the right way for the whole run (speed along the command x5, low-command speed x6, tracking
+error -23 %), the opposite of ft1/ft2. The head error was not logged per save (only the eval has `head_err_rad`); the
+CPU acceptance below measures it.
+
+### Acceptance in the as-built sim (plugged, 7.0 V)
+
+`t1_sim_accept.py` on iteration 800 (`t1_accept_best_it800.json`) and 999 (`t1_accept_it999.json`), walk61 baseline in
+`t1_accept_walk61_baseline.json`:
+
+    row                               it800 neck / path        it999 neck / path        walk61 neck / path
+    walk 0.25, neck -0.1               -0.139 / 1.16 m          -0.176 / 1.26 m          -0.054 / 0.009 m
+    walk 0.25, neck -0.4               -0.393 / 1.09 m          -0.456 / 1.21 m          -0.286 / 0.007 m
+    walk 0.25, neck -0.8               -0.711 / 0.95 m          -0.803 / 1.11 m          -0.557 / 0.006 m
+    walk 2 s then stand, neck -0.4     -0.379                   -0.466                   (no step)
+    walk 2 s then stand, neck -0.8     -0.740                   -0.772                   (no step)
+    walk 0.25, head_pitch 1.2          head 1.23 / 1.30 m       head 1.23 / 1.27 m       head 1.17 / 0.010 m
+    peak tilt in these rows            7.7-8.4 deg              7.4-8.8 deg              1.9-3.5 deg (standing still)
+
+Sim done criterion met by both: walking at 0.25 with the neck anywhere in -0.8..-0.1, neck within 0.09 rad (it800) or
+0.06 rad (it999, which overshoots the small commands), standing after a step with the neck held, walking with the gaze
+head pitch. The three standing-before-any-step rows run Pollen's stand61 and still fail (-0.4 -> -0.125); with the t1
+policy copied over stand61 too they pass from the open-loop stand entry (`t1_accept_both.json`: -0.4 -> -0.358,
+-0.8 -> -0.618, tilt 4.2 deg, no fall), so the robot test can either step first or run t1 as both policies.
+
+### Sim suite (plugged, real-condition cases; `cmu/simcheck/reference-t1-best.jsonl` against `reference-walk61-plugged.jsonl`)
+
+    case          it800 dist / tilt / jumps      walk61 dist / tilt / jumps     verdict rule
+    nominal        2.40 m / 10.3 deg / 25         1.59 m / 6.5 / 3               worse (tilt +3.8, jumps)
+    vx0.25         2.06 m /  9.6 / 14             1.17 m / 6.3 / 1               worse (tilt +3.3, jumps)
+    vx0.2          1.76 m /  8.9 / 5              0.00 m / 4.0 / 0               worse by the rule; walk61 does not step
+    com+5          3.02 m / 12.4 / 13             2.14 m / 14.0 / 10             worse (jumps)
+    imu_pitch4     1.73 m /  6.7 / 27             1.46 m / 5.5 / 2               worse (jumps)
+    stress (report only): volt6.3 2.43 m no fall; drop8_imu35 falls left at 7-9 s in both seeds (walk61 walks);
+    floor_mu_bare falls forward at 15 s (the robot has soles; floor_mu_sole walks 2.0 m).
+
+No falls and more distance in every real case, but 3-4 deg more peak tilt and 5-27 action jumps per 10 s against
+walk61's 0-10: the same jitter pattern ft3 had, and ft3 lost balance on the robot at 0.20 m/s (three of three) while
+walk61 did not. The suite's verdict is "worse than the reference" on those two measures. What the run was for (walk
+with the neck down, keep stepping under head commands, stand with the neck held) it does; whether the extra tilt
+transfers as a fall is the robot test's question. Candidate delivered as `cmu/whole/runtime-overlay/models-t1-best/`
+(README there has the robot procedure); walk61 stays deployed.

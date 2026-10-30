@@ -120,7 +120,11 @@ Status 2026-10-30: drafted as `cmu/finetune/modal/finetune_worker.py::DELTA_T1` 
 tests, pass) and the plan, measurements, degenerate audit, jobs and acceptance in `cmu/finetune/modal/FINETUNE-DELTA.md`
 ("Run t1 plan"). The as-built CPU sim reproduces walk61's robot behaviour (neck reaches a third of the command, any
 head command stops the stepping), so T1 fixes the policy and the sim can accept it. The lowest speed the reward can
-separate from standing is 0.10 m/s, not 0.05. Waiting for Shawn's nod before the Kaggle audit, smoke and run.
+separate from standing is 0.10 m/s, not 0.05. Shawn nodded; Kaggle audit and smoke PASS, run t1 done (1000 iterations,
+81 min, one T4). Sim done criterion met by `cmu/whole/runtime-overlay/models-t1-best` (iteration 800): walks 1.0-1.3 m in
+6 s at vx 0.25 with the neck at -0.4 and -0.8 (neck error under 0.09 rad), stands afterwards with the neck held, walks
+with head pitch 1.2; the suite shows no falls in the real cases and more distance, but 3-4 deg more tilt and more action
+jumps than walk61 (`cmu/simcheck/reference-t1-best.jsonl`). Robot test pending (FINETUNE-DELTA.md, "Run t1 result").
 
 ## 6. Layer D, contact skills
 
