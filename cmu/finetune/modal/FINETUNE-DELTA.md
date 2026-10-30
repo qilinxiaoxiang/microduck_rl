@@ -507,3 +507,70 @@ rows (3-5 jumps per 10 s) do not carry over: the robot's amplification of T1's j
 so the jitter is a property of the fine-tuned policy, and the remaining route is the training-side one above (LCP
 gradient penalty, a second-difference term, a KL anchor to walk61), with the acceptance judged on the robot's jump
 rate, since the sim's jump count ranked T1 correctly but underestimated it by an amount that differs per policy.
+
+## Run t2 plan (2026-10-30, needs Shawn's nod): T1's head following, anchored to walk61's gait
+
+### What failed and what the robot data say (robotics `guide/firmware/mac/robot-runs-20261030-t1/`)
+
+T1 made the neck follow on the robot but fell in 2 of 5 walks and made 13.5-22 action jumps per s against walk61's
+1.4-2.7. Three offline checks on the robot's own logged states (`sensitivity.py` there, `sensitivity.json`) decide
+what to change:
+
+- **Not sensor-noise gain.** The Jacobian of the actions with respect to the 61 inputs is only about 10 % larger for
+  T1 (median Frobenius norm 11.9-13.3 against 10.7-12.3; gyro 0.77-0.89 against 0.73-0.85, gravity 7.2-8.2 against
+  6.4-7.8, joint velocity equal). The large difference is the command input (2.9-3.5 against 1.3-1.5), which is what
+  T1 was trained to use. A Lipschitz penalty alone (LCP) therefore does not target the cause; it is left out.
+- **T1 rewrote walk61's gait where walk61 already worked.** On walk61's own robot walks (0.25 m/s, head at default,
+  649 ticks) T1's actions differ from walk61's by 0.71 rad on average (vector norm), 73 % of walk61's own action size;
+  0.10-0.27 rad per leg joint. That is the fine-tuning forgetting of Wolczyk et al. (ICML 2024): the pretrained
+  behaviour is lost even in states the new task does not need to change.
+- **The jumps are lateral balance corrections.** T1's jumps sit in hip roll, hip pitch and knee of both legs (left hip
+  roll on 14 % of ticks at 0.10 m/s; walk61 at most 2.4 % on any joint). On the robot T1 walks leaning 2-5 deg to the
+  same side as both falls (mean roll -2.1..-4.8 deg, walk61 -0.9) and up to 5 deg further forward than walk61 (mean
+  pitch +0.6..+3.8, walk61 -1.1); in the sim it does not (sim pitch +0.5 deg at 0.25, robot +3.8), so the fine-tune lost walk61's tolerance of the real robot's differences from the model.
+
+### Delta t2 = T1 + an anchor to walk61 (rewards unchanged)
+
+- **Anchor (behaviour-cloning form of Wolczyk et al.)**: during the 100 critic warm-up iterations the actor is walk61,
+  frozen; keep the actor inputs and walk61's mean actions from envs whose head command is exactly the default and whose
+  forward command is 0 or 0.25-0.30 (walk61's robot-proven regime; below 0.25 walk61 does not step, so those states
+  would teach not stepping). Subsample to 200k states. After every PPO update, one supervised step on a 4096-state
+  minibatch of that buffer: loss = beta x mean sum over joints (mu(s) - mu_walk61(s))^2, same optimizer and learning
+  rate. States with a head command are never anchored, so the neck reward keeps its full pull there.
+- **Default-head envs**: 20 % of envs get the exact default head command (as `rel_standing_envs` does for the twist),
+  so the buffer fills (~570k candidate states in 100 iterations) and the deployment's most common head state stays
+  trained. Everything else is T1's delta.
+- **Two variants on one paired Kaggle job** (two T4s, same quota as one): t2a beta 0.5, t2b beta 2.0. Logged per
+  iteration: anchor distance on the buffer, neck error, speed along the command.
+- **What the actor sees**: unchanged, the same 61 numbers walk61 sees (gyro 3, gravity 3, joint offsets 14, joint
+  velocities 14, last action 14, twist 3, head command 4, body 6 at zero). No camera, no new input; the runtime
+  needs no change.
+
+### Degenerate audit
+
+The reward terms and weights are T1's, so T1's audit holds (stand/walk 0.748, ignoring the neck costs 0.66/s,
+standing under 0.15-0.30 costs 0.7-1.9/s). The anchor is a loss on default-head states only, where walk61's own
+behaviour (walking at 0.25-0.30, bringing the stride to rest at 0) is the target, so it cannot pay for standing under
+a walking command or for ignoring a head command. Risk it does carry: shared weights pulled toward walk61 could weaken
+neck tracking everywhere; gate G2 measures that, and the two betas bracket it.
+
+### Gates, in order (each must pass before the next costs anything)
+
+- **G1, offline, robot states**: action distance from walk61 on `walk61_see_walks.jsonl` <= 0.25 (T1: 0.71), with
+  `sensitivity.py`. No sim, no robot.
+- **G2, sim acceptance** (`cmu/finetune/t1_sim_accept.py`, plugged): T1's rows: walking at 0.25 with the neck at -0.4
+  and -0.8 path >= 0.6 m and neck within 0.10 of the command; walk 2 s then stand with the neck held.
+- **G3, sim suite** (`sim_suite.py --variant plugged`): real cases within the suite rule against walk61 (tilt +2 deg,
+  jumps +2, distance >= 0.9 x); and drop8_imu35, both seeds, must not fall, since walk61 does not and T1 did. Using a
+  stress case as a gate is a change to the suite's rule for this run only; Shawn's word is needed for it.
+- **G4, robot** (Shawn runs `guide/firmware/mac/t1_robot_test.py`): stand, walk 0.25 with no head command, walk_neck
+  -0.4, neck_hold -0.8. Stop on a fall, walking tilt above 9 deg or more than 5 jumps per s.
+
+### Cost and code
+
+Kaggle free T4s: 14.3 h of the weekly 30 h left on 2026-10-30, reset 2026-10-31 00:00 UTC. Smoke about 10 min, the
+paired 1000-iteration job about 90 min (T1 took 81 min; one extra minibatch step per update). No Modal, no MacBook
+training. Code before any push: buffer collection and the anchor step in `finetune_worker.py` (wrapped around
+`alg.update` like the learning-rate clamp), a `t2` delta with `default_head_envs`, `AUDIT_KEY` t2 -> t1_asbuilt,
+CPU tests (buffer filter keeps only default-head and 0 / 0.25-0.30 states; the anchor loss is zero for walk61 itself
+and falls under one step on a perturbed actor), then the smoke.
