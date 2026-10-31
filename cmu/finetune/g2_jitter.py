@@ -25,10 +25,12 @@ STUDY = os.path.join(MAC, "jitter-20261018")
 sys.path.insert(0, STUDY)
 import sweep_20261030 as sw  # noqa: E402  (run_one, aggregate, real_condition; OVERLAY/MANIFEST paths)
 import jitter_metrics as jm  # noqa: E402
+sys.path.insert(0, MAC)
+import walk_brain  # noqa: E402
 
 CALIBRATED = ["--gyro-noise-dq", "0.25", "--bam-friction-scale", "1.4"]
 WALK61 = os.path.join(sw.OVERLAY, "models")
-NECK = 5  # neck_pitch in walk_brain.NAMES order
+NECK = walk_brain.NAMES.index("neck_pitch")  # the tick log's q is in servo-ID order (index 11), absolute joint rad; --neck-pitch is absolute too
 
 
 def neck_mean(log, walk_at, walk_s):
