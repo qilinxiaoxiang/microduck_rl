@@ -785,4 +785,46 @@ job. Acceptance against walk61 in the as-built eval sim (`cmu/simcheck/sim_suite
 `brain_sim_check.py --tether` seeds 0-4: in-place turns faster than walk61's 12-23 deg/s with the lead and no slower
 than its 28 deg/s without; walking distance and falls no worse with or without the lead; action jumps and peak tilt
 no worse than walk61 in the real cases (ft3 lost balance on the robot while beating walk61 in sim, so the jitter rows
-decide). Not run: waiting for Shawn's go.
+decide). Started 2026-10-30 18:40 EDT on Shawn's go: smoke `tether-smoke`/`tether-smoke-b` (64 envs, 6 iterations, source digest 7c061ff19b546ae5) COMPLETE with the `tether_lead` event active and ONNX exported; run `tether-a` (seed 1) / `tether-b` (seed 2) as one paired Kaggle kernel `microduck-tether-a`.
+
+### Result (2026-10-30): turns fixed, jitter rejects both seeds
+
+Both jobs COMPLETE, 1000 iterations each in 83 and 82 min (0.20-0.21 it/s on one T4 each). Training-sim tracking at
+iteration 999: speed along the command 0.17 m/s against walk61's 0.074, track error 0.246 against 0.293; the
+training sim's own action_rate_l2 mass fell from -1.44 to -1.19 per episode, so the training sim saw no jitter.
+
+Acceptance (`cmu/finetune/kaggle/tether_accept.sh`, summary `tether_accept_summary.py`; plugged manifest,
+`--volt 7.0 --drop 0.04` from `cmu/robot-condition.json`, walk61 rerun in the same sim as the baseline, because
+`reference-walk61-plugged.jsonl` predates the 2026-10-26 plugged model and walk61 now walks 0.9 m less in it):
+
+- **In-place turns with the lead:** walk61 7-25 deg/s over seeds 0-4 and both directions; tether-a 23-29, tether-b 26-29
+  (all four checkpoints 21-29). Without the lead all at 28-29 deg/s. Passes.
+- **Walking 12 s at 0.25 m/s:** walk61 1.1-1.25 m with or without the lead; tether-b 2.6-3.2 m, tether-a 2.3-2.8 m.
+  No falls in the 18 lead cases for any checkpoint. Passes.
+- **Jitter, which decides:** action jumps (ticks moving more than 0.5 rad) in the five real suite cases: walk61 0-5;
+  tether-a 19-58, tether-b 8-82, the best checkpoints 9-80; ft3, which lost balance on the robot, had 4-13. Peak tilt
+  8-22 deg against walk61's 2-11. tether-b_best fell at 11.2 s in `nominal`. Over the 18 lead cases walk61 totals 55
+  jumps, the candidates 261-394. **Fails on every checkpoint.**
+
+Not for the robot. The training sim does not show the jitter the eval sim shows (the gap the jitter sim-ID measured:
+BAM friction about 1.4 and gyro vibration proportional to leg speed). Run t3 (branch `cmu/grasp`, commits
+1bb0560c..675add5a, its plan in that branch's FINETUNE-DELTA.md) puts that gap and an `action_acc_l2` penalty into
+training; the lead belongs on top of t3 once t3 passes its jitter gates, not as another
+run on the current recipe.
+
+## Run t3+tether plan (2026-10-30, Shawn: "t3 过了就训")
+
+Branch `cmu/t3-tether` = `cmu/grasp` (t3) plus the tether commits. Deltas `t3a_tether` / `t3b_tether` are t3a / t3b
+unchanged plus `tether=dict(fraction=0.8)` (t3 already carries ft3's EMA velocity tracking). Only the variant that
+passes t3's gates G1-G3 is trained; if both pass, both run as one paired job (seeds 1). What the actor sees: unchanged,
+61 inputs.
+
+- **Audit** (`t3a_tether_asbuilt`, plugged, 2048 envs, 750 steps; the anchor does not enter the audit, so one key
+  covers both): stand/walk at most 0.83 and walk61 falls at most 0.5 per env-minute. The lead raised stand/walk by
+  0.027 on the lowcmd recipe (0.761 -> 0.788) and t3a sits at 0.804, so the margin is thin; a FAIL stops here.
+- **Smoke** `t3b_tether` paired with the audit (64 envs, 6 iterations): builds, the tether event registered, ONNX out.
+- **Run** after t3 passes: Kaggle T4, `--cmu-config plugged --max-lr 3e-4 --track-guard 1.3`, 1000 iterations, warm-up
+  100, `--max-hours 2`.
+- **Acceptance**: t3's G1-G3 unchanged, plus `tether_accept.sh` (lead cases seeds 0-4, both turn directions):
+  in-place turns with the lead faster than walk61, no slower without; walks and falls no worse; jumps and tilt within
+  the suite rule against walk61 in the lead cases too. Robot only after these, under t3's G4 procedure.
