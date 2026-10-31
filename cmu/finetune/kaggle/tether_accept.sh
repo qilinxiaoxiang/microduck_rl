@@ -11,7 +11,9 @@ MAN=(--manifest cmu/model/manifests/plugged.json)
 B=(--model asbuilt --volt 7.0 --drop 0.04 --walk-at 3)
 for spec in "walk61=cmu/whole/runtime-overlay/models/walk61.onnx" "$@"; do
   name=${spec%%=*}; onnx=${spec#*=}
-  D=$OUT/$name; mkdir -p $D/models
+  D=$OUT/$name
+  if [[ -s $D/walk_none.json ]]; then echo "$name already done"; continue; fi
+  mkdir -p $D/models
   cp cmu/whole/runtime-overlay/models/*.onnx $D/models/
   cp $onnx $D/models/walk61.onnx
   $PY cmu/simcheck/sim_suite.py $D/models $D/suite.jsonl --variant plugged > $D/suite.out 2>&1
