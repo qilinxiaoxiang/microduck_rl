@@ -828,6 +828,12 @@ passes t3's gates G1-G3 is trained; if both pass, both run as one paired job (se
   leaves the standing incentive where it was and adds 0.03 falls per env-minute.
 - **Smoke** `t3b_tether` paired with the audit (64 envs, 6 iterations): builds, the tether event registered, ONNX out.
   Result: rc 0, `tether_lead` in the event table, ONNX exported.
+- **t3's gates (cmu/grasp 030407f0, d98f30ac, 2026-10-30 21:10)**: G1 all four t3 candidates pass. G2 (calibrated jitter
+  sim, `cmu/finetune/g2_t3.json`) fails all eight neck rows: with the neck at -0.4 or -0.8 the neck reaches -0.24 to
+  -0.60, tilt reaches 12-27 deg and t3a falls in 1-2 of 3 seeds. The default-head rows, which are not gated and are how
+  the duck walks and turns on the lead, are smoother than walk61 there: jumps 0.47-1.5 per s against 3.38, peak tilt
+  6.9-8.1 against 9.1 deg, no falls (t3b_final 0.47 per s, 6.9 deg). t3 did not pass, so the t3+tether run is not
+  started; whether to train t3b+tether for walking and turning with the default head is Shawn's call.
 - **Run** after t3 passes: Kaggle T4, `--cmu-config plugged --max-lr 3e-4 --track-guard 1.3`, 1000 iterations, warm-up
   100, `--max-hours 2`.
 - **Acceptance**: t3's G1-G3 unchanged, plus `tether_accept.sh` (lead cases seeds 0-4, both turn directions):
