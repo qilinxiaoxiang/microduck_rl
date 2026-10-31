@@ -758,3 +758,51 @@ walk61 itself), then the Kaggle audit and smoke, then the paired run. Nothing st
 - **G1** (649 states of walk61's robot walks, gate 0.25, `cmu/finetune/g1_t3.json`): t3a final 0.192, t3a best 0.213,
   t3b final 0.242, t3b best 0.239, all PASS (t2b best 0.221, T1 0.711). Largest per-joint mean difference 0.067 rad
   (t3b knees); t3a's are 0.035-0.060.
+- **G2** (`cmu/finetune/g2_jitter.py`, calibrated sim gyro dq 0.25 + friction 1.4, real-condition flags volt 7.0 drop
+  0.04, 3 seeds, 10 s at vx 0.25; results `cmu/finetune/g2_t3.json`, reference rows for t2b best and T1 in the same sim
+  `cmu/finetune/g2_ref_t2b_t1.json`). Jumps/s, mean of 3 seeds (falls in brackets):
+
+      row            walk61   t3a best      t3a final     t3b best   t3b final   t2b best      T1
+      default head   3.4      1.5           1.4           0.7        0.5         5.7           -
+      neck -0.4      -        3.9           6.2 (1 fall)  2.3        1.5         11.0 (1)      16.6 (3)
+      neck -0.8      -        11.8 (2)      3.8           5.1        4.0         11.5 (1)      20.9 (3)
+
+  Peak tilt (mean of seeds): walk61 default 9.1; t3b best 7.1 / 9.4 / 15.1 (one seed 21.5 with 7.9 jumps/s), t3b
+  final 6.9 / 9.6 / 13.1; t2b 11.4 / 18.8 / 20.4. Neck held (mean of q over the walk, absolute joint rad; the
+  `--neck-pitch` command is absolute): t3b best -0.25 at -0.4 and -0.44 at -0.8, t3b final -0.24 / -0.43, t3a
+  best -0.26 / -0.43, t3a final -0.33 / -0.60; t2b's non-fallen seeds -0.40..-0.44 and -0.72..-0.76, T1 -0.41..-0.47
+  and -0.64..-0.90. Distance in 10 s: walk61 default 0.80 m; t3b 0.75-0.80 under either neck command, t3a 0.43-0.87;
+  t2b default 1.16, non-fallen neck rows 0.97-1.05.
+  Verdict against the plan's lines: t3b (both saves) passes jumps, no-fall and the -0.4 tilt; **fails the neck depth**
+  at both commands (-0.25 / -0.44, tolerances 0.10 / 0.15) and the tilt at -0.8 (13-15 deg, gate 12). t3a fails
+  outright (falls in the head rows, the design's prediction: its anchor leaves those states to the reward alone).
+  The plan's path line ("0.6 m in 6 s") was set from the uncalibrated sim, where walk61 does 0.45 m in 6 s; in this
+  sim walk61 itself does 0.80 m in 10 s, so that line is unusable as written and the table reports distance against
+  walk61 instead. The depth shortfall is the policy's choice, not the sim's: t2b reaches the commands here.
+- **G3** (`cmu/finetune/drop8_seeds.py`, `cmu/finetune/drop8_seeds_t3.jsonl`): drop8_imu35 seeds 0-5 falls t3b best
+  0/6, t3b final 1/6 (seed 0), t3a best 0/6 (walk61 0, t2b 1, T1 3). Sim suite plugged for t3b best
+  (`cmu/simcheck/reference-t3b-best.jsonl`): no falls on the real cases, action jumps 0-2 (walk61 2-4, t2b 2-4, T1
+  5-27), tilt within slack except vx0.2 (6.5 against 4.0 + 2); distance 10-30 % below walk61 on every real case
+  (nominal 1.08 against 1.59 m, vx0.25 0.945 against 1.165, com+5 1.77 against 2.14, imu_pitch4 1.04 against 1.46),
+  so the suite rule fails on distance. Stress: drop8_imu35 no fall (walk61's reference row fell at 9.0 s),
+  drop8_imu35_s1 fell at 5.3 s (walk61 did not), floor cases no fall.
+- **Verdict**: under the plan as written no candidate passes G2 and G3, so no robot test. What t3 was for happened
+  in the sim that predicted t2b's failure: t3b under a neck command shows 2-5 action jumps/s where t2b shows 11
+  (robot 14) and T1 17-21 (robot 17-22), with no falls over 9 rows and 0/6 drop8 falls. The costs are a neck that
+  stops at about 60 % of the command and 10-30 % shorter walks than walk61 in the plain plugged sim (in the
+  calibrated sim it walks 0.75-0.98 m against walk61's 0.80).
+- **The two pre-robot lines, for whenever t3b best is considered for the robot** (Shawn's call, waiver of the depth
+  and distance lines): (1) states not covered: the anchor now covers every walk61 state at vx 0 or 0.25-0.30 with any
+  head command; vx 0.1-0.2, lateral and turning commands are left to the reward (walk61 itself was not sampled
+  there), so a robot test stays at vx 0.25 and vtheta 0 as before; the head outputs on head-command states are
+  shaped only by the head rewards, which is where the 60 % depth comes from and will show on the robot as a shallower
+  bow than t2b's. (2) The sim is no longer known blind to the tested failure: the calibrated setting reproduced the
+  10/30 robot rows within 2x (walk61 2.1 robot / 3.4 sim, t2b neck 14 / 11, T1 17-22 / 17-21) and the t2b falls it
+  shows at neck commands (2 of 6 seeds) match the robot's stop-rule breaches; its known miss is the default-head t2b
+  row (robot 1.7, sim 5.7), an over-report. Expected robot result for t3b best: walk and walk_neck calm (under 5
+  jumps/s, tilt under 10 deg), neck at about -0.25 for the -0.4 command and -0.45 for the -0.8 hold, speed below
+  walk61's; the stop rule stays (fall, walking tilt above 9 deg, more than 5 jumps per s).
+- **Next run if depth matters** (needs a nod, nothing queued): t4 = t3b with the head tracking priced for the
+  escapable part only (the AGENTS.md rule: L1 on a 1 s EMA of the head error, so the DC shortfall costs and the
+  walking oscillation does not), or head_pose_bias weight raised from 5; audit first (standing must stay under 0.83 of
+  walking), paired with a seed repeat of t3b.

@@ -1,0 +1,98 @@
+{
+ "run_name": "t3b",
+ "task": "Mjlab-Velocity-Flat-MicroDuck",
+ "gpu": "kaggle-Tesla-T4",
+ "num_envs": 4096,
+ "max_iters": 1000,
+ "warmup_iters": 100,
+ "init_std": 0.25,
+ "seed": 1,
+ "delta": {
+  "track_lin_vel": {
+   "tau_s": 0.5,
+   "std": 0.22360679774997896
+  },
+  "twist_ranges": {
+   "lin_vel_x": [
+    0.0,
+    0.3
+   ],
+   "lin_vel_y": [
+    -0.1,
+    0.1
+   ],
+   "ang_vel_z": [
+    -1.0,
+    1.0
+   ]
+  },
+  "rel_standing_envs": 0.15,
+  "head_ranges": [
+   [
+    -1.1,
+    0.4
+   ],
+   [
+    -0.3,
+    1.0
+   ],
+   [
+    -0.9,
+    0.9
+   ],
+   [
+    -0.05,
+    0.05
+   ]
+  ],
+  "head_resample_s": [
+   3.0,
+   8.0
+  ],
+  "head_bias": {
+   "weight": 5.0,
+   "tau_s": 0.5
+  },
+  "default_head_envs": 0.2,
+  "anchor": {
+   "beta": 2.0,
+   "states": 200000,
+   "batch": 4096,
+   "vx_band": [
+    0.25,
+    0.3
+   ],
+   "beta_legs": 1.0
+  },
+  "joint_friction": [
+   1.0,
+   1.4
+  ],
+  "gyro_vibration": {
+   "k_range": [
+    0.15,
+    0.35
+   ]
+  },
+  "action_acc": {
+   "weight": -0.58
+  }
+ },
+ "asbuilt": true,
+ "cmu_config": "plugged",
+ "manifest": "/root/assets/manifests/plugged.json",
+ "remove_battery_kg": 0.09,
+ "caps": {
+  "max_hours": 3.0,
+  "max_dollars": 1.0,
+  "rate_per_hour": 0.0
+ },
+ "source_onnx": "/root/assets/walk61.onnx",
+ "started": "2026-10-30T23:44:25",
+ "finished": "2026-10-31T01:04:05",
+ "final_iter": 999,
+ "stop_reason": "max_iters reached",
+ "elapsed_s": 4895.3,
+ "dollars": 0.0,
+ "onnx": "/kaggle/working/runs/t3b/t3b.onnx"
+}
