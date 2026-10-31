@@ -749,3 +749,12 @@ walk61 itself), then the Kaggle audit and smoke, then the paired run. Nothing st
   random observations; anchor buffer t3a 1206 states (901 at vx 0, 0 with a head command: beta_legs 0 drops them),
   t3b 4006 states (2261 at vx 0, 2800 with a head command), `anchor_states.pt` weight rows: default-head 2.0 on all
   outputs, head rows 1.0 on the leg outputs and 0 on the head outputs; ONNX exported.
+- **Launch**: paired Kaggle job `microduck-t3a` (t3a GPU 0, t3b GPU 1), 4096 envs, 1000 iterations, 3 h cap, pushed
+  19:40 EDT, COMPLETE 21:04 EDT (t3a 79 min, t3b 82 min, both "max_iters reached", no guard stop). Anchor buffers:
+  200k walk61 states each; t3b's hold 161k with a head command. Anchor distance on the buffer: t3a 0.204 final / 0.215
+  best, t3b 0.267 / 0.265. Mean reward t3a 99.8 final, peak 101.1 at iteration 725; t3b 101.6 final, peak 104.1 at
+  900. Speed along the command (buffer) t3a 0.072, t3b 0.061 (walk61 0.029; t2b 0.093, T1 0.18). Candidate
+  directories `cmu/whole/runtime-overlay/models-t3{a,b}-{best,final}` (stand61/groundpick61 from models-t2b-best).
+- **G1** (649 states of walk61's robot walks, gate 0.25, `cmu/finetune/g1_t3.json`): t3a final 0.192, t3a best 0.213,
+  t3b final 0.242, t3b best 0.239, all PASS (t2b best 0.221, T1 0.711). Largest per-joint mean difference 0.067 rad
+  (t3b knees); t3a's are 0.035-0.060.
