@@ -822,7 +822,12 @@ passes t3's gates G1-G3 is trained; if both pass, both run as one paired job (se
 - **Audit** (`t3a_tether_asbuilt`, plugged, 2048 envs, 750 steps; the anchor does not enter the audit, so one key
   covers both): stand/walk at most 0.83 and walk61 falls at most 0.5 per env-minute. The lead raised stand/walk by
   0.027 on the lowcmd recipe (0.761 -> 0.788) and t3a sits at 0.804, so the margin is thin; a FAIL stops here.
+  Result (`audit-t3tether`, Kaggle, 4 min): stand/walk **0.803** (t3a 0.804), walk61 falls **0.465** per env-minute
+  (t3a 0.432, limit 0.5), walk61 7.09/s, stand61 5.70/s: **PASS** at finetune.py's gate (the worker's own print uses
+  its 0.8 default and says FAIL, as it did for t3a). `reward-audit.json` key `t3a_tether_asbuilt`. On t3's DR the lead
+  leaves the standing incentive where it was and adds 0.03 falls per env-minute.
 - **Smoke** `t3b_tether` paired with the audit (64 envs, 6 iterations): builds, the tether event registered, ONNX out.
+  Result: rc 0, `tether_lead` in the event table, ONNX exported.
 - **Run** after t3 passes: Kaggle T4, `--cmu-config plugged --max-lr 3e-4 --track-guard 1.3`, 1000 iterations, warm-up
   100, `--max-hours 2`.
 - **Acceptance**: t3's G1-G3 unchanged, plus `tether_accept.sh` (lead cases seeds 0-4, both turn directions):

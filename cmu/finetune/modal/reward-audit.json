@@ -488,5 +488,97 @@
     "action_acc_l2": -0.06
    }
   }
+ },
+ "t3a_tether_asbuilt": {
+  "stand_over_walk": 0.803,
+  "max_ratio": 0.83,
+  "walk_falls_per_env_minute": 0.465,
+  "max_walk_falls": 0.5,
+  "verdict": "PASS",
+  "walk_speed": 0.058,
+  "stand_speed": -0.017,
+  "margin_per_s": 1.394,
+  "run": "audit-t3tether (Kaggle)",
+  "time": "2026-10-31T00:34:15",
+  "walk": {
+   "steps": 750,
+   "envs": 2048,
+   "episodes": 238,
+   "falls": 238,
+   "timeouts": 0,
+   "falls_per_env_minute": 0.465,
+   "mean_ep_len_s": 7.51,
+   "survived_to_end": 1847,
+   "track_err_xy": 0.242,
+   "speed_along_cmd": 0.058,
+   "moving_samples": 664367,
+   "low_cmd_speed": 0.049,
+   "head_err_rad": {
+    "neck_pitch": 0.1254,
+    "head_pitch": 0.0671,
+    "head_yaw": 0.0722,
+    "head_roll": 0.0396
+   },
+   "reward_per_s": 7.091,
+   "terms_per_s": {
+    "track_linear_velocity": 1.4106,
+    "track_angular_velocity": 1.0508,
+    "upright": 1.7996,
+    "pose": 0.7521,
+    "body_ang_vel": -0.0254,
+    "angular_momentum": -0.0,
+    "dof_pos_limits": -0.0008,
+    "action_rate_l2": -0.2017,
+    "air_time": 0.8963,
+    "foot_clearance": -0.0031,
+    "foot_swing_height": -0.0023,
+    "foot_slip": -0.0001,
+    "self_collisions": -0.0012,
+    "head_pose_tracking": 1.9115,
+    "body_pose_tracking": 0.0,
+    "head_pose_bias": -0.2944,
+    "action_acc_l2": -0.2013
+   }
+  },
+  "stand": {
+   "steps": 750,
+   "envs": 2048,
+   "episodes": 2461,
+   "falls": 718,
+   "timeouts": 1743,
+   "falls_per_env_minute": 1.402,
+   "mean_ep_len_s": 4.92,
+   "survived_to_end": 55,
+   "track_err_xy": 0.277,
+   "speed_along_cmd": -0.017,
+   "moving_samples": 675097,
+   "low_cmd_speed": -0.018,
+   "head_err_rad": {
+    "neck_pitch": 0.2963,
+    "head_pitch": 0.2063,
+    "head_yaw": 0.1357,
+    "head_roll": 0.1032
+   },
+   "reward_per_s": 5.697,
+   "terms_per_s": {
+    "track_linear_velocity": 1.2031,
+    "track_angular_velocity": 1.1796,
+    "upright": 1.8357,
+    "pose": 0.7492,
+    "body_ang_vel": -0.0183,
+    "angular_momentum": -0.0,
+    "dof_pos_limits": -0.0017,
+    "action_rate_l2": -0.0897,
+    "air_time": 0.0372,
+    "foot_clearance": -0.0013,
+    "foot_swing_height": -0.0038,
+    "foot_slip": -0.0002,
+    "self_collisions": -0.0001,
+    "head_pose_tracking": 1.666,
+    "body_pose_tracking": 0.0,
+    "head_pose_bias": -0.7989,
+    "action_acc_l2": -0.0601
+   }
+  }
  }
 }
