@@ -107,7 +107,7 @@ import walk_brain  # noqa: E402
 from duck_sound import Voice  # noqa: E402
 from hold import DOWN_RATE, HOLD_FILE, KP_STEP, UP_RATE, HoldEstimator, legs_current_ma, read_hold_file  # noqa: E402
 from jaw_ctl import GOAL_CURRENT_MA, JAW_ID, POSE_JOINTS, JawCtl  # noqa: E402
-from dxl_fast import _packet  # noqa: E402
+from dxl_fast import _packet, crc16  # noqa: E402
 from battery import (ADDR_HW_ERROR, ADDR_PRESENT_VOLTAGE, ADDR_SHUTDOWN, INPUT_VOLTAGE_BIT, STOP_MARKER,  # noqa: E402
                      BatteryGuard, status_ok, stop_command, stop_settled, voltage_alert_only)
 
@@ -118,6 +118,7 @@ ADDR_TORQUE, ADDR_P_GAIN, ADDR_GOAL, ADDR_VEL = 64, 84, 116, 128
 ADDR_CUR = 126
 STATE_FMT = "<hii"
 STATE_SIZE = struct.calcsize(STATE_FMT)
+MAX_STATUS_LEN = 64  # status packet LEN field (instruction + error + params + CRC); the largest read here is 4 + 10
 IMU_FMT = "<I11fB"
 
 
@@ -144,6 +145,61 @@ def take_hw_lock(path=HW_LOCK):
         print("waiting for duck_sense.py to hand over the servo bus and IMU", flush=True)
         fcntl.flock(f, fcntl.LOCK_EX)
     return f
+
+
+def lock_memory(libc=None):
+    """Keep every page this process touches in RAM: mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT). On 2026-10-30 a
+    1.4 GB log reader in another ssh session pushed the brain's code pages out (RSS 11 MB, 42 MB in swap); one tick
+    then waited 348 ms on a page fault from the busy SD card in the middle of a turn on the spot, and the duck fell.
+    ONFAULT locks pages as they are first touched instead of loading the whole 850 MB address space. The kernel counts
+    the whole address space against RLIMIT_MEMLOCK, so the A7Z raises it for radxa (install_teleop.sh,
+    /etc/security/limits.d/90-duck-memlock.conf). -> the line to print; a failure is printed, never fatal."""
+    import ctypes
+    import resource
+    MCL_CURRENT, MCL_FUTURE, MCL_ONFAULT = 1, 2, 4
+    if libc is None:
+        try:
+            libc = ctypes.CDLL(None, use_errno=True)
+        except OSError as e:
+            return f"memory lock: no libc ({e}); page-cache pressure can stall this loop"
+    if not hasattr(libc, "mlockall"):
+        return "memory lock: not available on this system (macOS); page-cache pressure can stall this loop"
+    if libc.mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT) == 0:
+        return "memory lock: on (pages stay in RAM once touched)"
+    err = ctypes.get_errno()
+    soft, _ = resource.getrlimit(resource.RLIMIT_MEMLOCK)
+    lim = "unlimited" if soft == resource.RLIM_INFINITY else f"{soft // 1024} kB"
+    return (f"memory lock FAILED ({os.strerror(err)}, memlock limit {lim}): page-cache pressure can stall this loop; "
+            f"run install_teleop.sh and start the brain from a new ssh login")
+
+
+class LogWriter:
+    """The tick log, written and flushed by its own thread: the control loop only queues a line, so a write that waits
+    on the SD card's journal (seen 2026-10-30 in the blackbox: walk_wired in jbd2_journal_get_write_access) never
+    holds up a tick. fileno() is there for the fsync thread."""
+
+    def __init__(self, f):
+        import queue
+        self.f, self.q = f, queue.SimpleQueue()
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def write(self, line: str):
+        self.q.put(line)
+
+    def fileno(self):
+        return self.f.fileno()
+
+    def _run(self):
+        import queue
+        while True:
+            lines = [self.q.get()]
+            try:
+                while len(lines) < 200:
+                    lines.append(self.q.get_nowait())
+            except queue.Empty:
+                pass
+            self.f.write("".join(lines))
+            self.f.flush()
 
 
 class Link:
@@ -196,9 +252,18 @@ class Link:
                 if len(buf) < 3:
                     break
                 if buf[0] == 0xFF and buf[1:4] == b"\xff\xfd\x00" and len(buf) >= 7:
-                    total = 7 + struct.unpack_from("<H", buf, 5)[0]
+                    length = struct.unpack_from("<H", buf, 5)[0]
+                    if not 4 <= length <= MAX_STATUS_LEN:
+                        # a lost byte made the next header's bytes read as the length (0xFDFF): waiting for 65 kB
+                        # blanked every servo read for 6 s and the duck fell (2026-10-31 16:35:10); resync instead
+                        buf = buf[1:]
+                        continue
+                    total = 7 + length
                     if len(buf) < total:
                         break
+                    if crc16(buf[:total - 2]) != struct.unpack_from("<H", buf, total - 2)[0]:
+                        buf = buf[1:]  # a damaged reply: drop it and resync on the next header
+                        continue
                     self.status.append(buf[:total])
                     buf = buf[total:]
                 elif buf[0] == 0xA5 and buf[1] == 0x5A:
@@ -251,6 +316,10 @@ class Link:
 # sequence number, then the raw counts of L1, R1, L2, R2, M (a touch raises them). On the A7Z it sits on the kernel bus
 # of TWI0, header pins 29/31 (CURRENT-STATE.json a7z_touch_bus). The Mac brain has no path to it.
 TOUCH_ADDR, TOUCH_BLOCK, TOUCH_PERIOD = 0x2A, 24, 0.02
+# A jammed TWI0 (2026-10-31 16:33:35: bus not idle, STOP failed on every transfer) makes the kernel print about 100 error
+# lines a second to the serial console, which starves the servo UART of interrupts: replies were lost and the duck fell.
+# After this many failed reads in a row the reader tries only once every TOUCH_JAM_RETRY_S until a read works again.
+TOUCH_JAM_FAILS, TOUCH_JAM_RETRY_S = 10, 5.0
 TOUCH_PADS = ("L1", "R1", "L2", "R2", "M")
 TOUCH_SATURATED = 0x3FFFFF  # touchRead's ceiling, a pad lead on metal; a count above it means a misaligned block
 I2C_SLAVE = 0x0703
@@ -267,6 +336,18 @@ def touch_bus_path(arg):
         return next(("/dev/" + n.split("/")[-2] for n in sorted(glob.glob(os.path.join(I2C_SYSFS, "i2c-*", "of_node")))
                      if os.path.realpath(n).endswith("/twi@2510000")), None)
     return f"/dev/i2c-{arg}" if arg.isdigit() else arg
+
+
+def touch_decode(raw):
+    """(seq, L1, R1, L2, R2, M) from 24 read bytes, or None. The XIAO sometimes sends a 0x55 filler byte first and then
+    keeps doing so (2026-10-29: 7 min of reads, the hold blind); the block's last byte, the always-zero top byte of M, is
+    then lost. The wrong alignment puts every count above TOUCH_SATURATED, so the right one is the one whose counts all
+    fit (the same decode as duck_selfcheck.py and duck-telemetry)."""
+    for block in (raw, raw[1:] + b"\0"):
+        b = struct.unpack("<6I", block)
+        if max(b[1:]) <= TOUCH_SATURATED:
+            return b
+    return None
 
 
 def open_touch_bus(path):
@@ -287,15 +368,20 @@ class TouchPads:
         self.newest = None  # (seq, counts, perf_counter time the seq arrived), replaced whole so a reader needs no lock
         self.bad = 0  # reads that failed or were rejected
         self.failing = False
+        self.fails_in_row = 0
         if start:
             threading.Thread(target=self._run, daemon=True).start()
+
+    def period(self):
+        """Seconds to the next read: the scan rate, or TOUCH_JAM_RETRY_S while the bus looks jammed."""
+        return TOUCH_JAM_RETRY_S if self.fails_in_row >= TOUCH_JAM_FAILS else TOUCH_PERIOD
 
     def _run(self):
         pause = threading.Event()  # a wall-clock wait, never the loop's (simulated) clock
         due = _wall()
         while True:
             self.poll()
-            due = max(due + TOUCH_PERIOD, _wall())  # the read time comes out of the pause; a stuck read skips, no burst
+            due = max(due + self.period(), _wall())  # the read time comes out of the pause; a stuck read skips, no burst
             pause.wait(due - _wall())
 
     def poll(self):
@@ -306,15 +392,22 @@ class TouchPads:
         except OSError as e:
             why = f"{type(e).__name__}: {e}"
         if why is None:
-            seq, *counts = struct.unpack("<6I", raw)
-            if max(counts) > TOUCH_SATURATED:
+            block = touch_decode(raw)
+            if block is None:
                 why = "a count above the pad ceiling, misaligned block"
+            else:
+                seq, *counts = block
         if why:
             self.bad += 1
+            self.fails_in_row += 1
             if not self.failing:
                 print(f"touch: read failed ({why}); the pads keep their last block, retrying", flush=True)
                 self.failing = True
+            if self.fails_in_row == TOUCH_JAM_FAILS:
+                print(f"touch: {TOUCH_JAM_FAILS} reads in a row failed, the bus looks jammed; retrying every "
+                      f"{TOUCH_JAM_RETRY_S:.0f} s so the kernel's error lines do not starve the servo UART", flush=True)
             return False
+        self.fails_in_row = 0
         if self.failing:
             print("touch: reads back", flush=True)
             self.failing = False
@@ -629,7 +722,8 @@ def main():
     # packet carries the Alert bit. The bench accepts those packets and watches Hardware Error Status once a second
     # like the armed guard, so a fault other than the input-voltage flag still freezes the policy.
     link.alert_ok = guard is None or guard.armed
-    log = open(args.log, "a")
+    print(lock_memory(), flush=True)
+    log = LogWriter(open(args.log, "a"))
 
     def _sync_log():  # a brownout loses only what is not on the card: fsync every 50 ms, off the control thread
         pause = threading.Event()  # a wall-clock wait, never the loop's (simulated) clock
@@ -734,7 +828,8 @@ def main():
                           flush=True)
         legs_ma = legs_current_ma(cur, NAMES)
         hold_dt = 0.02 if hold_t is None else min(0.1, t_hold - hold_t)
-        est.update(hold_dt, touch_counts, touch_age, legs_ma)
+        w_hold = math.sqrt(sum(g * g for g in imu[1][5:8])) if imu is not None and imu[1][12] else None
+        est.update(hold_dt, touch_counts, touch_age, legs_ma, gyro=w_hold)
         hold_t = t_hold
         new_cmd = read_cmd(args.cmd, last_cmd)
         cmd_is_new = new_cmd is not last_cmd
@@ -995,7 +1090,11 @@ def main():
             max_tilt = {"groundpick": args.max_tilt_gp, "seepick": args.max_tilt_gp,
                         "sit": args.max_tilt_sit}.get(brain.mode, args.max_tilt)
             carried = hold_on and est.e > HOLD_TILT_E  # tilted in a hand, not falling
-            rising = brain.getup is not None  # the recover sequence passes through every tilt on its way up
+            # the recover sequence passes through every tilt on its way up; and in recover mode the brain owns falls
+            # in walk mode altogether (robotd's limp_fall, no tilt stop in Pollen's runtime): 2026-10-30 the first
+            # robot trial entered walk lying on its side and this stop fired on the first tick, 0.2 s before the
+            # brain's lying debounce could arm the sequence, and the duck went to the open-loop STAND on the floor
+            rising = brain.getup is not None or (brain.getup_mode == "recover" and brain.mode == "walk")
             if not diverging and not carried and not rising and info["gb"][2] > -math.cos(math.radians(max_tilt)):
                 diverging = f"body tilt over {max_tilt} deg"
             if diverging and last_goal is not None:
@@ -1090,8 +1189,7 @@ def main():
                                   grip_stop=grip_stop.on, legs_ma=legs_ma, jaw_cur_ma=jaw_cur,
                                   jaw_tick=jaw.last_tick, jaw_deg=None if jaw.opening_deg() is None else round(jaw.opening_deg(), 1),
                                   jaw_goal=jaw.goal_deg if jaw.on else None, jaw_clamps=jaw.clamps if jaw.on else [],
-                                  jaw_holding=jaw.holding())) + "\n")
-        log.flush()  # readers (pickup.py) see the newest tick; buffered writes lagged up to ~1 s
+                                  jaw_holding=jaw.holding())) + "\n")  # LogWriter flushes it: readers (pickup.py) see the newest tick
         n += 1
         if now - last_print > 1.0:
             with link.lock:

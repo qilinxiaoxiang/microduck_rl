@@ -174,6 +174,9 @@ class Touch:
     """The XIAO touch block over bit-banged I2C, read by a thread; `state()` is the newest block or why there is none."""
     CHIP, SDA, SCL, ADDR, PERIOD = "/dev/gpiochip0", 35, 34, 0x2A, 0.1
     SATURATED = 0x3FFFFF  # touchRead's ceiling: that pad cannot charge (its lead touches metal, 2026-10-20 the XIAO can)
+    # a jammed TWI0 logs kernel errors on every transfer, which starved the servo UART (2026-10-31): after this many
+    # failed reads in a row try once every JAM_RETRY_S, the same as walk_wired.py's touch reader
+    JAM_FAILS, JAM_RETRY_S = 10, 5.0
 
     class Req(ctypes.Structure):
         _fields_ = [("lineoffsets", ctypes.c_uint32 * 64), ("flags", ctypes.c_uint32),
@@ -287,7 +290,7 @@ class Touch:
                 time.sleep(2.0)
                 continue
             self.error = None
-            last_seq, bad_run = None, 0
+            last_seq, bad_run, fails = None, 0, 0
             try:
                 while True:
                     if self.paused and self.bus == "gpio":  # a brain runs: a bit-banged read costs tens of ms of CPU
@@ -300,6 +303,7 @@ class Touch:
                         b = read()
                     except OSError as e:  # the kernel bus raises on a NACK (EREMOTEIO)
                         b, self.error = None, str(e)
+                    fails = fails + 1 if b is None else 0
                     if b is None or (last_seq is not None and not 0 < b[0] - last_seq < 500):
                         self.bad += 1
                         bad_run += 1
@@ -310,7 +314,7 @@ class Touch:
                         if self.block is None or b[1:] != self.block[1:]:
                             self.same_since = time.time()
                         last_seq, self.block, self.ok, self.error, bad_run = b[0], b, self.ok + 1, None, 0
-                    time.sleep(self.PERIOD)
+                    time.sleep(self.JAM_RETRY_S if fails >= self.JAM_FAILS else self.PERIOD)
             except OSError as e:
                 self.error = str(e)
                 close()
