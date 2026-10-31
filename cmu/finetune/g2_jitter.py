@@ -47,6 +47,8 @@ def main():
     ap.add_argument("--min-path", type=float, default=0.6, help="m per 6 s of walking")
     ap.add_argument("--max-tilt", type=float, default=12.0)
     ap.add_argument("--jump-factor", type=float, default=2.0, help="limit = factor x walk61 default-head jumps/s")
+    ap.add_argument("--heads", nargs="+", default=["default", "neck-0.4", "neck-0.8"],
+                    help="rows per candidate; 'default' alone for a policy trained for the default head only")
     ap.add_argument("--logdir", default=os.path.join(HERE, "g2-ticklogs"))
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
@@ -59,7 +61,8 @@ def main():
     cond = sw.real_condition()
     print("real-condition flags:", " ".join(cond), " setting:", " ".join(CALIBRATED), flush=True)
     rows = [(f"{n}_{tag}", os.path.abspath(d), neck, args.walk_s) for n, d in cands
-            for tag, neck in (("default", None), ("neck-0.4", -0.4), ("neck-0.8", -0.8)) if n != "walk61" or neck is None]
+            for tag, neck in (("default", None), ("neck-0.4", -0.4), ("neck-0.8", -0.8))
+            if (n != "walk61" or neck is None) and tag in args.heads]
     runs = []
     for row in rows:
         for seed in args.seeds:
