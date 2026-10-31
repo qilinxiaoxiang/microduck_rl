@@ -858,7 +858,16 @@ passes t3's gates G1-G3 is trained; if both pass, both run as one paired job (se
     walk61 in none. The robot runs 4 % drops and a 50 Hz IMU (`microduck-sim/CURRENT-STATE.json`).
   - Open: `servo_rail_v` in CURRENT-STATE (7.0 V) is stale after the move to the battery backpack (8.0-8.2 V idle),
     and every case here ran at 7.0 V.
-  - Decision for Shawn: robot G4 for `t3bt_a` with the vx0.2 tilt miss accepted, or no robot run.
+  - Decision for Shawn: robot G4 for `t3bt_a` with the vx0.2 tilt miss accepted, or no robot run. Shawn 2026-10-31:
+    "上机器人试".
+  - **Pre-robot lines** for `t3bt_a`: (1) states not covered: the anchor covers walk61 states at vx 0 or 0.25-0.30
+    with any head command; vx 0.1-0.2 (where it leans 2 deg more than walk61 in sim), lateral commands and head-down
+    walks (t3b's G2 neck failure) are not tested; robot commands stay at vx 0.25, vtheta 0 or +-0.3, default head.
+    (2) The calibrated G2 sim is not known blind here: it reproduced the 10/30 robot jump rates within 2x (walk61 2.1
+    robot / 3.4 sim). Prediction: walk 0.25 calm, about 0.5-1 jump per s (sim 0.87, walk61 robot 2.1), walking tilt
+    under 9 deg, a little further than walk61 in 3 s; in-place turns at +-0.3 like walk61's. The robot is on the
+    battery backpack (CURRENT-STATE `power`, 2026-10-30), so no charger lead: the lead benefit is not tested unless
+    the lead is plugged in. Stop rule: a fall, walking tilt above 9 deg, more than 5 jumps per s.
 - **Run** after t3 passes: Kaggle T4, `--cmu-config plugged --max-lr 3e-4 --track-guard 1.3`, 1000 iterations, warm-up
   100, `--max-hours 2`.
 - **Acceptance**: t3's G1-G3 unchanged, plus `tether_accept.sh` (lead cases seeds 0-4, both turn directions):
