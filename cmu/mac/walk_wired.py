@@ -320,6 +320,9 @@ TOUCH_ADDR, TOUCH_BLOCK, TOUCH_PERIOD = 0x2A, 24, 0.02
 # lines a second to the serial console, which starves the servo UART of interrupts: replies were lost and the duck fell.
 # After this many failed reads in a row the reader tries only once every TOUCH_JAM_RETRY_S until a read works again.
 TOUCH_JAM_FAILS, TOUCH_JAM_RETRY_S = 10, 5.0
+# Writing these two bytes to the XIAO restarts it (touch_main.cpp since 2026-10-31); the reader sends them when the bus
+# looks jammed and on every failed retry after, so the pads come back without powering the duck off.
+TOUCH_RESTART = b"RS"
 TOUCH_PADS = ("L1", "R1", "L2", "R2", "M")
 TOUCH_SATURATED = 0x3FFFFF  # touchRead's ceiling, a pad lead on metal; a count above it means a misaligned block
 I2C_SLAVE = 0x0703
@@ -357,18 +360,27 @@ def open_touch_bus(path):
     return lambda: os.read(fd, TOUCH_BLOCK)
 
 
+def open_touch_restart(path):
+    """A function that asks the XIAO to restart (writes TOUCH_RESTART); older firmware ignores the bytes."""
+    fd = os.open(path, os.O_RDWR)
+    fcntl.ioctl(fd, I2C_SLAVE, TOUCH_ADDR)
+    return lambda: os.write(fd, TOUCH_RESTART)
+
+
 class TouchPads:
     """Reads the pads on its own thread every TOUCH_PERIOD; the control loop only takes the newest block (latest()),
     which never waits on the bus. A failed read, or a block no pad can produce, keeps the previous block, whose age then
     grows; so does a scan that has stopped (the sequence number no longer advances: a saturated pad holds the scan of
     touch_main.cpp on that pad, touch_live_a7z.py)."""
 
-    def __init__(self, read, start=True):
+    def __init__(self, read, start=True, restart=None):
         self.read = read
+        self.restart = restart  # asks the XIAO to restart itself while the bus looks jammed
         self.newest = None  # (seq, counts, perf_counter time the seq arrived), replaced whole so a reader needs no lock
         self.bad = 0  # reads that failed or were rejected
         self.failing = False
         self.fails_in_row = 0
+        self.restarts_sent = 0
         if start:
             threading.Thread(target=self._run, daemon=True).start()
 
@@ -406,6 +418,15 @@ class TouchPads:
             if self.fails_in_row == TOUCH_JAM_FAILS:
                 print(f"touch: {TOUCH_JAM_FAILS} reads in a row failed, the bus looks jammed; retrying every "
                       f"{TOUCH_JAM_RETRY_S:.0f} s so the kernel's error lines do not starve the servo UART", flush=True)
+            if self.fails_in_row >= TOUCH_JAM_FAILS and self.restart:
+                try:
+                    self.restart()
+                    self.restarts_sent += 1
+                    if self.restarts_sent == 1:
+                        print("touch: asked the XIAO to restart (it is back about 1 s later on firmware since "
+                              "2026-10-31)", flush=True)
+                except OSError:
+                    pass  # a wedged bus can refuse the write too; the XIAO's own line watchdog still restarts it
             return False
         self.fails_in_row = 0
         if self.failing:
@@ -741,14 +762,14 @@ def main():
               "touch: no TWI0 I2C bus (twi@2510000); the head pads are not read, the touch fields stay null", flush=True)
     else:
         try:
-            read_touch = open_touch_bus(touch_path)
+            read_touch, restart_touch = open_touch_bus(touch_path), open_touch_restart(touch_path)
         except OSError as e:
             print(f"touch: cannot open {touch_path} ({e}); the head pads are not read, the touch fields stay null",
                   flush=True)
         else:
             print(f"touch: pads {'/'.join(TOUCH_PADS)} on {touch_path} (XIAO 0x{TOUCH_ADDR:02X}), read every "
                   f"{TOUCH_PERIOD * 1000:.0f} ms off the control thread", flush=True)
-            touch = TouchPads(read_touch)
+            touch = TouchPads(read_touch, restart=restart_touch)
     hold_cfg = read_hold_file(args.hold_file)
     est = HoldEstimator(hold_cfg["cal"], kp_rl=walk_brain.KP_RL)
     hold_mtime, next_hold_check, hold_t = None, 0.0, None
