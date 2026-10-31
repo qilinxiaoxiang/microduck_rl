@@ -878,6 +878,17 @@ passes t3's gates G1-G3 is trained; if both pass, both run as one paired job (se
     `t3bt_a` fell in 1 of 5 seeds and walk61 in none. The walk does not judge the policy at the robot's normal
     condition; it shows `t3bt_a` is less tolerant of a loaded brain than walk61 is in sim. With namecall stopped the
     brain still ran 30-32 Hz in stand (cameras and blackbox left).
+  - **Cause of the starved brain (found 2026-10-31 17:00, replaces the load explanation above)**: CPU load was not it;
+    the compute part of each tick stayed at 6-7 ms while the servo read time doubled. At 16:33:35 the head touch bus
+    (TWI0, XIAO at 0x2A) jammed and every transfer logged kernel errors, about 100 lines per s, each printed to the
+    115200 baud serial console with interrupts off (console loglevel 4). The servo UART ttyAS2 has no DMA and shares
+    CPU6 with the SD card interrupt, so servo replies were lost or late, and the IMU fell from 193 to 75 samples per
+    s. walk_wired.py's reply parser trusted the length field, so one lost byte blanked every servo read for 5.5-6.8 s;
+    walk 2 (16:35:09) fell inside such a blackout at 16:35:10.67 (224 of 288 reads missing). Both walks ran inside
+    this fault, so neither judges `t3bt_a`. Fixes in robotics cc0593d7 and bb9e9b06 (length and CRC checks, touch
+    back-off, console loglevel 1, battery guard on), deployed to the A7Z 17:12; the app telemetry's own touch reader
+    backs off since microduck-simulator 8439ab6. After the battery swap the brain read 47.5 Hz with 0 % stale reads.
+    G4 for `t3bt_a` is undecided; a rerun on the fixed brain needs Shawn's word.
 - **Run** after t3 passes: Kaggle T4, `--cmu-config plugged --max-lr 3e-4 --track-guard 1.3`, 1000 iterations, warm-up
   100, `--max-hours 2`.
 - **Acceptance**: t3's G1-G3 unchanged, plus `tether_accept.sh` (lead cases seeds 0-4, both turn directions):
