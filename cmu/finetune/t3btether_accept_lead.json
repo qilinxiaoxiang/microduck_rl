@@ -1,0 +1,242 @@
+{
+ "t3bt_a": {
+  "turnR_tether_dps": [
+   25.4,
+   20.3,
+   28.3,
+   28.5,
+   28.2
+  ],
+  "turnR_none_dps": 28.8,
+  "turnL_tether_dps": [
+   28.0,
+   19.4,
+   28.1,
+   28.4,
+   28.4
+  ],
+  "turnL_none_dps": 28.6,
+  "walk_tether_m": [
+   1.425,
+   1.325,
+   1.4,
+   1.3,
+   1.409
+  ],
+  "walk_none_m": 1.165,
+  "falls": 0,
+  "cases": 18,
+  "max_tilt": 11.1,
+  "action_jumps_max": 11,
+  "action_jumps_sum": 41,
+  "suite_verdict": [
+   "verdict against /Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/simcheck/reference-walk61-plugged.jsonl (real cases only):",
+   "  nominal         worse: dist_x 1.175 < 0.9 x reference 1.588",
+   "  vx0.25          worse: dist_x 0.977 < 0.9 x reference 1.165",
+   "  vx0.2           matches or beats the reference",
+   "  com+5           worse: dist_x 1.842 < 0.9 x reference 2.136",
+   "  imu_pitch4      worse: dist_x 1.096 < 0.9 x reference 1.455",
+   "  volt6.3         stress, report only",
+   "  drop8_imu35     stress, report only",
+   "  drop8_imu35_s1  stress, report only",
+   "  floor_mu_bare   stress, report only",
+   "  floor_mu_sole   stress, report only",
+   "verdict: candidate is worse than the reference on at least one real case"
+  ],
+  "lead_fails": [
+   "turnR_none jumps 11 vs 2",
+   "turnR_tether_s4 tilt 9.6 vs 7.5"
+  ]
+ },
+ "t3bt_a_best": {
+  "turnR_tether_dps": [
+   25.8,
+   19.0,
+   28.2,
+   28.5,
+   28.3
+  ],
+  "turnR_none_dps": 28.7,
+  "turnL_tether_dps": [
+   28.4,
+   19.8,
+   28.4,
+   28.4,
+   28.3
+  ],
+  "turnL_none_dps": 28.7,
+  "walk_tether_m": [
+   1.321,
+   1.166,
+   1.196,
+   1.149,
+   1.212
+  ],
+  "walk_none_m": 1.088,
+  "falls": 0,
+  "cases": 18,
+  "max_tilt": 11.6,
+  "action_jumps_max": 8,
+  "action_jumps_sum": 30,
+  "suite_verdict": [
+   "verdict against /Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/simcheck/reference-walk61-plugged.jsonl (real cases only):",
+   "  nominal         worse: dist_x 1.031 < 0.9 x reference 1.588",
+   "  vx0.25          worse: dist_x 0.893 < 0.9 x reference 1.165",
+   "  vx0.2           matches or beats the reference",
+   "  com+5           worse: dist_x 1.575 < 0.9 x reference 2.136",
+   "  imu_pitch4      worse: dist_x 0.002 < 0.9 x reference 1.455",
+   "  volt6.3         stress, report only",
+   "  drop8_imu35     stress, report only",
+   "  drop8_imu35_s1  stress, report only",
+   "  floor_mu_bare   stress, report only",
+   "  floor_mu_sole   stress, report only",
+   "verdict: candidate is worse than the reference on at least one real case"
+  ],
+  "lead_fails": [
+   "turnL_none jumps 8 vs 0"
+  ]
+ },
+ "t3bt_b": {
+  "turnR_tether_dps": [
+   19.4,
+   17.6,
+   22.7,
+   27.4,
+   26.1
+  ],
+  "turnR_none_dps": 28.5,
+  "turnL_tether_dps": [
+   28.4,
+   17.7,
+   28.3,
+   28.3,
+   28.4
+  ],
+  "turnL_none_dps": 28.8,
+  "walk_tether_m": [
+   1.303,
+   1.246,
+   1.31,
+   1.258,
+   1.322
+  ],
+  "walk_none_m": 1.194,
+  "falls": 0,
+  "cases": 18,
+  "max_tilt": 11.5,
+  "action_jumps_max": 4,
+  "action_jumps_sum": 29,
+  "suite_verdict": [
+   "verdict against /Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/simcheck/reference-walk61-plugged.jsonl (real cases only):",
+   "  nominal         worse: dist_x 1.092 < 0.9 x reference 1.588",
+   "  vx0.25          worse: dist_x 0.98 < 0.9 x reference 1.165",
+   "  vx0.2           matches or beats the reference",
+   "  com+5           worse: dist_x 1.425 < 0.9 x reference 2.136",
+   "  imu_pitch4      worse: dist_x 1.034 < 0.9 x reference 1.455",
+   "  volt6.3         stress, report only",
+   "  drop8_imu35     stress, report only",
+   "  drop8_imu35_s1  stress, report only",
+   "  floor_mu_bare   stress, report only",
+   "  floor_mu_sole   stress, report only",
+   "verdict: candidate is worse than the reference on at least one real case"
+  ],
+  "lead_fails": [
+   "turnR_tether_s4 tilt 10.6 vs 7.5",
+   "walk_tether_s3 tilt 11.5 vs 9.1"
+  ]
+ },
+ "t3bt_b_best": {
+  "turnR_tether_dps": [
+   21.4,
+   15.8,
+   25.0,
+   28.4,
+   27.5
+  ],
+  "turnR_none_dps": 28.6,
+  "turnL_tether_dps": [
+   28.5,
+   16.8,
+   28.3,
+   28.5,
+   28.4
+  ],
+  "turnL_none_dps": 28.7,
+  "walk_tether_m": [
+   1.282,
+   1.201,
+   1.285,
+   1.223,
+   1.322
+  ],
+  "walk_none_m": 1.146,
+  "falls": 0,
+  "cases": 18,
+  "max_tilt": 11.5,
+  "action_jumps_max": 3,
+  "action_jumps_sum": 18,
+  "suite_verdict": [
+   "verdict against /Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/simcheck/reference-walk61-plugged.jsonl (real cases only):",
+   "  nominal         worse: dist_x 1.112 < 0.9 x reference 1.588",
+   "  vx0.25          worse: dist_x 0.971 < 0.9 x reference 1.165",
+   "  vx0.2           matches or beats the reference",
+   "  com+5           worse: dist_x 1.424 < 0.9 x reference 2.136",
+   "  imu_pitch4      worse: dist_x 0.001 < 0.9 x reference 1.455",
+   "  volt6.3         stress, report only",
+   "  drop8_imu35     stress, report only",
+   "  drop8_imu35_s1  stress, report only",
+   "  floor_mu_bare   stress, report only",
+   "  floor_mu_sole   stress, report only",
+   "verdict: candidate is worse than the reference on at least one real case"
+  ],
+  "lead_fails": [
+   "turnR_tether_s1 tilt 11.5 vs 8.9",
+   "turnR_tether_s4 tilt 9.8 vs 7.5"
+  ]
+ },
+ "walk61": {
+  "turnR_tether_dps": [
+   14.7,
+   14.1,
+   12.2,
+   24.5,
+   20.2
+  ],
+  "turnR_none_dps": 28.4,
+  "turnL_tether_dps": [
+   17.4,
+   11.5,
+   7.2,
+   22.8,
+   21.4
+  ],
+  "turnL_none_dps": 28.5,
+  "walk_tether_m": [
+   1.251,
+   1.202,
+   1.237,
+   1.11,
+   1.222
+  ],
+  "walk_none_m": 1.099,
+  "falls": 0,
+  "cases": 18,
+  "max_tilt": 11.7,
+  "action_jumps_max": 5,
+  "action_jumps_sum": 55,
+  "suite_verdict": [
+   "verdict against /Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/simcheck/reference-walk61-plugged.jsonl (real cases only):",
+   "  nominal         worse: dist_x 1.229 < 0.9 x reference 1.588",
+   "  vx0.25          worse: dist_x 0.922 < 0.9 x reference 1.165",
+   "  vx0.2           matches or beats the reference",
+   "  com+5           worse: dist_x 1.621 < 0.9 x reference 2.136",
+   "  imu_pitch4      worse: dist_x 1.145 < 0.9 x reference 1.455",
+   "  volt6.3         stress, report only",
+   "  drop8_imu35     stress, report only",
+   "  drop8_imu35_s1  stress, report only",
+   "  floor_mu_bare   stress, report only",
+   "  floor_mu_sole   stress, report only",
+   "verdict: candidate is worse than the reference on at least one real case"
+  ]
+ }
+}

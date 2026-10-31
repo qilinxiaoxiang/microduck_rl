@@ -839,6 +839,26 @@ passes t3's gates G1-G3 is trained; if both pass, both run as one paired job (se
   default head; the result inherits t3b's neck-row failure, so it is not a candidate for head-down walks. Acceptance:
   G2's default-head rows (jumps per s and tilt no worse than walk61's, no falls), `tether_accept.sh` lead cases, and the
   sim_suite real cases with the same rule against walk61.
+- **Result (2026-10-30 22:51-23:06)**: both jobs rc 0, 1000 iterations, 85 min. No candidate passes every gate;
+  `t3bt_a` (seed 1, final) misses one real case by a small margin. Files: `cmu/finetune/g2_t3btether.json`,
+  `t3btether_accept_lead.json`, `t3btether_accept_seeds.json` (seeds 0-4 of the suite's real cases,
+  `kaggle/seed_sweep.sh` + `seed_summary.py`).
+  - G2 default head (calibrated jitter sim, 3 seeds): jumps per s walk61 3.38, `t3bt_a` 0.87, `t3bt_a_best` 0.73,
+    `t3bt_b` 1.27, `t3bt_b_best` 1.37; peak tilt 7.2-7.9 against 9.1 deg; no falls; all walk further. Pass for all.
+  - Lead cases (`tether_accept.sh`, seeds 0-4): turn with the lead, mean deg/s right/left, walk61 17.1/16.1 (worst seed
+    12.2/7.2), `t3bt_a` 26.1/26.5 (worst 20.3/19.4), `t3bt_a_best` 26.0/26.4, `t3bt_b` 22.6/26.2, `t3bt_b_best`
+    23.6/26.1; walks with the lead 1.37 m against 1.20; no falls. The turn problem the tether delta targets is fixed.
+  - Suite real cases, five seeds against this run's walk61 (the stored `reference-walk61-plugged.jsonl` from 10/19 no
+    longer matches the current sim: walk61 itself reads "worse" against it, so it was not used):
+    `t3bt_a` passes nominal, vx0.25 (tilt +2.0 deg, at the limit), com+5, imu_pitch4 and both no-lead turns; it fails
+    vx0.2 on tilt, 4.6 against 2.4 deg (both stand still at that command). `t3bt_b` is slower on nominal and com+5
+    and stopped in one imu_pitch4 seed; `t3bt_a_best` and `t3bt_b_best` stand still with the 4 deg IMU pitch offset
+    (0.00 m in every seed): rejected.
+  - Stress (report only): `t3bt_a` fell in 1 of 5 seeds of drop8_imu35 (8 % dropped reads, 35 Hz IMU; tilt 49 deg),
+    walk61 in none. The robot runs 4 % drops and a 50 Hz IMU (`microduck-sim/CURRENT-STATE.json`).
+  - Open: `servo_rail_v` in CURRENT-STATE (7.0 V) is stale after the move to the battery backpack (8.0-8.2 V idle),
+    and every case here ran at 7.0 V.
+  - Decision for Shawn: robot G4 for `t3bt_a` with the vx0.2 tilt miss accepted, or no robot run.
 - **Run** after t3 passes: Kaggle T4, `--cmu-config plugged --max-lr 3e-4 --track-guard 1.3`, 1000 iterations, warm-up
   100, `--max-hours 2`.
 - **Acceptance**: t3's G1-G3 unchanged, plus `tether_accept.sh` (lead cases seeds 0-4, both turn directions):

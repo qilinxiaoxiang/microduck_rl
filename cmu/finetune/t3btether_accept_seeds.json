@@ -1,0 +1,330 @@
+{
+ "walk61": {
+  "nominal": {
+   "n": 5,
+   "prog": 1.235,
+   "prog_min": 1.229,
+   "tilt": 6.7,
+   "tilt_max": 7.4,
+   "jumps": 3.4,
+   "jumps_max": 5,
+   "falls": 0
+  },
+  "vx0.25": {
+   "n": 5,
+   "prog": 0.911,
+   "prog_min": 0.897,
+   "tilt": 6.1,
+   "tilt_max": 6.2,
+   "jumps": 3.2,
+   "jumps_max": 5,
+   "falls": 0
+  },
+  "vx0.2": {
+   "n": 5,
+   "prog": 0.001,
+   "prog_min": 0.001,
+   "tilt": 2.4,
+   "tilt_max": 2.4,
+   "jumps": 0.0,
+   "jumps_max": 0,
+   "falls": 0
+  },
+  "com+5": {
+   "n": 5,
+   "prog": 1.609,
+   "prog_min": 1.584,
+   "tilt": 11.1,
+   "tilt_max": 11.1,
+   "jumps": 5.0,
+   "jumps_max": 7,
+   "falls": 0
+  },
+  "imu_pitch4": {
+   "n": 5,
+   "prog": 1.143,
+   "prog_min": 1.107,
+   "tilt": 6.7,
+   "tilt_max": 8.2,
+   "jumps": 2.8,
+   "jumps_max": 6,
+   "falls": 0
+  },
+  "turnR": {
+   "n": 5,
+   "prog": 28.37,
+   "prog_min": 28.328,
+   "tilt": 8.3,
+   "tilt_max": 8.7,
+   "jumps": 2.4,
+   "jumps_max": 3,
+   "falls": 0
+  },
+  "turnL": {
+   "n": 5,
+   "prog": 28.514,
+   "prog_min": 28.376,
+   "tilt": 10.0,
+   "tilt_max": 10.2,
+   "jumps": 1.0,
+   "jumps_max": 3,
+   "falls": 0
+  },
+  "drop8_imu35": {
+   "n": 5,
+   "prog": 1.2,
+   "prog_min": 1.184,
+   "tilt": 8.9,
+   "tilt_max": 9.8,
+   "jumps": 27.4,
+   "jumps_max": 31,
+   "falls": 0
+  }
+ },
+ "t3bt_a": {
+  "nominal": {
+   "n": 5,
+   "prog": 1.194,
+   "prog_min": 1.175,
+   "tilt": 7.3,
+   "tilt_max": 7.3,
+   "jumps": 1.2,
+   "jumps_max": 2,
+   "falls": 0
+  },
+  "vx0.25": {
+   "n": 5,
+   "prog": 0.98,
+   "prog_min": 0.97,
+   "tilt": 8.1,
+   "tilt_max": 8.7,
+   "jumps": 1.0,
+   "jumps_max": 1,
+   "falls": 0
+  },
+  "vx0.2": {
+   "n": 5,
+   "prog": 0.003,
+   "prog_min": 0.003,
+   "tilt": 4.6,
+   "tilt_max": 4.7,
+   "jumps": 0.0,
+   "jumps_max": 0,
+   "falls": 0
+  },
+  "com+5": {
+   "n": 5,
+   "prog": 1.834,
+   "prog_min": 1.777,
+   "tilt": 11.1,
+   "tilt_max": 11.1,
+   "jumps": 3.6,
+   "jumps_max": 7,
+   "falls": 0
+  },
+  "imu_pitch4": {
+   "n": 5,
+   "prog": 1.127,
+   "prog_min": 1.096,
+   "tilt": 7.0,
+   "tilt_max": 8.4,
+   "jumps": 2.2,
+   "jumps_max": 3,
+   "falls": 0
+  },
+  "turnR": {
+   "n": 5,
+   "prog": 28.77,
+   "prog_min": 28.748,
+   "tilt": 9.3,
+   "tilt_max": 9.8,
+   "jumps": 4.0,
+   "jumps_max": 10,
+   "falls": 0
+  },
+  "turnL": {
+   "n": 5,
+   "prog": 28.61,
+   "prog_min": 28.552,
+   "tilt": 9.6,
+   "tilt_max": 9.9,
+   "jumps": 1.2,
+   "jumps_max": 2,
+   "falls": 0
+  },
+  "drop8_imu35": {
+   "n": 5,
+   "prog": 1.061,
+   "prog_min": 0.334,
+   "tilt": 19.6,
+   "tilt_max": 49.0,
+   "jumps": 14.8,
+   "jumps_max": 20,
+   "falls": 1
+  }
+ },
+ "t3bt_b_best": {
+  "nominal": {
+   "n": 5,
+   "prog": 1.118,
+   "prog_min": 1.112,
+   "tilt": 7.6,
+   "tilt_max": 7.8,
+   "jumps": 1.8,
+   "jumps_max": 3,
+   "falls": 0
+  },
+  "vx0.25": {
+   "n": 5,
+   "prog": 0.964,
+   "prog_min": 0.955,
+   "tilt": 7.8,
+   "tilt_max": 8.4,
+   "jumps": 0.4,
+   "jumps_max": 1,
+   "falls": 0
+  },
+  "vx0.2": {
+   "n": 5,
+   "prog": 0.004,
+   "prog_min": 0.004,
+   "tilt": 4.0,
+   "tilt_max": 4.1,
+   "jumps": 0.0,
+   "jumps_max": 0,
+   "falls": 0
+  },
+  "com+5": {
+   "n": 5,
+   "prog": 1.435,
+   "prog_min": 1.418,
+   "tilt": 11.1,
+   "tilt_max": 11.1,
+   "jumps": 5.6,
+   "jumps_max": 7,
+   "falls": 0
+  },
+  "imu_pitch4": {
+   "n": 5,
+   "prog": 0.001,
+   "prog_min": 0.001,
+   "tilt": 3.1,
+   "tilt_max": 3.1,
+   "jumps": 0.0,
+   "jumps_max": 0,
+   "falls": 0
+  },
+  "turnR": {
+   "n": 5,
+   "prog": 28.65,
+   "prog_min": 28.568,
+   "tilt": 8.4,
+   "tilt_max": 9.4,
+   "jumps": 1.8,
+   "jumps_max": 3,
+   "falls": 0
+  },
+  "turnL": {
+   "n": 5,
+   "prog": 28.73,
+   "prog_min": 28.7,
+   "tilt": 6.7,
+   "tilt_max": 7.3,
+   "jumps": 0.4,
+   "jumps_max": 2,
+   "falls": 0
+  },
+  "drop8_imu35": {
+   "n": 5,
+   "prog": 1.127,
+   "prog_min": 1.063,
+   "tilt": 10.9,
+   "tilt_max": 13.9,
+   "jumps": 21.2,
+   "jumps_max": 35,
+   "falls": 0
+  }
+ },
+ "t3bt_b": {
+  "nominal": {
+   "n": 5,
+   "prog": 1.098,
+   "prog_min": 1.087,
+   "tilt": 7.8,
+   "tilt_max": 8.1,
+   "jumps": 0.8,
+   "jumps_max": 2,
+   "falls": 0
+  },
+  "vx0.25": {
+   "n": 5,
+   "prog": 0.986,
+   "prog_min": 0.975,
+   "tilt": 7.1,
+   "tilt_max": 7.2,
+   "jumps": 1.4,
+   "jumps_max": 2,
+   "falls": 0
+  },
+  "vx0.2": {
+   "n": 5,
+   "prog": 0.003,
+   "prog_min": 0.003,
+   "tilt": 4.6,
+   "tilt_max": 4.6,
+   "jumps": 0.0,
+   "jumps_max": 0,
+   "falls": 0
+  },
+  "com+5": {
+   "n": 5,
+   "prog": 1.421,
+   "prog_min": 1.402,
+   "tilt": 11.1,
+   "tilt_max": 11.1,
+   "jumps": 4.2,
+   "jumps_max": 6,
+   "falls": 0
+  },
+  "imu_pitch4": {
+   "n": 5,
+   "prog": 0.824,
+   "prog_min": 0.002,
+   "tilt": 5.8,
+   "tilt_max": 6.8,
+   "jumps": 0.4,
+   "jumps_max": 1,
+   "falls": 0
+  },
+  "turnR": {
+   "n": 5,
+   "prog": 28.578,
+   "prog_min": 28.52,
+   "tilt": 9.0,
+   "tilt_max": 9.3,
+   "jumps": 2.0,
+   "jumps_max": 3,
+   "falls": 0
+  },
+  "turnL": {
+   "n": 5,
+   "prog": 28.686,
+   "prog_min": 28.408,
+   "tilt": 10.1,
+   "tilt_max": 11.1,
+   "jumps": 1.8,
+   "jumps_max": 4,
+   "falls": 0
+  },
+  "drop8_imu35": {
+   "n": 5,
+   "prog": 1.124,
+   "prog_min": 1.087,
+   "tilt": 10.8,
+   "tilt_max": 12.2,
+   "jumps": 19.2,
+   "jumps_max": 30,
+   "falls": 0
+  }
+ }
+}
