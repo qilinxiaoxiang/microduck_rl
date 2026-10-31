@@ -868,6 +868,16 @@ passes t3's gates G1-G3 is trained; if both pass, both run as one paired job (se
     under 9 deg, a little further than walk61 in 3 s; in-place turns at +-0.3 like walk61's. The robot is on the
     battery backpack (CURRENT-STATE `power`, 2026-10-30), so no charger lead: the lead benefit is not tested unless
     the lead is plugged in. Stop rule: a fall, walking tilt above 9 deg, more than 5 jumps per s.
+  - **G4 walk 1 (2026-10-31 16:34:36, Shawn ran `t1_robot_test.py walk`)**: fell forward 1.4 s into the walk (tilt
+    2 -> 12.5 deg at 1.1 s, 30 deg at 1.4 s, the brain's guard switched to stand, the duck went over). The brain was
+    starved: namecall (222 % CPU with its face and person detectors), two `a7z_cam.py` processes and `blackbox.py`
+    ran beside it, load 7.6, 52 % iowait. Log slice `/tmp/t1-robot/163444.jsonl`: 38.8 Hz instead of 50, 18 % of tick
+    gaps over 30 ms (max 101 ms), 17 % stale servo reads, IMU age median 35 ms, p90 66 ms. The stand 3 min earlier
+    (`163113.jsonl`): 47.4 Hz, 1 % gaps, 1 % stale reads, IMU age 20 ms. CURRENT-STATE's condition is 4 % drops and
+    a fresh 50 Hz IMU, so this walk ran far outside it, harsher than the sim's drop8_imu35 stress case, where
+    `t3bt_a` fell in 1 of 5 seeds and walk61 in none. The walk does not judge the policy at the robot's normal
+    condition; it shows `t3bt_a` is less tolerant of a loaded brain than walk61 is in sim. With namecall stopped the
+    brain still ran 30-32 Hz in stand (cameras and blackbox left).
 - **Run** after t3 passes: Kaggle T4, `--cmu-config plugged --max-lr 3e-4 --track-guard 1.3`, 1000 iterations, warm-up
   100, `--max-hours 2`.
 - **Acceptance**: t3's G1-G3 unchanged, plus `tether_accept.sh` (lead cases seeds 0-4, both turn directions):
