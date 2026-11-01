@@ -17,6 +17,12 @@
 // feeds walk61/stand61 and sitstand61, so seated the head rides on {"mode": "sit"} (a walk command would end the sit;
 // as-built sim 2026-10-24, every HEAD_RANGE extreme and all three at once while seated: no fall, seated tilt <= 2.6 deg,
 // mouth >= 107 mm above the floor, stood up after). The open-loop stand takes top-level joint overrides only.
+// One driver at a time (driver-lease.mjs): every command carries this page's client id and name; a moving command from
+// a page that does not hold the lease comes back refused (409) with the holder's name, and 「接管」 takes it over after
+// a confirm. 停 and 停扭矩 always go through.
+// Backpack switch: 充电背包 / 电池背包 tells the brain which pack is on ({"op": "supply"}): the charger pack runs without the
+// low-battery guard, the 2S pack with it from the first sample. Switching restarts an idle brain; a driving one keeps the
+// old setting until 停. Unset (auto) the brain guesses from the voltage, which can take the charger for a battery.
 
 import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
 
@@ -42,6 +48,24 @@ const HEAD_IDS = {headUp: ["head_pitch", -1], headDown: ["head_pitch", 1], headL
   headRight: ["head_yaw", -1], tiltLeft: ["head_roll", 1], tiltRight: ["head_roll", -1]}; // id -> [joint, sign]
 const GP_LOW = 0.33, GP_UP = 1.0; // ground pick: lowest pose (as-built sim 2026-10-16), then rise and rest standing
 const WALK_ZERO = {mode: "walk", vx: 0, vy: 0, vtheta: 0};
+const NAME_KEY = "duck-driver-name";
+
+// This tab's driver id (one per tab, kept across reloads) and the name the viewer typed (kept per browser).
+const store = (kind, key, value) => {
+  try {
+    const s = globalThis[kind];
+    if (value === undefined) return s?.getItem(key) ?? null;
+    s?.setItem(key, value);
+  } catch { /* private window or blocked storage: the id lives for this page only */ }
+  return value ?? null;
+};
+let tabId = null;
+export function clientId() {
+  tabId ??= store("sessionStorage", "duck-driver-id") ?? store("sessionStorage", "duck-driver-id",
+    Math.random().toString(36).slice(2, 10));
+  return tabId;
+}
+const driverName = () => store("localStorage", NAME_KEY) || `访客-${clientId().slice(0, 4)}`;
 const TORQUE_WAIT_MS = 3000;
 const TORQUE_ACTS = new Set(["stand", "stand61", "bend"]); // walk_brain.Brain.TORQUE_MODES: stand, walk, groundpick
 
@@ -135,9 +159,61 @@ export function createRemote({root, state, log}) {
     <div class="remote-grid">${HEAD_ACTIONS.map(btn).join("")}
     </div>
     <p class="remote-heat" data-heat hidden></p>
+    <p class="remote-status remote-driver" aria-live="polite"><span data-driver>驾驶：–</span>
+      <label>我的名字 <input data-name maxlength="24" autocomplete="nickname"></label>
+      <button type="button" data-take hidden>接管</button></p>
+    <p class="remote-status remote-driver">背包：<button type="button" data-supply="bench">充电背包</button>
+      <button type="button" data-supply="battery">电池背包</button><span data-supply-state>还没读到（A7Z 在线后显示）</span></p>
     <p class="remote-status" aria-live="polite"><span data-mode>大脑：–</span> · <span data-file>控制文件：–</span></p>
     <p class="remote-last" data-last>还没有发过命令。</p>`;
-  const buttons = new Map([...root.querySelectorAll("button")].map(b => [b.dataset.act, b]));
+  const buttons = new Map([...root.querySelectorAll("button[data-act]")].map(b => [b.dataset.act, b]));
+  const driverEl = root.querySelector("[data-driver]"), nameEl = root.querySelector("[data-name]");
+  const takeEl = root.querySelector("[data-take]");
+  let driver = null;
+  nameEl.value = store("localStorage", NAME_KEY) ?? "";
+  nameEl.placeholder = driverName();
+  nameEl.addEventListener("change", () => store("localStorage", NAME_KEY, nameEl.value.trim()));
+  const me = () => ({id: clientId(), name: driverName()});
+  const showDriver = d => {
+    driver = d ?? null;
+    const mine = driver?.id === clientId();
+    driverEl.textContent = !driver ? "驾驶：没人（第一个发运动命令的页面拿到驾驶权，20 秒不发命令自动放开）"
+      : mine ? "驾驶：你" : `驾驶：${driver.name}（你现在只能看；停、停扭矩照常可用）`;
+    takeEl.hidden = !driver || mine;
+  };
+  const supplyEl = root.querySelector("[data-supply-state]");
+  const supplyButtons = [...root.querySelectorAll("button[data-supply]")];
+  const SUPPLY_NAMES = {bench: "充电背包（低电保护关）", battery: "电池背包（低电保护开）",
+    auto: "没选：大脑按电压猜，充电背包可能被当成电池，先点一个"};
+  const showSupply = value => {
+    if (!value) return;
+    supplyEl.textContent = SUPPLY_NAMES[value] ?? value;
+    for (const b of supplyButtons) b.setAttribute("aria-pressed", String(b.dataset.supply === value));
+  };
+  for (const b of supplyButtons) b.addEventListener("click", async () => {
+    const value = b.dataset.supply, label = b.textContent;
+    if (!state().online) { last.textContent = `没切换「${label}」：A7Z 不在线`; return; }
+    last.textContent = `正在切换到「${label}」…`;
+    try {
+      const a = await (await fetch("/api/a7z/cmd", {method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({op: "supply", supply: value, client: me()})})).json();
+      if (a.busy) { showDriver(a.driver); last.textContent = `没切换「${label}」：${a.error}`; return; }
+      if (!a.ok) { last.textContent = `切换「${label}」失败：${a.error}`; return; }
+      showSupply(a.supply);
+      last.textContent = `背包设为「${label}」` + (a.restarted ? "，大脑已重启并用上（扭矩不变）"
+        : state().brain?.running ? "；大脑正在执行命令，先按「停」再点一次才生效" : "；下次启动大脑时用上");
+      log(`遥控：背包设为${label}`);
+    } catch (e) { last.textContent = `切换「${label}」失败：${e.message}`; }
+  });
+  takeEl.addEventListener("click", async () => {
+    if (!driver || !confirm(`接管 ${driver.name} 的控制？对方的按键之后会被拒绝。`)) return;
+    try {
+      const a = await (await fetch("/api/a7z/cmd", {method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({op: "take", client: me()})})).json();
+      if (a.ok) { showDriver(a.driver); last.textContent = "已接管，现在由你控制"; log("遥控：接管驾驶权"); }
+      else last.textContent = `接管失败：${a.error}`;
+    } catch (e) { last.textContent = `接管失败：${e.message}`; }
+  });
   const last = root.querySelector("[data-last]");
   const heatEl = root.querySelector("[data-heat]");
   let walkTimer = null, busy = false, gate = {blocked: false, reasons: []};
@@ -165,8 +241,14 @@ export function createRemote({root, state, log}) {
     if (start) last.textContent = `正在 A7Z 上启动大脑，约 5 秒后执行「${label}」，不用再点…`;
     try {
       const r = await fetch("/api/a7z/cmd", {method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(start ? {...body, start} : body)});
+        body: JSON.stringify({...(start ? {...body, start} : body), client: me()})});
       const a = await r.json();
+      if (a.busy) {
+        if (held.size || walkTimer) walkStop(false);  // refused: the robot is the driver's, send it no stop
+        showDriver(a.driver);
+        last.textContent = `没发出「${label}」：${a.error}`;
+        return null;
+      }
       if (!a.ok) { last.textContent = `「${label}」失败：${a.error}`; log(`遥控失败：${label}（${a.error}）`); return null; }
       if (!walkTimer || !WALK_LABELS.has(label)) {
         last.textContent = (a.started ? `已启动大脑（日志 ${a.started}），` : "") + `已写入「${label}」：${JSON.stringify(a.wrote)}`;
@@ -192,8 +274,20 @@ export function createRemote({root, state, log}) {
       body: JSON.stringify({op: "read"})})).json()).notes ?? []; } catch { /* the link reports itself */ }
     const why = notes.filter(n => /torque refused|HARDWARE ERROR|IMU LOST/.test(n)).pop();
     last.textContent = `「${label}」已写入，但扭矩没开：` + (why ?? (state().brain?.running ? "大脑没给原因" : "大脑没在运行"))
-      + (/HARDWARE ERROR|hardware error/.test(why ?? "") ? "。先扶住，按「停扭矩」清锁死，再按一次" : "");
+      + (/HARDWARE ERROR|hardware error/.test(why ?? "") ? "。先扶住，按「停扭矩」清锁死，再按一次" : "")
+      + (/wrap edge/.test(why ?? "") ? `。${wrapJoints(why)}转到了读数边界（0/4095 附近），把它往站姿方向扳回一点，`
+        + "大脑会自己开扭矩，不用再按" : "");
     log(`遥控：${label} 没开扭矩（${why ?? "无原因"}）`);
+  }
+
+  // "torque refused: ['left_ankle', ...] not in position mode or near the wrap edge" -> "左踝、..."
+  function wrapJoints(why) {
+    const part = {hip_yaw: "髋 yaw", hip_roll: "髋 roll", hip_pitch: "髋 pitch", knee: "膝", ankle: "踝"};
+    const names = [...why.matchAll(/'(\w+)'/g)].map(([, n]) => {
+      const m = n.match(/^(left|right)_(\w+)$/);
+      return m ? (m[1] === "left" ? "左" : "右") + (part[m[2]] ?? m[2]) : n;
+    });
+    return names.length ? names.join("、") : "有关节";
   }
 
   const WALK_LABELS = new Set(["前进", "左转", "右转", "原地左转", "原地右转", "原地", "转头", "头回正"]);
@@ -215,13 +309,13 @@ export function createRemote({root, state, log}) {
     buttons.get(id).classList.remove("held");
     if (held.size) { const w = walkCmd(); set(w.cmd, w.label, false); } else walkStop();
   }
-  function walkStop() {
+  function walkStop(send = true) {
     for (const id of held) buttons.get(id).classList.remove("held");
     held.clear();
     stickReset();
     if (!walkTimer) return;
     clearInterval(walkTimer); walkTimer = null;
-    set(withHead(WALK_ZERO, head), "停步", false);
+    if (send) set(withHead(WALK_ZERO, head), "停步", false);
   }
 
   // Stick: held like a walk button, the command follows the knob on every repeat.
@@ -368,7 +462,10 @@ export function createRemote({root, state, log}) {
   const modeEl = root.querySelector("[data-mode]"), fileEl = root.querySelector("[data-file]");
   const MODE_NAMES = {monitor: "监视（不发命令）", stand: "开环站立", walk: "走/闭环站立", kick: "踢腿", sit: "坐", groundpick: "弯腰捡"};
   return {
-    showFile({path, current}) {
+    showDriver,
+    showFile({path, current, supply}) {
+      showSupply(supply);
+      if (current === undefined) return;
       fileEl.textContent = `控制文件 ${path ?? "?"}：${current ? JSON.stringify(current) : "（空）"}`;
     },
     refresh() {

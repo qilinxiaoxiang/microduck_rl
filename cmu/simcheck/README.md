@@ -133,6 +133,16 @@ to 0.010 m in `dist_x` and 3 in `action_jumps` (drop8_imu35 1.511 against 1.521 
 jumps).
 Every verdict stays the same. The rows have not been refreshed.
 
+Drift on 2026-11-01: at the current code walk61 no longer matches its own stored rows. Judged against
+`reference-walk61-plugged.jsonl` it is "worse" on four real cases (nominal dist_x 1.229 against 1.588 m, vx0.25,
+com+5, imu_pitch4) and against `reference-walk61-battery.jsonl` on three (imu_pitch4 also on tilt and action jumps).
+Changes since the rows were recorded on 2026-10-19 include the straight-walk heading hold with learned yaw trim
+(2026-10-22), the plugged model's saddle masses (2026-10-26) and the collision-volume refit after the inertia edits
+(2026-10-29). A verdict against these files is therefore not a verdict against walk61. `cmu/deploy/deploy_policy.py`
+runs walk61 with the same code first and passes those rows as `--reference` (cached per hash of the sim code,
+manifests, condition and policies); use it, or that pattern, to judge a candidate. ft3 iteration 999 is still worse
+than walk61 on every backpack under that comparison (2026-11-01).
+
 ## Foot-floor friction (2026-10-21)
 
 `brain_sim_check.py --floor-mu MU` sets the sliding friction of the floor and of both foot geoms. All geoms share

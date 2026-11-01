@@ -73,6 +73,11 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 .remote-heat{margin:8px 0 0;padding:8px 10px;border-radius:6px;background:color-mix(in srgb,var(--bad) 13%,transparent);color:var(--bad);font-size:14px;font-weight:600}
 .busy .remote-grid button{opacity:.6;cursor:progress}
 #remote.off .remote-status [data-mode]{color:var(--warn)}
+.remote-driver{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.remote-driver span{flex:1 1 100%}
+.remote-driver input{font:inherit;font-size:16px;width:9em;padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--panel);color:var(--text)}
+.remote-driver button[aria-pressed="true"]{background:var(--text);color:var(--surface);border-color:var(--text)}
+.remote-driver button[data-supply]{border-color:var(--border)}
+.remote-driver button{font:inherit;font-size:14px;padding:4px 12px;border-radius:6px;border:1px solid var(--warn);background:var(--surface);color:var(--text);cursor:pointer}
 .remote-status,.remote-last{font-size:12px;color:var(--text-2);margin:8px 0 0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 .note{font-size:12px;color:var(--muted);margin:6px 0 0}
 .touch{display:grid;grid-template-columns:2.2em 4.5em 4em 1fr;gap:6px 8px;align-items:center;font-size:14px;font-variant-numeric:tabular-nums}

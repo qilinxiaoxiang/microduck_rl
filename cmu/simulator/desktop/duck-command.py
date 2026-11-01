@@ -9,7 +9,18 @@ installed). Reads requests on stdin and answers each on stdout:
                                                         per command: a repeated "jaw" cancels the quack, a repeated
                                                         "jaw_mark" would re-mark the calibration)
   {"n": 3, "op": "read"}                                return the command in force, plus `notes`: the brain's last
-                                                        torque refusal, hardware error or IMU loss lines from its stdout
+                                                        torque refusal, hardware error or IMU loss lines from its stdout,
+                                                        and `supply`: the backpack the brain is told about
+  {"n": 4, "op": "supply", "supply": "bench"}           which backpack is on: "bench" (charger pack, guard off) or
+                                                        "battery" (2S pack, low-battery guard from the first sample);
+                                                        written to ~/duck-supply, which ~/duck-run.sh passes to
+                                                        walk_wired.py as --supply. A brain whose command is monitor or
+                                                        off is restarted at once (torque stays as it is, the command
+                                                        stays monitor); one that is driving keeps the old setting until
+                                                        it is stopped and the switch is pressed again ("restarted": false)
+
+The pack is chosen, not guessed: walk_wired's --supply auto arms the guard once the servos read 7.2 V, and the charger
+pack's rail reads 7.2 V idle (CURRENT-STATE power, 2026-10-31), so auto can take the charger for a battery.
 
 A set or merge with "start": true first starts the brain when no walk_wired.py runs on the A7Z (duck-brain.service
 starts one at boot; this covers a brain that was stopped or quit): ~/duck-run.sh app<MMDD-HHMMSS>, which writes {"mode": "monitor"} and starts walk_wired.py in monitor mode
@@ -31,6 +42,8 @@ import time
 ONE_SHOT = ("jaw", "jaw_mark", "jaw_torque")
 RUN = os.path.expanduser("~/duck-run.sh")
 LOGS = os.path.expanduser("~/duck-logs")
+SUPPLY = os.path.expanduser("~/duck-supply")
+SUPPLIES = ("bench", "battery")
 START_S = 20.0  # walk_wired.py loads six policies and opens the bus; its first tick came 2 s after start on 2026-10-21
 NOTE = re.compile(r"torque refused|HARDWARE ERROR|IMU LOST|IMU back|torque on|sit: STALLED")
 
@@ -77,10 +90,46 @@ def tail(path, n=3):
         return []
 
 
+def supply():
+    try:
+        with open(SUPPLY) as f:
+            value = f.read().strip()
+    except OSError:
+        return "auto"
+    return value if value in SUPPLIES else "auto"
+
+
+def set_supply(value):
+    if value not in SUPPLIES:
+        raise ValueError(f"supply must be one of {SUPPLIES}, not {value!r}")
+    try:
+        with open(RUN) as f:
+            if "duck-supply" not in f.read():
+                raise RuntimeError("~/duck-run.sh on the A7Z predates the backpack switch and would ignore it: "
+                                   "rerun guide/firmware/a7z/install_teleop.sh from the MacBook")
+    except OSError:
+        raise RuntimeError("~/duck-run.sh is missing on the A7Z: the brain cannot be started")
+    tmp = SUPPLY + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(value + "\n")
+    os.replace(tmp, SUPPLY)
+    if not brain_running():
+        return False
+    mode = (read() or {}).get("mode")
+    if mode not in ("monitor", "off"):
+        return False  # someone is driving: the brain is not pulled from under them
+    return run_brain()
+
+
 def start_brain():
     """Start walk_wired.py through ~/duck-run.sh and wait for its first fresh tick; False if one already runs."""
     if brain_running():
         return False
+    return run_brain()
+
+
+def run_brain():
+    """~/duck-run.sh (which stops a running brain first) and wait for the new brain's first fresh tick."""
     if not os.access(RUN, os.X_OK):
         raise RuntimeError("~/duck-run.sh is missing on the A7Z: the brain cannot be started")
     suf = time.strftime("app%m%d-%H%M%S")
@@ -119,14 +168,19 @@ def fresh(cmd):
 
 
 def main():
-    print(json.dumps({"ready": True, "path": PATH, "current": read()}), flush=True)
+    print(json.dumps({"ready": True, "path": PATH, "current": read(), "supply": supply()}), flush=True)
     for line in sys.stdin:
         n = None
         try:
             req = json.loads(line)
             n = req.get("n")
             if req["op"] == "read":
-                print(json.dumps({"n": n, "ok": True, "current": read(), "notes": brain_notes()}), flush=True)
+                print(json.dumps({"n": n, "ok": True, "current": read(), "notes": brain_notes(), "supply": supply()}),
+                      flush=True)
+                continue
+            if req["op"] == "supply":
+                restarted = set_supply(req.get("supply"))
+                print(json.dumps({"n": n, "ok": True, "supply": supply(), "restarted": restarted}), flush=True)
                 continue
             if req["op"] not in ("set", "merge"):
                 raise ValueError(f"unknown op {req['op']!r}")

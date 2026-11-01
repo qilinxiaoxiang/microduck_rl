@@ -3,7 +3,7 @@
 // desktop/duck-telemetry.py on the A7Z over SSH.
 import * as THREE from "three";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
-import {createRemote} from "./robot-remote.js";
+import {createRemote, clientId} from "./robot-remote.js";
 import {buildRig, loadKinematics, applyPose, groundFullBody, setJawOpen, JAW_MAX_OPEN, ROBOT_KINEMATICS} from "./game/duck.js";
 
 const LOST_S = 1.5;
@@ -163,6 +163,7 @@ function event(text, t = Date.now() / 1000) {
 }
 
 function ingest(record) {
+  if ("driver" in record) { remote.showDriver(record.driver); if (!record.history) return; }
   if (record.camera) { showCamera(record.camera); if (!record.history) return; }
   if (record.history) { // first message of a stream: the bridge's 30-minute buffer
     health.length = 0; health.push(...record.history);
@@ -218,7 +219,7 @@ function watch() {
 }
 
 function connect() {
-  const source = new EventSource("/api/a7z/stream");
+  const source = new EventSource(`/api/a7z/stream?client=${clientId()}`);
   source.onmessage = e => ingest(JSON.parse(e.data));
   let opened = false;  // a reopened event stream means the local service may have restarted and ended the camera stream
   source.onopen = () => { if (opened) $("#camImg").src = camUrl(); opened = true; };
