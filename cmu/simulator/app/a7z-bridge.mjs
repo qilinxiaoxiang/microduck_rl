@@ -36,6 +36,12 @@
 // 1280x720 MJPEG through OpenCV, decodes every third frame (about 8-10 fps) and scales it to an upright 640x360 picture.
 // /api/a7z/camera?stab=1 is the same stream after desktop/duck-stabilize.py (optical-flow roll and shift correction on
 // this Mac, started while such a viewer is open); its once-a-second motion figures arrive as camera.stab.
+//
+// Graceful power-off: POST /api/a7z/shutdown with {"client": {...}} runs desktop/duck-shutdown.sh on this machine, the
+// script the Mac app's button runs. Someone else driving gets a 409 (the lease, duck-command.py "claim"). While it runs
+// this bridge opens no SSH session to the A7Z and refuses commands, and every page gets {"shutdown": {state, line}}:
+// state running, off, unreachable (it did not answer, nothing was sent) or failed. off and unreachable clear themselves
+// when the A7Z is back.
 // MICRODUCK_PY names the Python with OpenCV (default ~/.venvs/microduck-walk/bin/python).
 import {spawn, spawnSync} from "node:child_process";
 import {readFileSync} from "node:fs";
@@ -51,7 +57,7 @@ const CAMERA_PIPELINE = hold => "exec 3<&0; nice -n 10 ~/.venvs/duck-policy/bin/
   ` --mjpeg${hold ? " --hold" : ""} & g=$!; (cat <&3 >/dev/null; kill $g) >/dev/null 2>&1 & wait $g`;
 const SSH_OPTS = ["-T","-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "-o", "ServerAliveInterval=2", "-o", "ServerAliveCountMax=2"];
 
-export function a7zBridge({script, commandScript, stabilizeScript,
+export function a7zBridge({script, commandScript, stabilizeScript, shutdownScript,
                            python = process.env.MICRODUCK_PY ?? `${homedir()}/.venvs/microduck-walk/bin/python`, host = process.env.MICRODUCK_ROBOT_HOST ?? "a7z",
                            cmdPath = process.env.MICRODUCK_CMD_PATH}) {
   return {
@@ -63,13 +69,15 @@ export function a7zBridge({script, commandScript, stabilizeScript,
       // a python process running walk_wired.py, not any command line that mentions it (a grep, an editor, a shell)
       const macBrain = () => spawnSync("pgrep", ["-f", "^[^ ]*[Pp]ython[^ ]*( -[^ ]+)* ([^ ]*/)?walk_wired\\.py"]).status === 0;
       let driverNow = null, driverShown = "null", driverAsked = false, writerDown = 0;
+      let shutdown = null;
+      const poweringOff = () => shutdown?.state === "running";
       const showDriver = v => {
         driverNow = v ?? null;
         const key = JSON.stringify(driverNow && {id: driverNow.id, name: driverNow.name});
         if (key !== driverShown) { driverShown = key; send({driver: driverNow}); }
       };
       const pollDriver = () => {
-        if (!clients.size || driverAsked || (!writer && Date.now() - writerDown < WRITER_RETRY_S * 1000)) return;
+        if (!clients.size || driverAsked || poweringOff() || (!writer && Date.now() - writerDown < WRITER_RETRY_S * 1000)) return;
         driverAsked = true;
         command({op: "driver"}).then(a => {
           if (!a.ok) return;
@@ -83,7 +91,7 @@ export function a7zBridge({script, commandScript, stabilizeScript,
       const send = message => { const text = `data: ${JSON.stringify(message)}\n\n`; for (const c of clients) c.write(text); };
       function start() {
         clearTimeout(retry);
-        if (child || !clients.size || paused) return;
+        if (child || !clients.size || paused || poweringOff()) return;
         const bus = !macBrain();
         const proc = spawn("ssh", [...SSH_OPTS, host, `exec nice -n 10 python3 -u - duck-telemetry fast touch${bus ? " bus" : ""}`],
           {stdio: ["pipe", "pipe", "pipe"]});
@@ -98,6 +106,7 @@ export function a7zBridge({script, commandScript, stabilizeScript,
             let record;
             try { record = JSON.parse(line); } catch { continue; }
             lastLine = Date.now();
+            if (shutdown && shutdown.state !== "running" && shutdown.state !== "failed") { shutdown = null; send({shutdown}); }
             if (record.temps) {
               history.push(record);
               while (history.length && history[0].t < record.t - HISTORY_S) history.shift();
@@ -120,7 +129,7 @@ export function a7zBridge({script, commandScript, stabilizeScript,
       }, 1000).unref();
       server.middlewares.use("/api/a7z/stream", (req, res) => {
         res.writeHead(200, {"Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive"});
-        res.write(`data: ${JSON.stringify({history, host, link: child ? "open" : "connecting", camera: camState, driver: driverNow})}\n\n`);
+        res.write(`data: ${JSON.stringify({history, host, link: child ? "open" : "connecting", camera: camState, driver: driverNow, shutdown})}\n\n`);
         if (writer?.supply) res.write(`data: ${JSON.stringify({command: {path: writer.path, supply: writer.supply}})}\n\n`);
         clients.add(res); clearTimeout(linger); start();
         const clientId = new URL(req.originalUrl ?? req.url, "http://x").searchParams.get("client");
@@ -167,6 +176,7 @@ export function a7zBridge({script, commandScript, stabilizeScript,
         return w;
       }
       async function command(req, ackS = ACK_S) {
+        if (poweringOff()) throw new Error("A7Z 正在关机");
         const w = startWriter();
         await Promise.race([w.ready, new Promise((_, rej) => setTimeout(() => rej(new Error("A7Z did not answer in time")), ACK_S * 1000 + 4000))]);
         const n = ++seq;
@@ -212,7 +222,7 @@ export function a7zBridge({script, commandScript, stabilizeScript,
       const camSend = patch => { camState = {...camState, ...patch}; send({camera: camState}); };
       function startCamera() {
         clearTimeout(camRetry);
-        if (cam || !viewers.size) return;
+        if (cam || !viewers.size || poweringOff()) return;
         const proc = spawn("ssh", [...SSH_OPTS, host, CAMERA_PIPELINE(camWant)], {stdio: ["pipe", "pipe", "pipe"]});
         const c = {proc, buf: Buffer.alloc(0), stderr: "", hold: camWant};
         cam = c; camLast = Date.now(); camFrames = []; camIdle = false;
@@ -330,6 +340,47 @@ export function a7zBridge({script, commandScript, stabilizeScript,
         }
         res.writeHead(answer.ok ? 200 : 502, {"Content-Type": "application/json"});
         res.end(JSON.stringify(answer));
+      });
+
+      // ── Graceful power-off: the page's button, the Mac app's script ──
+      const SHUTDOWN_STATES = {0: "off", 2: "unreachable"};
+      function runShutdown() {
+        const show = (state, line) => { shutdown = {state, line}; send({shutdown}); };
+        show("running", "正在连接 A7Z…");
+        // the script stops every Python program there: nothing here may start one again meanwhile
+        for (const p of [child, writer?.proc, cam?.proc]) p?.kill();
+        const proc = spawn("/bin/sh", [shutdownScript, host], {stdio: ["ignore", "pipe", "pipe"]});
+        let buf = "", line = "", err = "", ended = false;
+        const end = (code, why) => {
+          if (ended) return;
+          ended = true;
+          show(SHUTDOWN_STATES[code] ?? "failed", why ?? (line || `关机脚本退出码 ${code}`));
+          start(); startCamera();   // reconnects by itself once the A7Z is powered again
+        };
+        proc.stdout.on("data", d => {
+          buf += d;
+          for (let i; (i = buf.indexOf("\n")) >= 0; buf = buf.slice(i + 1)) if ((line = buf.slice(0, i).trim())) show("running", line);
+        });
+        proc.stderr.on("data", d => { err = (err + d).slice(-300); });
+        proc.on("error", e => end(null, `关机脚本没能启动：${e.message}`));
+        proc.on("close", code => end(code, line ? undefined : err.trim() || undefined));
+      }
+      server.middlewares.use("/api/a7z/shutdown", (req, res) => {
+        if (req.method !== "POST") { res.statusCode = 405; return res.end(); }
+        let body = "";
+        req.on("data", d => { body += d; });
+        req.on("end", async () => {
+          const reply = (status, answer) => { res.writeHead(status, {"Content-Type": "application/json"}); res.end(JSON.stringify(answer)); };
+          if (poweringOff()) return reply(200, {ok: true, shutdown});
+          let client;
+          try { ({client} = JSON.parse(body)); } catch { return reply(400, {ok: false, error: "请求不是 JSON"}); }
+          // no answer from the writer is no refusal: the script itself says whether the A7Z is there
+          const claim = await command({op: "claim", client}).catch(() => ({}));
+          if (claim.busy) { showDriver(claim.driver); return reply(409, {ok: false, ...claim}); }
+          if (claim.ok === false && !claim.driver && claim.error?.includes("身份")) return reply(400, claim);
+          runShutdown();
+          reply(200, {ok: true, shutdown});
+        });
       });
 
       server.middlewares.use("/api/a7z/cmd", (req, res) => {

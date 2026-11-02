@@ -17,7 +17,7 @@
     "test:household:predictive": "node tests/household-predictive-client.test.mjs && node tests/household-lift-stop.test.mjs && node tests/household-transport.test.mjs && node tests/household-cloth-target.test.mjs && node tests/household-drive.test.mjs",
     "test:household:evidence": "node tests/household-evidence.test.mjs",
     "test:tutorial": "node tests/tutorial-parameters.test.mjs",
-    "test:remote": "node tests/robot-remote.test.mjs && node tests/robot-thermal.test.mjs && node tests/driver-lease.test.mjs"
+    "test:remote": "node tests/robot-remote.test.mjs && node tests/robot-thermal.test.mjs && node tests/driver-lease.test.mjs && node tests/shutdown-bridge.test.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

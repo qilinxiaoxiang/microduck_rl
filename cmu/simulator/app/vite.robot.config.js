@@ -23,7 +23,7 @@ const home = {
 
 export default defineConfig({
   plugins: [home, a7zBridge({script: here("../desktop/duck-telemetry.py"), commandScript: here("../desktop/duck-command.py"),
-    stabilizeScript: here("../desktop/duck-stabilize.py")})],
+    stabilizeScript: here("../desktop/duck-stabilize.py"), shutdownScript: here("../desktop/duck-shutdown.sh")})],
   server: {
     host: process.env.MICRODUCK_REMOTE_HOST ?? "127.0.0.1",
     port: 5180,

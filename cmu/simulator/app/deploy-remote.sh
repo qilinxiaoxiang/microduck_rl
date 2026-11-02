@@ -16,7 +16,7 @@ fi
 ssh mac-mini 'launchctl kickstart -k gui/$(id -u)/com.shawnxiang.microduck-remote'
 for i in $(seq 20); do curl -s -m 3 -o /dev/null "$URL/robot-live.html" && break; sleep 1; done
 # the copy is this checkout's files, the service is up and serves them, and the debug page stays closed
-F="app/robot-live.html app/src/robot-live.js app/src/robot-remote.js app/a7z-bridge.mjs app/vite.robot.config.js"
+F="app/robot-live.html app/src/robot-live.js app/src/robot-remote.js app/a7z-bridge.mjs app/vite.robot.config.js desktop/duck-shutdown.sh desktop/duck-command.py"
 [ "$(shasum -a 256 $F | cut -c1-64)" = "$(ssh mac-mini "cd $DST && shasum -a 256 $F | cut -c1-64")" ] || { echo "FAIL: copy differs"; exit 1; }
 curl -s -m 5 "$URL/robot-live.html" | grep -q robot-touch-icon || { echo "FAIL: page not served"; exit 1; }
 [ "$(curl -s -m 5 -o /dev/null -w "%{http_code}" "$URL/src/robot-live.js")" = 200 ] || { echo "FAIL: module"; exit 1; }

@@ -30,7 +30,7 @@ main{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:20px;padding
 .pose,.charts>*{min-width:0}
 #poseNote{color:var(--text-2);font-size:13px;margin:6px 0 0}#poseNote.bad{color:var(--bad);font-weight:600}
 .check-head{display:flex;align-items:center;gap:8px}.check-head h2{margin:0;flex:1}
-#checkRun{font:inherit;font-size:16px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
+#checkRun,#shutdownRun{font:inherit;font-size:16px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
 #checks{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
 #checks li{display:grid;grid-template-columns:14px minmax(0,1fr);gap:4px 8px;align-items:start;font-size:14px}
 #checks li i{width:12px;height:12px;border-radius:50%;margin-top:4px;background:var(--muted)}
@@ -98,10 +98,18 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 /* touch: a held button must not start a text selection, the iOS callout or a double-tap zoom */
 .remote-grid button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none}
 @media(hover:none){.remote-grid kbd{display:none}}
-/* phone: the remote first, the camera after it; the home-screen web app clears the notch and home bar */
-@media(max-width:600px){.pose{display:flex;flex-direction:column}.pose .remote-card{order:-1}.remote-grid button{min-height:56px}
+/* the picture stays on screen while the remote scrolls under it; it lets go when the remote ends */
+.drive{display:flex;flex-direction:column;gap:12px}
+.cam-card{position:sticky;top:calc(4px + env(safe-area-inset-top));z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.cam-card #camBox{max-height:38vh}
+details.note summary{cursor:pointer}
+#shutdownState{font-size:13px;margin:8px 0 0;color:var(--text-2);overflow-wrap:anywhere}#shutdownState.bad{color:var(--bad);font-weight:600}#shutdownState.off{color:var(--good);font-weight:600}
+/* phone: the home-screen web app clears the notch and home bar */
+@media(max-width:600px){.remote-grid button{min-height:56px}
   header{padding:calc(10px + env(safe-area-inset-top)) 12px 10px}main{padding-bottom:calc(12px + env(safe-area-inset-bottom))}}
 @media(max-width:900px){main{grid-template-columns:1fr;padding:12px}.remote-grid{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.pose{position:static}#view{height:300px}.range{margin-left:0}}
+/* phone on its side: too short to stack, so picture and remote stand next to each other */
+@media(max-width:1000px) and (max-height:500px) and (orientation:landscape){.drive{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}.cam-card #camBox{max-height:60vh}}
 </style>
 </head>
 <body>
@@ -115,16 +123,22 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 </header>
 <main>
   <section class="pose">
-    <div class="card">
+    <div class="drive">
+    <div class="card cam-card">
       <div class="cam-head"><h2>鸭子视野</h2><button id="camPower" type="button" aria-pressed="false">摄像头：关</button><button id="stabToggle" type="button">防抖：关</button></div>
       <div id="camBox"><img id="camImg" alt="头部摄像头画面"><div id="camMsg">正在连接…</div></div>
       <p id="camState">关着，不占 A7Z 的 CPU</p>
-      <p class="note">头部 USB 摄像头（Innomaker U20CAM，1280x720 MJPEG），A7Z 每 3 帧留 1 帧缩小成 640x360 压 JPEG 传过来，约 8 帧/秒。A7Z 开机就自动打开；点「摄像头：开」会关掉它，再点打开，这样打开的在关掉所有看画面的页面后会自己停。画面在 A7Z 上转了 180°（摄像头装反）。防抖在这台 Mac 上做：跟踪画面里的特征点算出每帧的转动和平移，按平滑后的路径把画面转回去，再放大 1.15 倍藏住边缘；慢慢转头会跟过去，快的抖动被抵消。曝光里的拖影去不掉。</p>
     </div>
     <div class="card remote-card">
       <h2>遥控</h2>
       <div id="remote"></div>
+      <details class="note"><summary>摄像头说明</summary>头部 USB 摄像头（Innomaker U20CAM，1280x720 MJPEG），A7Z 每 3 帧留 1 帧缩小成 640x360 压 JPEG 传过来，约 8 帧/秒。A7Z 开机就自动打开；点「摄像头：开」会关掉它，再点打开，这样打开的在关掉所有看画面的页面后会自己停。画面在 A7Z 上转了 180°（摄像头装反）。防抖在这台 Mac 上做：跟踪画面里的特征点算出每帧的转动和平移，按平滑后的路径把画面转回去，再放大 1.15 倍藏住边缘；慢慢转头会跟过去，快的抖动被抵消。曝光里的拖影去不掉。</details>
       <p class="note">命令写进 A7Z 上 walk_wired.py 的控制文件。前进是按住才走：每 0.3 秒续一次，松手、切走窗口或断线 0.6 秒内自己停。踢腿、坐、弯腰用 Pollen 官方策略，只从站或走开始。</p>
+    </div>
+    </div>
+    <div class="card">
+      <div class="check-head"><h2>电源</h2><button id="shutdownRun" type="button">优雅关机</button></div>
+      <p id="shutdownState" aria-live="polite">先停 A7Z 上的程序、刷盘，再关系统；等它不再响应后才说可以断电。</p>
     </div>
     <div class="card">
       <div class="check-head"><h2>开机体检</h2><button id="checkRun" type="button">重新体检</button></div>

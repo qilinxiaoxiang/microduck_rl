@@ -465,6 +465,7 @@ export function createRemote({root, state, log}) {
   const modeEl = root.querySelector("[data-mode]"), fileEl = root.querySelector("[data-file]");
   const MODE_NAMES = {monitor: "监视（不发命令）", stand: "开环站立", walk: "走/闭环站立", kick: "踢腿", sit: "坐", groundpick: "弯腰捡"};
   return {
+    me,
     showDriver,
     showFile({path, current, supply}) {
       showSupply(supply);

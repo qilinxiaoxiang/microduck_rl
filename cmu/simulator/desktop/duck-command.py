@@ -22,6 +22,9 @@ installed). Reads requests on stdin and answers each on stdout:
   {"n": 6, "op": "driver"}                              who holds the lease and which backpack is set (every bridge
                                                         asks once a second)
   {"n": 7, "op": "release", "id": "..."}                that page closed: free the lease if it holds it
+  {"n": 8, "op": "claim", "client": {...}}              take the lease only if nobody else is driving; writes no command
+                                                        (a power-off from the page: it must not drop a duck someone
+                                                        else is walking)
 
 One driver at a time: the lease lives here, next to the control file, because every writer of that file comes through
 this script and each bridge (the MacBook's app, the Mac mini's site) runs its own session of it; two pages writing the
@@ -266,13 +269,13 @@ def main():
                 lease_release(req.get("id"))
                 print(json.dumps({"n": n, "ok": True, "driver": driver()}), flush=True)
                 continue
-            if req["op"] not in ("set", "merge", "supply", "take"):
+            if req["op"] not in ("set", "merge", "supply", "take", "claim"):
                 raise ValueError(f"unknown op {req['op']!r}")
             refusal = lease_refusal(req)
             if refusal:
                 print(json.dumps({"n": n, "ok": False, **refusal}), flush=True)
                 continue
-            if req["op"] == "take":
+            if req["op"] in ("take", "claim"):
                 print(json.dumps({"n": n, "ok": True, "driver": driver()}), flush=True)
                 continue
             if req["op"] == "supply":

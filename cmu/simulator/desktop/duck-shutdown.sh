@@ -7,10 +7,10 @@ address=$(ssh -G "$host" 2>/dev/null | awk '/^hostname /{print $2}')
 
 echo "正在连接 A7Z（$host）…"
 # Python processes by process name (comm), so a shell whose command line only mentions python is not one. The
-# monitor's own viewers (duck-telemetry, its standby reader duck_sense.py, the camera window's a7z_cam.py --mjpeg) are
-# not robot programs, and an open app page restarts them within 2 s of being stopped: poweroff ends them, so they stay
+# monitor's own viewers (duck-telemetry, its standby reader duck_sense.py, the camera window's a7z_cam.py --mjpeg, a
+# bridge's command writer duck-command.py, which runs as python3 -c with base64) are not robot programs, and an open app page restarts them within 2 s of being stopped: poweroff ends them, so they stay
 # out of the count.
-busy_cmd="pgrep -u radxa -a '^python' | grep -Ev 'duck-telemetry|duck_sense[.]py|a7z_cam[.]py --mjpeg'; true"
+busy_cmd="pgrep -u radxa -a '^python' | grep -Ev 'duck-telemetry|duck_sense[.]py|a7z_cam[.]py --mjpeg|base64[.]b64decode'; true"
 if ! busy=$(ssh $ssh_opts "$host" "$busy_cmd" 2>/dev/null); then
     if ping -c 1 -t 2 "$address" >/dev/null 2>&1; then
         echo "A7Z 在线但 SSH 连不上，没有关机。"; exit 3

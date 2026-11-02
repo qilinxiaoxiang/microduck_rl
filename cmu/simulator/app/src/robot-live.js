@@ -156,6 +156,31 @@ function showCamera(c) {
 }
 openCamera();
 
+// ── Graceful power-off: desktop/duck-shutdown.sh through the bridge; every open page shows its progress ──
+const SHUTDOWN_IDLE = $("#shutdownState").textContent;
+let shutdownNow = null;
+function showShutdown(s) {
+  if (s?.state !== shutdownNow?.state && s && s.state !== "running") event(s.line);
+  shutdownNow = s;
+  const state = $("#shutdownState");
+  state.textContent = s?.line ?? SHUTDOWN_IDLE;
+  state.className = s?.state === "failed" ? "bad" : s?.state === "off" ? "off" : "";
+  $("#shutdownRun").disabled = s?.state === "running";
+}
+$("#shutdownRun").onclick = async () => {
+  if (!confirm("关掉 A7Z？大脑一停鸭子就不再平衡，舵机只保持最后的目标位置，先扶好或放倒。关机后要重新上电才能再开机。")) return;
+  $("#shutdownRun").disabled = true;
+  try {
+    const a = await (await fetch("/api/a7z/shutdown", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({client: remote.me()})})).json();
+    if (!a.ok) throw new Error(a.error);
+    showShutdown(a.shutdown);
+  } catch (e) {
+    $("#shutdownState").textContent = `没有关机：${e.message}`; $("#shutdownState").className = "bad";
+    $("#shutdownRun").disabled = false;
+  }
+};
+
 function event(text, t = Date.now() / 1000) {
   const li = document.createElement("li");
   li.textContent = `${clock(t)}  ${text}`;
@@ -164,6 +189,7 @@ function event(text, t = Date.now() / 1000) {
 
 function ingest(record) {
   if ("driver" in record) { remote.showDriver(record.driver); if (!record.history) return; }
+  if ("shutdown" in record) { showShutdown(record.shutdown); if (!record.history) return; }
   if (record.camera) { showCamera(record.camera); if (!record.history) return; }
   if (record.history) { // first message of a stream: the bridge's 30-minute buffer
     health.length = 0; health.push(...record.history);
@@ -204,7 +230,10 @@ function watch() {
     document.title = "失联 · MicroDuck 真机";
   }
   const link = $("#link");
-  if (online) {
+  if (shutdownNow?.state === "running" || (shutdownNow?.state === "off" && !online)) {
+    link.className = "wait"; document.title = "关机 · MicroDuck 真机";
+    link.textContent = shutdownNow.state === "off" ? "A7Z 已关机，可以断电。重新上电后自动连上" : "A7Z 正在关机…";
+  } else if (online) {
     const up = latest?.up ?? 0;
     link.className = "online"; document.title = "MicroDuck 真机";
     link.textContent = `A7Z 在线 · 开机 ${Math.floor(up / 3600) ? Math.floor(up / 3600) + " 小时 " : ""}${Math.floor(up / 60) % 60} 分`;
