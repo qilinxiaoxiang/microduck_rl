@@ -44,6 +44,9 @@ MANIFEST_DIR = MODEL_DIR / "manifests"
 SCENE_XML = REPO_ROOT / "src/mjlab_microduck/robot/microduck/scene.xml"
 BATTERY_REMOVE_KG = 0.090
 VARIANTS = ("official", "asbuilt", "plugged", "battery")
+# The shin servo's case meets the heel at 1.36 rad (scan-20261101/heel_contact.py). The foot's only collision shape is
+# the sole and MuJoCo filters parent-child contacts, so this joint range is the stop.
+ANKLE_HEEL_STOP_RAD = 1.36
 HOME_KEY = "STAND"  # the keyframe that matches HOME_FRAME in microduck_constants.py
 
 # HOME_FRAME joint positions (microduck_constants.py), used when a spec carries no STAND keyframe
@@ -91,6 +94,12 @@ def _compile(spec: mujoco.MjSpec) -> mujoco.MjModel:
     return spec.copy().compile() if hasattr(spec, "copy") else spec.compile()
 
 
+def apply_ankle_heel_stop(spec: mujoco.MjSpec) -> None:
+    """Limit both ankle joints to the angle where the real foot's heel stops them (in place)."""
+    for name in ("left_ankle", "right_ankle"):
+        spec.joint(name).range = [-ANKLE_HEEL_STOP_RAD, ANKLE_HEEL_STOP_RAD]
+
+
 def apply_parts_to_spec(spec: mujoco.MjSpec, parts: list[dict]) -> dict:
     """Add the signed parts to the spec's bodies as explicit inertials (in place). Returns the report.
 
@@ -126,6 +135,8 @@ def apply_parts_to_spec(spec: mujoco.MjSpec, parts: list[dict]) -> dict:
         b.fullinertia = [inertia[0, 0], inertia[1, 1], inertia[2, 2], inertia[0, 1], inertia[0, 2], inertia[1, 2]]
         report["bodies"][body] = dict(before_g=round(float(m.body_mass[i]) * 1000, 2), after_g=round(mass * 1000, 2),
                                       parts=len(body_parts))
+    if parts:  # an empty list is the official robot
+        apply_ankle_heel_stop(spec)
     m2 = _compile(spec)
     report["total_before_g"] = round(float(sum(m.body_mass)) * 1000, 2)
     report["total_after_g"] = round(float(sum(m2.body_mass)) * 1000, 2)

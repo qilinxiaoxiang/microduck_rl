@@ -148,6 +148,9 @@ def load(config):
         b.add_geom(name=f'ballast_geom_{i}',type=mujoco.mjtGeom.mjGEOM_BOX,
                    size=a.get('half_size',[.01,.01,.01]),mass=a['mass'],
                    contype=0,conaffinity=0,rgba=[.95,.35,.1,1])
+    if config.get('mass_manifest') or config.get('remove_old_battery_kg'):  # as-built, never the official robot
+        from apply_masses import apply_ankle_heel_stop
+        apply_ankle_heel_stop(spec)
     m=spec.compile();m.opt.timestep=config.get('timestep',.0025)
     m.vis.global_.offwidth=960;m.vis.global_.offheight=720
     if 'friction' in config:

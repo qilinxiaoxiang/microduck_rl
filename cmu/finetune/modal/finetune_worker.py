@@ -42,6 +42,9 @@ class StopTraining(Exception):
 
 
 # --------------------------------------------------------------------------------------------- deltas
+ANKLE_HEEL_STOP_RAD = 1.36  # same as cmu/model/apply_masses.py, which this image-independent worker does not import
+
+
 def apply_asbuilt_masses(robot_cfg, manifest_path: str, audit_path: str, remove_battery_kg: float):
     """Return a copy of the robot EntityCfg whose spec_fn applies the as-built mass manifest.
 
@@ -65,6 +68,8 @@ def apply_asbuilt_masses(robot_cfg, manifest_path: str, audit_path: str, remove_
 
     def patched_spec_fn():
         spec = base_spec_fn()
+        for name in ("left_ankle", "right_ankle"):
+            spec.joint(name).range = [-ANKLE_HEEL_STOP_RAD, ANKLE_HEEL_STOP_RAD]
         m = spec.copy().compile() if hasattr(spec, "copy") else spec.compile()
         report = {}
         for body in sorted({p["body"] for p in parts}):

@@ -256,7 +256,7 @@
               <geom name="cmu_leg__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_leg__servo"/>
               <body name="ankle_left" pos="0 0.042 -0.026" quat="0 -1 0 0">
                 <inertial pos="-0.00615742 -0.0137483 -0.0156585" quat="0.474723 0.505182 0.517427 0.501696" mass="0.0300246" diaginertia="1.11623e-05 7.7432e-06 5.90334e-06"/>
-                <joint name="left_ankle" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
+                <joint name="left_ankle" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.36 1.36"/>
                 <geom name="left_foot_collision" class="collision" pos="-0.022 0.00622291 -0.0647" quat="0.5 -0.5 -0.5 -0.5" type="mesh" material="sole_left_material" mesh="sole_left"/>
                 <geom name="cmu_ankle_left__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_ankle_left__black"/>
                 <geom name="cmu_ankle_left__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_ankle_left__orange"/>
@@ -332,7 +332,7 @@
               <geom name="cmu_leg_2__servo" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.17 0.17 0.18 1" mesh="cmu_leg_2__servo"/>
               <body name="ankle_right" pos="-0.042 0 -0.026" quat="0 -0.707107 -0.707107 0">
                 <inertial pos="0.00615539 -0.0137482 -0.0156566" quat="0.517424 0.501653 0.474682 0.505266" mass="0.0300251" diaginertia="1.11622e-05 7.74321e-06 5.90344e-06"/>
-                <joint name="right_ankle" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.5708 1.5708"/>
+                <joint name="right_ankle" class="chosen_actuator" pos="0 0 0" axis="0 0 1" range="-1.36 1.36"/>
                 <geom name="right_foot_collision" class="collision" pos="0.022 0.00622291 -0.0647" quat="0.5 -0.5 0.5 0.5" type="mesh" material="sole_right_material" mesh="sole_right"/>
                 <geom name="cmu_ankle_right__black" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.11 0.11 0.12 1" mesh="cmu_ankle_right__black"/>
                 <geom name="cmu_ankle_right__orange" type="mesh" contype="0" conaffinity="0" group="2" mass="0" rgba="0.95 0.45 0.06 1" mesh="cmu_ankle_right__orange"/>
