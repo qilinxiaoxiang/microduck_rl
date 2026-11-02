@@ -186,6 +186,10 @@ def main():
         fail("--name may hold letters, digits, - and _ only")
     if not os.path.isfile(a.onnx):
         fail(f"{a.onnx} not found")
+    # before minutes of gating; the exact read, since the venv path .venvs/duck-policy is in every launcher
+    if a.action == "deploy" and ssh("grep -c 'cat ~/duck-policy' ~/duck-run.sh || true") in ("", "0"):
+        fail("~/duck-run.sh on the A7Z predates policy deployment and would ignore ~/duck-policy: rerun "
+             "guide/firmware/a7z/install_teleop.sh from the robot's MacBook first")
     check_contract(a.onnx)
     run, models = build_set(os.path.abspath(a.onnx), a.name)
     verdicts = gate(run, models)
@@ -199,9 +203,6 @@ def main():
         print("send that directory (or the ONNX and this name) to whoever runs `deploy` on the robot's MacBook")
         return
 
-    if ssh("grep -c duck-policy ~/duck-run.sh || true") in ("", "0"):
-        fail("~/duck-run.sh on the A7Z predates policy deployment and would ignore ~/duck-policy: rerun "
-             "guide/firmware/a7z/install_teleop.sh from the robot's MacBook first")
     home = ssh("echo $HOME")
     dest = f"{home}/policies/{a.name}"
     ssh(f"mkdir -p {dest}")

@@ -16,9 +16,11 @@
 // first when none runs there (duck-command.py; nothing restarts it after an A7Z reboot), unless walk_wired.py runs on
 // this Mac: that brain owns the servo bus over USB, and a second brain on the A7Z would fight it, so the request fails.
 //
-// One driver at a time (driver-lease.mjs): a moving command carries the page's {"client": {"id", "name"}} and is
-// refused while another page holds the lease, unless it says "take": true; stop, hold and torque-off always pass. The
-// stream URL carries ?client=<id>, so the lease ends when that page closes; every page gets {"driver": ...} on change.
+// One driver at a time: the lease lives on the A7Z (duck-command.py), because a bridge runs per machine (the MacBook's
+// app, the Mac mini's site) and all of them write the one control file. Requests carry the page's
+// {"client": {"id", "name"}}; a refusal comes back as HTTP 409. The bridge asks who drives once a second while a page is
+// open, which also keeps the writer session up, so a page learns the driver and the backpack before its first command.
+// The stream URL carries ?client=<id>, so the lease ends when that page closes; every page gets {"driver": ...} on change.
 //
 // Backpack: {"op": "supply", "supply": "bench"|"battery"} tells the brain which pack is on (duck-command.py writes
 // ~/duck-supply, ~/duck-run.sh passes it as --supply and an idle brain is restarted); it needs the lease like a move.
@@ -38,9 +40,9 @@
 import {spawn, spawnSync} from "node:child_process";
 import {readFileSync} from "node:fs";
 import {homedir} from "node:os";
-import {DriverLease} from "./driver-lease.mjs";
 
 const HISTORY_S = 1800, SILENT_S = 3, ACK_S = 3, START_ACK_S = 30;  // START_ACK_S covers duck-command.py START_S
+const WRITER_RETRY_S = 5;  // an unreachable A7Z gets one ssh attempt this often from the driver poll, not one a second
 const CAMERA_LINGER_S = 2, CAMERA_SILENT_S = 6, BOUNDARY = "duckframe";
 // the reader runs in the background and the shell waits on it, so its own exit (and error) ends the session; a second
 // background job reads this session's stdin (kept as fd 3: a background job's own stdin is /dev/null), and when SSH drops (a closed page, a Vite restart, a lost link) it sees
@@ -60,11 +62,23 @@ export function a7zBridge({script, commandScript, stabilizeScript,
       let child = null, buffer = "", lastLine = 0, linger = null, retry = null, childBus = null, paused = false;
       // a python process running walk_wired.py, not any command line that mentions it (a grep, an editor, a shell)
       const macBrain = () => spawnSync("pgrep", ["-f", "^[^ ]*[Pp]ython[^ ]*( -[^ ]+)* ([^ ]*/)?walk_wired\\.py"]).status === 0;
-      const lease = new DriverLease();
-      let driverShown = "null";
-      const showDriver = () => {
-        const v = lease.view(), key = JSON.stringify(v && {id: v.id, name: v.name});
-        if (key !== driverShown) { driverShown = key; send({driver: v}); }
+      let driverNow = null, driverShown = "null", driverAsked = false, writerDown = 0;
+      const showDriver = v => {
+        driverNow = v ?? null;
+        const key = JSON.stringify(driverNow && {id: driverNow.id, name: driverNow.name});
+        if (key !== driverShown) { driverShown = key; send({driver: driverNow}); }
+      };
+      const pollDriver = () => {
+        if (!clients.size || driverAsked || (!writer && Date.now() - writerDown < WRITER_RETRY_S * 1000)) return;
+        driverAsked = true;
+        command({op: "driver"}).then(a => {
+          if (!a.ok) return;
+          showDriver(a.driver);
+          if (writer && a.supply !== writer.supply) {  // switched through another bridge
+            writer.supply = a.supply;
+            send({command: {path: writer.path, supply: a.supply}});
+          }
+        }).catch(() => {}).finally(() => { driverAsked = false; });
       };
       const send = message => { const text = `data: ${JSON.stringify(message)}\n\n`; for (const c of clients) c.write(text); };
       function start() {
@@ -102,16 +116,17 @@ export function a7zBridge({script, commandScript, stabilizeScript,
       setInterval(() => {
         if (child && Date.now() - lastLine > SILENT_S * 1000) child.kill();
         else if (child && childBus === macBrain()) child.kill();  // a Mac brain started or stopped: restart with/without bus
-        showDriver();  // a lease that went idle is announced as free
+        pollDriver();  // a lease another bridge's page took, or one that went idle
       }, 1000).unref();
       server.middlewares.use("/api/a7z/stream", (req, res) => {
         res.writeHead(200, {"Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive"});
-        res.write(`data: ${JSON.stringify({history, host, link: child ? "open" : "connecting", camera: camState, driver: lease.view()})}\n\n`);
+        res.write(`data: ${JSON.stringify({history, host, link: child ? "open" : "connecting", camera: camState, driver: driverNow})}\n\n`);
+        if (writer?.supply) res.write(`data: ${JSON.stringify({command: {path: writer.path, supply: writer.supply}})}\n\n`);
         clients.add(res); clearTimeout(linger); start();
         const clientId = new URL(req.originalUrl ?? req.url, "http://x").searchParams.get("client");
         req.on("close", () => {
           clients.delete(res);
-          if (clientId && lease.release(clientId)) showDriver();
+          if (clientId) command({op: "release", id: clientId}).then(a => { if (a.ok) showDriver(a.driver); }).catch(() => {});
           if (!clients.size) linger = setTimeout(() => { child?.kill(); writer?.proc.kill(); }, 10000);
         });
       });
@@ -135,14 +150,14 @@ export function a7zBridge({script, commandScript, stabilizeScript,
             let msg;
             try { msg = JSON.parse(line); } catch { continue; }
             if (msg.ready) {
-              w.path = msg.path; w.supply = msg.supply; w.onReady(msg);
+              w.path = msg.path; w.supply = msg.supply; w.onReady(msg); showDriver(msg.driver);
               send({command: {path: msg.path, current: msg.current, supply: msg.supply}}); continue;
             }
             w.pending.get(msg.n)?.(msg); w.pending.delete(msg.n);
           }
         });
         proc.on("exit", code => {
-          if (writer === w) writer = null;
+          if (writer === w) { writer = null; writerDown = Date.now(); showDriver(null); }
           const error = w.stderr.trim().split("\n").pop() || `ssh exited ${code}`;
           w.onFail(new Error(error));
           for (const done of w.pending.values()) done({ok: false, error});
@@ -326,22 +341,16 @@ export function a7zBridge({script, commandScript, stabilizeScript,
           try {
             r = JSON.parse(body);
             if (!["set", "merge", "read", "take", "supply"].includes(r.op)) throw new Error(`unknown op ${r.op}`);
-            // {"op": "take"}: the page's 接管 button, takes the lease without writing a command
-            const granted = lease.check(r.client, r.op === "take" ? {op: "take", take: true} : r);
-            if (granted.changed) showDriver();
-            if (!granted.ok) { answer = {ok: false, busy: granted.busy, error: granted.error, driver: granted.driver}; throw null; }
-            if (r.op === "take") { answer = {ok: true, driver: granted.driver}; throw null; }
-            if (r.op === "supply") {  // the backpack switch: may restart an idle brain, so it gets the start timeout
-              answer = await command({op: "supply", supply: r.supply}, START_ACK_S);
-              if (answer.ok && writer) writer.supply = answer.supply;
-              throw null;
-            }
-            const start = r.start === true && r.op !== "read";
+            const start = r.start === true && (r.op === "set" || r.op === "merge");
             if (start && macBrain()) throw new Error("walk_wired.py 在这台 Mac 上运行，A7Z 上不另起大脑");
-            const req = r.op === "set" ? {op: "set", cmd: r.cmd} : r.op === "merge" ? {op: "merge", patch: r.patch} : {op: "read"};
-            answer = await command(start ? {...req, start} : req, start ? START_ACK_S : ACK_S);
+            const req = {op: r.op, client: r.client,
+              ...(r.op === "set" ? {cmd: r.cmd, stop: r.stop} : r.op === "merge" ? {patch: r.patch} : r.op === "supply" ? {supply: r.supply} : {})};
+            // the backpack switch may restart an idle brain, so it gets the start timeout
+            answer = await command(start ? {...req, start} : req, start || r.op === "supply" ? START_ACK_S : ACK_S);
+            if ("driver" in answer) showDriver(answer.driver);
+            if (answer.ok && r.op === "supply" && writer) writer.supply = answer.supply;
           } catch (e) {
-            if (e) answer = {ok: false, error: e.message};
+            answer = {ok: false, error: e.message};
           }
           if (answer.ok && r?.op === "supply") send({command: {path: writer?.path, supply: answer.supply}});
           else if (answer.ok && r?.op !== "take") send({command: {path: writer?.path, current: answer.wrote ?? answer.current, supply: writer?.supply}});

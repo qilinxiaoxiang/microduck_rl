@@ -67,20 +67,22 @@ Many people can open the page at once, and the controls are shared safely:
 - **One driver at a time.** The first page that sends a moving command (walk, turn, stand, kick, sit, bend, head,
   quack, backpack switch) holds the driver lease; the page shows who drives. Another page's moving commands are
   refused with the driver's name. The lease ends when the driver's page closes or after 20 s without a command.
-  「接管」 takes it over after a confirm, so the person beside the robot can always get control back.
+  「接管」 takes it over after a confirm, so the person beside the robot can always get control back. The lease lives on
+  the A7Z, so it covers every page host: the Mac mini site and Shawn's MacBook app share it.
 - **Stopping always works from every page**: 停 (Space, stop walking or hold in place) and 停扭矩 (X, torque off;
-  hold the duck first) are never refused and do not take the lease.
+  hold the duck first) are never refused. Whoever presses them becomes the driver, so the old driver's held walk
+  cannot overwrite the stop; that driver's page shows the refusal and they press 接管 to continue.
 - Walking is hold-to-walk: the page repeats the command every 0.3 s with a 0.6 s timeout, so a closed tab, a lost
   network or a sleeping phone stops the robot by itself.
-- Use only the Mac mini page while teammates drive. A second page host (Shawn's MacBook dev server on port 5176)
-  would read the servo bus a second time and keep its own lease.
+- Use the Mac mini page, not a dev server of your own: with no brain running, each page host reads the servo bus
+  through its own telemetry session.
 
 Controls: the stick (push further to walk faster, sideways to turn), W/↑ forward, A/D turn, Space stop, T open-loop
 stand, Y closed-loop stand (policy balances), X torque off, B quack, Q/E kicks, R sit/stand up, G bend/rise, I/K/J/L/U/O
 head, H head home. Each button's small print says when it works; a refused command says why on the page.
 
-Code: `cmu/simulator/app/robot-live.html`, `src/robot-remote.js` (page), `a7z-bridge.mjs` and `driver-lease.mjs`
-(server), `cmu/simulator/desktop/duck-command.py` (the A7Z side, sent over SSH, nothing installed). Tests:
+Code: `cmu/simulator/app/robot-live.html`, `src/robot-remote.js` (page), `a7z-bridge.mjs` (server),
+`cmu/simulator/desktop/duck-command.py` (the A7Z side and the lease, sent over SSH, nothing installed). Tests:
 `cd cmu/simulator/app && npm ci && npm run test:remote`.
 
 ### 2. Train with reinforcement learning in simulation (ready now)
@@ -149,11 +151,14 @@ uv run --no-sync python cmu/deploy/deploy_policy.py rollback --restart  # back t
   RAM and parsing the whole log there stalls the brain) and compare with walk61's logs in `cmu/real-logs/`. A gate
   pass is necessary, never sufficient: the simulation does not yet predict the robot (`cmu/SIM2REAL.md`).
 
-Not yet verified on the robot (2026-11-01, the A7Z was offline): the remote's lease and backpack switch were tested
-against the real bridge with a stand-in A7Z (`npm run test:remote`); the deploy step and the new launcher
-(`guide/firmware/a7z/duck-run.sh` in the robot's working tree, which reads `~/duck-policy` and `~/duck-supply`) need
-`install_teleop.sh` on the A7Z once it is online. Until then the page's backpack switch and `deploy` refuse with that
-instruction instead of pretending to work.
+Checked on the real A7Z on 2026-11-01, with no brain restart and no robot motion: the launcher that reads
+`~/duck-policy` and `~/duck-supply` is installed; `deploy`, `status` and `rollback` ran with a copy of walk61 (hashes
+matched); a lease taken through one page host refused the other host's request and reached its page in 0.4 s, and
+closing the holder's page freed it. Tested with the real bridges and `duck-command.py` against a stand-in A7Z
+(`npm run test:remote`): a stop handing over the lease and restarting a brain from the backpack switch.
+
+Not yet checked on the robot: a brain restarted onto a deployed set (`--restart`) and onto a chosen backpack. Both
+need the duck idle in monitor mode, so the first deploy should be watched at the robot.
 
 ## What is different about our robot
 

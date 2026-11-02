@@ -17,9 +17,11 @@
 // feeds walk61/stand61 and sitstand61, so seated the head rides on {"mode": "sit"} (a walk command would end the sit;
 // as-built sim 2026-10-24, every HEAD_RANGE extreme and all three at once while seated: no fall, seated tilt <= 2.6 deg,
 // mouth >= 107 mm above the floor, stood up after). The open-loop stand takes top-level joint overrides only.
-// One driver at a time (driver-lease.mjs): every command carries this page's client id and name; a moving command from
-// a page that does not hold the lease comes back refused (409) with the holder's name, and 「接管」 takes it over after
-// a confirm. 停 and 停扭矩 always go through.
+// One driver at a time (held on the A7Z, desktop/duck-command.py): every command carries this page's client id and name;
+// a moving command from a page that does not hold the lease comes back refused (409) with the holder's name, and 「接管」
+// takes it over after a confirm. 停 and 停扭矩 always go through and hand the lease to whoever pressed them, so the old
+// driver's held-walk repeats cannot overwrite the stop. Only the 停 button marks its zero-velocity walk "stop": the same
+// command from 闭环站立 or a head button moves the robot, and walkStop's belongs to a page that may have lost the lease.
 // Backpack switch: 充电背包 / 电池背包 tells the brain which pack is on ({"op": "supply"}): the charger pack runs without the
 // low-battery guard, the 2S pack with it from the first sample. Switching restarts an idle brain; a driving one keeps the
 // old setting until 停. Unset (auto) the brain guesses from the voltage, which can take the charger for a battery.
@@ -178,7 +180,7 @@ export function createRemote({root, state, log}) {
     driver = d ?? null;
     const mine = driver?.id === clientId();
     driverEl.textContent = !driver ? "驾驶：没人（第一个发运动命令的页面拿到驾驶权，20 秒不发命令自动放开）"
-      : mine ? "驾驶：你" : `驾驶：${driver.name}（你现在只能看；停、停扭矩照常可用）`;
+      : mine ? "驾驶：你" : `驾驶：${driver.name}（你现在只能看；按停或停扭矩会立刻生效，并把驾驶权交给你）`;
     takeEl.hidden = !driver || mine;
   };
   const supplyEl = root.querySelector("[data-supply-state]");
@@ -261,6 +263,7 @@ export function createRemote({root, state, log}) {
     }
   }
   const set = (cmd, label, start) => post({op: "set", cmd}, label, start);
+  const setStop = (cmd, label) => post({op: "set", cmd, stop: true}, label);
 
   // A torque command the brain did not follow: wait for its tick log to show torque, else show why from its stdout.
   async function checkTorque(label) {
@@ -416,7 +419,7 @@ export function createRemote({root, state, log}) {
         // Walking or kicking: zero velocity, walk61 brings its stride to rest. Anywhere else (sit, ground pick,
         // stand): monitor holds the present goals with torque on, the stop walk_wired.py documents.
         if (mode !== "walk") headForget();
-        await (mode === "walk" || mode === "kick" ? set(withHead(WALK_ZERO, head), "停") : set({mode: "monitor"}, "停（原地保持）"));
+        await (mode === "walk" || mode === "kick" ? setStop(withHead(WALK_ZERO, head), "停") : set({mode: "monitor"}, "停（原地保持）"));
       }
       if (sent && TORQUE_ACTS.has(id)) await checkTorque(buttons.get(id).querySelector("span").textContent);
     } finally {
