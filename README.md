@@ -151,14 +151,13 @@ uv run --no-sync python cmu/deploy/deploy_policy.py rollback --restart  # back t
   RAM and parsing the whole log there stalls the brain) and compare with walk61's logs in `cmu/real-logs/`. A gate
   pass is necessary, never sufficient: the simulation does not yet predict the robot (`cmu/SIM2REAL.md`).
 
-Checked on the real A7Z on 2026-11-01, with no brain restart and no robot motion: the launcher that reads
-`~/duck-policy` and `~/duck-supply` is installed; `deploy`, `status` and `rollback` ran with a copy of walk61 (hashes
-matched); a lease taken through one page host refused the other host's request and reached its page in 0.4 s, and
-closing the holder's page freed it. Tested with the real bridges and `duck-command.py` against a stand-in A7Z
-(`npm run test:remote`): a stop handing over the lease and restarting a brain from the backpack switch.
-
-Not yet checked on the robot: a brain restarted onto a deployed set (`--restart`) and onto a chosen backpack. Both
-need the duck idle in monitor mode, so the first deploy should be watched at the robot.
+Checked on the real A7Z on 2026-11-01: `deploy`, `status` and `rollback --restart` with a copy of walk61 (hashes
+matched; the restarted brain ran with `--models`, and without it after the rollback); the backpack switch restarting an
+idle brain (`--supply bench`, low-battery guard off, torque kept, the standing duck did not move); a lease taken through
+one page host refused the other host's request and reached its page in 0.4 s, and closing the holder's page freed it.
+Tested with the real bridges and `duck-command.py` against a stand-in A7Z (`npm run test:remote`): a stop handing over
+the lease. Not yet done on the robot: walking on a newly trained policy. The copy of walk61 only proves the path, so
+the first deploy of a new policy is watched at the robot.
 
 ## What is different about our robot
 
