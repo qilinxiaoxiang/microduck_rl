@@ -1,0 +1,131 @@
+{
+  "verified_supplied_files": 29,
+  "runtime": {
+    "numpy": "2.5.4",
+    "onnxruntime": "1.22.1"
+  },
+  "no_simulation_or_robot_control": true,
+  "fixtures": {
+    "class": "SYNTHETIC, not physical validation; not training-checkpoint export parity",
+    "models": {
+      "walk61": {
+        "max_abs_difference": 0.0,
+        "passed_tolerance": 1e-05
+      },
+      "t2b-best": {
+        "max_abs_difference": 0.0,
+        "passed_tolerance": 1e-05
+      },
+      "stand61": {
+        "max_abs_difference": 0.0,
+        "passed_tolerance": 1e-05
+      },
+      "spx-b_1800": {
+        "max_abs_difference": 0.0,
+        "passed_tolerance": 1e-05
+      }
+    }
+  },
+  "locomotion": {
+    "first_increment": "reproduce walking inference and localize head-command jitter in saved robot traces",
+    "input_class": "approximate reconstruction from rounded real sensor fields, NOT captured raw61",
+    "walk61_reconstructed_vs_recorded": {
+      "ticks": 645,
+      "mean_absolute_rad": 0.0017250026594640524,
+      "max_absolute_rad": 0.12958692014217377,
+      "p95_tick_max_rad": 0.030427496880292657
+    },
+    "t2b_vs_walk61_on_same_walk61_states_mean_L2_rad": 0.22029849886894226,
+    "historical_candidate_default_head": [
+      {
+        "source_lines": [
+          26,
+          173
+        ],
+        "duration_s": 2.996070623397827,
+        "peak_tilt_deg": 8.671847486898084,
+        "action_jumps_over_0p5rad": 5,
+        "jumps_per_s": 1.6688525166771695,
+        "note": "historical observed outputs; no odometry, causal attribution or current-body verdict"
+      }
+    ],
+    "historical_candidate_lowered_head": [
+      {
+        "source_lines": [
+          26,
+          170
+        ],
+        "duration_s": 2.991121530532837,
+        "peak_tilt_deg": 16.423013024201413,
+        "action_jumps_over_0p5rad": 42,
+        "jumps_per_s": 14.041555841603715,
+        "note": "historical observed outputs; no odometry, causal attribution or current-body verdict"
+      }
+    ],
+    "t2b_neck_reconstructed_vs_recorded": {
+      "ticks": 386,
+      "mean_absolute_rad": 0.0013896300474977744,
+      "max_absolute_rad": 0.13331951200962067,
+      "p95_tick_max_rad": 0.01741161337122321
+    },
+    "incorrectly_enabling_prediction_on_same_saved_trace": {
+      "ticks": 386,
+      "mean_absolute_rad": 0.024951154848652495,
+      "max_absolute_rad": 0.41922637820243835,
+      "p95_tick_max_rad": 0.1940636388026178
+    },
+    "runtime_configuration": "Wired launcher compensation is opt-in and absent in the recorded t2b launch; age_used does not imply compensation was enabled.",
+    "same_neck_states_gyro_jacobian_median_Frobenius": {
+      "walk61": 0.7604782581329346,
+      "t2b-best": 0.7527273893356323
+    },
+    "decision": "Default-head preservation does not establish head-down stability. Sensitivity values describe this state set; they do not diagnose omitted dynamics versus memory."
+  },
+  "pickup": {
+    "first_increment": "reproduce pixel-pick inference and diagnose the observed pickup\u2192stand boundary",
+    "input_class": "approximate reconstruction from rounded real sensor fields, NOT captured raw61",
+    "pixel_policy_reconstructed_vs_recorded": {
+      "ticks": 180,
+      "mean_absolute_rad": 0.0002508142110869697,
+      "max_absolute_rad": 0.002594590187072754,
+      "p95_tick_max_rad": 0.0015691556036472312
+    },
+    "stand_reconstructed_vs_recorded": {
+      "ticks": 37,
+      "mean_absolute_rad": 0.00044008140707510777,
+      "max_absolute_rad": 0.0024208426475524902,
+      "p95_tick_max_rad": 0.0022181868553161617
+    },
+    "handoff_source_lines": [
+      283,
+      284
+    ],
+    "neck_before_handoff_rad": -1.1413,
+    "stand_nominal_neck_rad": 0.349,
+    "neck_error_to_stand_nominal_rad": 1.4903,
+    "previous_action_preserved_at_switch": true,
+    "first_observed_stand_action_max_rad": 0.823199987411499,
+    "first_reconstructed_stand_action_max_rad": 0.8227957487106323,
+    "peak_observed_action_first_second_rad": 4.978000164031982,
+    "time_to_observed_tilt_over_45deg_s": 0.9062142372131348,
+    "jaw_holding_readout_at_handoff": true,
+    "last_visible_phase": 0.075,
+    "note": "jaw_holding is a logged proxy, not independent grasp truth; phase/body semantics change explicitly at handoff",
+    "holding_bit_single_input_intervention": {
+      "ticks": 61,
+      "mean_neck_action_with_logged_holding_rad": -1.2510206699371338,
+      "mean_neck_action_with_bit_zero_rad": -0.7516962289810181,
+      "mean_neck_action_change_rad": 0.4993244409561157,
+      "interpretation": "Instantaneous policy dependence on one input on fixed historical states; not a closed-loop rise or a proposal to turn off the physical grip."
+    },
+    "wrong_semantics_negative_control": {
+      "rejected": true,
+      "reason": "stand61: requires stand; got pixel_pick. 61 dimensions do not imply semantics."
+    },
+    "relabeled_pixel_vector_negative_control": {
+      "rejected": true,
+      "reason": "this stand-admission comparison requires zero command/head/body fields"
+    },
+    "decision": "A jaw-held flag and end-of-pick timer are insufficient exit conditions. Evaluate loaded rise/stand admission on actual exit states; this replay does not validate a repair."
+  }
+}

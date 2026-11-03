@@ -1,0 +1,701 @@
+{
+  "fixture_notice": "Fabricated transcript/identity/addressing inputs. Not recordings, ASR results or recognized identities.",
+  "cases": [
+    {
+      "id": "call_then_fetch",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi!",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "Go fetch that orange ball.",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 1,
+          "caller_id": "person-A",
+          "target_type": "orange_ball"
+        }
+      ],
+      "expected_caller": "person-A"
+    },
+    {
+      "id": "name_only",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Hey Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        }
+      ],
+      "expected_reasons": [
+        "called"
+      ]
+    },
+    {
+      "id": "combined_call_fetch",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi, fetch the orange ball!",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 0,
+          "caller_id": "person-A",
+          "target_type": "orange_ball"
+        }
+      ]
+    },
+    {
+      "id": "chinese_request",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "把橙色球叼来。",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 1,
+          "caller_id": "person-A",
+          "target_type": "orange_ball"
+        }
+      ]
+    },
+    {
+      "id": "cancel_active_fetch",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "Fetch the orange ball",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 2,
+          "text": "Cancel",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 1,
+          "caller_id": "person-A",
+          "target_type": "orange_ball"
+        },
+        {
+          "v": 1,
+          "kind": "cancel",
+          "t": 2,
+          "caller_id": "person-A"
+        }
+      ],
+      "expected_caller": null
+    },
+    {
+      "id": "cancel_waiting",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "停",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "cancel",
+          "t": 1,
+          "caller_id": "person-A"
+        }
+      ],
+      "expected_caller": null
+    },
+    {
+      "id": "nonaddressed_even_with_name",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi, fetch the orange ball",
+          "caller_id": "person-A",
+          "addressed": false
+        }
+      ],
+      "expected": [],
+      "expected_reasons": [
+        "nonaddressed"
+      ]
+    },
+    {
+      "id": "chatter_during_session",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "fetch the orange ball",
+          "caller_id": "person-A",
+          "addressed": false
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        }
+      ],
+      "expected_caller": "person-A"
+    },
+    {
+      "id": "ambiguous_name",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": null,
+          "addressed": true
+        }
+      ],
+      "expected": [],
+      "expected_reasons": [
+        "ambiguous_caller"
+      ]
+    },
+    {
+      "id": "ambiguous_request",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "fetch the orange ball",
+          "caller_id": null,
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        }
+      ],
+      "expected_caller": "person-A"
+    },
+    {
+      "id": "request_without_call",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "fetch the orange ball",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [],
+      "expected_reasons": [
+        "call_required"
+      ]
+    },
+    {
+      "id": "wrong_target",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "fetch the blue ball",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        }
+      ]
+    },
+    {
+      "id": "negated_fetch",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "don't fetch the orange ball",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        }
+      ]
+    },
+    {
+      "id": "question_not_command",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "did you fetch the orange ball?",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        }
+      ]
+    },
+    {
+      "id": "second_person_cannot_overwrite",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "fetch the orange ball",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 2,
+          "text": "Mochi",
+          "caller_id": "person-B",
+          "addressed": true
+        },
+        {
+          "t": 3,
+          "text": "cancel",
+          "caller_id": "person-B",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 1,
+          "caller_id": "person-A",
+          "target_type": "orange_ball"
+        }
+      ],
+      "expected_caller": "person-A",
+      "expected_reasons": [
+        "called",
+        "fetch_requested",
+        "other_caller",
+        "other_caller"
+      ]
+    },
+    {
+      "id": "wrong_person_before_request",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "fetch the orange ball",
+          "caller_id": "person-B",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        }
+      ],
+      "expected_caller": "person-A"
+    },
+    {
+      "id": "duplicate_request_ignored",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "fetch the orange ball",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 2,
+          "text": "fetch the orange ball",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 1,
+          "caller_id": "person-A",
+          "target_type": "orange_ball"
+        }
+      ],
+      "expected_caller": "person-A"
+    },
+    {
+      "id": "request_window_expired",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 11,
+          "text": "fetch the orange ball",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        }
+      ],
+      "expected_caller": null,
+      "expected_reasons": [
+        "called",
+        "call_required"
+      ]
+    },
+    {
+      "id": "caller_stays_bound_after_long_fetch",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "fetch the orange ball",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 60,
+          "text": "Mochi",
+          "caller_id": "person-B",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 1,
+          "caller_id": "person-A",
+          "target_type": "orange_ball"
+        }
+      ],
+      "expected_caller": "person-A"
+    },
+    {
+      "id": "new_caller_after_cancel",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "cancel",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 2,
+          "text": "Mochi",
+          "caller_id": "person-B",
+          "addressed": true
+        },
+        {
+          "t": 3,
+          "text": "fetch the orange ball",
+          "caller_id": "person-B",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "cancel",
+          "t": 1,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 2,
+          "caller_id": "person-B"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 3,
+          "caller_id": "person-B",
+          "target_type": "orange_ball"
+        }
+      ],
+      "expected_caller": "person-B"
+    },
+    {
+      "id": "invalid_time_order",
+      "utterances": [
+        {
+          "t": 1,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 0,
+          "text": "cancel",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 1,
+          "caller_id": "person-A"
+        }
+      ],
+      "expected_error": "timestamps must be nondecreasing"
+    },
+    {
+      "id": "asr_misread_fedch",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "Fedch the orange ball",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 1,
+          "caller_id": "person-A",
+          "target_type": "orange_ball"
+        }
+      ],
+      "known_limitation": "ASR-style Fedch typo produces no request; parser does not repair transcription."
+    },
+    {
+      "id": "unseen_paraphrase",
+      "utterances": [
+        {
+          "t": 0,
+          "text": "Mochi",
+          "caller_id": "person-A",
+          "addressed": true
+        },
+        {
+          "t": 1,
+          "text": "Please retrieve that orange ball for me",
+          "caller_id": "person-A",
+          "addressed": true
+        }
+      ],
+      "expected": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 1,
+          "caller_id": "person-A",
+          "target_type": "orange_ball"
+        }
+      ],
+      "known_limitation": "Unseen retrieve paraphrase produces no request; narrow phrase set only."
+    }
+  ]
+}

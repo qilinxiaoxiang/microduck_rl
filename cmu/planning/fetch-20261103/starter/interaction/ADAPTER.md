@@ -1,0 +1,22 @@
+# Connect real input without changing the event boundary
+
+This is the next implementation task, not a command to operate the robot now. The starter's default run remains offline. The exact audio/namecall/ASR/legacy voice-event sources are now included under `reference/source/`; see [the source handoff](reference/README.md) and run `python3 reference/verify_sources.py`. Paths below name their original locations, checked 2026-11-03. The first local WAV-fanout implementation uses those bundled files, the existing parser and public third-party packages only. Identity sources/weights below are later integration references and are not part of the first fanout increment. No private audio, credentials or enrolled identities are included.
+
+## Existing source and models
+
+- `pet/voice/listen.py`: audio blocks → segmented utterances; shares the onset-detector concept with namecall. Reuse segmentation; do not open a second capture process for the same device.
+- `pet/voice/stt.py`: `LocalSTT` / `transcribe` provide local sherpa-onnx speech-to-text. Source defines `sense-voice` at `pet/voice/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/` and `whisper-base` at `pet/voice/models/sherpa-onnx-whisper-base/`; download locations are in `MODEL_URLS` and `pet/voice/README.md`. Weights are not bundled here. Explicitly select the local backend; default starter never imports this module.
+- `microduck-sim/guide/firmware/mac/namecall.py` and `namecall-20261029/REQUIREMENTS.json`: current name-response implementation and behavioral requirements. Inspect the current capture API before wiring it; this README does not assert a shared capture already exists.
+- `pet/identity/face.py`: face detection/embedding via `FacePipeline`, models `pet/identity/models/buffalo_sc/det_500m.onnx` and `w600k_mbf.onnx`. `pet/identity/voice.py`: `VoiceEmbedder`/`VoiceVerifier`, model `pet/identity/models/campplus_zh_en_advanced.onnx`.
+- `pet/identity/whois.py` and `memory.py`: cue fusion and persistent identity. `pet/identity/fetch_models.sh` and README explain model acquisition. Weight availability and model-use terms must be checked when packaging that later adapter; no acquisition occurs in this starter.
+- `pet/voice/intent.py`: existing subscription-backed interpreter, reference only. Do not make a recipient's first run depend on it or on Shawn's account. Do not reuse its fixed-duration walking sequence as continuous fetch.
+
+## Build in this order
+
+1. Define one audio-stream owner. Fan out the same timestamped blocks to name detection and utterance segmentation. Use capture timestamps consistently; do not relabel old audio as newly received. Prove both consumers receive the same captured segment before attaching the robot stream.
+2. Convert each utterance with the local speech model. Retain transcript and capture time. Name detection, audio direction and visual candidates must determine whether the utterance was addressed to the robot and which person spoke. Emit `caller_id: null` when unresolved; never fill `person-A` merely because one face is largest.
+3. Replace fixture labels with a session-local registry mapping actual person references to `person-A`/`person-B` for this two-person demo. Keep that mapping stable through looking away and reacquisition; never equate a new visual track ID with a persistent person. For more than two people, agree an expanded caller-ID contract with the coordinator rather than silently reusing a slot.
+4. Pass utterances to this parser. Publish its versioned events to the coordinator. A `call` requests stop/head-only gaze; a `request` specifies the caller/ball goal; a `cancel` asks the coordinator to cancel and acknowledge the resulting state. The body owner is responsible for executing supported stop/gaze commands. This parser never writes joints.
+5. Jointly add completion/failure acknowledgement so the active session can end after human take or explicit abort. Preserve the original caller while the ball is fetched. Do not end the session just because the camera loses the person or a timer expires.
+
+Acceptance must exercise actual shared input, with all attempted utterances retained in a non-sensitive test record. Separately label missed wake-up, wrong transcript, ambiguous identity, wrong event and physical-response failures. Keep the supplied fixtures as deterministic regression checks; they do not establish live performance. Physical capture settings and host references come from `microduck-sim/CURRENT-STATE.json`, not historical README command examples.

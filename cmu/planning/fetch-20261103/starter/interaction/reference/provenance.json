@@ -1,0 +1,10 @@
+{
+  "checked": "2026-11-03",
+  "source": "pet/voice/intent.py (robotics workspace)",
+  "sha256_of_full_source": "a56d60063618f11e9be4f3f3bcc650f6c3f0a3d6342fa4560cb6047d3ec86230",
+  "copied_lines": [
+    1,
+    19
+  ],
+  "excerpt": "intent-source-excerpt.txt"
+}

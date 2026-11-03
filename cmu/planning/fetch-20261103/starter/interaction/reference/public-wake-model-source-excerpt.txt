@@ -1,0 +1,19 @@
+Exact NAMECALL.md lines 247–263, snapshot date 2026-11-03; historical source, not live verification.
+
+  spotter fires, the program picks the onset nearest 0.75 s before the spot (from 0.25 to 1.6 s back) and takes the
+  direction from the 4-channel ring buffer (3 s) at that onset. With no onset in that window it places the window at
+  the spot minus 0.75 s. A clap 0.7 s before the name does not steer the head (tested).
+- While its own quack plays and for the deaf time after, the spotter is fed silence; during a take it is not fed
+  and starts a fresh stream afterwards. Responses keep the 2.5 s refractory.
+- Model: `~/rt/models/kws/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01/` on the Mac and the A7Z (same
+  sha256), or `$NAMECALL_KWS_MODEL`; `pip install sherpa-onnx==2.0.0` in `~/.venvs/duck-policy` (done on the A7Z).
+  `install_namecall.sh` prints a `name mode:` line with the sherpa-onnx version and the model path.
+
+### 9.2 The keywords and where they came from
+
+The model spells words in English BPE pieces, and it does not know "Mochi". Run as a recogniser on the clips
+(`kws_mochi_heard.py`, `results/kws_mochi_heard.txt`), it writes macOS voices' "Mochi" mostly as MARCHY, then MALCHY,
+MALCHI, MACHI, MORGY, MARGIE, MONKEY and MULTIPLE; Chinese voices come out as MOTION. The first keywords file, the
+plain spelling `▁MO CH I`, caught about 5 %. `keywords_mochi.txt` lists the plain spelling plus the eight spellings
+the model actually produces (MONKEY, MULTIPLE and MOTION left out: they are real words). A grid over spelling sets,
+boost 1/2/3 and threshold 0.05/0.1/0.2 (`kws_mochi_eval.py grid`, `results/kws_mochi_grid.json`) picked boost 2,

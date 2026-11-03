@@ -1,0 +1,97 @@
+{
+  "v": 1,
+  "captured_date": "2026-11-03",
+  "snapshot_status": "Source/config references for offline modification; historical comments/configuration are not current hardware acceptance.",
+  "files": [
+    {
+      "file": "gaze.py",
+      "source": "microduck-sim/guide/firmware/mac/gaze.py",
+      "sha256": "b850ce7c53c73ec6496282a1877fc09e1a3b1e7db80a206996999cb1b631b5f7",
+      "copied_unchanged": true
+    },
+    {
+      "file": "approach.py",
+      "source": "microduck-sim/guide/firmware/mac/approach.py",
+      "sha256": "70a8fa138acccaeb54158cd95a08927999c2566205f45a8a07a581794a74ec72",
+      "copied_unchanged": true
+    },
+    {
+      "file": "duck_kin.py",
+      "source": "microduck-sim/guide/firmware/mac/duck_kin.py",
+      "sha256": "29c4753f41f317c8a816c102fd3e1823c4b88dc4dc34208e1451ce57c073fc83",
+      "copied_unchanged": true
+    },
+    {
+      "file": "duck_kin.json",
+      "source": "microduck-sim/guide/firmware/mac/duck_kin.json",
+      "sha256": "0aa73330a79cc2e158ab46702a85a15e4af785fe1c417e3822691abf17534987",
+      "copied_unchanged": true
+    },
+    {
+      "file": "u20cam_intrinsics.json",
+      "source": "microduck-sim/guide/firmware/mac/u20cam_intrinsics.json",
+      "sha256": "7c6a3bb7dca66bb78824a08f04a269f4bc16028a8dd2b1d9ff184a87ed5e9eff",
+      "copied_unchanged": true
+    },
+    {
+      "file": "u20cam_mount.json",
+      "source": "microduck-sim/guide/firmware/mac/u20cam_mount.json",
+      "sha256": "250acc25a834596e0e2055745eaf3b2d8c179e487dd8d3dcec284548126b6925",
+      "copied_unchanged": true
+    },
+    {
+      "file": "test_gaze.py",
+      "source": "microduck-sim/guide/firmware/mac/test_gaze.py",
+      "sha256": "ff12a301ee401064d49a9e308c881ea244ff80b5b400686e9e300965974bc7a1",
+      "copied_unchanged": true
+    },
+    {
+      "file": "test_approach.py",
+      "source": "microduck-sim/guide/firmware/mac/test_approach.py",
+      "sha256": "e5daa3894c35dbffef241f94e7038ed83bc8cdb0b7c23639c51a06f58c93a1a1",
+      "copied_unchanged": true
+    },
+    {
+      "file": "tracker/track_iface.py",
+      "source": "microduck-sim/guide/firmware/mac/tracker/track_iface.py",
+      "sha256": "6fb8c8d820eb5fcb265c95e44c552ac1b89d6ffa07322c16054814eeb187da93",
+      "copied_unchanged": true
+    },
+    {
+      "file": "tracker/tracker.py",
+      "source": "microduck-sim/guide/firmware/mac/tracker/tracker.py",
+      "sha256": "8415c2fe4f663986d281b009cef22d219dae532807fa6a6e82684b20b3738fdc",
+      "copied_unchanged": true
+    },
+    {
+      "file": "tracker/a7z_frames.py",
+      "source": "microduck-sim/guide/firmware/mac/tracker/a7z_frames.py",
+      "sha256": "ab476aa541892a52364cad2da3e60d81b9f178bf53716b9a2537060262d5aca7",
+      "copied_unchanged": true
+    },
+    {
+      "file": "tracker/bytetrack_duck.yaml",
+      "source": "microduck-sim/guide/firmware/mac/tracker/bytetrack_duck.yaml",
+      "sha256": "67b14e819c2ed6830cee958f4a683bfcce048745aa4148b1104811c0b9fd41d4",
+      "copied_unchanged": true
+    },
+    {
+      "file": "tracker/botsort_duck.yaml",
+      "source": "microduck-sim/guide/firmware/mac/tracker/botsort_duck.yaml",
+      "sha256": "90bba106e5fb1d41586ee4e12468344200fa8a1fb17eeda8a5129f2f58ffde6d",
+      "copied_unchanged": true
+    },
+    {
+      "file": "tracker/pyproject.toml",
+      "source": "microduck-sim/guide/firmware/mac/tracker/pyproject.toml",
+      "sha256": "cc91cc6a92aed26c0799021f584c2183ee7dde80447d6a105713ee5404301eb9",
+      "copied_unchanged": true
+    },
+    {
+      "file": "pet/see/detect.py",
+      "source": "pet/see/detect.py",
+      "sha256": "82f66b820dfa466eb3893a0b3b806857af728026c448bca458f32db0d685e0ba",
+      "copied_unchanged": true
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "v": 1,
+  "recorded_date": "2026-11-03",
+  "splits": {
+    "smoke": [
+      "fixture_frame.png",
+      "fixture_body.png"
+    ],
+    "heldout_challenge": [
+      "heldout_orange_rectangle.png"
+    ]
+  },
+  "boundaries": [
+    "Three offline images; no independent sessions or real ball/person dataset.",
+    "Composite frame has an orange printed part, not a ball; orange-ball is a configured interface label only.",
+    "Binary body mask is a synthetic no-orange negative, not a natural scene.",
+    "Held-out rectangle is generated synthetic orange non-ball; baseline false positive is reported, never counted as success.",
+    "The challenge has now been observed during packaging. Freeze new independent negative scenes before claiming generalization.",
+    "Protocol tracks and clocks are hand authored; IDs are inputs, not tracking/reidentification outputs."
+  ],
+  "generated_challenge_recipe": "640x360 uint8 BGR background [70,70,70]; filled cv2.rectangle corners (230,170),(410,240), BGR [0,145,255].",
+  "images": [
+    {
+      "file": "fixture_body.png",
+      "image_wh": [
+        640,
+        360
+      ],
+      "sha256": "48b15b3d0da13ddeb86f596b90dd1ee6ace19a60aaa74ff681bccbcf9406f0d2"
+    },
+    {
+      "file": "fixture_frame.png",
+      "image_wh": [
+        640,
+        360
+      ],
+      "sha256": "e7dece6b9c135de5b60ccc463eaa3b2a702d3c9646a9c0e6083a5736e3a7125a"
+    },
+    {
+      "file": "heldout_orange_rectangle.png",
+      "image_wh": [
+        640,
+        360
+      ],
+      "sha256": "60908524817b74d58e1c7b0ab2e318ae4e594e8333aad2f8c2b2ff996d9da315"
+    }
+  ]
+}

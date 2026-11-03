@@ -1,0 +1,27 @@
+{
+  "result": "PASS for CPU inference/replay starter increments only",
+  "python": "3.12.11",
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "fresh_venv": "/tmp/microduck-motion-py312-venv",
+  "copied_package": "/tmp/microduck-motion-recipient-check",
+  "working_directory": "/tmp",
+  "command": "/tmp/microduck-motion-py312-venv/bin/python /tmp/microduck-motion-recipient-check/replay.py all --out /tmp/microduck-motion-recipient-check/results/cold-start-result.json",
+  "exit_code": 0,
+  "baseline_and_copied_result_equal": true,
+  "pip_check": "No broken requirements found.",
+  "fixture_max_abs_difference": 0,
+  "supplied_input_files_sha_verified": 29,
+  "scope_excludes": [
+    "simulation",
+    "training",
+    "robot operation",
+    "deployment",
+    "new-body acceptance",
+    "training-checkpoint export parity"
+  ],
+  "limits": [
+    "Raw61 actor inputs not present in source logs.",
+    "Walking reconstructed action max residual 0.130/0.133 rad remains unresolved; complete errors retained.",
+    "Frozen model/source/data digests establish artifact identity, not current-body validity."
+  ]
+}

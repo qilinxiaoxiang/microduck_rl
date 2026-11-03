@@ -1,0 +1,12 @@
+# ByteTrack for the duck's 10 fps head camera (ultralytics format). Kept for comparison: it holds the id only while
+# the camera is still (occlusion_test.py 2026-10-30); botsort_duck.yaml is the default. track_buffer is in frames: 40 frames = 4 s at
+# 10 fps, so a 2 s occlusion (20 frames, the A2 acceptance) keeps the lost track alive for re-association.
+# Open-vocabulary scores for unusual words run low (0.1-0.3 on this camera), so the thresholds sit below the
+# ultralytics defaults (0.25/0.1/0.25).
+tracker_type: bytetrack
+track_high_thresh: 0.12
+track_low_thresh: 0.05
+new_track_thresh: 0.12
+track_buffer: 40
+match_thresh: 0.8
+fuse_score: True

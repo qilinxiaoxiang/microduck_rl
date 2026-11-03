@@ -1,0 +1,7 @@
+# Attribution and supplied files
+
+Pollen Robotics policies/training code and the CMU training fork are used as local project research assets. The official Pollen policy card at pinned revision `665ae4eb20bfe13bca1ef4ea6d4bb6b4a096e448` declares Apache-2.0; the retrieved 2026-11-03 card is included as `licenses/upstream-policy-card.md`. The team repository identifies its code as Apache-2.0; the full license is included. Exact local export provenance and digests, rather than an inferred training commit, are in `PROVENANCE.json`.
+
+The upstream walk/stand hashes agree with the existing overlay source lock. t2b and pixel-pick are local project exports; their ONNX metadata records the source run path, and local run/source notes are included. Source snapshots retain their original notices and are unmodified copies unless explicitly marked a line-numbered excerpt. They are not claimed to be the latest dock source/checkpoint or a complete training environment.
+
+Community runtime reference material has separate GPL-3.0-or-later ancestry; its existing multi-license text is included as `licenses/community-runtime-LICENSE.txt`. No 3D meshes/CAD assets are packaged. Robot traces contain numeric motor/IMU/task-state fields only; provenance gives the original local capture routes and extraction process. New package code/docs are additions under the owning training repository's Apache-2.0 license.

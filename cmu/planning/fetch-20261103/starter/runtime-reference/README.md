@@ -1,0 +1,3 @@
+# Existing runtime source, for task E adapter work
+
+These are exact source snapshots, not a runnable robot environment. See provenance.json. Start with the motor-free coordinator and read how the existing walk_wired executor, duck-command lease and seepick controller exchange commands/readback. Preserve the current lock and one-writer rule. Task E must map named semantics explicitly; do not execute these copies against a robot. Device paths, services, calibration and current physical settings belong to the owning live runtime and CURRENT-STATE.json. The package contains no credentials or recordings of people.

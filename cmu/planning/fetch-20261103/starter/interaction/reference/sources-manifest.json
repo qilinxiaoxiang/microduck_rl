@@ -1,0 +1,77 @@
+{
+  "snapshot_date": "2026-11-03",
+  "purpose": "Portable source inputs for one local audio-source fanout implementation. No recordings, credentials, private model weights or service state included.",
+  "files": [
+    {
+      "source": "pet/voice/__init__.py",
+      "snapshot": "source/pet/voice/__init__.py",
+      "sha256": "40ffb0d2930cd724e1e1329f99beb6ea328d38aef79ee8d416aeaae68b60264d",
+      "bytes": 100,
+      "mode": "reference-only; not automatically imported by starter"
+    },
+    {
+      "source": "pet/voice/listen.py",
+      "snapshot": "source/pet/voice/listen.py",
+      "sha256": "a43df9874811b6d8484a131c7568bb910c2267f7da405f0fb1310d4f389d6e84",
+      "bytes": 15545,
+      "mode": "reference-only; not automatically imported by starter"
+    },
+    {
+      "source": "pet/voice/stt.py",
+      "snapshot": "source/pet/voice/stt.py",
+      "sha256": "0867f6ad59ce3bff037c3d01570350c97fb73f2cc32891a07b3d401c01e4232b",
+      "bytes": 11788,
+      "mode": "reference-only; not automatically imported by starter"
+    },
+    {
+      "source": "pet/voice/voice.py",
+      "snapshot": "source/pet/voice/voice.py",
+      "sha256": "75588ef30a0360a946f6ef669382bf619dcb010238fd3b746e4bea57d55b8974",
+      "bytes": 11230,
+      "mode": "reference-only; not automatically imported by starter"
+    },
+    {
+      "source": "pet/voice/intent.py",
+      "snapshot": "source/pet/voice/intent.py",
+      "sha256": "a56d60063618f11e9be4f3f3bcc650f6c3f0a3d6342fa4560cb6047d3ec86230",
+      "bytes": 14926,
+      "mode": "reference-only; not automatically imported by starter"
+    },
+    {
+      "source": "pet/state/README.md",
+      "snapshot": "source/pet/state/README.md",
+      "sha256": "767baa7294cdc0b237fc2541d227e213d8d9c818a3b8df362ce6b1a43c958f81",
+      "bytes": 11460,
+      "mode": "reference-only; not automatically imported by starter"
+    },
+    {
+      "source": "microduck-sim/guide/firmware/mac/namecall.py",
+      "snapshot": "source/microduck-sim/guide/firmware/mac/namecall.py",
+      "sha256": "a153f23d7b17fd1e0e400d06c48860e64bc7ab331552dda86a6cfbaa0a087012",
+      "bytes": 137548,
+      "mode": "reference-only; not automatically imported by starter"
+    },
+    {
+      "source": "microduck-sim/guide/firmware/mac/ownkws.py",
+      "snapshot": "source/microduck-sim/guide/firmware/mac/ownkws.py",
+      "sha256": "9ef46d82d603f356ba8dace635f326de83e65d0827132f35249d4af98d0d0ad7",
+      "bytes": 16136,
+      "mode": "reference-only; not automatically imported by starter"
+    },
+    {
+      "source": "microduck-sim/guide/firmware/mac/namecall-20261029/keywords_mochi.txt",
+      "snapshot": "source/microduck-sim/guide/firmware/mac/namecall-20261029/keywords_mochi.txt",
+      "sha256": "fbffb45fce2470de781ee35d59da4291161199e0a5203d253b83475dacd918c3",
+      "bytes": 303,
+      "mode": "reference-only; not automatically imported by starter"
+    }
+  ],
+  "excerpt_origin": {
+    "source": "microduck-sim/guide/firmware/mac/namecall-20261029/NAMECALL.md",
+    "lines": [
+      247,
+      263
+    ],
+    "source_sha256": "a6c8eda1c2ca5e2226889a973dcf6307287022008dd90c26265c98d78b4ecb83"
+  }
+}

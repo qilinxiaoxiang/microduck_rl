@@ -1,0 +1,345 @@
+{
+  "schema": "motion-starter/1",
+  "built": "2026-11-03",
+  "scope": "CPU inference and saved local historical robot-trace analysis only",
+  "git_context": {
+    "grasp_worktree_head": "2d4dd54e5e3109bd8ae295aa2c131804090cec2d",
+    "note": "source copies may be dirty relative to HEAD; exact SHA is authoritative for each snapshot"
+  },
+  "files": [
+    {
+      "path": "models/walk61.onnx",
+      "source": "microduck-sim/hardware-design-20260912/whole-robot-20260912/runtime-overlay/models/walk61.onnx",
+      "source_sha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+      "sha256": "e36332d383997d51401897734cd3e79cf5038406feddb18b4d57ecfb141daa6c",
+      "kind": "ONNX",
+      "role": "historical deployed walking baseline"
+    },
+    {
+      "path": "models/stand61.onnx",
+      "source": "microduck-sim/hardware-design-20260912/whole-robot-20260912/runtime-overlay/models/stand61.onnx",
+      "source_sha256": "1569268713e40deea795dd2922dba50d3621e15a872855408b6b1b125b1c094b",
+      "sha256": "1569268713e40deea795dd2922dba50d3621e15a872855408b6b1b125b1c094b",
+      "kind": "ONNX",
+      "role": "historical stand recipient at pick handoff"
+    },
+    {
+      "path": "models/t2b-best.onnx",
+      "source": "microduck-sim/hardware-design-20260912/whole-robot-20260912/runtime-overlay/models-t2b-best/walk61.onnx",
+      "source_sha256": "94480e971e9bf4fb50266b18267ade3888173615c85cf936120490bbabc18ada",
+      "sha256": "94480e971e9bf4fb50266b18267ade3888173615c85cf936120490bbabc18ada",
+      "kind": "ONNX",
+      "role": "head-conditioned walk candidate, not deployment approved"
+    },
+    {
+      "path": "models/spx-b_1800.onnx",
+      "source": "microduck-sim/microduck_rl-grasp/cmu/grasp/policies/spx-b_1800.onnx",
+      "source_sha256": "288557915925318eaa6458809f26549b96652c21ed35f3c2c8ee6c22beb7bad1",
+      "sha256": "288557915925318eaa6458809f26549b96652c21ed35f3c2c8ee6c22beb7bad1",
+      "kind": "ONNX",
+      "role": "historical T2 pixel-conditioned pick candidate used Nov 1"
+    },
+    {
+      "path": "reference/finetune_worker.py",
+      "source": "microduck-sim/microduck_rl-grasp/cmu/finetune/modal/finetune_worker.py",
+      "source_sha256": "3c8c19f0adce2e02504d4421826d40db42f4fd70662c7bef30112ae6c8fa8ab8",
+      "sha256": "3c8c19f0adce2e02504d4421826d40db42f4fd70662c7bef30112ae6c8fa8ab8",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/grasp_worker.py",
+      "source": "microduck-sim/microduck_rl-grasp/cmu/grasp/grasp_worker.py",
+      "source_sha256": "f0ab353ae3689c8fcfa2681851c0af4b9a77f19af394fb888a13f03651d7d61d",
+      "sha256": "f0ab353ae3689c8fcfa2681851c0af4b9a77f19af394fb888a13f03651d7d61d",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/T2-PIXEL.md",
+      "source": "microduck-sim/microduck_rl-grasp/cmu/grasp/T2-PIXEL.md",
+      "source_sha256": "e7dcf19afe109b53527abf9607a3ed8084065d25b6453a10e18f57656af44569",
+      "sha256": "e7dcf19afe109b53527abf9607a3ed8084065d25b6453a10e18f57656af44569",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/cmu_seeing_pix_env_cfg.py",
+      "source": "microduck-sim/microduck_rl-grasp/src/mjlab_microduck/tasks/cmu_seeing_pix_env_cfg.py",
+      "source_sha256": "4330391b744024302aa26aa9ef5114f991240afd1bb3375d08d2244ba3c957d5",
+      "sha256": "4330391b744024302aa26aa9ef5114f991240afd1bb3375d08d2244ba3c957d5",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/cmu_seeing_pick_env_cfg.py",
+      "source": "microduck-sim/microduck_rl-grasp/src/mjlab_microduck/tasks/cmu_seeing_pick_env_cfg.py",
+      "source_sha256": "c1fda160ae20bc1c896e0cdcc8fac764e4fe6c91ff5fa166fd77c3efa9f38f73",
+      "sha256": "c1fda160ae20bc1c896e0cdcc8fac764e4fe6c91ff5fa166fd77c3efa9f38f73",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/microduck_velocity_env_cfg.py",
+      "source": "microduck-sim/microduck_rl-grasp/src/mjlab_microduck/tasks/microduck_velocity_env_cfg.py",
+      "source_sha256": "75a0430b814ac7495eb237ab806fbd4dd10309b9fd3027ac3eee3c2e3c5a944a",
+      "sha256": "75a0430b814ac7495eb237ab806fbd4dd10309b9fd3027ac3eee3c2e3c5a944a",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/export.py",
+      "source": "microduck-sim/microduck_rl-grasp/src/mjlab_microduck/export.py",
+      "source_sha256": "ef4d851eee70ce0d1c896a0be14fd4a936a0d17e83649dfd572a5282ffcdf5b9",
+      "sha256": "ef4d851eee70ce0d1c896a0be14fd4a936a0d17e83649dfd572a5282ffcdf5b9",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/walk_brain.py",
+      "source": "microduck-sim/guide/firmware/mac/walk_brain.py",
+      "source_sha256": "6e87c2a9687b8b5318b1397efa8c6c38db4ae430bece9e07bc232bbd3f5d686e",
+      "sha256": "6e87c2a9687b8b5318b1397efa8c6c38db4ae430bece9e07bc232bbd3f5d686e",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/compensation.py",
+      "source": "microduck-sim/hardware-design-20260912/whole-robot-20260912/delay-repair-20260912/compensation.py",
+      "source_sha256": "ee685a7571112b45aea6895976f7b4e7fc9db849e4d33bcfbc15e9f6abc718c5",
+      "sha256": "ee685a7571112b45aea6895976f7b4e7fc9db849e4d33bcfbc15e9f6abc718c5",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/t2b_run_record.json",
+      "source": "microduck-sim/hardware-design-20260912/whole-robot-20260912/runtime-overlay/models-t2b-best/t2b_run_record.json",
+      "source_sha256": "bc2c6c2bb12e76385a53540982e3a9c6c0593624fa9e1ae13f65a5a731a56be1",
+      "sha256": "bc2c6c2bb12e76385a53540982e3a9c6c0593624fa9e1ae13f65a5a731a56be1",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/overlay-source-lock.json",
+      "source": "microduck-sim/hardware-design-20260912/whole-robot-20260912/runtime-overlay/source-lock.json",
+      "source_sha256": "326a68e0ffa0e3e7c23b013b899e82f6b05593833a397bde302d467406b54f42",
+      "sha256": "326a68e0ffa0e3e7c23b013b899e82f6b05593833a397bde302d467406b54f42",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/t2b-robot-readme.md",
+      "source": "microduck-sim/guide/firmware/mac/robot-runs-20261030-t1/t2b/README.md",
+      "source_sha256": "4ed278d83568e653ba6da41f66a7244974621e2901bb2a446c963298b56c1e6f",
+      "sha256": "4ed278d83568e653ba6da41f66a7244974621e2901bb2a446c963298b56c1e6f",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/pick-chain-readme.md",
+      "source": "microduck-sim/guide/firmware/mac/t2-chain-20261101/README.md",
+      "source_sha256": "b62feb6fb9a1b82f5d7223cecdbee48f2a7a00c847eaa944470037d1dad0ae03",
+      "sha256": "b62feb6fb9a1b82f5d7223cecdbee48f2a7a00c847eaa944470037d1dad0ae03",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "licenses/APACHE-2.0.txt",
+      "source": "microduck-sim/microduck_rl/LICENSE",
+      "source_sha256": "2d3fd9ffffa70a4307498ec630b14a6b4731e010f8ddda92686eaf65733c2dfe",
+      "sha256": "2d3fd9ffffa70a4307498ec630b14a6b4731e010f8ddda92686eaf65733c2dfe",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "licenses/community-runtime-LICENSE.txt",
+      "source": "microduck-sim/hardware-design-20260912/whole-robot-20260912/runtime-overlay/LICENSE",
+      "source_sha256": "f882cb4ee533a88e73fec57c75ddb63bdd204480e1dd5f663975e9d4c6751bf0",
+      "sha256": "f882cb4ee533a88e73fec57c75ddb63bdd204480e1dd5f663975e9d4c6751bf0",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/mdp-grasp-lines-7884-7944.txt",
+      "source": "microduck-sim/microduck_rl-grasp/src/mjlab_microduck/tasks/mdp.py",
+      "source_sha256": "c7018652bf72ce0684b4a1637f3f30fce3ee5fcd7bd88f659836340ec938fba0",
+      "sha256": "ef6279bef0cf06c6988ff64b6d0664a776d54be9be9f45162158fa1fc7a2d843",
+      "kind": "source_excerpt",
+      "source_lines": [
+        7884,
+        7944
+      ]
+    },
+    {
+      "path": "data/walk61-real.jsonl",
+      "source": "microduck-sim/guide/firmware/mac/robot-runs-20261030-t1/walk61_see_walks.jsonl",
+      "source_sha256": "7f8f47fbf890709d2cc49b920c139f597735e20987cae9d2ce794d275be52041",
+      "sha256": "2d730b25651d8a425d0bb0d23c1a8c26bd12762259dac25bda813223425655b4",
+      "kind": "historical_real_robot_log_fields",
+      "rows": 677,
+      "fields": [
+        "t",
+        "mode",
+        "policy",
+        "q",
+        "dq",
+        "gb",
+        "gyro_body",
+        "action",
+        "action_raw",
+        "hold_s",
+        "head_cmd",
+        "sp_phase",
+        "sp_body",
+        "sp_jaw",
+        "age_used",
+        "turn",
+        "cmd",
+        "joint_age",
+        "imu_age",
+        "imu_valid",
+        "fresh",
+        "missing",
+        "jaw_holding",
+        "jaw_deg",
+        "jaw_cur_ma",
+        "kp",
+        "getup"
+      ],
+      "extraction": "all valid JSON rows; keep listed fields only; source_line is 1-based"
+    },
+    {
+      "path": "data/t2b-default-real.jsonl",
+      "source": "microduck-sim/guide/firmware/mac/robot-runs-20261030-t1/t2b/1_walk.jsonl",
+      "source_sha256": "672cfd00a0a7070fd09b69a606c6d133aea0c74e49be23c5aa9624738802f459",
+      "sha256": "1d55844e8fd8219a597a745854c2e0a61d0bc7e0eb9da89ca1cebcf7eff02b58",
+      "kind": "historical_real_robot_log_fields",
+      "rows": 399,
+      "fields": [
+        "t",
+        "mode",
+        "policy",
+        "q",
+        "dq",
+        "gb",
+        "gyro_body",
+        "action",
+        "action_raw",
+        "hold_s",
+        "head_cmd",
+        "sp_phase",
+        "sp_body",
+        "sp_jaw",
+        "age_used",
+        "turn",
+        "cmd",
+        "joint_age",
+        "imu_age",
+        "imu_valid",
+        "fresh",
+        "missing",
+        "jaw_holding",
+        "jaw_deg",
+        "jaw_cur_ma",
+        "kp",
+        "getup"
+      ],
+      "extraction": "all valid JSON rows; keep listed fields only; source_line is 1-based"
+    },
+    {
+      "path": "data/t2b-neck-real.jsonl",
+      "source": "microduck-sim/guide/firmware/mac/robot-runs-20261030-t1/t2b/2_walk_neck.jsonl",
+      "source_sha256": "cc7a29502afdfa57d57f2868c06a5cac03db5f5fe78abf26c1c828cd061a4a21",
+      "sha256": "281007202109305d199a53c4fc49dd6bd63edbee67d169b532fe147158d58f3f",
+      "kind": "historical_real_robot_log_fields",
+      "rows": 397,
+      "fields": [
+        "t",
+        "mode",
+        "policy",
+        "q",
+        "dq",
+        "gb",
+        "gyro_body",
+        "action",
+        "action_raw",
+        "hold_s",
+        "head_cmd",
+        "sp_phase",
+        "sp_body",
+        "sp_jaw",
+        "age_used",
+        "turn",
+        "cmd",
+        "joint_age",
+        "imu_age",
+        "imu_valid",
+        "fresh",
+        "missing",
+        "jaw_holding",
+        "jaw_deg",
+        "jaw_cur_ma",
+        "kp",
+        "getup"
+      ],
+      "extraction": "all valid JSON rows; keep listed fields only; source_line is 1-based"
+    },
+    {
+      "path": "data/pick-handoff-real.jsonl",
+      "source": "microduck-sim/guide/firmware/mac/t2-chain-20261101/robot-20261101/brain_pick_fall.jsonl",
+      "source_sha256": "3098d30faa88a2f13de896be585a43215cbe135c5d8175bdfb91d15e43afd7d0",
+      "sha256": "1a33517085213b011456dfc9608d1c57104ecb1136e06713c9a64fdaa44fe5e1",
+      "kind": "historical_real_robot_log_fields",
+      "rows": 483,
+      "fields": [
+        "t",
+        "mode",
+        "policy",
+        "q",
+        "dq",
+        "gb",
+        "gyro_body",
+        "action",
+        "action_raw",
+        "hold_s",
+        "head_cmd",
+        "sp_phase",
+        "sp_body",
+        "sp_jaw",
+        "age_used",
+        "turn",
+        "cmd",
+        "joint_age",
+        "imu_age",
+        "imu_valid",
+        "fresh",
+        "missing",
+        "jaw_holding",
+        "jaw_deg",
+        "jaw_cur_ma",
+        "kp",
+        "getup"
+      ],
+      "extraction": "all valid JSON rows; keep listed fields only; source_line is 1-based"
+    },
+    {
+      "path": "licenses/upstream-policy-card.md",
+      "source_url": "https://huggingface.co/pollen-robotics/microduck-policies/raw/665ae4eb20bfe13bca1ef4ea6d4bb6b4a096e448/README.md",
+      "sha256": "491b39e6bd8ddb2840c7d12a39650331ef87412aa46d834980d8076504f5b8e7",
+      "kind": "official_policy_license_declaration"
+    },
+    {
+      "path": "data/synthetic-inference-fixtures.npz",
+      "sha256": "4edc8f8b57d374aaee6469668b23a2f05a0ce5d220fe1e514082f078399683d8",
+      "kind": "synthetic_deterministic_ONNX_runtime_fixture",
+      "source": "supplied ONNX graphs; created with replay.Policy CPU runtime, numpy 2.2.6 / onnxruntime 1.22.1",
+      "note": "not a training-actor parity check; no .pt training checkpoint supplied"
+    },
+    {
+      "path": "data/model-metadata.json",
+      "sha256": "e5d844d2c59e782b9119dd9dd0dc5ebceb6ebf7cbd5378f2dec554799a77d905",
+      "kind": "ONNX_metadata_extract",
+      "source": "supplied ONNX graphs; created with replay.Policy CPU runtime, numpy 2.2.6 / onnxruntime 1.22.1",
+      "note": "not a training-actor parity check; no .pt training checkpoint supplied"
+    },
+    {
+      "path": "reference/walk_wired.py",
+      "source": "microduck-sim/guide/firmware/mac/walk_wired.py",
+      "source_sha256": "5d49669cf96bf524588f3ba1cdf4973e26e06a9118f5ac924cab1e477a3ef315",
+      "sha256": "5d49669cf96bf524588f3ba1cdf4973e26e06a9118f5ac924cab1e477a3ef315",
+      "kind": "source_snapshot"
+    },
+    {
+      "path": "reference/t1_robot_test.py",
+      "source": "microduck-sim/guide/firmware/mac/t1_robot_test.py",
+      "source_sha256": "ad5c1594184bcf1a7bb79c41024d904d7d3a39684603327518f4277adeac6f12",
+      "sha256": "ad5c1594184bcf1a7bb79c41024d904d7d3a39684603327518f4277adeac6f12",
+      "kind": "source_snapshot"
+    }
+  ]
+}

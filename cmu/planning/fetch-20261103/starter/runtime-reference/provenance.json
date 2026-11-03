@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-03",
+  "files": [
+    {
+      "file": "walk_wired.py",
+      "source": "microduck-sim/guide/firmware/mac/walk_wired.py",
+      "sha256": "5d49669cf96bf524588f3ba1cdf4973e26e06a9118f5ac924cab1e477a3ef315",
+      "use": "reference only; hardware dependencies not supplied as runnable runtime"
+    },
+    {
+      "file": "seepick.py",
+      "source": "microduck-sim/guide/firmware/mac/seepick.py",
+      "sha256": "5a4cb8627ae93c8e61563c9139364134c92bddc16ec1b4245895af8b2131d2c5",
+      "use": "reference only; hardware dependencies not supplied as runnable runtime"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+# BoT-SORT (camera motion compensation by sparse optical flow, no ReID): the default. With the picture swaying
+# (occlusion_test.py --extra "--sway 10/25", 2026-10-30) it held the id through the 2 s occlusion where plain
+# ByteTrack (IoU only) changed it. Same 4 s lost-track buffer and the low open-vocabulary thresholds.
+tracker_type: botsort
+track_high_thresh: 0.12
+track_low_thresh: 0.05
+new_track_thresh: 0.12
+track_buffer: 40
+match_thresh: 0.8
+fuse_score: True
+gmc_method: sparseOptFlow
+proximity_thresh: 0.5
+appearance_thresh: 0.8
+with_reid: False
+model: auto

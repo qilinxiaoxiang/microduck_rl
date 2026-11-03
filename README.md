@@ -6,8 +6,13 @@ observation contract, ONNX export) plus one directory, `cmu/`, that holds everyt
 bench. Pollen's own README is kept unchanged at [docs/UPSTREAM-README.md](docs/UPSTREAM-README.md); read it for the
 task list, the actuator model, publishing and the general conventions.
 
-Project goal: the duck finds an orange object with its head camera, walks to it, crouches, grips it with the beak
-and stands up, with as much of that behaviour as possible learned in simulation and transferred to the robot.
+Project goal: call Mochi, look at the caller, understand an orange-ball fetch request, approach while watching,
+pick and rise, then carry back to the same person and wait for them to take the ball.
+
+**Team tasks:** [five claimable fetch tasks and starting materials](cmu/planning/fetch-20261103/README.md).
+Start with the supplied CPU-only package; no robot, private credentials or paid cloud account is needed.
+Training for the changed battery backpack waits for the matched scan/model described in the task plan.
+
 Walking today is Pollen's `walk61` policy run by the brain on the robot's head board (`walk_wired.py` on the Radxa
 A7Z); the open problem is the sim-to-real gap described in [cmu/SIM2REAL.md](cmu/SIM2REAL.md).
 

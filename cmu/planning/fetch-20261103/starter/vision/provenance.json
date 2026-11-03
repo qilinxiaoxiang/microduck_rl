@@ -1,0 +1,44 @@
+{
+  "v": 1,
+  "verified_date": "2026-11-03",
+  "files": [
+    {
+      "file": "orange_target.py",
+      "source": "microduck-sim/microduck_rl/cmu/mac/orange_target.py",
+      "sha256": "7643c4ff0c17e5d15e6e0799c29ccf563e3e459c8585cc2f323a6743be55fb99",
+      "copied_unchanged": true
+    },
+    {
+      "file": "inputs/fixture_frame.png",
+      "source": "pet/see/tests/fixture_frame.png",
+      "sha256": "e7dece6b9c135de5b60ccc463eaa3b2a702d3c9646a9c0e6083a5736e3a7125a",
+      "copied_unchanged": true
+    },
+    {
+      "file": "inputs/fixture_body.png",
+      "source": "pet/see/tests/fixture_body.png",
+      "sha256": "48b15b3d0da13ddeb86f596b90dd1ee6ace19a60aaa74ff681bccbcf9406f0d2",
+      "copied_unchanged": true
+    },
+    {
+      "file": "inputs/heldout_orange_rectangle.png",
+      "source": "generated offline starter fixture; see inputs/dataset.json",
+      "sha256": "60908524817b74d58e1c7b0ab2e318ae4e594e8333aad2f8c2b2ff996d9da315",
+      "copied_unchanged": false
+    },
+    {
+      "file": "inputs/protocol_tracks.json",
+      "source": "generated offline starter fixture; see inputs/dataset.json",
+      "sha256": "03bec41f31b3d2177f25bff3c1eac7db983524fdf584e6014e6dc30cbd9ca74a",
+      "copied_unchanged": false
+    },
+    {
+      "file": "inputs/dataset.json",
+      "source": "generated offline starter fixture; see inputs/dataset.json",
+      "sha256": "638aa699d10410b660681fce8defdbd6cef3a9902cc9a967b965db8a3e330c2f",
+      "copied_unchanged": false
+    }
+  ],
+  "image_provenance": "fixture_frame is composite: real indoor floor background, pasted orange printed robot part (not a ball) at [271,208,98,92], and pasted robot feet. fixture_body is its synthetic binary body mask. Provenance source: pet/see/tests/test_detect.py docstring and pet/see/README.md. Images inspected: no identifiable faces or readable personal identifiers.",
+  "evidence_boundary": "Offline detector/format smoke test only; no real ball/person identification, camera timing, target tracking or robot motion is established."
+}

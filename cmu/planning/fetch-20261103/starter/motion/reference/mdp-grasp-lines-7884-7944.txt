@@ -1,0 +1,61 @@
+7884: def grasp_state(
+7885:     env: ManagerBasedRlEnv,
+7886:     asset_name: str = "object",
+7887:     jaw_sensor: str = "object_jaw_contact",
+7888:     upper_sensor: str = "object_upper_contact",
+7889:     floor_sensor: str = "object_floor_contact",
+7890: ) -> dict:
+7891:     """Per-step grasp booleans, cached on the step counter (several reward terms read them)."""
+7892:     c = _gg_cache(env)
+7893:     key = (env.common_step_counter, asset_name)
+7894:     if c.get("grasp_state_key") == key:
+7895:         return c["grasp_state"]
+7896:     obj: Entity = env.scene[asset_name]
+7897:     s = env.scene.sensors
+7898:     jaw = s[jaw_sensor].data.found.reshape(env.num_envs, -1).sum(-1) > 0
+7899:     upper = s[upper_sensor].data.found.reshape(env.num_envs, -1).sum(-1) > 0
+7900:     floor = s[floor_sensor].data.found.reshape(env.num_envs, -1).sum(-1) > 0
+7901:     spawn = _gg_buffer(env, "object_spawn", 3)
+7902:     lift = obj.data.root_link_pos_w[:, 2] - spawn[:, 2]
+7903:     pinched = jaw & upper
+7904:     st = dict(jaw=jaw, upper=upper, floor=floor, pinched=pinched, lift=lift,
+7905:               held=pinched & ~floor & (lift > 0.01))
+7906:     c["grasp_state_key"] = key
+7907:     c["grasp_state"] = st
+7908:     return st
+7909: 
+7910: 
+7911: def grasp_held(
+7912:     env: ManagerBasedRlEnv,
+7913:     command_name: str = "twist",
+7914:     phase_start: float = 0.40,
+7915:     asset_name: str = "object",
+7916: ) -> torch.Tensor:
+7917:     """1 per step while the object is pinched between BOTH pads, off the floor and lifted >= 1 cm, for phase >=
+7918:     phase_start (after the mouth has closed). The main task term."""
+7919:     st = grasp_state(env, asset_name)
+7920:     gate = (_gp_phase(env, command_name) >= phase_start).float()
+7921:     return gate * st["held"].float()
+7922: 
+7923: 
+7924: def grasp_lift(
+7925:     env: ManagerBasedRlEnv,
+7926:     command_name: str = "twist",
+7927:     phase_start: float = 0.33,
+7928:     max_lift: float = 0.04,
+7929:     asset_name: str = "object",
+7930: ) -> torch.Tensor:
+7931:     """Lift progress of a pinched object: clamp(lift / max_lift, 0, 1) while pinched and off the floor."""
+7932:     st = grasp_state(env, asset_name)
+7933:     gate = (_gp_phase(env, command_name) >= phase_start).float()
+7934:     ok = (st["pinched"] & ~st["floor"]).float()
+7935:     return gate * ok * torch.clamp(st["lift"] / max_lift, 0.0, 1.0)
+7936: 
+7937: 
+7938: def grasp_approach_target(
+7939:     env: ManagerBasedRlEnv,
+7940:     phase: torch.Tensor,
+7941:     asset_name: str = "object",
+7942:     move_start: float = 0.05,
+7943:     hover_at: float = 0.20,
+7944:     down_at: float = 0.29,

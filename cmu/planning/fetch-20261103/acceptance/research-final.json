@@ -1,0 +1,108 @@
+{
+  "schema": "independent-final-research-review/1",
+  "reviewer": "/root/research_method_review",
+  "verdict": "accepted_for_final_plan_and_offline_first_increments",
+  "blocking_findings": [],
+  "reviewed_files": [
+    {
+      "path": "/Users/xiangzheng/code/reports/src/20261103-microduck-collaboration.md",
+      "sha256": "fcf4c6f6be2e9f4965781f974ec712555ce596ea8551c875a80fc1b21f4645b1"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/README.md",
+      "sha256": "c5f9219cff56a18f83168ff7e79bdf35bef2d0f57f2b2fb0dd79e2b4b37c74e6"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/tasks/B-visual-approach.md",
+      "sha256": "36775b3a4f305a992d501164181ebc2c94f6a921b42eaf43d20794783f51aad0"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/tasks/C-head-walking.md",
+      "sha256": "332b59d07293c57b407e556a83134188723769b45e846890f73ff74f2b88d2e3"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/tasks/D-pick-and-rise.md",
+      "sha256": "a1581351afd8f0fb38b5be55e5d254ad5075bc1c38e132c277a44785aa1b063e"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/tasks/E-fetch-execution.md",
+      "sha256": "156aea5941063a6ee41bed84911cac5a5a7ec215640a7ae8e9f65a3d0de264e0"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/CONTRACT.md",
+      "sha256": "ae646432f48f5cd9f3cf2b2bab2a61c6bef0047dba38c133787801676a4a9f3a"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/BODY-READINESS.md",
+      "sha256": "30241a44d2391520a8849f697e08a34d4f36412575182c56af22b3c81587aa70"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/INPUTS.md",
+      "sha256": "b7dd276886244834541f3626701bc31657367f692c86b8fe7419786c2a4bc42b"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/starter/README.md",
+      "sha256": "debbcd4922327a0b614cac1e4fdfd27504fa7fb8008b78c808f3e28b49cf5e54"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/starter/coordinator.py",
+      "sha256": "275883a0f9edd2c5092cef03478fa22caae7ad228fd15277bd154f81f0e7b89a"
+    },
+    {
+      "path": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/cmu/planning/fetch-20261103/starter/rehearse.py",
+      "sha256": "0831500944dc95d31d62c6ac46b9edfcd53226c75754583472453732f4b0387d"
+    }
+  ],
+  "prior_review_preserved": [
+    "research.md",
+    "research.json"
+  ],
+  "corrected_finding": {
+    "prior_text": "D 比较“咬到即结束”和“稳定持球起身并接管”训练终点",
+    "final_text": "D 比较“现有拾取终点”和“明确覆盖稳定持球、下游接管及短程携球”的训练目标；原任务已经包含起身阶段，并非咬到就结束",
+    "evidence": "starter/motion/reference/cmu_seeing_pick_env_cfg.py:28,104,344–359,435,471–473",
+    "status": "resolved_in_reviewed_source"
+  },
+  "native_check": {
+    "command": "python3 microduck-sim/microduck_rl/cmu/planning/fetch-20261103/starter/rehearse.py --out output/microduck-fetch-20261103/final-acceptance/research-rehearsal22.json",
+    "exit_code": 0,
+    "cases": 22,
+    "passed": 22,
+    "result_file": "/Users/xiangzheng/code/robotics/output/microduck-fetch-20261103/final-acceptance/research-rehearsal22.json",
+    "result_sha256": "5384bf08460b44b3ba0fd3261fa5804d046b4bc914ad505d45834e8dbddbd97a",
+    "scope": "motor-free software fixtures only"
+  },
+  "current_state_source": {
+    "path": "/Users/xiangzheng/code/robotics/microduck-sim/CURRENT-STATE.json",
+    "sha256": "a1d3306a02f54838d8207201be8b1ac18750809c20c4546e46689bcceddb1867",
+    "facts_used": [
+      "as_built_scan_readiness",
+      "power"
+    ],
+    "readiness_accepted": false
+  },
+  "proposed_process_review": {
+    "verdict": "compatible",
+    "exact_text": "A failed review leaves original outcome open; repair/audit/rule edits are intermediate. Keep each original deliverable pending, fix ownable blockers and rerun affected acceptance. Do not end with process-only report while requested artifact work remains executable. Only genuine external input/authority boundary permits dependent deferral; complete independent deliverables.",
+    "text_sha256": "b980eda005c59f1ae53d39780eb7fb3fe69cf3b6b0f2c7ce2275eca0bec8272b",
+    "current_route_path": "/Users/xiangzheng/code/claude-config/skills/task-completion/references/planning-acceptance.md",
+    "current_route_sha256": "541a9ce3b0cbdb30f0f815c2299a3debf98820de23048c74d883a098672dd7ed",
+    "installation_or_automatic_enforcement_claimed": false,
+    "reasons": [
+      "Original requested artifact remains open after failed review.",
+      "Ownable repair and independent deliverables continue.",
+      "External input/authority boundaries remain preserved.",
+      "Does not require future physical product success before plan acceptance.",
+      "Does not add approval or change the user-disabled hook."
+    ]
+  },
+  "not_accepted": [
+    "new-body training readiness",
+    "GPU job feasibility",
+    "exact optimizer resumption",
+    "physical gaze or fetch capability",
+    "viewer/layout acceptance",
+    "independent certification of own motion implementation"
+  ],
+  "simulation_training_robot_paid_jobs": false
+}

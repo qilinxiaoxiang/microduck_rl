@@ -1,0 +1,71 @@
+{
+  "historical_snapshot_not_current_authority": true,
+  "read_date": "2026-11-03",
+  "current_source": "microduck-sim/CURRENT-STATE.json",
+  "source_sha256": "5f065f895d9c61aef66733f60ef2c0285ebf03ecdba48f1b1a8be839b98e1440",
+  "facts": {
+    "walking_policy": {
+      "value": "walk61.onnx (Pollen BEST_alpha_walking, runtime-overlay/models) at 0.25 m/s, 4 s walks; KP_RL 200, stand mode KP 400",
+      "verified_at": "2026-10-18",
+      "source": "2026-10-18 robot runs 1018d (walk61 0.25 m/s, 3 s, clean twice), guide/firmware/mac/robot-runs-20261018/README.md",
+      "candidates": [
+        "runtime-overlay/models-ft3-it999 (ft3 iteration 999, D-017): sim-better; on the robot 2026-10-17 and 2026-10-18 (three walks at 0.20 m/s, guide/firmware/mac/robot-runs-20261018) it lost balance at 2.5-4 s every time, while walk61 at 0.25 m/s for 3 s walked and stopped cleanly twice",
+        "runtime-overlay/models-t1-best (Kaggle run t1 iteration 800, 2026-10-30, fork cmu/finetune/modal/FINETUNE-DELTA.md 'Run t1'): walk61 fine-tuned so the body follows the head; as-built sim: walks 0.95-1.16 m in 6 s at vx 0.25 with the neck at -0.8..-0.1 (walk61: 7 mm, it stops stepping under any head command) and holds the neck within 0.09 rad standing after a step; suite real cases no falls and more distance, but peak tilt 3-4 deg higher and 5-27 action jumps per 10 s against walk61's 0-10 (ft3's pattern before it fell on the robot). Robot 2026-10-30 10:27-10:29 (guide/firmware/mac/robot-runs-20261030-t1): the neck follows on the robot (command -0.4 -> -0.38..-0.42 walking; -0.8 -> -0.70..-0.92 walking and -0.816 held 10 s standing after the walk, walk61: -0.09), but the plain 0.25 m/s walk fell sideways at 3.4 s and all three walks peaked at 13.8-29 deg tilt with 17-22 action jumps over 0.5 rad per s, against walk61's 7.4-8.6 deg and 1.4-2.7 per s on the same robot. Slow walks 11:00 (same folder): 0.10 m/s with neck -0.4 stayed up but jumped 13.5 per s and tilted 15.5 deg at the stop; 0.15 m/s with neck -0.8 fell at 2.7 s (held 11 deg roll, then pitched forward). Not deployable at any tested speed; walk61 stays deployed",
+        "runtime-overlay/models-t2b-best (Kaggle run t2b iteration 850, 2026-10-30, fork cmu/finetune/modal/FINETUNE-DELTA.md 'Run t2'): T1 plus a behaviour-cloning anchor to walk61. Action distance from walk61 on walk61's own robot walks 0.221 rad (T1 0.711, gate 0.25); as-built sim (plugged): neck -0.4 -> -0.367 and -0.8 -> -0.686 walking at vx 0.25 (0.56-0.59 m in 6 s; walk61's plain walk 0.45 m), suite real cases 2-4 action jumps per 10 s (T1 5-27, walk61 1-3), drop8_imu35 falls 1 of 6 seeds (walk61 0, T1 3). Fails the t2 plan's G2 (neck -0.8 off 0.114 > 0.10) and G3 (drop8 seed 0 fall; vx0.25 4 jumps > 3); Shawn waived both for a robot test on 2026-10-30. Robot test 2026-10-30 16:00-16:02 (guide/firmware/mac/robot-runs-20261030-t1/t2b/README.md): default-head walk at 0.25 like walk61 (8.7 deg peak, 1.7 action jumps per s), but with a neck command it shakes like T1 (neck -0.4: 16.4 deg, 14 jumps per s; neck -0.8: 10.8 deg, 13.6 per s; standing neck -0.64 against -0.8). No fall. Not deployable; walk61 stays deployed",
+        "runtime-overlay/models-t3b-best (Kaggle run t3b iteration 900, 2026-10-30, fork cmu/finetune/modal/FINETUNE-DELTA.md 'Run t3 progress'): t2b plus the jitter study's sim gap in the training DR (BAM friction 1.0-1.4, gyro noise proportional to leg speed), an action second-difference penalty (-0.58), and the anchor extended to head-command states (walk61's leg actions on the head-zeroed state). Action distance from walk61 on walk61's robot walks 0.239 rad (gate 0.25). Calibrated jitter sim (gyro dq 0.25, friction 1.4; the setting that reproduced the 10/30 robot rows within 2x): neck -0.4 2.3 action jumps per s, neck -0.8 5.1, no fall in 9 rows (t2b 11.0 / 11.5 with 2 falls of 6, T1 17-21 all fallen), but the neck stops at -0.25 for -0.4 and -0.44 for -0.8 (t2b reaches -0.40..-0.44 and -0.72..-0.76 there) and peak tilt at -0.8 is 13-15 deg (gate 12). drop8_imu35 0 of 6 falls (walk61 0, t2b 1, T1 3); plugged suite real cases no fall, 0-2 action jumps, but 10-30 % shorter walks than walk61. Fails the t3 plan's G2 (neck depth, -0.8 tilt) and G3 (distance); not robot-tested; walk61 stays deployed. t3a (anchor on default-head states only) fell in the head-command rows, as its design predicted."
+      ],
+      "max_age_days": 14,
+      "measure": "the --models directory and --kp flags of the newest walk_wired run in the main session (its stdout header), and the walk61.onnx in that directory; Shawn's go for any change"
+    },
+    "power": {
+      "value": "Battery backpack fitted, user-reported 2026-11-03: \"我们现在换了电池背包 之后我再做新的3D扫描给你\". Exact fitted geometry, mass, mounting compliance, live supply-file/guard setting and loaded voltage have not been remeasured in this planning session. See battery_backpack_design for the last documented design; do not infer that its dimensions or the old charger-pack scan describe the changed assembly.",
+      "verified_at": "2026-11-03",
+      "source": "Shawn, current planning chat 2026-11-03: \"我们现在换了电池背包 之后我再做新的3D扫描给你\" (physical pack report only; no runtime probe).",
+      "max_age_days": 14,
+      "measure": "charger label and the 5991 display; walk/stand test with the A7Z flight recorder running (guide/firmware/pi/BLACKBOX.md). Servo-reported voltage (0.1 V steps, one servo per cycle) cannot see millisecond dips and is not evidence of a stable rail",
+      "superseded": [
+        {
+          "value": "Charger backpack on the robot (Shawn 2026-11-01: \"充电背包\"): USB-C PD charger lead -> Adafruit 5991 -> XL4015 #1 -> OpenRB J4, XL4015 #2 -> A7Z header pins 2/6. Backpack setting on the A7Z: ~/duck-supply = bench (the phone remote's switch), so duck-run.sh starts walk_wired.py with --supply bench and the low-battery guard off; under --supply auto the guard armed at this rail's idle 7.2 V. Which charger (20 V 5 A needed for walking, 2026-10-22) not confirmed this time.",
+          "verified_at": "2026-11-01",
+          "source": "2026-11-01 20:51 A7Z: pgrep shows --supply bench, ~/duck-supply reads bench, duck_wired_deploy1101-205114.out has no battery guard line; the previous start duck_wired_app1101-203552.out under auto printed 'battery guard armed: the servos read 7.2 V'. Earlier history in superseded",
+          "until": "2026-11-03",
+          "why": "Shawn now reports that the battery backpack has been changed; former bench setting is not current evidence."
+        },
+        {
+          "value": "Charger backpack back on the robot (Shawn 2026-10-31 evening: \"我现在又把charger pack换上了\"): USB-C PD charger lead -> Adafruit 5991 -> XL4015 #1 -> OpenRB J4, XL4015 #2 -> A7Z header pins 2/6; the charger lead trails from the backpack again. Idle servo-reported supply 7.2 V standing. Which charger (20 V 5 A needed for walking, 2026-10-22) not confirmed this time.",
+          "until": "2026-11-01",
+          "why": "Shawn confirmed the charger backpack on 2026-11-01; the brain now gets the pack as a chosen setting, not a guess from the voltage"
+        },
+        {
+          "value": "Battery backpack (D-010) on the robot: 2S LiPo -> XT30 switch -> OpenRB J4 directly (no converter); DFR1202 on the same switched line -> 5.0 V -> A7Z header pins 2/6 via MR30. Idle servo-reported supply 8.0-8.2 V (full pack); A7Z cold-booted on it with every self-check item passing.",
+          "until": "2026-10-31",
+          "why": "Shawn put the charger backpack back on the evening of 2026-10-31; the brain log reads 7.2 V idle (source of the 8.0-8.2 V value: 2026-10-30 22:17 A7Z boot b0051 self-check)"
+        },
+        {
+          "value": "Servo rail: USB-C PD charger at 20 V 5 A -> Adafruit 5991 -> XL4015 #1 (about 7.2 V) -> OpenRB J4. A 20 V 3 A charger crashes the A7Z while walking or standing up; 20 V 5 A walks without a crash (Shawn, 2026-10-22). A7Z: the same 20 V from the 5991 -> XL4015 #2 -> header pins 2/6 (one supply for both rails). No battery on the robot.",
+          "until": "2026-10-30",
+          "why": "Shawn moved the robot onto the D-010 battery backpack on 2026-10-30"
+        },
+        {
+          "value": "5991 bench supply at 20 V -> XL4015 #1 servo rail (no-load 7.32 V, walking min about 7.0 V) and XL4015 #2 Pi 5.16 V; no battery on the robot",
+          "until": "2026-10-22",
+          "why": "the charger behind the 5991 decides whether the A7Z survives walking: a 20 V 3 A charger froze the A7Z four times on 10/21-10/22, a 20 V 5 A charger did not (Shawn's swap test); the 10/16 entry did not name the charger rating"
+        }
+      ],
+      "sources_in_use": "Battery backpack per Shawn 2026-11-03. Charger backpack remains an alternative; neither its earlier bench setting nor older battery rail measurements prove the present runtime configuration."
+    },
+    "as_built_scan_readiness": {
+      "value": {
+        "backpack_changed": true,
+        "new_scan_received": false,
+        "matched_mass_manifest_verified": false,
+        "dynamic_requalification_complete": false
+      },
+      "meaning": "Readiness of the changed battery-backpack assembly for new sim2real studies; these false flags are evidence gaps, not a physical failure result.",
+      "verified_at": "2026-11-03",
+      "source": "Shawn 2026-11-03: \"我们现在换了电池背包 之后我再做新的3D扫描给你\"; source audit: current battery manifest and old charger-pack scan do not establish the changed body.",
+      "measure": "Register the forthcoming scan against synchronized held-pose joint/IMU samples; weigh changed parts; reconcile training and deployment manifests; verify current sensor/power timing before new-body trials.",
+      "max_age_days": 14
+    }
+  }
+}

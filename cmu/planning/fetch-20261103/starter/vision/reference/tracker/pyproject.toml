@@ -1,0 +1,21 @@
+[project]
+name = "duck-tracker"
+version = "0.1.0"
+description = "MicroDuck layer A2: open-vocabulary detector + video tracker on the Mac mini (PLAN-continuous-vision.md section 3)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy",
+    "opencv-python-headless",
+    "pillow",
+    "torch",
+    "torchvision",
+    "ultralytics",
+    "lap>=0.5.12",
+    "clip @ git+https://github.com/ultralytics/CLIP.git",
+]
+
+[project.optional-dependencies]
+florence = ["transformers", "einops", "timm"]
+
+[tool.uv]
+package = false

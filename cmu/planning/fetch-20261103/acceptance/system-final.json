@@ -1,0 +1,220 @@
+{
+  "reviewer": "system_owner_review",
+  "reviewed_at": "2026-11-03",
+  "verdict": "accept_planning_and_reviewed_startup_scope",
+  "original_reject_preserved": [
+    "system.md",
+    "system.json"
+  ],
+  "own_audio_package_excluded_from_independent_credit": true,
+  "source_sha256": {
+    "README.md": "c5f9219cff56a18f83168ff7e79bdf35bef2d0f57f2b2fb0dd79e2b4b37c74e6",
+    "CONTRACT.md": "ae646432f48f5cd9f3cf2b2bab2a61c6bef0047dba38c133787801676a4a9f3a",
+    "BODY-READINESS.md": "30241a44d2391520a8849f697e08a34d4f36412575182c56af22b3c81587aa70",
+    "DISCORD.md": "10f33a68c130e2930d2029d6aa1d605b2e7b1b3b7f47aef6ae13b06551413f50",
+    "starter/README.md": "debbcd4922327a0b614cac1e4fdfd27504fa7fb8008b78c808f3e28b49cf5e54",
+    "starter/coordinator.py": "275883a0f9edd2c5092cef03478fa22caae7ad228fd15277bd154f81f0e7b89a",
+    "starter/rehearse.py": "0831500944dc95d31d62c6ac46b9edfcd53226c75754583472453732f4b0387d",
+    "starter/evidence/baseline_tracks.jsonl": "9ca8f8a99af1055269bfbe2cac1b664412cd354da69f72b3f16fe9b7e8a78598",
+    "tasks/A-interaction.md": "ddbfd260d04286df4f5aa0cf8b2b7b12dcf7e184ad9b40c1369979be2aa00bae",
+    "tasks/B-visual-approach.md": "36775b3a4f305a992d501164181ebc2c94f6a921b42eaf43d20794783f51aad0",
+    "tasks/C-head-walking.md": "332b59d07293c57b407e556a83134188723769b45e846890f73ff74f2b88d2e3",
+    "tasks/D-pick-and-rise.md": "a1581351afd8f0fb38b5be55e5d254ad5075bc1c38e132c277a44785aa1b063e",
+    "tasks/E-fetch-execution.md": "156aea5941063a6ee41bed84911cac5a5a7ec215640a7ae8e9f65a3d0de264e0",
+    "/Users/xiangzheng/code/reports/src/20261103-microduck-collaboration.md": "6576334697acfaebcd38af40e308f1a8d77ddb96b14524fa24a2a18e6954f1ca"
+  },
+  "entrypoint": {
+    "command": "python3 starter/rehearse.py --out /tmp/microduck-final-independent-rehearsal.json",
+    "passed": 22,
+    "cases": 22,
+    "scope": "Motor-free software contract only; physical events are hand-authored fixtures"
+  },
+  "independent_checks": [
+    {
+      "id": "S1_exact_original",
+      "state": "looking_at_caller",
+      "last_commands": [],
+      "passed": true,
+      "note": "S1 original now held behind required caller-look gate; also tested after valid gate below."
+    },
+    {
+      "id": "S2_exact_original",
+      "state": "looking_at_caller",
+      "last_commands": [
+        {
+          "v": 1,
+          "epoch": 1,
+          "t": 1.02,
+          "intent": "gaze_only",
+          "target_id": "person-A",
+          "preserve_posture": true
+        }
+      ],
+      "passed": true,
+      "note": "Settled emits gaze only; search remains blocked."
+    },
+    {
+      "id": "S1_after_valid_caller_look",
+      "state": "seeking_ball",
+      "last_commands": [
+        {
+          "v": 1,
+          "epoch": 1,
+          "t": 2,
+          "intent": "controlled_stop",
+          "reason": "camera_timeout",
+          "keep_payload": false
+        },
+        {
+          "v": 1,
+          "epoch": 1,
+          "t": 2,
+          "intent": "ignore_other_identity",
+          "target_id": "person-B"
+        }
+      ],
+      "passed": true,
+      "inputs": [
+        {
+          "v": 1,
+          "kind": "call",
+          "t": 0,
+          "caller_id": "person-A",
+          "epoch": 1,
+          "source": "transcript_parser"
+        },
+        {
+          "v": 1,
+          "kind": "request",
+          "t": 1,
+          "caller_id": "person-A",
+          "target_type": "orange_ball",
+          "epoch": 1,
+          "source": "transcript_parser"
+        },
+        {
+          "v": 1,
+          "epoch": 1,
+          "kind": "settled",
+          "t": 1.02,
+          "source": "fixture",
+          "posture": "standing"
+        },
+        {
+          "v": 1,
+          "epoch": 1,
+          "kind": "caller_looked",
+          "t": 1.04,
+          "source": "fixture",
+          "capture_t": 1.03,
+          "caller_id": "person-A",
+          "visible": true,
+          "gaze_aligned": true
+        },
+        {
+          "v": 1,
+          "kind": "track",
+          "t": 1.1,
+          "capture_t": 1.08,
+          "target_id": "orange-ball",
+          "target_type": "orange_ball",
+          "visible": true,
+          "confidence": 1.0,
+          "bbox_xywh": [
+            273,
+            212,
+            96,
+            74
+          ],
+          "image_wh": [
+            640,
+            360
+          ],
+          "source": "image_detector",
+          "confidence_meaning": "binary HSV hit, uncalibrated",
+          "input": "fixture_frame.png",
+          "timing_origin": "synthetic playback clock",
+          "identity_origin": "configured label; no identity inference",
+          "epoch": 1,
+          "clock_note": "remapped to synthetic rehearsal time, 20ms age preserved"
+        },
+        {
+          "v": 1,
+          "epoch": 1,
+          "kind": "track",
+          "t": 2,
+          "source": "fixture",
+          "capture_t": 1.99,
+          "target_id": "person-B",
+          "target_type": "person",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "id": "stale_return_with_wrong_person",
+      "state": "seeking_caller",
+      "last_commands": [
+        {
+          "v": 1,
+          "epoch": 1,
+          "t": 3,
+          "intent": "controlled_stop",
+          "reason": "camera_timeout",
+          "keep_payload": true
+        },
+        {
+          "v": 1,
+          "epoch": 1,
+          "t": 3,
+          "intent": "ignore_other_identity",
+          "target_id": "person-B"
+        }
+      ],
+      "passed": true
+    },
+    {
+      "id": "wrong_caller",
+      "state": "looking_at_caller",
+      "last_commands": [],
+      "passed": true
+    },
+    {
+      "id": "stale_gaze",
+      "state": "looking_at_caller",
+      "last_commands": [],
+      "passed": true
+    },
+    {
+      "id": "unaligned_gaze",
+      "state": "looking_at_caller",
+      "last_commands": [],
+      "passed": true
+    },
+    {
+      "id": "revoked_gaze",
+      "state": "looking_at_caller",
+      "last_commands": [],
+      "passed": true
+    }
+  ],
+  "independent_checks_passed": 8,
+  "accepted": [
+    "capability coverage and explicit ownership",
+    "bootstrap and critical path",
+    "claimable tasks and conditional low-staff checkpoint",
+    "Chinese panorama consistency",
+    "actually exercised stdlib motor-free rehearsal startup"
+  ],
+  "not_certified": [
+    "reviewer-authored audio package",
+    "vision/motion environment install",
+    "download availability",
+    "live audio/identity",
+    "physical estimators",
+    "new-body model or training",
+    "safe live motor execution",
+    "autonomous fetch success"
+  ],
+  "remaining_blockers": []
+}

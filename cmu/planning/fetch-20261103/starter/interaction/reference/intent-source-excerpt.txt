@@ -1,0 +1,22 @@
+Reference only; exact pet/voice/intent.py lines 1–19 as inspected 2026-11-03.
+The local baseline reuses task/ignore separation, NOT this subscription backend or timed primitive plan.
+
+"""Sentence -> validated task, rule, or ignore, through `claude -p` (pet/mind's ClaudeCliBackend).
+
+    pet/.venv/bin/python -m pet.voice.intent "把橙色方块叼来"            # one sentence, prints the interpretation
+    pet/.venv/bin/python -m pet.voice.intent --eval [--sonnet] [--jobs 4]  # the 20 test sentences -> out/intent_eval.json
+
+The model answers one JSON object of three kinds:
+- task:   {"kind": "task", "intention_text", "steps": [{"primitive", "params"}...], "abort_if": [...], "say_back": null}
+          Steps are validated by pet/mind's validator (imported, never copied) against the live body card and the
+          skills pet/mind exposes: only card primitives or validated skills, numeric params inside their ranges,
+          posture preconditions tracked across steps, at most 6 steps and 30 s. One re-ask on a validation error.
+- rule:   {"kind": "rule", "trigger", "outcome_or_effect", "direction", "window_s", "context", "text"}: an owner
+          instruction in the shape pet/learn/instruct.py produces; parsed and validated by its parse_answer (event
+          vocabulary, rule schema), so the rule is exactly what `python -m pet.learn.instruct` would have written.
+- ignore: {"kind": "ignore", "reason"}: speech not addressed to the pet, or nothing the body can act on.
+Every answer also carries "reaction": "praised" | "said_no" | "none", the learn layer's owner:praised / owner:said_no
+event when the sentence is praise or scolding (so "good duck" is kind ignore, reaction praised: nothing to do, but the
+matcher gets its reward signal). say_back is always null: the pet never speaks (Shawn, 2026-10-26).
+"""
+from __future__ import annotations
