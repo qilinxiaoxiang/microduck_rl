@@ -1,19 +1,17 @@
-Hey everyone — I’d like us to build one complete MicroDuck demo:
+Hey team — let’s build the full MicroDuck fetch demo: call Mochi → it looks at you → ask for the orange ball → it approaches while watching → picks it up → returns to the same person → waits for you to take it.
 
-**Call “Mochi” → it looks at you → ask for the orange ball → it approaches while watching → picks it up → carries it back to the same person → waits for you to take it from its mouth.**
+[Starting materials: code, models, samples and setup](https://github.com/qilinxiaoxiang/microduck_rl/blob/main/cmu/planning/fetch-20261103/README.md)
 
-I’ve prepared five **claimable tasks**, with starting code/data/models, tested local commands, suggested steps and acceptance criteria in the attached task pack:
+Five tasks are open for claiming:
 
-- **A · Interaction:** one shared audio path, call/fetch/cancel events, and keeping track of who asked. Start with the supplied transcript parser; extend to local audio replay. Difficulty 3/5.
-- **B · Vision and approach:** track the selected ball/person, handle lost views, and request gaze/speed. Start with the detector/images and its known false positive. Difficulty 4/5.
-- **C · Head-aware walking:** walk/turn/stop while genuinely looking down, then extend to carrying. Start with supplied policy exports and the actual head-down failure trace. Difficulty 5/5.
-- **D · Pick and rise:** maintain vision through the bite and hand over in a stable loaded pose. Start with the recorded pick→stand failure and model replay. Difficulty 5/5.
-- **E · Full fetch execution:** connect the modules, return to the original person, wait for take, and handle cancel/drop/loss. Start with the runnable full-sequence rehearsal. Difficulty 4/5.
+- [A · Voice and caller identity](https://github.com/qilinxiaoxiang/microduck_rl/issues/2) — call/fetch/cancel from one shared audio input. Difficulty 3/5.
+- [B · Continuous vision and approach](https://github.com/qilinxiaoxiang/microduck_rl/issues/3) — track the selected ball/person and request gaze/speed. Difficulty 4/5.
+- [C · Head-aware walking](https://github.com/qilinxiaoxiang/microduck_rl/issues/4) — walk, turn and stop while looking down, then carry. Difficulty 5/5.
+- [D · Pick and rise](https://github.com/qilinxiaoxiang/microduck_rl/issues/5) — visual pickup through a stable loaded handoff. Difficulty 5/5.
+- [E · Full fetch execution](https://github.com/qilinxiaoxiang/microduck_rl/issues/6) — connect the skills, return, wait for take and handle failures. Difficulty 4/5.
 
-These aren’t permanent assignments. Please claim a task **or one small increment**, mention your available time, and leave a runnable branch so someone else can take over. There are five of us including me; I’ll coordinate physical access and the new-backpack measurements.
+All five start unassigned. Comment on an Issue with the task or small increment you want to claim, your availability and first deliverable. Tasks can be shared or handed over: leave the branch, runnable command, current result and next step on the same Issue.
 
-A/B/E software and C/D historical CPU replay can start now. Training for the changed body waits for the matched scan/model. We’ll use one agreed interface and one motor executor, and test adjacent skills without resetting the robot between them.
+A/B/E software and C/D historical CPU replay can start now. New-body training waits for the matched backpack scan/model. I’ll coordinate physical access and measurements.
 
-Could we have a **30-minute meeting this week** to run the starter and choose increments? Please reply with availability. Let’s aim for a useful, reproducible checkpoint in **one week**, and joint testing in **week two if the physical prerequisites are ready**. Complete autonomous fetching is not guaranteed in that window.
-
-Open `index.html` in the attached package for the cards; begin with `starter/README.md`. No robot, paid cloud account or private credentials are required for the first local checks. If you have AWS or other compute available, please mention it—we’ll allocate specific pinned comparisons after a short throughput/cost check.
+Can we meet for 30 minutes this week to run the starter and choose increments? Please reply with availability and any compute you can contribute. Aim for a reproducible checkpoint in one week, then joint testing in week two if the physical prerequisites are ready.

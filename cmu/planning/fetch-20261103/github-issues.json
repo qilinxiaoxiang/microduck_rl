@@ -1,0 +1,41 @@
+{
+  "repository": "qilinxiaoxiang/microduck_rl",
+  "published": "2026-11-03",
+  "issues": [
+    {
+      "id": "A",
+      "number": 2,
+      "title": "[Fetch A] Caller-bound voice interaction",
+      "url": "https://github.com/qilinxiaoxiang/microduck_rl/issues/2",
+      "starting_revision": "80f2344f37bffe61f0756f14aca5d6c92a33299d"
+    },
+    {
+      "id": "B",
+      "number": 3,
+      "title": "[Fetch B] Continuous vision and approach",
+      "url": "https://github.com/qilinxiaoxiang/microduck_rl/issues/3",
+      "starting_revision": "80f2344f37bffe61f0756f14aca5d6c92a33299d"
+    },
+    {
+      "id": "C",
+      "number": 4,
+      "title": "[Fetch C] Head-aware walking and carrying",
+      "url": "https://github.com/qilinxiaoxiang/microduck_rl/issues/4",
+      "starting_revision": "80f2344f37bffe61f0756f14aca5d6c92a33299d"
+    },
+    {
+      "id": "D",
+      "number": 5,
+      "title": "[Fetch D] Visual pickup through a stable loaded rise",
+      "url": "https://github.com/qilinxiaoxiang/microduck_rl/issues/5",
+      "starting_revision": "80f2344f37bffe61f0756f14aca5d6c92a33299d"
+    },
+    {
+      "id": "E",
+      "number": 6,
+      "title": "[Fetch E] Full fetch execution, return and handover",
+      "url": "https://github.com/qilinxiaoxiang/microduck_rl/issues/6",
+      "starting_revision": "80f2344f37bffe61f0756f14aca5d6c92a33299d"
+    }
+  ]
+}

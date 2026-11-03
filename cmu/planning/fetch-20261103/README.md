@@ -4,6 +4,16 @@
 
 We are five people including Shawn. These are tasks to claim, split and hand over, not permanent person assignments. The package supplies actual starting code, models, inputs and offline commands. It does **not** claim that audio recognition, autonomous grasping or new-backpack walking are already solved.
 
+## Live task Issues
+
+- [[Fetch A] Caller-bound voice interaction](https://github.com/qilinxiaoxiang/microduck_rl/issues/2)
+- [[Fetch B] Continuous vision and approach](https://github.com/qilinxiaoxiang/microduck_rl/issues/3)
+- [[Fetch C] Head-aware walking and carrying](https://github.com/qilinxiaoxiang/microduck_rl/issues/4)
+- [[Fetch D] Visual pickup through a stable loaded rise](https://github.com/qilinxiaoxiang/microduck_rl/issues/5)
+- [[Fetch E] Full fetch execution, return and handover](https://github.com/qilinxiaoxiang/microduck_rl/issues/6)
+
+All five were published unassigned. Claim or transfer an increment in the corresponding Issue comments; see the handover instructions below.
+
 ## Read this first
 
 - **A — Interaction:** hear a call/request and retain who asked. Produces task events; never controls joints.
