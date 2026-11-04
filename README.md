@@ -13,6 +13,8 @@ pick and rise, then carry back to the same person and wait for them to take the 
 Start with the supplied CPU-only package; no robot, private credentials or paid cloud account is needed.
 Training for the changed battery backpack waits for the matched scan/model described in the task plan.
 
+**Name response (2026-11-04):** [Mochi feedback and boot-service deployment](cmu/NAMECALL-STATUS-20261104.md) are verified in a live stationary check. Cold power-on remains untested; caller identity, spoken fetch and the complete physical chain remain open.
+
 Walking today is Pollen's `walk61` policy run by the brain on the robot's head board (`walk_wired.py` on the Radxa
 A7Z); the open problem is the sim-to-real gap described in [cmu/SIM2REAL.md](cmu/SIM2REAL.md).
 
