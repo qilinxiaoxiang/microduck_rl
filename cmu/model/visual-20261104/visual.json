@@ -1,0 +1,2120 @@
+{
+ "source": "cmu/model/visual-20261104/source-guide.json.gz",
+ "guide_revision": "guide-20261101-v140-backpack",
+ "fitted": "fitted-20261104.json",
+ "frame": "official body frames, metres",
+ "geoms": [
+  {
+   "mesh": "ankle_left__black",
+   "file": "meshes/ankle_left__black.stl",
+   "body": "ankle_left",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "ankle_left__orange",
+   "file": "meshes/ankle_left__orange.stl",
+   "body": "ankle_left",
+   "colour": "orange",
+   "rgba": [
+    0.95,
+    0.45,
+    0.06,
+    1
+   ],
+   "faces": 6634
+  },
+  {
+   "mesh": "ankle_left__yellow",
+   "file": "meshes/ankle_left__yellow.stl",
+   "body": "ankle_left",
+   "colour": "yellow",
+   "rgba": [
+    1.0,
+    0.8,
+    0.1,
+    1
+   ],
+   "faces": 18000
+  },
+  {
+   "mesh": "ankle_right__black",
+   "file": "meshes/ankle_right__black.stl",
+   "body": "ankle_right",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "ankle_right__orange",
+   "file": "meshes/ankle_right__orange.stl",
+   "body": "ankle_right",
+   "colour": "orange",
+   "rgba": [
+    0.95,
+    0.45,
+    0.06,
+    1
+   ],
+   "faces": 7026
+  },
+  {
+   "mesh": "ankle_right__yellow",
+   "file": "meshes/ankle_right__yellow.stl",
+   "body": "ankle_right",
+   "colour": "yellow",
+   "rgba": [
+    1.0,
+    0.8,
+    0.1,
+    1
+   ],
+   "faces": 18000
+  },
+  {
+   "mesh": "bearing_roll__black",
+   "file": "meshes/bearing_roll__black.stl",
+   "body": "bearing_roll",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "bearing_roll__metal",
+   "file": "meshes/bearing_roll__metal.stl",
+   "body": "bearing_roll",
+   "colour": "metal",
+   "rgba": [
+    0.72,
+    0.73,
+    0.74,
+    1
+   ],
+   "faces": 512
+  },
+  {
+   "mesh": "bearing_roll__servo",
+   "file": "meshes/bearing_roll__servo.stl",
+   "body": "bearing_roll",
+   "colour": "servo",
+   "rgba": [
+    0.17,
+    0.17,
+    0.18,
+    1
+   ],
+   "faces": 7162
+  },
+  {
+   "mesh": "hip_l__black",
+   "file": "meshes/hip_l__black.stl",
+   "body": "hip_l",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 11100
+  },
+  {
+   "mesh": "hip_l__orange",
+   "file": "meshes/hip_l__orange.stl",
+   "body": "hip_l",
+   "colour": "orange",
+   "rgba": [
+    0.95,
+    0.45,
+    0.06,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "hip_l_2__black",
+   "file": "meshes/hip_l_2__black.stl",
+   "body": "hip_l_2",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 11100
+  },
+  {
+   "mesh": "hip_l_2__orange",
+   "file": "meshes/hip_l_2__orange.stl",
+   "body": "hip_l_2",
+   "colour": "orange",
+   "rgba": [
+    0.95,
+    0.45,
+    0.06,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "jaw_soft__black",
+   "file": "meshes/jaw_soft__black.stl",
+   "body": "jaw_soft",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 8958
+  },
+  {
+   "mesh": "jaw_soft__dark",
+   "file": "meshes/jaw_soft__dark.stl",
+   "body": "jaw_soft",
+   "colour": "dark",
+   "rgba": [
+    0.2,
+    0.2,
+    0.22,
+    1
+   ],
+   "faces": 3402
+  },
+  {
+   "mesh": "jaw_soft__gold",
+   "file": "meshes/jaw_soft__gold.stl",
+   "body": "jaw_soft",
+   "colour": "gold",
+   "rgba": [
+    0.8,
+    0.62,
+    0.25,
+    1
+   ],
+   "faces": 6000
+  },
+  {
+   "mesh": "jaw_soft__pcb_blue",
+   "file": "meshes/jaw_soft__pcb_blue.stl",
+   "body": "jaw_soft",
+   "colour": "pcb_blue",
+   "rgba": [
+    0.15,
+    0.3,
+    0.62,
+    1
+   ],
+   "faces": 84
+  },
+  {
+   "mesh": "jaw_soft__pcb_green",
+   "file": "meshes/jaw_soft__pcb_green.stl",
+   "body": "jaw_soft",
+   "colour": "pcb_green",
+   "rgba": [
+    0.15,
+    0.4,
+    0.28,
+    1
+   ],
+   "faces": 4154
+  },
+  {
+   "mesh": "jaw_soft__servo",
+   "file": "meshes/jaw_soft__servo.stl",
+   "body": "jaw_soft",
+   "colour": "servo",
+   "rgba": [
+    0.17,
+    0.17,
+    0.18,
+    1
+   ],
+   "faces": 14602
+  },
+  {
+   "mesh": "jaw_soft__white",
+   "file": "meshes/jaw_soft__white.stl",
+   "body": "jaw_soft",
+   "colour": "white",
+   "rgba": [
+    0.93,
+    0.93,
+    0.91,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "jaw_soft__yellow",
+   "file": "meshes/jaw_soft__yellow.stl",
+   "body": "jaw_soft",
+   "colour": "yellow",
+   "rgba": [
+    1.0,
+    0.8,
+    0.1,
+    1
+   ],
+   "faces": 18000
+  },
+  {
+   "mesh": "jaw_soft__jaw_yellow",
+   "file": "meshes/jaw_soft__jaw_yellow.stl",
+   "body": "jaw_soft",
+   "colour": "yellow",
+   "rgba": [
+    1.0,
+    0.8,
+    0.1,
+    1
+   ],
+   "faces": 12000,
+   "piece": "jaw"
+  },
+  {
+   "mesh": "leg__black",
+   "file": "meshes/leg__black.stl",
+   "body": "leg",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "leg__metal",
+   "file": "meshes/leg__metal.stl",
+   "body": "leg",
+   "colour": "metal",
+   "rgba": [
+    0.72,
+    0.73,
+    0.74,
+    1
+   ],
+   "faces": 512
+  },
+  {
+   "mesh": "leg__servo",
+   "file": "meshes/leg__servo.stl",
+   "body": "leg",
+   "colour": "servo",
+   "rgba": [
+    0.17,
+    0.17,
+    0.18,
+    1
+   ],
+   "faces": 7307
+  },
+  {
+   "mesh": "leg_2__black",
+   "file": "meshes/leg_2__black.stl",
+   "body": "leg_2",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "leg_2__metal",
+   "file": "meshes/leg_2__metal.stl",
+   "body": "leg_2",
+   "colour": "metal",
+   "rgba": [
+    0.72,
+    0.73,
+    0.74,
+    1
+   ],
+   "faces": 512
+  },
+  {
+   "mesh": "leg_2__servo",
+   "file": "meshes/leg_2__servo.stl",
+   "body": "leg_2",
+   "colour": "servo",
+   "rgba": [
+    0.17,
+    0.17,
+    0.18,
+    1
+   ],
+   "faces": 7300
+  },
+  {
+   "mesh": "neck__orange",
+   "file": "meshes/neck__orange.stl",
+   "body": "neck",
+   "colour": "orange",
+   "rgba": [
+    0.95,
+    0.45,
+    0.06,
+    1
+   ],
+   "faces": 5048
+  },
+  {
+   "mesh": "neck__servo",
+   "file": "meshes/neck__servo.stl",
+   "body": "neck",
+   "colour": "servo",
+   "rgba": [
+    0.17,
+    0.17,
+    0.18,
+    1
+   ],
+   "faces": 14484
+  },
+  {
+   "mesh": "neck_pitch__black",
+   "file": "meshes/neck_pitch__black.stl",
+   "body": "neck_pitch",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "trunk_base__black",
+   "file": "meshes/trunk_base__black.stl",
+   "body": "trunk_base",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "trunk_base__dark",
+   "file": "meshes/trunk_base__dark.stl",
+   "body": "trunk_base",
+   "colour": "dark",
+   "rgba": [
+    0.2,
+    0.2,
+    0.22,
+    1
+   ],
+   "faces": 1220
+  },
+  {
+   "mesh": "trunk_base__gold",
+   "file": "meshes/trunk_base__gold.stl",
+   "body": "trunk_base",
+   "colour": "gold",
+   "rgba": [
+    0.8,
+    0.62,
+    0.25,
+    1
+   ],
+   "faces": 60
+  },
+  {
+   "mesh": "trunk_base__light",
+   "file": "meshes/trunk_base__light.stl",
+   "body": "trunk_base",
+   "colour": "light",
+   "rgba": [
+    0.9,
+    0.88,
+    0.82,
+    1
+   ],
+   "faces": 48
+  },
+  {
+   "mesh": "trunk_base__metal",
+   "file": "meshes/trunk_base__metal.stl",
+   "body": "trunk_base",
+   "colour": "metal",
+   "rgba": [
+    0.72,
+    0.73,
+    0.74,
+    1
+   ],
+   "faces": 1020
+  },
+  {
+   "mesh": "trunk_base__orange",
+   "file": "meshes/trunk_base__orange.stl",
+   "body": "trunk_base",
+   "colour": "orange",
+   "rgba": [
+    0.95,
+    0.45,
+    0.06,
+    1
+   ],
+   "faces": 17694
+  },
+  {
+   "mesh": "trunk_base__pcb_blue",
+   "file": "meshes/trunk_base__pcb_blue.stl",
+   "body": "trunk_base",
+   "colour": "pcb_blue",
+   "rgba": [
+    0.15,
+    0.3,
+    0.62,
+    1
+   ],
+   "faces": 9132
+  },
+  {
+   "mesh": "trunk_base__pcb_green",
+   "file": "meshes/trunk_base__pcb_green.stl",
+   "body": "trunk_base",
+   "colour": "pcb_green",
+   "rgba": [
+    0.15,
+    0.4,
+    0.28,
+    1
+   ],
+   "faces": 6192
+  },
+  {
+   "mesh": "trunk_base__servo",
+   "file": "meshes/trunk_base__servo.stl",
+   "body": "trunk_base",
+   "colour": "servo",
+   "rgba": [
+    0.17,
+    0.17,
+    0.18,
+    1
+   ],
+   "faces": 14521
+  },
+  {
+   "mesh": "trunk_base__white",
+   "file": "meshes/trunk_base__white.stl",
+   "body": "trunk_base",
+   "colour": "white",
+   "rgba": [
+    0.93,
+    0.93,
+    0.91,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "upper_leg_left__black",
+   "file": "meshes/upper_leg_left__black.stl",
+   "body": "upper_leg_left",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "upper_leg_left__servo",
+   "file": "meshes/upper_leg_left__servo.stl",
+   "body": "upper_leg_left",
+   "colour": "servo",
+   "rgba": [
+    0.17,
+    0.17,
+    0.18,
+    1
+   ],
+   "faces": 14471
+  },
+  {
+   "mesh": "upper_leg_left__white",
+   "file": "meshes/upper_leg_left__white.stl",
+   "body": "upper_leg_left",
+   "colour": "white",
+   "rgba": [
+    0.93,
+    0.93,
+    0.91,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "upper_leg_right__black",
+   "file": "meshes/upper_leg_right__black.stl",
+   "body": "upper_leg_right",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "upper_leg_right__servo",
+   "file": "meshes/upper_leg_right__servo.stl",
+   "body": "upper_leg_right",
+   "colour": "servo",
+   "rgba": [
+    0.17,
+    0.17,
+    0.18,
+    1
+   ],
+   "faces": 14483
+  },
+  {
+   "mesh": "upper_leg_right__white",
+   "file": "meshes/upper_leg_right__white.stl",
+   "body": "upper_leg_right",
+   "colour": "white",
+   "rgba": [
+    0.93,
+    0.93,
+    0.91,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "yaw2roll__black",
+   "file": "meshes/yaw2roll__black.stl",
+   "body": "yaw2roll",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "yaw2roll__metal",
+   "file": "meshes/yaw2roll__metal.stl",
+   "body": "yaw2roll",
+   "colour": "metal",
+   "rgba": [
+    0.72,
+    0.73,
+    0.74,
+    1
+   ],
+   "faces": 512
+  },
+  {
+   "mesh": "yaw2roll__servo",
+   "file": "meshes/yaw2roll__servo.stl",
+   "body": "yaw2roll",
+   "colour": "servo",
+   "rgba": [
+    0.17,
+    0.17,
+    0.18,
+    1
+   ],
+   "faces": 7150
+  },
+  {
+   "mesh": "yaw_roll_motion__black",
+   "file": "meshes/yaw_roll_motion__black.stl",
+   "body": "yaw_roll_motion",
+   "colour": "black",
+   "rgba": [
+    0.11,
+    0.11,
+    0.12,
+    1
+   ],
+   "faces": 12000
+  },
+  {
+   "mesh": "yaw_roll_motion__servo",
+   "file": "meshes/yaw_roll_motion__servo.stl",
+   "body": "yaw_roll_motion",
+   "colour": "servo",
+   "rgba": [
+    0.17,
+    0.17,
+    0.18,
+    1
+   ],
+   "faces": 7231
+  }
+ ],
+ "jaw": {
+  "body": "jaw_soft",
+  "meshes": [
+   "jaw_soft__jaw_yellow"
+  ],
+  "pivot": [
+   0.003,
+   -0.0,
+   -0.018
+  ],
+  "axis": [
+   -0.0,
+   1.0,
+   0.0
+  ],
+  "open_positive": "a positive angle about axis swings the lip tip down (opens)"
+ },
+ "variants": {
+  "battery": {
+   "geoms": [
+    {
+     "mesh": "ankle_left__black",
+     "file": "meshes/ankle_left__black.stl",
+     "body": "ankle_left",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "ankle_left__orange",
+     "file": "meshes/ankle_left__orange.stl",
+     "body": "ankle_left",
+     "colour": "orange",
+     "rgba": [
+      0.95,
+      0.45,
+      0.06,
+      1
+     ],
+     "faces": 6634
+    },
+    {
+     "mesh": "ankle_left__yellow",
+     "file": "meshes/ankle_left__yellow.stl",
+     "body": "ankle_left",
+     "colour": "yellow",
+     "rgba": [
+      1.0,
+      0.8,
+      0.1,
+      1
+     ],
+     "faces": 18000
+    },
+    {
+     "mesh": "ankle_right__black",
+     "file": "meshes/ankle_right__black.stl",
+     "body": "ankle_right",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "ankle_right__orange",
+     "file": "meshes/ankle_right__orange.stl",
+     "body": "ankle_right",
+     "colour": "orange",
+     "rgba": [
+      0.95,
+      0.45,
+      0.06,
+      1
+     ],
+     "faces": 7026
+    },
+    {
+     "mesh": "ankle_right__yellow",
+     "file": "meshes/ankle_right__yellow.stl",
+     "body": "ankle_right",
+     "colour": "yellow",
+     "rgba": [
+      1.0,
+      0.8,
+      0.1,
+      1
+     ],
+     "faces": 18000
+    },
+    {
+     "mesh": "bearing_roll__black",
+     "file": "meshes/bearing_roll__black.stl",
+     "body": "bearing_roll",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "bearing_roll__metal",
+     "file": "meshes/bearing_roll__metal.stl",
+     "body": "bearing_roll",
+     "colour": "metal",
+     "rgba": [
+      0.72,
+      0.73,
+      0.74,
+      1
+     ],
+     "faces": 512
+    },
+    {
+     "mesh": "bearing_roll__servo",
+     "file": "meshes/bearing_roll__servo.stl",
+     "body": "bearing_roll",
+     "colour": "servo",
+     "rgba": [
+      0.17,
+      0.17,
+      0.18,
+      1
+     ],
+     "faces": 7162
+    },
+    {
+     "mesh": "hip_l__black",
+     "file": "meshes/hip_l__black.stl",
+     "body": "hip_l",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 11100
+    },
+    {
+     "mesh": "hip_l__orange",
+     "file": "meshes/hip_l__orange.stl",
+     "body": "hip_l",
+     "colour": "orange",
+     "rgba": [
+      0.95,
+      0.45,
+      0.06,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "hip_l_2__black",
+     "file": "meshes/hip_l_2__black.stl",
+     "body": "hip_l_2",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 11100
+    },
+    {
+     "mesh": "hip_l_2__orange",
+     "file": "meshes/hip_l_2__orange.stl",
+     "body": "hip_l_2",
+     "colour": "orange",
+     "rgba": [
+      0.95,
+      0.45,
+      0.06,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "jaw_soft__black",
+     "file": "meshes/jaw_soft__black.stl",
+     "body": "jaw_soft",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 8958
+    },
+    {
+     "mesh": "jaw_soft__dark",
+     "file": "meshes/jaw_soft__dark.stl",
+     "body": "jaw_soft",
+     "colour": "dark",
+     "rgba": [
+      0.2,
+      0.2,
+      0.22,
+      1
+     ],
+     "faces": 3402
+    },
+    {
+     "mesh": "jaw_soft__gold",
+     "file": "meshes/jaw_soft__gold.stl",
+     "body": "jaw_soft",
+     "colour": "gold",
+     "rgba": [
+      0.8,
+      0.62,
+      0.25,
+      1
+     ],
+     "faces": 6000
+    },
+    {
+     "mesh": "jaw_soft__pcb_blue",
+     "file": "meshes/jaw_soft__pcb_blue.stl",
+     "body": "jaw_soft",
+     "colour": "pcb_blue",
+     "rgba": [
+      0.15,
+      0.3,
+      0.62,
+      1
+     ],
+     "faces": 84
+    },
+    {
+     "mesh": "jaw_soft__pcb_green",
+     "file": "meshes/jaw_soft__pcb_green.stl",
+     "body": "jaw_soft",
+     "colour": "pcb_green",
+     "rgba": [
+      0.15,
+      0.4,
+      0.28,
+      1
+     ],
+     "faces": 4154
+    },
+    {
+     "mesh": "jaw_soft__servo",
+     "file": "meshes/jaw_soft__servo.stl",
+     "body": "jaw_soft",
+     "colour": "servo",
+     "rgba": [
+      0.17,
+      0.17,
+      0.18,
+      1
+     ],
+     "faces": 14602
+    },
+    {
+     "mesh": "jaw_soft__white",
+     "file": "meshes/jaw_soft__white.stl",
+     "body": "jaw_soft",
+     "colour": "white",
+     "rgba": [
+      0.93,
+      0.93,
+      0.91,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "jaw_soft__yellow",
+     "file": "meshes/jaw_soft__yellow.stl",
+     "body": "jaw_soft",
+     "colour": "yellow",
+     "rgba": [
+      1.0,
+      0.8,
+      0.1,
+      1
+     ],
+     "faces": 18000
+    },
+    {
+     "mesh": "jaw_soft__jaw_yellow",
+     "file": "meshes/jaw_soft__jaw_yellow.stl",
+     "body": "jaw_soft",
+     "colour": "yellow",
+     "rgba": [
+      1.0,
+      0.8,
+      0.1,
+      1
+     ],
+     "faces": 12000,
+     "piece": "jaw"
+    },
+    {
+     "mesh": "leg__black",
+     "file": "meshes/leg__black.stl",
+     "body": "leg",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "leg__metal",
+     "file": "meshes/leg__metal.stl",
+     "body": "leg",
+     "colour": "metal",
+     "rgba": [
+      0.72,
+      0.73,
+      0.74,
+      1
+     ],
+     "faces": 512
+    },
+    {
+     "mesh": "leg__servo",
+     "file": "meshes/leg__servo.stl",
+     "body": "leg",
+     "colour": "servo",
+     "rgba": [
+      0.17,
+      0.17,
+      0.18,
+      1
+     ],
+     "faces": 7307
+    },
+    {
+     "mesh": "leg_2__black",
+     "file": "meshes/leg_2__black.stl",
+     "body": "leg_2",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "leg_2__metal",
+     "file": "meshes/leg_2__metal.stl",
+     "body": "leg_2",
+     "colour": "metal",
+     "rgba": [
+      0.72,
+      0.73,
+      0.74,
+      1
+     ],
+     "faces": 512
+    },
+    {
+     "mesh": "leg_2__servo",
+     "file": "meshes/leg_2__servo.stl",
+     "body": "leg_2",
+     "colour": "servo",
+     "rgba": [
+      0.17,
+      0.17,
+      0.18,
+      1
+     ],
+     "faces": 7300
+    },
+    {
+     "mesh": "neck__orange",
+     "file": "meshes/neck__orange.stl",
+     "body": "neck",
+     "colour": "orange",
+     "rgba": [
+      0.95,
+      0.45,
+      0.06,
+      1
+     ],
+     "faces": 5048
+    },
+    {
+     "mesh": "neck__servo",
+     "file": "meshes/neck__servo.stl",
+     "body": "neck",
+     "colour": "servo",
+     "rgba": [
+      0.17,
+      0.17,
+      0.18,
+      1
+     ],
+     "faces": 14484
+    },
+    {
+     "mesh": "neck_pitch__black",
+     "file": "meshes/neck_pitch__black.stl",
+     "body": "neck_pitch",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "trunk_base__black",
+     "file": "meshes/trunk_base__black.stl",
+     "body": "trunk_base",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "trunk_base__dark",
+     "file": "meshes/trunk_base__dark.stl",
+     "body": "trunk_base",
+     "colour": "dark",
+     "rgba": [
+      0.2,
+      0.2,
+      0.22,
+      1
+     ],
+     "faces": 1220
+    },
+    {
+     "mesh": "trunk_base__gold",
+     "file": "meshes/trunk_base__gold.stl",
+     "body": "trunk_base",
+     "colour": "gold",
+     "rgba": [
+      0.8,
+      0.62,
+      0.25,
+      1
+     ],
+     "faces": 60
+    },
+    {
+     "mesh": "trunk_base__light",
+     "file": "meshes/trunk_base__light.stl",
+     "body": "trunk_base",
+     "colour": "light",
+     "rgba": [
+      0.9,
+      0.88,
+      0.82,
+      1
+     ],
+     "faces": 48
+    },
+    {
+     "mesh": "trunk_base__metal",
+     "file": "meshes/trunk_base__metal.stl",
+     "body": "trunk_base",
+     "colour": "metal",
+     "rgba": [
+      0.72,
+      0.73,
+      0.74,
+      1
+     ],
+     "faces": 1020
+    },
+    {
+     "mesh": "trunk_base__orange",
+     "file": "meshes/trunk_base__orange.stl",
+     "body": "trunk_base",
+     "colour": "orange",
+     "rgba": [
+      0.95,
+      0.45,
+      0.06,
+      1
+     ],
+     "faces": 17694
+    },
+    {
+     "mesh": "trunk_base__pcb_blue",
+     "file": "meshes/trunk_base__pcb_blue.stl",
+     "body": "trunk_base",
+     "colour": "pcb_blue",
+     "rgba": [
+      0.15,
+      0.3,
+      0.62,
+      1
+     ],
+     "faces": 9132
+    },
+    {
+     "mesh": "trunk_base__pcb_green",
+     "file": "meshes/trunk_base__pcb_green.stl",
+     "body": "trunk_base",
+     "colour": "pcb_green",
+     "rgba": [
+      0.15,
+      0.4,
+      0.28,
+      1
+     ],
+     "faces": 6192
+    },
+    {
+     "mesh": "trunk_base__servo",
+     "file": "meshes/trunk_base__servo.stl",
+     "body": "trunk_base",
+     "colour": "servo",
+     "rgba": [
+      0.17,
+      0.17,
+      0.18,
+      1
+     ],
+     "faces": 14521
+    },
+    {
+     "mesh": "trunk_base__white",
+     "file": "meshes/trunk_base__white.stl",
+     "body": "trunk_base",
+     "colour": "white",
+     "rgba": [
+      0.93,
+      0.93,
+      0.91,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "upper_leg_left__black",
+     "file": "meshes/upper_leg_left__black.stl",
+     "body": "upper_leg_left",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "upper_leg_left__servo",
+     "file": "meshes/upper_leg_left__servo.stl",
+     "body": "upper_leg_left",
+     "colour": "servo",
+     "rgba": [
+      0.17,
+      0.17,
+      0.18,
+      1
+     ],
+     "faces": 14471
+    },
+    {
+     "mesh": "upper_leg_left__white",
+     "file": "meshes/upper_leg_left__white.stl",
+     "body": "upper_leg_left",
+     "colour": "white",
+     "rgba": [
+      0.93,
+      0.93,
+      0.91,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "upper_leg_right__black",
+     "file": "meshes/upper_leg_right__black.stl",
+     "body": "upper_leg_right",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "upper_leg_right__servo",
+     "file": "meshes/upper_leg_right__servo.stl",
+     "body": "upper_leg_right",
+     "colour": "servo",
+     "rgba": [
+      0.17,
+      0.17,
+      0.18,
+      1
+     ],
+     "faces": 14483
+    },
+    {
+     "mesh": "upper_leg_right__white",
+     "file": "meshes/upper_leg_right__white.stl",
+     "body": "upper_leg_right",
+     "colour": "white",
+     "rgba": [
+      0.93,
+      0.93,
+      0.91,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "yaw2roll__black",
+     "file": "meshes/yaw2roll__black.stl",
+     "body": "yaw2roll",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "yaw2roll__metal",
+     "file": "meshes/yaw2roll__metal.stl",
+     "body": "yaw2roll",
+     "colour": "metal",
+     "rgba": [
+      0.72,
+      0.73,
+      0.74,
+      1
+     ],
+     "faces": 512
+    },
+    {
+     "mesh": "yaw2roll__servo",
+     "file": "meshes/yaw2roll__servo.stl",
+     "body": "yaw2roll",
+     "colour": "servo",
+     "rgba": [
+      0.17,
+      0.17,
+      0.18,
+      1
+     ],
+     "faces": 7150
+    },
+    {
+     "mesh": "yaw_roll_motion__black",
+     "file": "meshes/yaw_roll_motion__black.stl",
+     "body": "yaw_roll_motion",
+     "colour": "black",
+     "rgba": [
+      0.11,
+      0.11,
+      0.12,
+      1
+     ],
+     "faces": 12000
+    },
+    {
+     "mesh": "yaw_roll_motion__servo",
+     "file": "meshes/yaw_roll_motion__servo.stl",
+     "body": "yaw_roll_motion",
+     "colour": "servo",
+     "rgba": [
+      0.17,
+      0.17,
+      0.18,
+      1
+     ],
+     "faces": 7231
+    }
+   ]
+  }
+ },
+ "parts": [
+  {
+   "key": "amp_tape",
+   "name": "Foam double-sided tape, 1 mm, under the amplifier board between the two floor rails",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "amplifier",
+   "name": "MAX98357A I2S amplifier with five soldered wires, on the floor between two rails, terminal towards the speaker",
+   "body": "jaw_soft",
+   "colour": "pcb_green"
+  },
+  {
+   "key": "ankle",
+   "name": "Left ankle outer half, on the motor horn (new print)",
+   "body": "ankle_left",
+   "colour": "orange"
+  },
+  {
+   "key": "ankle_cheek",
+   "name": "Left ankle inner half, on the sleeve (new print)",
+   "body": "ankle_left",
+   "colour": "orange"
+  },
+  {
+   "key": "battery_backpack_bars",
+   "name": "Two battery retainer bars across the battery front face (printed with the D-037 backpack, reused)",
+   "body": "trunk_base",
+   "colour": "orange"
+  },
+  {
+   "key": "battery_backpack_cap",
+   "name": "Battery backpack cap with battery cradle (V1.41 fitted print; nominal pre-Dual-Lock pose)",
+   "body": "trunk_base",
+   "colour": "orange"
+  },
+  {
+   "key": "battery_backpack_frame",
+   "name": "Battery backpack frame (V1.40 fitted print; nominal pre-Dual-Lock pose)",
+   "body": "trunk_base",
+   "colour": "orange"
+  },
+  {
+   "key": "battery_hatch",
+   "name": "Battery hatch (V1.41 fitted print; failed latch, retained with 3M foam tape)",
+   "body": "trunk_base",
+   "colour": "orange"
+  },
+  {
+   "key": "bp_battery",
+   "name": "Tattu 2S 650 mAh 75C LiPo, XT30 (listing size 57 x 31 x 12 mm), upright in the cradle on the cap",
+   "body": "trunk_base",
+   "colour": "pcb_green"
+  },
+  {
+   "key": "bp_dfr1202",
+   "name": "DFRobot DFR1202 5 V converter for the A7Z, clipped behind the backpack front plate",
+   "body": "trunk_base",
+   "colour": "pcb_blue"
+  },
+  {
+   "key": "bp_plug2",
+   "name": "Plug 2 (switch lead to the DFR1202 feed, XT30) in the front bay",
+   "body": "trunk_base",
+   "colour": "gold"
+  },
+  {
+   "key": "bp_plugs",
+   "name": "Plug 1 (battery to switch lead, XT30) and the battery balance plug, lying on top of the box",
+   "body": "trunk_base",
+   "colour": "gold"
+  },
+  {
+   "key": "bp_switch",
+   "name": "Swann 39 rocker switch on its soldered switch lead, rocker down in the backpack floor",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "camera_u20cam",
+   "name": "Innomaker U20CAM-720P USB camera on the four face bosses, connector edge up (2026-10-26; D-023 had it to the left)",
+   "body": "jaw_soft",
+   "colour": "pcb_green"
+  },
+  {
+   "key": "eye_trim",
+   "name": "Eye trim, bore dia 16.2 for the U20CAM lens ring (V1.30 print, black)",
+   "body": "jaw_soft",
+   "colour": "black"
+  },
+  {
+   "key": "face_panel",
+   "name": "Face panel with four camera bosses for the U20CAM (V1.30 print, white)",
+   "body": "jaw_soft",
+   "colour": "white"
+  },
+  {
+   "key": "foot",
+   "name": "Left foot, slip fit on the ankle (new print)",
+   "body": "ankle_left",
+   "colour": "yellow"
+  },
+  {
+   "key": "head_bottom",
+   "name": "Lower head shell with the speaker pocket, twelve sound holes and the long-round left-rear exit (V1.36 print, yellow)",
+   "body": "jaw_soft",
+   "colour": "yellow"
+  },
+  {
+   "key": "head_cap",
+   "name": "Head cap with two ears, no speaker collar and no amplifier posts, the XIAO at the roof centre (V1.33 print, white)",
+   "body": "jaw_soft",
+   "colour": "white"
+  },
+  {
+   "key": "head_roll_ring_a",
+   "name": "Head-roll sliding support ring",
+   "body": "yaw_roll_motion",
+   "colour": "black"
+  },
+  {
+   "key": "head_roll_ring_b",
+   "name": "Head-roll sliding support ring",
+   "body": "yaw_roll_motion",
+   "colour": "black"
+  },
+  {
+   "key": "head_yaw_link",
+   "name": "Head yaw-to-roll link",
+   "body": "yaw_roll_motion",
+   "colour": "black"
+  },
+  {
+   "key": "hip",
+   "name": "Hip bracket",
+   "body": "hip_l",
+   "colour": "orange"
+  },
+  {
+   "key": "idler11",
+   "name": "Printed rear idler horn \u00b7 ID11",
+   "body": "neck_pitch",
+   "colour": "black"
+  },
+  {
+   "key": "idler12",
+   "name": "Printed rear idler horn \u00b7 ID12",
+   "body": "trunk_base",
+   "colour": "black"
+  },
+  {
+   "key": "idler_cap11",
+   "name": "Printed rear idler cap \u00b7 ID11",
+   "body": "neck_pitch",
+   "colour": "black"
+  },
+  {
+   "key": "idler_cap12",
+   "name": "Printed rear idler cap \u00b7 ID12",
+   "body": "trunk_base",
+   "colour": "black"
+  },
+  {
+   "key": "imu_board",
+   "name": "BNO085 motion sensor",
+   "body": "trunk_base",
+   "colour": "pcb_green"
+  },
+  {
+   "key": "imu_sh4_receiving",
+   "name": "JST SH 4-pin plug",
+   "body": "trunk_base",
+   "colour": "light"
+  },
+  {
+   "key": "jaw_frame",
+   "name": "Jaw frame with the lower lip (right boss hole drilled to 2.5)",
+   "body": "jaw_soft",
+   "colour": "yellow",
+   "piece": "jaw"
+  },
+  {
+   "key": "jaw_support",
+   "name": "Jaw support with the long-round left-rear exit and the curved wall of the retired wire clamp (V1.33 print, black)",
+   "body": "jaw_soft",
+   "colour": "black"
+  },
+  {
+   "key": "lower",
+   "name": "Left lower-leg link, ankle sleeve printed on (new print)",
+   "body": "leg",
+   "colour": "black"
+  },
+  {
+   "key": "mic_back",
+   "name": "INMP441 I2S microphone, back wall, optional third microphone, six soldered wires",
+   "body": "jaw_soft",
+   "colour": "pcb_green"
+  },
+  {
+   "key": "mic_foam_back",
+   "name": "Foam double-sided tape ring, 1 mm, round the back sound hole (optional third microphone)",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "mic_foam_left",
+   "name": "Foam double-sided tape ring, 1 mm, round the left sound hole",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "mic_foam_right",
+   "name": "Foam double-sided tape ring, 1 mm, round the right sound hole",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "mic_left",
+   "name": "INMP441 I2S microphone, left ear, six soldered wires",
+   "body": "jaw_soft",
+   "colour": "pcb_green"
+  },
+  {
+   "key": "mic_right",
+   "name": "INMP441 I2S microphone, right ear, six soldered wires",
+   "body": "jaw_soft",
+   "colour": "pcb_green"
+  },
+  {
+   "key": "motor1",
+   "name": "XL330 \u00b7 ID1 \u00b7 Right ankle pitch",
+   "body": "leg_2",
+   "colour": "servo"
+  },
+  {
+   "key": "motor10",
+   "name": "XL330 \u00b7 ID10 \u00b7 hip yaw",
+   "body": "trunk_base",
+   "colour": "servo"
+  },
+  {
+   "key": "motor11",
+   "name": "XL330 \u00b7 ID11 \u00b7 Head pitch",
+   "body": "neck",
+   "colour": "servo"
+  },
+  {
+   "key": "motor12",
+   "name": "XL330 \u00b7 ID12 \u00b7 Neck pitch",
+   "body": "neck",
+   "colour": "servo"
+  },
+  {
+   "key": "motor13",
+   "name": "XL330 \u00b7 ID13 \u00b7 Head yaw",
+   "body": "yaw_roll_motion",
+   "colour": "servo"
+  },
+  {
+   "key": "motor14",
+   "name": "XL330 \u00b7 ID14 \u00b7 Head roll",
+   "body": "jaw_soft",
+   "colour": "servo"
+  },
+  {
+   "key": "motor15",
+   "name": "XL330 \u00b7 ID15 \u00b7 Jaw",
+   "body": "jaw_soft",
+   "colour": "servo"
+  },
+  {
+   "key": "motor2",
+   "name": "XL330 \u00b7 ID2 \u00b7 Right knee pitch",
+   "body": "upper_leg_right",
+   "colour": "servo"
+  },
+  {
+   "key": "motor3",
+   "name": "XL330 \u00b7 ID3 \u00b7 Right hip pitch",
+   "body": "upper_leg_right",
+   "colour": "servo"
+  },
+  {
+   "key": "motor4",
+   "name": "XL330 \u00b7 ID4 \u00b7 Right hip roll",
+   "body": "bearing_roll",
+   "colour": "servo"
+  },
+  {
+   "key": "motor5",
+   "name": "XL330 \u00b7 ID5 \u00b7 Right hip yaw",
+   "body": "trunk_base",
+   "colour": "servo"
+  },
+  {
+   "key": "motor6",
+   "name": "XL330 \u00b7 ID6 \u00b7 ankle pitch",
+   "body": "leg",
+   "colour": "servo"
+  },
+  {
+   "key": "motor7",
+   "name": "XL330 \u00b7 ID7 \u00b7 knee pitch",
+   "body": "upper_leg_left",
+   "colour": "servo"
+  },
+  {
+   "key": "motor8",
+   "name": "XL330 \u00b7 ID8 \u00b7 hip pitch",
+   "body": "upper_leg_left",
+   "colour": "servo"
+  },
+  {
+   "key": "motor9",
+   "name": "XL330 \u00b7 ID9 \u00b7 hip roll",
+   "body": "yaw2roll",
+   "colour": "servo"
+  },
+  {
+   "key": "mouth_sliding_ring",
+   "name": "Cup ring on the right jaw boss, held by one M2 x 10 (V1.37 print, black)",
+   "body": "jaw_soft",
+   "colour": "black"
+  },
+  {
+   "key": "neck_link_a",
+   "name": "Neck side link A",
+   "body": "neck",
+   "colour": "orange"
+  },
+  {
+   "key": "neck_link_b",
+   "name": "Neck side link B",
+   "body": "neck",
+   "colour": "orange"
+  },
+  {
+   "key": "neck_pitch",
+   "name": "Replacement head-pitch bracket \u00b7 1 mm seats",
+   "body": "neck_pitch",
+   "colour": "black"
+  },
+  {
+   "key": "neck_pitch_ring",
+   "name": "Head-pitch sliding ring",
+   "body": "neck_pitch",
+   "colour": "black"
+  },
+  {
+   "key": "openrb_board",
+   "name": "OpenRB-150 (header tails trimmed), upright in the rear pack",
+   "body": "trunk_base",
+   "colour": "pcb_blue"
+  },
+  {
+   "key": "passive",
+   "name": "Roll support plate",
+   "body": "yaw2roll",
+   "colour": "black"
+  },
+  {
+   "key": "plate",
+   "name": "Thigh reinforcing plate",
+   "body": "upper_leg_left",
+   "colour": "black"
+  },
+  {
+   "key": "rear_pack",
+   "name": "Rear electronics pack (new print)",
+   "body": "trunk_base",
+   "colour": "orange"
+  },
+  {
+   "key": "right_ankle",
+   "name": "Right ankle outer half, on the motor horn (new print)",
+   "body": "ankle_right",
+   "colour": "orange"
+  },
+  {
+   "key": "right_ankle_cheek",
+   "name": "Right ankle inner half, on the sleeve (new print)",
+   "body": "ankle_right",
+   "colour": "orange"
+  },
+  {
+   "key": "right_foot",
+   "name": "Right foot, slip fit on the ankle (new print)",
+   "body": "ankle_right",
+   "colour": "yellow"
+  },
+  {
+   "key": "right_hip",
+   "name": "Right hip bracket",
+   "body": "hip_l_2",
+   "colour": "orange"
+  },
+  {
+   "key": "right_lower",
+   "name": "Right lower-leg link, ankle sleeve printed on (new print)",
+   "body": "leg_2",
+   "colour": "black"
+  },
+  {
+   "key": "right_passive",
+   "name": "Right roll support plate",
+   "body": "bearing_roll",
+   "colour": "black"
+  },
+  {
+   "key": "right_plate",
+   "name": "Right thigh reinforcing plate",
+   "body": "upper_leg_right",
+   "colour": "black"
+  },
+  {
+   "key": "right_smallring",
+   "name": "Right ankle sleeve (V1.22, black), the inner ankle half runs on it",
+   "body": "ankle_right",
+   "colour": "black"
+  },
+  {
+   "key": "right_thigh",
+   "name": "Right thigh body",
+   "body": "upper_leg_right",
+   "colour": "white"
+  },
+  {
+   "key": "right_yaw",
+   "name": "Right yaw-to-roll link",
+   "body": "bearing_roll",
+   "colour": "black"
+  },
+  {
+   "key": "ring10_torso",
+   "name": "Torso sliding ring \u00b7 ID10",
+   "body": "trunk_base",
+   "colour": "black"
+  },
+  {
+   "key": "ring2",
+   "name": "22 mm sliding ring \u00b7 ID2",
+   "body": "upper_leg_right",
+   "colour": "black"
+  },
+  {
+   "key": "ring3",
+   "name": "22 mm sliding ring \u00b7 ID3",
+   "body": "hip_l_2",
+   "colour": "black"
+  },
+  {
+   "key": "ring4",
+   "name": "22 mm sliding ring \u00b7 ID4",
+   "body": "bearing_roll",
+   "colour": "black"
+  },
+  {
+   "key": "ring5_torso",
+   "name": "Torso sliding ring \u00b7 ID5",
+   "body": "trunk_base",
+   "colour": "black"
+  },
+  {
+   "key": "ring7",
+   "name": "22 mm sliding ring \u00b7 ID7",
+   "body": "upper_leg_left",
+   "colour": "black"
+  },
+  {
+   "key": "ring8",
+   "name": "22 mm sliding ring \u00b7 ID8",
+   "body": "hip_l",
+   "colour": "black"
+  },
+  {
+   "key": "ring9",
+   "name": "22 mm sliding ring \u00b7 ID9",
+   "body": "yaw2roll",
+   "colour": "black"
+  },
+  {
+   "key": "saddle_body",
+   "name": "Roof saddle body for the A7Z (V3, D-028): four floor bosses carry the board (screwed from below into the 6530B), one rear window for the three sockets, open header strip at the front with the wall top lowered for the head wires, +Y wall bulge for the antenna pigtail, floor cut over the torso roof opening, exhaust slots, microSD notch in the -Y wall; taped to the shell roofs (new print, orange; white when restocked)",
+   "body": "trunk_base",
+   "colour": "orange"
+  },
+  {
+   "key": "sd_a7z_pcb",
+   "name": "Radxa Cubie A7Z with soldered 40-pin header, on the four floor bosses of the roof saddle",
+   "body": "trunk_base",
+   "colour": "pcb_green"
+  },
+  {
+   "key": "sd_antenna",
+   "name": "AC019 Wi-Fi antenna strip on the saddle front wall (inner face), feed end at the left (+Y), IPEX plug on the board",
+   "body": "trunk_base",
+   "colour": "gold"
+  },
+  {
+   "key": "sd_csi_connector",
+   "name": "A7Z camera connector (31-pin, underside, pin-1 end; empty, no ribbon)",
+   "body": "trunk_base",
+   "colour": "light"
+  },
+  {
+   "key": "sd_dupont_housings",
+   "name": "Straight Dupont housings on the A7Z header (one envelope for every plugged wire), standing in the open header strip",
+   "body": "trunk_base",
+   "colour": "black"
+  },
+  {
+   "key": "sd_fan_connector",
+   "name": "A7Z fan socket J6 (3-pin, pin-1 (+Y) end, towards the rear corner): takes the 6530B blower lead",
+   "body": "trunk_base",
+   "colour": "light"
+  },
+  {
+   "key": "sd_heatsink_6530b",
+   "name": "Radxa Heatsink 6530B (65 x 30 x 11.5 mm aluminium block with a blower fan at the pin-1 (+Y) end, intake upward) on the A7Z, screwed from below through the board",
+   "body": "trunk_base",
+   "colour": "metal"
+  },
+  {
+   "key": "sd_ipex_socket",
+   "name": "A7Z antenna socket (IPEX, on the +Y edge about the middle of the board length)",
+   "body": "trunk_base",
+   "colour": "gold"
+  },
+  {
+   "key": "sd_micro_hdmi",
+   "name": "A7Z micro HDMI on the rear edge, behind the rear window",
+   "body": "trunk_base",
+   "colour": "metal"
+  },
+  {
+   "key": "sd_microsd_card",
+   "name": "microSD card in the A7Z, out through the slot in the -Y saddle wall",
+   "body": "trunk_base",
+   "colour": "pcb_blue"
+  },
+  {
+   "key": "sd_microsd_socket",
+   "name": "A7Z microSD socket (underside, -Y end)",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "sd_pcie_fpc",
+   "name": "A7Z PCIe connector (underside, overhangs the rear edge by 1.2 mm)",
+   "body": "trunk_base",
+   "colour": "light"
+  },
+  {
+   "key": "sd_pmic_area",
+   "name": "A7Z power chip area",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "sd_ram",
+   "name": "A7Z memory",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "sd_soc_a733",
+   "name": "A7Z processor (Allwinner A733), under the 6530B heatsink and its thermal pad",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "sd_thermal_pad_6530b",
+   "name": "16 x 16 x 1.5 mm thermal pad from the 6530B kit between the A733 and the heatsink",
+   "body": "trunk_base",
+   "colour": "metal"
+  },
+  {
+   "key": "sd_uboot_button",
+   "name": "A7Z boot button (underside)",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "sd_underside_smd",
+   "name": "A7Z underside components",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "sd_usb_c_otg_dp",
+   "name": "A7Z USB-C \u2461 (OTG, DisplayPort) on the rear edge, behind the rear window: takes the camera plug from behind the robot",
+   "body": "trunk_base",
+   "colour": "metal"
+  },
+  {
+   "key": "sd_usb_c_power",
+   "name": "A7Z USB-C \u2460 (power) on the rear edge, behind the rear window, left free (the 5 V lead goes on header pins 2 and 6)",
+   "body": "trunk_base",
+   "colour": "metal"
+  },
+  {
+   "key": "sd_wifi_module_fcu760k",
+   "name": "A7Z Wi-Fi module",
+   "body": "trunk_base",
+   "colour": "dark"
+  },
+  {
+   "key": "shell_left",
+   "name": "Left torso shell, screwed to the pack (V2.0 print, white)",
+   "body": "trunk_base",
+   "colour": "white"
+  },
+  {
+   "key": "shell_right",
+   "name": "Right torso shell, screwed to the pack (V2.0 print, white)",
+   "body": "trunk_base",
+   "colour": "white"
+  },
+  {
+   "key": "smallring",
+   "name": "Left ankle sleeve (V1.22, black), the inner ankle half runs on it",
+   "body": "ankle_left",
+   "colour": "black"
+  },
+  {
+   "key": "speaker",
+   "name": "Speaker CMS-30204-18SP, 30 x 20 x 4 mm, grille face down in the floor pocket over the twelve sound holes, solder pads towards the amplifier",
+   "body": "jaw_soft",
+   "colour": "dark"
+  },
+  {
+   "key": "speaker_tape",
+   "name": "Thin double-sided tape, about 0.3 mm, one loop on the speaker grille rim, face down in the floor pocket",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "thigh",
+   "name": "Left thigh body",
+   "body": "upper_leg_left",
+   "colour": "white"
+  },
+  {
+   "key": "torso_base",
+   "name": "Torso base plate",
+   "body": "trunk_base",
+   "colour": "black"
+  },
+  {
+   "key": "touch_pad_l1",
+   "name": "Copper foil tape pad L1 inside the cap",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "touch_pad_l2",
+   "name": "Copper foil tape pad L2 inside the cap",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "touch_pad_m",
+   "name": "Copper foil tape pad M inside the cap",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "touch_pad_r1",
+   "name": "Copper foil tape pad R1 inside the cap",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "touch_pad_r2",
+   "name": "Copper foil tape pad R2 inside the cap",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "touch_xiao",
+   "name": "Seeed XIAO ESP32-S3 touch readout with nine soldered wires, at the middle of the cap roof",
+   "body": "jaw_soft",
+   "colour": "pcb_blue"
+  },
+  {
+   "key": "touch_xiao_tape",
+   "name": "Foam double-sided tape under the XIAO, 21 x 17.8 mm, 1 mm pressed to 0.8 mm",
+   "body": "jaw_soft",
+   "colour": "gold"
+  },
+  {
+   "key": "washer1",
+   "name": "0.5 mm metal washer \u00b7 ID1",
+   "body": "leg_2",
+   "colour": "metal"
+  },
+  {
+   "key": "washer4",
+   "name": "0.5 mm metal washer \u00b7 ID4",
+   "body": "bearing_roll",
+   "colour": "metal"
+  },
+  {
+   "key": "washer6",
+   "name": "0.5 mm metal washer \u00b7 ID6",
+   "body": "leg",
+   "colour": "metal"
+  },
+  {
+   "key": "washer9",
+   "name": "0.5 mm metal washer \u00b7 ID9",
+   "body": "yaw2roll",
+   "colour": "metal"
+  },
+  {
+   "key": "yaw",
+   "name": "Yaw-to-roll link",
+   "body": "yaw2roll",
+   "colour": "black"
+  }
+ ],
+ "not_fitted": [
+  "camera_cable_stub",
+  "duallock_plate",
+  "duallock_strips",
+  "pd5991",
+  "rear_frame",
+  "rear_lid",
+  "saddle_lid",
+  "sd_usb_c_plug",
+  "xl4015_mid",
+  "xl4015_top"
+ ]
+}

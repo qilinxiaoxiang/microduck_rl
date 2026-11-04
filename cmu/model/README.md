@@ -1,6 +1,40 @@
 # CMU robot model: masses and looks
 
+**Current handoff (2026-11-04):** [dated battery model and status](STATUS-2026-11-04.md), [standing/bending scans](scans/2026-11-04/README.md). The `battery-20261104` variant has separately versioned geometry and component estimates. The older `plugged` and `battery` variants and the historical descriptions below remain reproducible baselines; their “today” wording refers to their original dates.
+
 Pollen's MJCF describes Pollen's duck. Our robot carries a head computer, a bench power box or a battery backpack, cables, printed parts and screws that the official bodies do not. This directory turns the measured and estimated extras into signed point masses on the official bodies, so the simulation and the training variants use the robot that exists. All positions are in the official MJCF body frames (metres); all numbers are read from the files named below, never from memory.
+
+![Dated articulated model in MuJoCo](preview-20261104.png)
+
+The preview is the model HOME pose; loose cable routing and the scan-to-body transform are not calibrated.
+
+## Load the dated model
+
+No credentials or robot connection are needed. From the repository root, check scan integrity, load the articulated scene and compare its inertias with the generated component manifest:
+
+```bash
+uv run --no-project --with mujoco==3.10.0 python cmu/model/check_delivery.py
+```
+
+Success prints both scan checks and a JSON result for `battery-20261104` with 14 actuators. `physical_acceptance: false` means this is a compiled estimated model, not a completed robot trial.
+
+For reinforcement learning on a CUDA machine, use the dated task and start with the repository's five-iteration smoke test:
+
+```bash
+uv sync --extra cmu
+uv run train Mjlab-Velocity-Flat-MicroDuck-CMU-Battery-20261104 --env.scene.num-envs 64 --agent.max_iterations 5
+```
+
+The rough-terrain counterpart replaces `Flat` with `Rough`. Both use `variants/battery-20261104.json`, its generated manifest, and `visual-20261104/`; the older `Battery` task remains unchanged. Export policies through `scripts/export.py` as described in the root README. Model loading and task registration are checked on CPU; a new GPU training run and robot deployment are not part of this model update.
+
+The model retains the walking baseline’s existing contact geometry. The new backpack/head shapes are visual meshes with updated component inertias; their detailed self-contact has not been rebuilt from the scan. Use a separately validated collision model before studying impacts, clearance or pickup contacts.
+
+For a standard MuJoCo viewer, open `cmu/model/scenes/scene_battery-20261104.xml`. Keep the checkout intact: its mesh paths point to the bundled body assets. Regenerate its estimated masses and scene after editing the dated source variant:
+
+```bash
+uv run python cmu/model/make_variants.py
+uv run python cmu/model/apply_masses.py --variant battery-20261104 --out cmu/model/scenes/scene_battery-20261104.xml
+```
 
 ## Files
 
@@ -78,3 +112,14 @@ Same method as above. `official`, `asbuilt` and `battery` are unchanged (the bat
 
 - Estimates: the A7Z mass (Radxa publishes none; bounded 15 to 20 g on 2026-10-19, entered as 18 g), the antenna (1.5 g), every battery-backpack part (plan values from `guide/print/back-plate/battery-backpack-20261015/bp_mass.json`), and the bench-box XL4015 boards (20 g each, inherited from the base manifest). Each part carries `label: estimate` and its source string.
 - Open item: weigh the A7Z with its header and the battery backpack parts (frame, cap, battery, switch with leads, DFR1202, plugs and leads), then edit `variants/plugged.json` and `variants/battery.json` and run `uv run --no-sync python cmu/model/make_variants.py`. The tests check that the committed manifests match the variant files.
+
+
+## Rebuild the dated visual layer
+
+The source snapshot and pinned part meshes are bundled under `visual-20261104/`; no private assembly-guide checkout is required. From this repository root:
+
+```bash
+uv run --no-project --python 3.12 --with mujoco==3.15.0 --with trimesh --with scipy --with fast-simplification --with rtree python cmu/model/make_visual.py --fitted cmu/model/fitted-20261104.json --guide cmu/model/visual-20261104/source-guide.json.gz --out cmu/model/visual-20261104
+```
+
+Regenerate the dated scene and rerun `check_delivery.py` after visual changes. Source meshes in this model package are simulation references, not a new print release; the V1.41 hatch retention failure remains recorded in the status document.

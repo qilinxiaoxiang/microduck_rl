@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import gzip
 from pathlib import Path
 
 import fast_simplification
@@ -121,11 +122,14 @@ def official_frames(model: mujoco.MjModel, data: mujoco.MjData):
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--guide", default=str(DEFAULT_GUIDE))
+    ap.add_argument("--fitted", default=str(MODEL_DIR / "fitted.json"), help="fitted component configuration JSON")
     ap.add_argument("--out", default=str(OUT), help="output directory (default: visual/; another path for a dry run)")
     args = ap.parse_args()
     out_dir = Path(args.out)
-    guide = json.loads(Path(args.guide).read_text())
-    fitted = json.loads((MODEL_DIR / "fitted.json").read_text())
+    guide_path = Path(args.guide)
+    guide = json.loads(gzip.decompress(guide_path.read_bytes()) if guide_path.suffix == ".gz" else guide_path.read_text())
+    fitted_path = Path(args.fitted).resolve()
+    fitted = json.loads(fitted_path.read_text())
     palette, colour_of = fitted["palette"], fitted["guide_colours"]
 
     model = mujoco.MjModel.from_xml_path(str(OFFICIAL))
@@ -224,8 +228,8 @@ def main() -> None:
                    for g in frozen_groups.values() for i, k in enumerate(g["parts"])}
     info = {k: (placed[k][0], placed[k][1], placed[k][2], placed[k][5]) for k in placed} | frozen_part
     (out_dir / "visual.json").write_text(json.dumps({
-        "source": str(guide_path.relative_to(REPO_ROOT.parent.parent)) if REPO_ROOT.parent.parent in guide_path.parents else args.guide,
-        "guide_revision": guide.get("revision"), "fitted": "fitted.json", "frame": "official body frames, metres",
+        "source": str(guide_path.relative_to(REPO_ROOT)) if REPO_ROOT in guide_path.parents else (str(guide_path.relative_to(REPO_ROOT.parent.parent)) if REPO_ROOT.parent.parent in guide_path.parents else args.guide),
+        "guide_revision": guide.get("revision"), "fitted": fitted_path.name, "frame": "official body frames, metres",
         "geoms": out[""]["geoms"], "jaw": jaw_out,
         "variants": {k: {"geoms": v["geoms"]} for k, v in out.items() if k},
         "parts": [{"key": k, "name": info[k][3], "body": info[k][0], "colour": info[k][2],

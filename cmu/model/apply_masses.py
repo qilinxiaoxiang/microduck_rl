@@ -43,7 +43,7 @@ MANIFEST_DIR = MODEL_DIR / "manifests"
 # only in robot_allcollisions.xml; this scene carries the 7 sites of the groundcontact export.
 SCENE_XML = REPO_ROOT / "src/mjlab_microduck/robot/microduck/scene.xml"
 BATTERY_REMOVE_KG = 0.090
-VARIANTS = ("official", "asbuilt", "plugged", "battery")
+VARIANTS = ("official", "asbuilt", "plugged", "battery", "battery-20261104")
 # The shin servo's case meets the heel at 1.36 rad (scan-20261101/heel_contact.py). The foot's only collision shape is
 # the sole and MuJoCo filters parent-child contacts, so this joint range is the stop.
 ANKLE_HEEL_STOP_RAD = 1.36
@@ -232,7 +232,7 @@ def main(argv=None) -> int:
           f"x {com_mm[0]:+.2f} y {com_mm[1]:+.2f} z {com_mm[2]:+.2f} mm")
     if args.out:
         from visual import apply_visual_to_spec  # scenes draw the CMU robot as built; physics unchanged (test_visual.py)
-        apply_visual_to_spec(spec, "battery" if args.variant == "battery" else "")
+        apply_visual_to_spec(spec, args.variant if args.variant.startswith("battery") else "")
         model = _compile(spec)
         out = write_scene(spec, args.out)
         check = verify_scene(out, model)

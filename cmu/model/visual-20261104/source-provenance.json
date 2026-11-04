@@ -1,0 +1,304 @@
+{
+  "date": "2026-11-04",
+  "guide_source": "microduck-sim/guide/data/guide-data.json",
+  "guide_source_sha256": "0a9408a22fd79b374e4265cd624108bd16b6c71210f04bed80c6a1512467e573",
+  "guide_snapshot_sha256": "fc3cb68f0fc694361eb200cd5226fead7b434ea10c999521c8fce0768e6800b6",
+  "parts": [
+    {
+      "part": "ankle",
+      "source": "guide/print/world/ankle_outer_left.stl",
+      "source_sha256": "c8c253fb964cb261b766f8efe297f76ecdac95d5c0b05d4b9f32182906103cc7",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/ankle.stl",
+      "sha256": "e39615432d4b572732f957076fa019edd6c52972f23ffd37ce67a01cd1c97d18"
+    },
+    {
+      "part": "right_ankle",
+      "source": "guide/print/world/ankle_outer_right.stl",
+      "source_sha256": "f6e8c6cac6ebf112ffb4863f34661a0506e0319d72eda93547591c8645ff28c2",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/right_ankle.stl",
+      "sha256": "a15c7b8feb4c9dfd4f5d9799a093be6de5602ec493324efac043a77496c0a860"
+    },
+    {
+      "part": "ankle_cheek",
+      "source": "guide/print/world/ankle_inner_left.stl",
+      "source_sha256": "e4019070a2602c9af16cea4b0231298a97c1f6629dc4d19519f7271683ad0ed7",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/ankle_cheek.stl",
+      "sha256": "755796305c6414e996d3c58861b129447873367dc048d1c65e61fd073f6b7b8b"
+    },
+    {
+      "part": "right_ankle_cheek",
+      "source": "guide/print/world/ankle_inner_right.stl",
+      "source_sha256": "fbc73e398ef5b442884a618cc4cc4a8d9d0d970fe430f54bc73d7a020bdf27e0",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/right_ankle_cheek.stl",
+      "sha256": "5ba9a8b9be938bb57d22729266a573d1dc319178605e2112502ccd7b6716abee"
+    },
+    {
+      "part": "foot",
+      "source": "guide/print/world/foot_left.stl",
+      "source_sha256": "614d0fe34d33643fb1a2e8104313911d57e45aa08ed1b4878a76f71cd40d4be2",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/foot.stl",
+      "sha256": "92c72d435563fd7bda2808e7d011dbe1d8263461f4bb4814c7c595bc7b79d373"
+    },
+    {
+      "part": "right_foot",
+      "source": "guide/print/world/foot_right.stl",
+      "source_sha256": "c5bb6ae373a41578e794acc94c6d41faca1542a70cf024c0c6a7a283ba4caad1",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/right_foot.stl",
+      "sha256": "42f9e2f0a54e7abbddd8a3bfb7ee025dd8dd1ab359896e9ca13187da417cec0c"
+    },
+    {
+      "part": "battery_backpack_frame",
+      "source": "guide/print/battery-quickswap-20261101/build-v2/battery_backpack_frame-world.stl",
+      "source_sha256": "4f2354adf3821577de6fbd77e0d8a9b9a29da6dc83a32140677d81146bad289e",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/battery_backpack_frame.stl",
+      "sha256": "4f2354adf3821577de6fbd77e0d8a9b9a29da6dc83a32140677d81146bad289e"
+    },
+    {
+      "part": "battery_backpack_cap",
+      "source": "guide/print/battery-quickswap-20261101/build-v2/battery_backpack_cap-world.stl",
+      "source_sha256": "fa3c465bbe5e9a5bb57615a8ff8c6c8c23a6f4628f2ab098a8bef0d50ca0ce38",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/battery_backpack_cap.stl",
+      "sha256": "fa3c465bbe5e9a5bb57615a8ff8c6c8c23a6f4628f2ab098a8bef0d50ca0ce38"
+    },
+    {
+      "part": "battery_hatch",
+      "source": "guide/print/battery-quickswap-20261101/build-v2/battery_hatch-world.stl",
+      "source_sha256": "f6518d3d9ac4c605e7659d113a58cbd68f889662b6f370834bb84f666da56c2a",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/battery_hatch.stl",
+      "sha256": "f6518d3d9ac4c605e7659d113a58cbd68f889662b6f370834bb84f666da56c2a"
+    },
+    {
+      "part": "battery_backpack_bars",
+      "source": "guide/print/world/battery_backpack_bars.stl",
+      "source_sha256": "720eadb3dba355dc68261c2d1da0b3936c2ac3ae07e5eebd4afaa430f2df3092",
+      "source_to_snapshot_translation_mm": [
+        8.7,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/battery_backpack_bars.stl",
+      "sha256": "339b808e824ff67b80484efc6285bcd14a6ad61fece1fb34bb39ac21908c345e"
+    },
+    {
+      "part": "bp_switch",
+      "source": "guide/print/world/bp_switch.stl",
+      "source_sha256": "87a0cef85424cee958d749e6c7c729dd8c06851d5a23a5f02b8932de77f6d6db",
+      "source_to_snapshot_translation_mm": [
+        8.7,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/bp_switch.stl",
+      "sha256": "e757476588d4be3ed38fcc438edb786efd99710799dc71aa0b74a8704531819e"
+    },
+    {
+      "part": "bp_battery",
+      "source": "guide/print/world/bp_battery.stl",
+      "source_sha256": "8fa44cc23593958ec5eee958289878ecd3b3ef08f47fdebb313f16991d2dc2f5",
+      "source_to_snapshot_translation_mm": [
+        8.7,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/bp_battery.stl",
+      "sha256": "912d58b644d8f731958251c3fae46a760145416b5d82c66d3f15233be37d5d7e"
+    },
+    {
+      "part": "bp_dfr1202",
+      "source": "guide/print/world/bp_dfr1202.stl",
+      "source_sha256": "4adac9c4fed27d2080c7364468ab786c240051181528b9635801ca05ded9a948",
+      "source_to_snapshot_translation_mm": [
+        8.7,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/bp_dfr1202.stl",
+      "sha256": "af1eb22b91b6b6e8a0afcec2db4c00706062eca307a8a2d4ce107c910f068e91"
+    },
+    {
+      "part": "bp_plug2",
+      "source": "guide/print/world/bp_plug2.stl",
+      "source_sha256": "43d5172040b341dec1dba9884bf9c9574245c84edd63b820666c8815a09d25fd",
+      "source_to_snapshot_translation_mm": [
+        8.7,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/bp_plug2.stl",
+      "sha256": "684c0551c744c671160b4704e4d513cab17d96a528306bdaf63996759bfe8de9"
+    },
+    {
+      "part": "bp_plugs",
+      "source": "guide/print/world/bp_plugs.stl",
+      "source_sha256": "c99e1e5c4aab7f04816c4fa833a8c0c4d0577eaa92e87a9faba224baf415bcdf",
+      "source_to_snapshot_translation_mm": [
+        8.7,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/bp_plugs.stl",
+      "sha256": "144b0abf3f10e88c09e7f24b3f4531cfd777eab643400e4131fc6f172981ebe4"
+    },
+    {
+      "part": "smallring",
+      "source": "guide/print/world/ankle_sleeve_left.stl",
+      "source_sha256": "cf34ae9f7e1e04e088a5d00c5047329e443170fd1fc80dbf28680a2164732e55",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/smallring.stl",
+      "sha256": "cf34ae9f7e1e04e088a5d00c5047329e443170fd1fc80dbf28680a2164732e55"
+    },
+    {
+      "part": "right_smallring",
+      "source": "guide/print/world/ankle_sleeve_right.stl",
+      "source_sha256": "26ee66c35f2d8f845b8bc6418491e1fb6113e53161bd0ef770b47d602b32451d",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/right_smallring.stl",
+      "sha256": "26ee66c35f2d8f845b8bc6418491e1fb6113e53161bd0ef770b47d602b32451d"
+    },
+    {
+      "part": "head_cap",
+      "source": "guide/print/world/head_cap.stl",
+      "source_sha256": "4b12045bc4697b76799048316f72693adbdd3b2dfdce1a9ceae5628176660974",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/head_cap.stl",
+      "sha256": "4b12045bc4697b76799048316f72693adbdd3b2dfdce1a9ceae5628176660974",
+      "role": "Original full-resolution CAD source for exact mass provenance. Rendered visual uses the guide representation and its bounded reduction; fitted configuration unchanged."
+    },
+    {
+      "part": "head_bottom",
+      "source": "guide/print/world/head_bottom.stl",
+      "source_sha256": "9cbb0e34c4d40bd9ffb61da4db637d603d5bf2d05a27d14e8b6ea09662858be4",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/head_bottom.stl",
+      "sha256": "9cbb0e34c4d40bd9ffb61da4db637d603d5bf2d05a27d14e8b6ea09662858be4",
+      "role": "Original full-resolution CAD source for exact mass provenance. Rendered visual uses the guide representation and its bounded reduction; fitted configuration unchanged."
+    },
+    {
+      "part": "face_panel",
+      "source": "guide/print/world/face_panel.stl",
+      "source_sha256": "40a3e58ebcd6a32ba106de69c0ae2f8a8633d901366fb90eb2ef813ce4f59e66",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/face_panel.stl",
+      "sha256": "40a3e58ebcd6a32ba106de69c0ae2f8a8633d901366fb90eb2ef813ce4f59e66",
+      "role": "Original full-resolution CAD source for exact mass provenance. Rendered visual uses the guide representation and its bounded reduction; fitted configuration unchanged."
+    },
+    {
+      "part": "eye_trim",
+      "source": "guide/print/world/eye_trim.stl",
+      "source_sha256": "2ee4e952e35bf4fce9dfcae0d19299aeca6b02e42bcb7e1787dbbb28ffbbd6e3",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/eye_trim.stl",
+      "sha256": "2ee4e952e35bf4fce9dfcae0d19299aeca6b02e42bcb7e1787dbbb28ffbbd6e3",
+      "role": "Original full-resolution CAD source for exact mass provenance. Rendered visual uses the guide representation and its bounded reduction; fitted configuration unchanged."
+    },
+    {
+      "part": "jaw_support",
+      "source": "guide/print/world/jaw_support.stl",
+      "source_sha256": "879827ef02ff81b6b16792decdc1b5ab46fb1f9cab8a0b7eaab58c52859a1454",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/jaw_support.stl",
+      "sha256": "879827ef02ff81b6b16792decdc1b5ab46fb1f9cab8a0b7eaab58c52859a1454",
+      "role": "Original full-resolution CAD source for exact mass provenance. Rendered visual uses the guide representation and its bounded reduction; fitted configuration unchanged."
+    },
+    {
+      "part": "jaw_frame",
+      "source": "guide/print/world/jaw_frame.stl",
+      "source_sha256": "e5278fae5a41d1f2a8a589bf9aa0a31b2199a49cbb592934877945261f2c491a",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/jaw_frame.stl",
+      "sha256": "e5278fae5a41d1f2a8a589bf9aa0a31b2199a49cbb592934877945261f2c491a",
+      "role": "Original full-resolution CAD source for exact mass provenance. Rendered visual uses the guide representation and its bounded reduction; fitted configuration unchanged."
+    },
+    {
+      "part": "mouth_sliding_ring",
+      "source": "guide/print/world/mouth_sliding_ring.stl",
+      "source_sha256": "e81a183b824672758f9892cc2d655b0c094e5ac881cf6b54f532f6cb5d4c5129",
+      "source_to_snapshot_translation_mm": [
+        0,
+        0,
+        0
+      ],
+      "snapshot": "visual-20261104/source-parts/mouth_sliding_ring.stl",
+      "sha256": "e81a183b824672758f9892cc2d655b0c094e5ac881cf6b54f532f6cb5d4c5129",
+      "role": "Original full-resolution CAD source for exact mass provenance. Rendered visual uses the guide representation and its bounded reduction; fitted configuration unchanged."
+    }
+  ],
+  "guide_snapshot_note": "Geometry-only source snapshot. Battery frame/cap/hatch labels identify the pinned fitted revision rather than the older guide label; geometry overrides are bound in fitted-20261104.json."
+}

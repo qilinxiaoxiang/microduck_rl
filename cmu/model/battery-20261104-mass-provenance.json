@@ -1,0 +1,799 @@
+{
+  "method": {
+    "date": "2026-11-04",
+    "method": "Preserve prior Claude CAD volume x 1.24 g/cm3 x 0.851 effective solid fraction for printed parts; mesh centre of mass and tensor in unshifted robot frame. Reuse documented component/lead estimates with explicit uncertainty.",
+    "static_pose_evidence": "User confirms both new scans were captured powered, under closed-loop control, standing and bending. Joint/IMU synchronization and registration not yet established.",
+    "uncertainty": "Printed masses use prior effective density (0.851); examine +/-20%. Cable 10-30 g/m, camera 6-12 g, adapter 1-6 g, tape 0.05-0.6 g. Coiled cable distribution and shell masses/poses require sensitivity checks; no new user weighing needed for this estimated baseline.",
+    "head_reconciliation": "All changed printed head pieces replace their legacy add entries, leaving official subtraction entries once. Body transform comes from official zero-pose MuJoCo frames. Speaker and amplifier component masses retained at current mesh centres; obsolete roof retainer and amplifier screws removed; mic/touch estimated masses relocated to current guide centres."
+  },
+  "mesh_parts": [
+    {
+      "id": "add-bp-frame-v140",
+      "source_mesh": "robotics/microduck-sim/guide/print/battery-quickswap-20261101/build/battery_backpack_frame-world.stl",
+      "sha256": "92c49920606a01d5f3507b6ab4053b7f7d6405b6035f1d9708a90b50396268e2",
+      "volume_mm3": 15348.693781295216,
+      "mesh_centroid_robot_mm": [
+        -53.70334427652547,
+        0.12428557166824075,
+        -1.6500546693889824
+      ],
+      "mass_g": 16.196555625773964,
+      "position_body_m": [
+        -0.05370334427652547,
+        0.00012428557166824076,
+        -0.0016500546693889824
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          1.6555823675833617e-05,
+          4.327654031042371e-10,
+          -2.6625399119504423e-07
+        ],
+        [
+          4.327654031042371e-10,
+          1.1630644068134597e-05,
+          -8.398637450962312e-08
+        ],
+        [
+          -2.6625399119504423e-07,
+          -8.398637450962312e-08,
+          7.019038455149267e-06
+        ]
+      ]
+    },
+    {
+      "id": "add-bp-cap-v141",
+      "source_mesh": "robotics/microduck-sim/guide/print/battery-quickswap-20261101/build-v2/battery_backpack_cap-world.stl",
+      "sha256": "fa3c465bbe5e9a5bb57615a8ff8c6c8c23a6f4628f2ab098a8bef0d50ca0ce38",
+      "volume_mm3": 9250.039122804932,
+      "mesh_centroid_robot_mm": [
+        -71.98085663514945,
+        -0.004041132496193641,
+        4.631141366547659
+      ],
+      "mass_g": 9.761011283948676,
+      "position_body_m": [
+        -0.07198085663514946,
+        -4.041132496193641e-06,
+        0.0046311413665476595
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          7.4006097489033896e-06,
+          -1.4758308969293937e-10,
+          3.363404983520262e-08
+        ],
+        [
+          -1.4758308969293937e-10,
+          4.241302306521748e-06,
+          -6.955138490607276e-10
+        ],
+        [
+          3.363404983520262e-08,
+          -6.955138490607276e-10,
+          3.408990939789117e-06
+        ]
+      ]
+    },
+    {
+      "id": "add-bp-hatch-v141",
+      "source_mesh": "robotics/microduck-sim/guide/print/battery-quickswap-20261101/build-v2/battery_hatch-world.stl",
+      "sha256": "f6518d3d9ac4c605e7659d113a58cbd68f889662b6f370834bb84f666da56c2a",
+      "volume_mm3": 1681.1164096198593,
+      "mesh_centroid_robot_mm": [
+        -71.64336510108603,
+        3.908141196333421,
+        34.57818210149072
+      ],
+      "mass_g": 1.7739812800872603,
+      "position_body_m": [
+        -0.07164336510108603,
+        0.003908141196333421,
+        0.03457818210149072
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          2.1199229927223857e-07,
+          -2.2743669931771366e-08,
+          -4.020331316383863e-08
+        ],
+        [
+          -2.2743669931771366e-08,
+          1.3027769212933028e-07,
+          -3.123779575922088e-08
+        ],
+        [
+          -4.020331316383863e-08,
+          -3.123779575922088e-08,
+          1.6267507439844975e-07
+        ]
+      ]
+    },
+    {
+      "id": "add-bp-bars-d037",
+      "source_mesh": "cmu/hardware/battery-backpack/stl/battery_backpack_bar-world.stl",
+      "sha256": "f4cb842eac58a40f80574b48e28a37888ba9f467bd38041fe66e4802e0073d40",
+      "volume_mm3": 608.1425988558145,
+      "mesh_centroid_robot_mm": [
+        -61.00000000000024,
+        0.0,
+        7.999999965433498
+      ],
+      "mass_g": 0.6417363960166097,
+      "position_body_m": [
+        -0.06100000000000024,
+        0.0,
+        0.007999999965433498
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          2.557126260365094e-07,
+          1.3103584448496501e-22,
+          -1.2898840941488742e-21
+        ],
+        [
+          1.3103584448496501e-22,
+          1.6578779297999382e-07,
+          -2.1753997619574267e-24
+        ],
+        [
+          -1.2898840941488742e-21,
+          -2.1753997619574267e-24,
+          9.016548420498161e-08
+        ]
+      ]
+    },
+    {
+      "id": "add-camera-u20cam-estimate",
+      "source_mesh": "robotics/microduck-sim/guide/print/world/camera_u20cam.stl",
+      "sha256": "4b92f37455e8f036801266f99cbcc8ef69e173ac3477e8541e282e068ab7af11",
+      "volume_mm3": 4915.096488753658,
+      "mesh_centroid_robot_mm": [
+        73.16596166224565,
+        0.07080868297155646,
+        131.4324565297329
+      ],
+      "mass_g": 8.44645165942043,
+      "position_body_m": [
+        0.015817856529732936,
+        7.080868297155431e-05,
+        -0.06506596166224561
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          8.118544565144786e-07,
+          -2.0385226444820076e-08,
+          -3.345709895882999e-08
+        ],
+        [
+          -2.0385226444820076e-08,
+          8.269638535088722e-07,
+          -1.6926090336008813e-08
+        ],
+        [
+          -3.345709895882999e-08,
+          -1.6926090336008813e-08,
+          6.522340481866412e-07
+        ]
+      ]
+    },
+    {
+      "id": "add-head_cap-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-parts/head_cap.stl",
+      "sha256": "4b12045bc4697b76799048316f72693adbdd3b2dfdce1a9ceae5628176660974",
+      "volume_mm3": 29876.92312256074,
+      "mass_g": 31.527324355850993,
+      "mesh_centroid_robot_mm": [
+        35.17742627390657,
+        -0.04057266569394077,
+        137.51224255211721
+      ],
+      "position_body_m": [
+        0.021897642552117253,
+        -4.057266569394258e-05,
+        -0.027077426273906552
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          6.855135991149294e-05,
+          -1.0025545595759578e-08,
+          4.691824517622985e-06
+        ],
+        [
+          -1.0025545595759578e-08,
+          4.890243437217567e-05,
+          4.784023015442045e-08
+        ],
+        [
+          4.691824517622985e-06,
+          4.784023015442045e-08,
+          3.0395103331605184e-05
+        ]
+      ],
+      "is_volume": true
+    },
+    {
+      "id": "add-head_bottom-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-parts/head_bottom.stl",
+      "sha256": "9cbb0e34c4d40bd9ffb61da4db637d603d5bf2d05a27d14e8b6ea09662858be4",
+      "volume_mm3": 25718.21004512938,
+      "mass_g": 27.138883968022327,
+      "mesh_centroid_robot_mm": [
+        31.63101585257494,
+        -1.401307325219458,
+        105.99297067350446
+      ],
+      "position_body_m": [
+        -0.0096216293264955,
+        -0.0014013073252194608,
+        -0.023531015852574923
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          4.9942833160582196e-05,
+          5.44779005126446e-08,
+          2.094375158679991e-06
+        ],
+        [
+          5.44779005126446e-08,
+          3.165985632702369e-05,
+          3.8745682153140657e-07
+        ],
+        [
+          2.094375158679991e-06,
+          3.8745682153140657e-07,
+          1.9225153933272246e-05
+        ]
+      ],
+      "is_volume": true
+    },
+    {
+      "id": "add-face_panel-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-parts/face_panel.stl",
+      "sha256": "40a3e58ebcd6a32ba106de69c0ae2f8a8633d901366fb90eb2ef813ce4f59e66",
+      "volume_mm3": 4914.115879830777,
+      "mass_g": 5.185571641032629,
+      "mesh_centroid_robot_mm": [
+        79.4696135400745,
+        -0.09025027368589846,
+        130.43605951300927
+      ],
+      "position_body_m": [
+        0.014821459513009304,
+        -9.025027368590057e-05,
+        -0.07136961354007447
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          2.5321570919664044e-06,
+          -1.7649743114667892e-11,
+          -4.485645468402704e-09
+        ],
+        [
+          -1.7649743114667892e-11,
+          9.056057125557101e-07,
+          9.136332000283677e-13
+        ],
+        [
+          -4.485645468402704e-09,
+          9.136332000283677e-13,
+          3.334177442164706e-06
+        ]
+      ],
+      "is_volume": true
+    },
+    {
+      "id": "add-eye_trim-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-parts/eye_trim.stl",
+      "sha256": "2ee4e952e35bf4fce9dfcae0d19299aeca6b02e42bcb7e1787dbbb28ffbbd6e3",
+      "volume_mm3": 3932.732839240935,
+      "mass_g": 4.149977001280604,
+      "mesh_centroid_robot_mm": [
+        85.36485774680311,
+        -0.0898504618948137,
+        131.1157201339088
+      ],
+      "position_body_m": [
+        0.015501120133908856,
+        -8.985046189481579e-05,
+        -0.07726485774680307
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          3.256221519583616e-07,
+          7.240088945795507e-13,
+          -3.606788404223558e-11
+        ],
+        [
+          7.240088945795507e-13,
+          3.227414201844687e-07,
+          -2.438771356179659e-12
+        ],
+        [
+          -3.606788404223558e-11,
+          -2.438771356179659e-12,
+          6.047637427227317e-07
+        ]
+      ],
+      "is_volume": true
+    },
+    {
+      "id": "add-jaw_support-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-parts/jaw_support.stl",
+      "sha256": "879827ef02ff81b6b16792decdc1b5ab46fb1f9cab8a0b7eaab58c52859a1454",
+      "volume_mm3": 7532.105729913339,
+      "mass_g": 7.948179250433752,
+      "mesh_centroid_robot_mm": [
+        24.990146263750944,
+        -1.2008045499498803,
+        122.23051930929975
+      ],
+      "position_body_m": [
+        0.006615919309299789,
+        -0.0012008045499498825,
+        -0.01689014626375093
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          6.293579952269872e-06,
+          -1.7795742623013003e-07,
+          6.308773752016203e-08
+        ],
+        [
+          -1.7795742623013003e-07,
+          2.8180650528147195e-06,
+          1.1793691351621217e-07
+        ],
+        [
+          6.308773752016203e-08,
+          1.1793691351621217e-07,
+          4.056774751445824e-06
+        ]
+      ],
+      "is_volume": true
+    },
+    {
+      "id": "add-jaw_frame-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-parts/jaw_frame.stl",
+      "sha256": "e5278fae5a41d1f2a8a589bf9aa0a31b2199a49cbb592934877945261f2c491a",
+      "volume_mm3": 27951.39906959033,
+      "mass_g": 29.495434354194497,
+      "mesh_centroid_robot_mm": [
+        65.18019801896364,
+        -0.5461136525712591,
+        104.36847532708407
+      ],
+      "position_body_m": [
+        -0.01124612467291588,
+        -0.0005461136525712622,
+        -0.05708019801896359
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          3.0446813813872705e-05,
+          2.3012505030885857e-07,
+          -1.212185155752471e-06
+        ],
+        [
+          2.3012505030885857e-07,
+          7.4057124987404435e-06,
+          6.287426324871661e-07
+        ],
+        [
+          -1.212185155752471e-06,
+          6.287426324871661e-07,
+          2.4406707888394773e-05
+        ]
+      ],
+      "is_volume": true
+    },
+    {
+      "id": "add-mouth_sliding_ring-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-parts/mouth_sliding_ring.stl",
+      "sha256": "e81a183b824672758f9892cc2d655b0c094e5ac881cf6b54f532f6cb5d4c5129",
+      "volume_mm3": 689.4419940440825,
+      "mass_g": 0.7275267697950777,
+      "mesh_centroid_robot_mm": [
+        26.10000020304589,
+        -35.98363063126768,
+        118.6199996840739
+      ],
+      "position_body_m": [
+        0.0030053996840739426,
+        -0.035983630631267666,
+        -0.018000000203045877
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          1.2313478151817895e-08,
+          -1.791223963013136e-16,
+          -9.827688336330164e-22
+        ],
+        [
+          -1.791223963013136e-16,
+          2.0719171350363234e-08,
+          -9.43241871148347e-17
+        ],
+        [
+          -9.827688336330164e-22,
+          -9.43241871148347e-17,
+          1.2313477550264355e-08
+        ]
+      ],
+      "is_volume": true
+    },
+    {
+      "id": "add-speaker-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-guide.json.gz part speaker",
+      "sha256": "a6f5171e27fbeeecb7ee518681595a97e6f57c7bb9ac254eeecad1236ade6e28",
+      "volume_mm3": 1438.5541394265365,
+      "mass_g": 2.3,
+      "mesh_centroid_robot_mm": [
+        68.5000033964866,
+        -1.9397340750423433,
+        111.63381863880704
+      ],
+      "position_body_m": [
+        -0.00398078136119291,
+        -0.0019397340750423454,
+        -0.06040000339648657
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          2.491669298808782e-07,
+          7.54451438803835e-24,
+          1.06486060273514e-40
+        ],
+        [
+          7.54451438803835e-24,
+          8.054536390967155e-08,
+          2.789683493336091e-57
+        ],
+        [
+          1.06486060273514e-40,
+          2.789683493336091e-57,
+          1.7637896045721653e-07
+        ]
+      ],
+      "is_volume": false
+    },
+    {
+      "id": "add-amplifier-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-guide.json.gz part amplifier",
+      "sha256": "9a57cf63d11722925ef2f7ca6744c95fcd04a227bc91ba486d8679dc73384850",
+      "volume_mm3": 1663.0260960083026,
+      "mass_g": 1.2,
+      "mesh_centroid_robot_mm": [
+        64.00000001210284,
+        24.72445062856571,
+        116.27442368489695
+      ],
+      "position_body_m": [
+        0.0006598236848969888,
+        0.024724450628565695,
+        -0.05590000001210281
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          5.416485598325177e-08,
+          1.0449415905703515e-08,
+          -2.4418525110907728e-17
+        ],
+        [
+          1.0449415905703515e-08,
+          3.5737774889491724e-08,
+          -7.384258495635755e-17
+        ],
+        [
+          -2.4418525110907728e-17,
+          -7.384258495635755e-17,
+          4.8553405161058185e-08
+        ]
+      ],
+      "is_volume": true
+    },
+    {
+      "id": "add-speaker_tape-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-guide.json.gz part speaker_tape",
+      "sha256": "390363583f163973761dcbbacc136ed0096bb0de309c7fad0e7c12ecb8f32ab3",
+      "volume_mm3": 37.34028967093574,
+      "mass_g": 0.037340289670935736,
+      "mesh_centroid_robot_mm": [
+        68.49998512714954,
+        -2.0000100230899287,
+        109.92420126074117
+      ],
+      "position_body_m": [
+        -0.005690398739258776,
+        -0.0020000100230899314,
+        -0.0603999851271495
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          5.5800690027732874e-09,
+          5.840777478589878e-13,
+          -1.7210772979538875e-11
+        ],
+        [
+          5.840777478589878e-13,
+          1.9969220436288725e-09,
+          -1.5272803657361194e-15
+        ],
+        [
+          -1.7210772979538875e-11,
+          -1.5272803657361194e-15,
+          3.584003984159903e-09
+        ]
+      ],
+      "is_volume": true
+    },
+    {
+      "id": "add-amp_tape-20261104",
+      "source_mesh": "cmu/model/visual-20261104/source-guide.json.gz part amp_tape",
+      "sha256": "05de717adf9a0c37a38b69b3920407be7b1b4787d0f0db5def90a120eac8df9f",
+      "volume_mm3": 253.2689683685312,
+      "mass_g": 0.07598069051055935,
+      "mesh_centroid_robot_mm": [
+        64.0,
+        26.524999618530273,
+        111.80834579467738
+      ],
+      "position_body_m": [
+        -0.003806254205322573,
+        0.02652499961853026,
+        -0.055899999999999964
+      ],
+      "inertia_about_com_kg_m2": [
+        [
+          3.207720101183021e-09,
+          2.659384901519658e-13,
+          -1.3591593345394343e-11
+        ],
+        [
+          2.659384901519658e-13,
+          1.583101205096113e-09,
+          -1.74629063930015e-23
+        ],
+        [
+          -1.3591593345394343e-11,
+          -1.74629063930015e-23,
+          1.6375167649883757e-09
+        ]
+      ],
+      "is_volume": true
+    }
+  ],
+  "camera_calculation": {
+    "pcb_mm3": 1612.8244198708317,
+    "pcb_density_assumption_g_cm3": 1.85,
+    "other_effective_density_assumption_g_cm3": 1.2,
+    "components_g": 1.5,
+    "total_g": 8.44645165942043
+  },
+  "anti_double_count": [
+    "Old frame and cap removed; new cap already includes cradle, so Nov1 aggregate cradle-bars omitted.",
+    "Bars mesh contains both bars; included once.",
+    "Old 10 g plugs/wires replaced by 3+1+6 g split.",
+    "Old 4 g Pi camera and 20 g USB trunk lump removed.",
+    "A7Z, 6530B with its screws, saddle, existing wiring and four pack fixing screws inherited once.",
+    "All changed printed head pieces replace their legacy add entries, leaving official subtraction entries once. Body transform comes from official zero-pose MuJoCo frames. Speaker and amplifier component masses retained at current mesh centres; obsolete roof retainer and amplifier screws removed; mic/touch estimated masses relocated to current guide centres."
+  ],
+  "head_fastener_sources": [
+    {
+      "id": "H-jaw_support-01",
+      "step": "head-bottom",
+      "spec": "M2.6 \u00d7 6 TAP",
+      "kind": "TAP",
+      "diameterMm": 2.6,
+      "lengthMm": 6.0,
+      "headDiameterMm": 4.5,
+      "headHeightMm": 1.8,
+      "center": [
+        11.6,
+        30.2,
+        113.211
+      ],
+      "axis": [
+        -0.0,
+        -0.0,
+        -1.0
+      ],
+      "throughPart": "jaw_support",
+      "intoPart": "head_bottom",
+      "where": "Through Jaw support with the long-round left-rear exit and the curved wall of the retired wire clamp (V1.33 print, black) into Lower head shell with the speaker pocket, twelve sound holes and the long-round left-rear exit (V1.36 print, yellow)",
+      "note": "Down through the jaw support base plate into a lower-shell boss, all four corners: 3.3 mm of thread in the boss (4 mm at the left-rear one, which sits on the pad strip behind ID15, beside the exit slot). The plate holes are only 0.05 to 0.2 mm wider than the screw, so press the plate down while you drive."
+    },
+    {
+      "id": "H-jaw_support-02",
+      "step": "head-bottom",
+      "spec": "M2.6 \u00d7 6 TAP",
+      "kind": "TAP",
+      "diameterMm": 2.6,
+      "lengthMm": 6.0,
+      "headDiameterMm": 4.5,
+      "headHeightMm": 1.8,
+      "center": [
+        49.1,
+        9.35,
+        113.215
+      ],
+      "axis": [
+        -0.0,
+        -0.0,
+        -1.0
+      ],
+      "throughPart": "jaw_support",
+      "intoPart": "head_bottom",
+      "where": "Through Jaw support with the long-round left-rear exit and the curved wall of the retired wire clamp (V1.33 print, black) into Lower head shell with the speaker pocket, twelve sound holes and the long-round left-rear exit (V1.36 print, yellow)",
+      "note": "Down through the jaw support base plate into a lower-shell boss, all four corners: 3.3 mm of thread in the boss (4 mm at the left-rear one, which sits on the pad strip behind ID15, beside the exit slot). The plate holes are only 0.05 to 0.2 mm wider than the screw, so press the plate down while you drive."
+    },
+    {
+      "id": "H-jaw_support-03",
+      "step": "head-bottom",
+      "spec": "M2.6 \u00d7 6 TAP",
+      "kind": "TAP",
+      "diameterMm": 2.6,
+      "lengthMm": 6.0,
+      "headDiameterMm": 4.5,
+      "headHeightMm": 1.8,
+      "center": [
+        42.1,
+        -30.0,
+        113.215
+      ],
+      "axis": [
+        -0.0,
+        -0.0,
+        -1.0
+      ],
+      "throughPart": "jaw_support",
+      "intoPart": "head_bottom",
+      "where": "Through Jaw support with the long-round left-rear exit and the curved wall of the retired wire clamp (V1.33 print, black) into Lower head shell with the speaker pocket, twelve sound holes and the long-round left-rear exit (V1.36 print, yellow)",
+      "note": "Down through the jaw support base plate into a lower-shell boss, all four corners: 3.3 mm of thread in the boss (4 mm at the left-rear one, which sits on the pad strip behind ID15, beside the exit slot). The plate holes are only 0.05 to 0.2 mm wider than the screw, so press the plate down while you drive."
+    },
+    {
+      "id": "H-jaw_support-04",
+      "step": "head-bottom",
+      "spec": "M2.6 \u00d7 6 TAP",
+      "kind": "TAP",
+      "diameterMm": 2.6,
+      "lengthMm": 6.0,
+      "headDiameterMm": 4.5,
+      "headHeightMm": 1.8,
+      "center": [
+        3.1,
+        -30.0,
+        113.215
+      ],
+      "axis": [
+        -0.0,
+        -0.0,
+        -1.0
+      ],
+      "throughPart": "jaw_support",
+      "intoPart": "head_bottom",
+      "where": "Through Jaw support with the long-round left-rear exit and the curved wall of the retired wire clamp (V1.33 print, black) into Lower head shell with the speaker pocket, twelve sound holes and the long-round left-rear exit (V1.36 print, yellow)",
+      "note": "Down through the jaw support base plate into a lower-shell boss, all four corners: 3.3 mm of thread in the boss (4 mm at the left-rear one, which sits on the pad strip behind ID15, beside the exit slot). The plate holes are only 0.05 to 0.2 mm wider than the screw, so press the plate down while you drive."
+    },
+    {
+      "id": "C-camera-01",
+      "step": "camera",
+      "spec": "M2 \u00d7 6 TAP",
+      "kind": "TAP",
+      "diameterMm": 2.0,
+      "lengthMm": 6.0,
+      "headDiameterMm": 3.8,
+      "headHeightMm": 1.3,
+      "center": [
+        65.4,
+        -14.09,
+        117.11
+      ],
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "throughPart": "camera_u20cam",
+      "intoPart": "face_panel",
+      "where": "Through Innomaker U20CAM-720P USB camera on the four face bosses, connector edge up (2026-10-26; D-023 had it to the left) into Face panel with four camera bosses for the U20CAM (V1.30 print, white)",
+      "note": "Through the dia 2.1 corner holes of the camera board into the dia 1.7 pilots of the four 13.1 mm face bosses: 4.4 mm of thread, the boss solid for 8 mm in front of the tip. Stop the moment each head touches the board."
+    },
+    {
+      "id": "C-camera-02",
+      "step": "camera",
+      "spec": "M2 \u00d7 6 TAP",
+      "kind": "TAP",
+      "diameterMm": 2.0,
+      "lengthMm": 6.0,
+      "headDiameterMm": 3.8,
+      "headHeightMm": 1.3,
+      "center": [
+        65.4,
+        -14.09,
+        145.11
+      ],
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "throughPart": "camera_u20cam",
+      "intoPart": "face_panel",
+      "where": "Through Innomaker U20CAM-720P USB camera on the four face bosses, connector edge up (2026-10-26; D-023 had it to the left) into Face panel with four camera bosses for the U20CAM (V1.30 print, white)",
+      "note": "Through the dia 2.1 corner holes of the camera board into the dia 1.7 pilots of the four 13.1 mm face bosses: 4.4 mm of thread, the boss solid for 8 mm in front of the tip. Stop the moment each head touches the board."
+    },
+    {
+      "id": "C-camera-03",
+      "step": "camera",
+      "spec": "M2 \u00d7 6 TAP",
+      "kind": "TAP",
+      "diameterMm": 2.0,
+      "lengthMm": 6.0,
+      "headDiameterMm": 3.8,
+      "headHeightMm": 1.3,
+      "center": [
+        65.4,
+        13.91,
+        117.11
+      ],
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "throughPart": "camera_u20cam",
+      "intoPart": "face_panel",
+      "where": "Through Innomaker U20CAM-720P USB camera on the four face bosses, connector edge up (2026-10-26; D-023 had it to the left) into Face panel with four camera bosses for the U20CAM (V1.30 print, white)",
+      "note": "Through the dia 2.1 corner holes of the camera board into the dia 1.7 pilots of the four 13.1 mm face bosses: 4.4 mm of thread, the boss solid for 8 mm in front of the tip. Stop the moment each head touches the board."
+    },
+    {
+      "id": "C-camera-04",
+      "step": "camera",
+      "spec": "M2 \u00d7 6 TAP",
+      "kind": "TAP",
+      "diameterMm": 2.0,
+      "lengthMm": 6.0,
+      "headDiameterMm": 3.8,
+      "headHeightMm": 1.3,
+      "center": [
+        65.4,
+        13.91,
+        145.11
+      ],
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "throughPart": "camera_u20cam",
+      "intoPart": "face_panel",
+      "where": "Through Innomaker U20CAM-720P USB camera on the four face bosses, connector edge up (2026-10-26; D-023 had it to the left) into Face panel with four camera bosses for the U20CAM (V1.30 print, white)",
+      "note": "Through the dia 2.1 corner holes of the camera board into the dia 1.7 pilots of the four 13.1 mm face bosses: 4.4 mm of thread, the boss solid for 8 mm in front of the tip. Stop the moment each head touches the board."
+    },
+    {
+      "id": "J-jaw_ring-01",
+      "step": "jaw-bench",
+      "spec": "M2 \u00d7 10 TAP",
+      "kind": "TAP",
+      "diameterMm": 2.0,
+      "lengthMm": 10.0,
+      "headDiameterMm": 3.8,
+      "headHeightMm": 1.3,
+      "center": [
+        26.1,
+        -43.81,
+        118.62
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "throughPart": "jaw_frame",
+      "intoPart": "mouth_sliding_ring",
+      "where": "Through Jaw frame with the lower lip (right boss hole drilled to 2.5) into Cup ring on the right jaw boss, held by one M2 x 10 (V1.37 print, black)",
+      "note": "From outside the \u2212Y jaw arm, through the arm and the boss into the solid bottom of the cup ring: head on the arm face, 2.7 mm of thread in the bottom, the tip stays 0.3 mm inside it. Stop at snug: it only holds the ring on."
+    }
+  ]
+}

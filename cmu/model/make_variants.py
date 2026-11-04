@@ -27,7 +27,7 @@ import apply_masses  # noqa: E402
 MODEL_DIR = apply_masses.MODEL_DIR
 VARIANT_DIR = MODEL_DIR / "variants"
 MANIFEST_DIR = apply_masses.MANIFEST_DIR
-GENERATED = ("plugged", "battery")
+GENERATED = ("plugged", "battery", "battery-20261104")
 
 
 def resolve_variant(path: Path) -> tuple[dict, list[dict], list[dict], list[dict], list[str]]:
@@ -86,7 +86,7 @@ def write_manifest(name: str) -> Path:
         "build": f"{name} ({variant['describes']}). Derived by cmu/model/make_variants.py from "
                  f"cmu/model/variants/{name}.json on top of {' -> '.join(chain)}; do not edit, edit the variant file and rerun.",
         "frame": base_manifest["frame"],
-        "excluded": base_manifest["excluded"] + [
+        "excluded": variant.get("excluded", base_manifest["excluded"]) + [
             "NP-F970 battery: removed by apply_masses.variant_parts (battery_removal_part, 90 g) for every variant, not listed here",
         ],
         "derived": {

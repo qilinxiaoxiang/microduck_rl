@@ -19,7 +19,7 @@ from .microduck_velocity_env_cfg import MicroduckRlCfg, make_microduck_velocity_
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _APPLY_MASSES = _REPO_ROOT / "cmu" / "model" / "apply_masses.py"
 
-CMU_VARIANTS = ("plugged", "battery")
+CMU_VARIANTS = ("plugged", "battery", "battery-20261104")
 # (task id, variant, rough)
 CMU_VELOCITY_TASKS = tuple(
     (f"Mjlab-Velocity-{'Rough' if rough else 'Flat'}-MicroDuck-CMU-{variant.capitalize()}", variant, rough)
@@ -47,6 +47,12 @@ def make_cmu_velocity_env_cfg(variant: str, play: bool = False, rough: bool = Fa
     def spec_fn():
         spec = base_spec_fn()
         report = apply_masses.apply_parts_to_spec(spec, parts)
+        if variant == "battery-20261104":
+            visual_path = _APPLY_MASSES.with_name("visual.py")
+            visual_spec = importlib.util.spec_from_file_location("cmu_model_visual", visual_path)
+            visual = importlib.util.module_from_spec(visual_spec)
+            visual_spec.loader.exec_module(visual)
+            visual.apply_visual_to_spec(spec, variant)
         print(f"[cmu:{variant}] total mass {report['total_before_g']:.1f} g -> {report['total_after_g']:.1f} g; "
               f"bodies patched: {sorted(report['bodies'])}")
         return spec

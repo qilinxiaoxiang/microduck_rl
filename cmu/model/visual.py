@@ -24,6 +24,11 @@ def load_visual() -> dict:
 def apply_visual_to_spec(spec: mujoco.MjSpec, variant: str = "", visual: dict | None = None) -> int:
     """Replace the official visual geoms in `spec` with today's robot, or with `variant` (e.g. "battery": the backpack
     in place of the bench converter box); returns the number of geoms added."""
+    visual_dir = VISUAL_DIR
+    if variant == "battery-20261104":
+        visual_dir = VISUAL_DIR.with_name("visual-20261104")
+        visual = visual or json.loads((visual_dir / "visual.json").read_text())
+        variant = "battery"
     visual = visual or load_visual()
     geoms = visual["variants"][variant]["geoms"] if variant else visual["geoms"]
     for g in list(spec.geoms):
@@ -31,11 +36,14 @@ def apply_visual_to_spec(spec: mujoco.MjSpec, variant: str = "", visual: dict | 
             spec.delete(g)
     used = {g.meshname for g in spec.geoms}
     for mesh in list(spec.meshes):  # official visual meshes nobody draws now, and our own from an earlier call
-        if mesh.name not in used or mesh.name.startswith("cmu_"):
+        # Before first compile, MuJoCo leaves implicit asset names empty.
+        # Their filename stems are already referenced by collision geoms.
+        name = mesh.name or Path(mesh.file).stem
+        if name not in used:
             spec.delete(mesh)
     for item in geoms:
         name = "cmu_" + item["mesh"]
-        spec.add_mesh(name=name, file=str(VISUAL_DIR / item["file"]))
+        spec.add_mesh(name=name, file=str(visual_dir / item["file"]))
         body = spec.body(item["body"])
         if body is None:
             raise KeyError(f"visual.json names body {item['body']!r}, which this export does not have")

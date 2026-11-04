@@ -18,6 +18,10 @@ Training for the changed battery backpack waits for the matched scan/model descr
 Walking today is Pollen's `walk61` policy run by the brain on the robot's head board (`walk_wired.py` on the Radxa
 A7Z); the open problem is the sim-to-real gap described in [cmu/SIM2REAL.md](cmu/SIM2REAL.md).
 
+## Updated model — 4 November 2026
+
+Use the [dated battery-model handoff](cmu/model/STATUS-2026-11-04.md) for the newest estimated articulated model and the [powered standing/bending scans](cmu/model/scans/2026-11-04/README.md) for the captured physical appearance. The dated variant preserves the older `Battery` task for reproducibility. Its CAD-based masses are estimates, not new scale measurements or proof of sim-to-real transfer.
+
 ## For teammates: drive the real duck, train in simulation, deploy to the robot
 
 This section is written so that you, or a coding agent you point at this file, can do all three without asking.

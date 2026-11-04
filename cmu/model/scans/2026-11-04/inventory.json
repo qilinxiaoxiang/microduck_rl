@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "recorded_date": "2026-11-04",
+  "role": "reference_only",
+  "subject": "User-supplied scans of MicroDuck with the current battery backpack",
+  "acceptance": "Appearance evidence only; not an articulated training model, calibrated dimensional measurement, collision mesh, or mass/inertia measurement.",
+  "privacy": "OBJ source comments removed and replaced with non-location provenance; JPEG APP1 (EXIF), APP13 (Photoshop), and COM segments removed without recompressing image pixels. Originals are not included.",
+  "coordinate_note": "Source header declares metres. Native coordinates are preserved. Floor appears near Y=0, consistent with Y-up; transform to robot frame is not calibrated.",
+  "additional_format_required": false,
+  "visual_review": "Both scans include the robot, floor, and nearby chair fragments. No people or legible personal documents were observed in three-direction colored geometry previews.",
+  "scans": [
+    {
+      "id": "105634",
+      "observed_pose": "powered closed-loop standing",
+      "source_archive": "Scaniverse 2026-11-04 105634.zip",
+      "source_archive_sha256": "2d5b1ad465bf6102031193571bfcf736997162e4d6bf37fdf6c4ede92cf51a1a",
+      "source_obj_sha256": "e95472c31f77645d4303dcaeabbf11fda4500a266e0ea2c94716a6125dee02ac",
+      "declared_unit": "meter",
+      "vertices": 103127,
+      "triangles": 206023,
+      "bounds_m": [
+        [
+          -0.67984,
+          -0.00899,
+          -0.63642
+        ],
+        [
+          0.81956,
+          0.47743,
+          0.64197
+        ]
+      ],
+      "extents_m": [
+        1.4994,
+        0.48642,
+        1.27839
+      ],
+      "bounds_note": "Includes room background; these are not robot or battery dimensions.",
+      "boundary_edges": 360,
+      "nonmanifold_edges": 18,
+      "near_zero_area_faces": 0,
+      "watertight": false,
+      "texture_pixels": [
+        8192,
+        8192
+      ],
+      "geometry_payload_verified_identical": true,
+      "decoded_texture_pixels_verified_identical": true,
+      "assets": [
+        {
+          "path": "microduck_battery_105634.obj",
+          "bytes": 12963207,
+          "sha256": "f93fbd6ea702c202a209b6a638de96c074ca6dec3c177af09c1e9c98a6c0a222"
+        },
+        {
+          "path": "microduck_battery_105634.mtl",
+          "bytes": 114,
+          "sha256": "dd0604318ba9d32fa65758ce99086f7ba21c0dcb13a920a3f43edfdacbc89cd6"
+        },
+        {
+          "path": "microduck_battery_105634.jpg",
+          "bytes": 6159832,
+          "sha256": "0ca74294ebe7fb7e0677edd2e160e75066074d5253d12a16dd9d1caf49410edb"
+        }
+      ],
+      "pose_confirmation": "User confirmed powered scan postures in this chat, 2026-11-04; not inferred from geometry."
+    },
+    {
+      "id": "105915",
+      "observed_pose": "powered commanded bend",
+      "source_archive": "Scaniverse 2026-11-04 105915.zip",
+      "source_archive_sha256": "bc12a75f4456aa2dc00524228519ddf0eeabacf8baebdb8847fa405c323e410a",
+      "source_obj_sha256": "08689155821d142f00188ad72b77ef42b9788e6afc89c6a96cedce88d57fd78c",
+      "declared_unit": "meter",
+      "vertices": 104628,
+      "triangles": 208907,
+      "bounds_m": [
+        [
+          -0.83423,
+          -0.00692,
+          -0.65377
+        ],
+        [
+          0.66305,
+          0.43155,
+          0.77639
+        ]
+      ],
+      "extents_m": [
+        1.49728,
+        0.43846999999999997,
+        1.4301599999999999
+      ],
+      "bounds_note": "Includes room background; these are not robot or battery dimensions.",
+      "boundary_edges": 451,
+      "nonmanifold_edges": 23,
+      "near_zero_area_faces": 2,
+      "watertight": false,
+      "texture_pixels": [
+        8192,
+        8192
+      ],
+      "geometry_payload_verified_identical": true,
+      "decoded_texture_pixels_verified_identical": true,
+      "assets": [
+        {
+          "path": "microduck_battery_105915.obj",
+          "bytes": 13189110,
+          "sha256": "9edadb3bdeee2ba72fd12405b29b9af14450af629b4296d682c5e2a50eef6acf"
+        },
+        {
+          "path": "microduck_battery_105915.mtl",
+          "bytes": 114,
+          "sha256": "bd607bd88c045d7726448ca6a5e3b15e1b44949fc43ff24aae34a7a77fe09dca"
+        },
+        {
+          "path": "microduck_battery_105915.jpg",
+          "bytes": 7671190,
+          "sha256": "fe636b2831ca6906c2b00097ef647fa923e969a006ef277264242edd57df251b"
+        }
+      ],
+      "pose_confirmation": "User confirmed powered scan postures in this chat, 2026-11-04; not inferred from geometry."
+    }
+  ]
+}

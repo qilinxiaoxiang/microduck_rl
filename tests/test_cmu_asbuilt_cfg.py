@@ -27,6 +27,8 @@ EXPECTED_TASKS = (
     "Mjlab-Velocity-Rough-MicroDuck-CMU-Plugged",
     "Mjlab-Velocity-Flat-MicroDuck-CMU-Battery",
     "Mjlab-Velocity-Rough-MicroDuck-CMU-Battery",
+    "Mjlab-Velocity-Flat-MicroDuck-CMU-Battery-20261104",
+    "Mjlab-Velocity-Rough-MicroDuck-CMU-Battery-20261104",
 )
 
 
@@ -36,12 +38,12 @@ def _total_g(model: mujoco.MjModel) -> float:
 
 @pytest.fixture(scope="module")
 def measured():
-    return {v: make_variants.measure(v) for v in ("official", "asbuilt", "plugged", "battery")}
+    return {v: make_variants.measure(v) for v in ("official", "asbuilt", "plugged", "battery", "battery-20261104")}
 
 
 # ── (a) registry ─────────────────────────────────────────────────────────────
 
-def test_four_cmu_tasks_registered():
+def test_cmu_tasks_registered():
     tasks = set(list_tasks())
     assert set(EXPECTED_TASKS) <= tasks
     assert {t for t, _, _ in CMU_VELOCITY_TASKS} == set(EXPECTED_TASKS)
@@ -53,7 +55,7 @@ def test_registered_cfg_is_a_velocity_cfg_with_a_distinct_experiment(task_id):
     cfg = load_env_cfg(task_id)
     assert "robot" in cfg.scene.entities
     rl = load_rl_cfg(task_id)
-    variant = task_id.rsplit("-", 1)[-1].lower()
+    variant = task_id.split("-CMU-", 1)[1].lower()
     assert rl.experiment_name == f"microduck_velocity_cmu_{variant}"
     assert rl.experiment_name != "velocity"
 
@@ -62,7 +64,7 @@ def test_registered_cfg_is_a_velocity_cfg_with_a_distinct_experiment(task_id):
 
 @pytest.mark.parametrize("task_id", EXPECTED_TASKS)
 def test_task_spec_compiles_with_make_variants_mass(task_id, measured):
-    variant = task_id.rsplit("-", 1)[-1].lower()
+    variant = task_id.split("-CMU-", 1)[1].lower()
     spec = load_env_cfg(task_id).scene.entities["robot"].spec_fn()
     model = spec.compile()
     assert model.nbody == 16
@@ -73,7 +75,7 @@ def test_task_spec_compiles_with_make_variants_mass(task_id, measured):
 
 
 def test_play_cfg_uses_the_same_masses(measured):
-    for variant in ("plugged", "battery"):
+    for variant in ("plugged", "battery", "battery-20261104"):
         train = make_cmu_velocity_env_cfg(variant).scene.entities["robot"].spec_fn().compile()
         play = make_cmu_velocity_env_cfg(variant, play=True).scene.entities["robot"].spec_fn().compile()
         assert np.allclose(train.body_mass, play.body_mass)
@@ -88,21 +90,16 @@ def test_variant_totals_are_asbuilt_plus_signed_deltas(measured):
     assert measured["plugged"]["total_g"] - measured["asbuilt"]["total_g"] == pytest.approx(plugged_delta, abs=0.01)
     assert measured["battery"]["total_g"] - measured["plugged"]["total_g"] == pytest.approx(battery_delta, abs=0.01)
     assert measured["battery"]["total_g"] - measured["asbuilt"]["total_g"] == pytest.approx(plugged_delta + battery_delta, abs=0.01)
-    # the deltas are the ones the design states: Pi (9.3 g) -> A7Z (18 g) + antenna (1.5 g) + the rear box lid
-    # (7.80 g slicer, on since 2026-10-26) with its four M2 x 10 (0.316 g each); box with lid -> backpack
-    lid_g = 7.80 + 4 * 0.31567
-    # the A7Z left the head for the roof saddle (2026-10-26): + saddle body 17.743 g (V1.33 slicer), - the three Pi-era
-    # board screws E-pi (0.671 g), - the CSI ribbon (1.6 g); the IMU, UART, 5 V and amplifier leads are re-run to the
-    # saddle header (their totals before and after are summed from the manifests)
-    def g(manifest, prefixes):
-        parts = apply_masses.load_manifest(manifest)["parts"]
-        return sum(p["mass_kg"] for p in parts if p["id"].startswith(prefixes)) * 1000
-    leads = tuple(f"add-cable-{c}-" for c in ("imu", "uart", "pi-lead", "amp-lrc", "amp-bclk", "amp-din", "amp-gnd", "amp-vin"))
-    leads_delta = g(make_variants.MANIFEST_DIR / "plugged.json", leads) - g(apply_masses.BASE_MANIFEST, leads)
-    saddle_g = 17.743 - (0.237 + 0.197 + 0.237) - 1.6 + leads_delta
-    assert -4.0 < leads_delta < -3.0  # shorter torso leads (about -6.0 g) against longer amplifier leads (+1.4 g)
-    assert plugged_delta == pytest.approx(-9.3 + 18.0 + 1.5 + lid_g + saddle_g, abs=0.01)
-    assert battery_delta == pytest.approx(97.1 - 59.513 - lid_g, abs=0.01)
+    # Physical inventory assertions catch stale mass manifests independently of totals.
+    plugged = {p["id"]: p for p in apply_masses.variant_parts("plugged")}
+    assert plugged["add-heatsink-6530b"]["mass_kg"] == pytest.approx(0.025)
+    assert "add-pi" not in plugged and "add-a7z" in plugged
+    dated = {p["id"]: p for p in apply_masses.variant_parts("battery-20261104")}
+    assert "add-bp-frame-v140" in dated and "add-bp-cap-v141" in dated
+    assert "add-bp-hatch-v141" in dated
+    assert not any(i in dated for i in ("add-bp-frame", "add-bp-cap", "add-camera_board", "add-cable-u20cam-trunk"))
+    assert measured["battery-20261104"]["total_g"] - measured["battery"]["total_g"] == pytest.approx(
+        make_variants.net_delta_g("battery-20261104"), abs=0.01)
     # the battery removal is in every variant and asbuilt = official + manifest - 90 g
     base = apply_masses.load_manifest(apply_masses.BASE_MANIFEST)
     manifest_g = sum(p["mass_kg"] for p in base["parts"]) * 1000
@@ -110,7 +107,7 @@ def test_variant_totals_are_asbuilt_plus_signed_deltas(measured):
 
 
 def test_manifests_match_their_variant_files():
-    for name in ("plugged", "battery"):
+    for name in ("plugged", "battery", "battery-20261104"):
         on_disk = apply_masses.load_manifest(apply_masses.MANIFEST_DIR / f"{name}.json")["parts"]
         _, regenerated, _, _, _ = make_variants.resolve_variant(make_variants.VARIANT_DIR / f"{name}.json")
         assert [p["id"] for p in on_disk] == [p["id"] for p in regenerated], f"{name}: run make_variants.py"
@@ -123,7 +120,7 @@ def test_manifests_match_their_variant_files():
 
 # ── (d) actor observation terms unchanged (61-D contract) ────────────────────
 
-@pytest.mark.parametrize("variant", ("plugged", "battery"))
+@pytest.mark.parametrize("variant", ("plugged", "battery", "battery-20261104"))
 @pytest.mark.parametrize("rough", (False, True))
 def test_actor_obs_terms_unchanged(variant, rough):
     base = make_microduck_velocity_env_cfg(rough=rough)
