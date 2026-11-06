@@ -1,3 +1,4 @@
+import { batteryPercent } from "./battery-percent.js";
 // Live MicroDuck view: A7Z health charts plus the robot's pose on the simulator model.
 // Data arrives as Server-Sent Events from the dev-server bridge (a7z-bridge.mjs), which runs
 // desktop/duck-telemetry.py on the A7Z over SSH.
@@ -236,7 +237,8 @@ function watch() {
   } else if (online) {
     const up = latest?.up ?? 0;
     link.className = "online"; document.title = "MicroDuck 真机";
-    link.textContent = `A7Z 在线 · 开机 ${Math.floor(up / 3600) ? Math.floor(up / 3600) + " 小时 " : ""}${Math.floor(up / 60) % 60} 分`;
+    link.textContent = `A7Z 在线 · 开机 ${Math.floor(up / 3600) ? Math.floor(up / 3600) + " 小时 " : ""}${Math.floor(up / 60) % 60} 分`
+      + (lastBrain?.running && lastBrain.battery_dv != null ? ` · 电池 ${(lastBrain.battery_dv / 10).toFixed(1)} V，约 ${batteryPercent(lastBrain.battery_dv)}%` : "");
   } else if (lostSince) {
     link.className = "lost";
     link.textContent = `A7Z 失联 ${Math.round(Date.now() / 1000 - lostSince)} 秒（${clock(lostSince)} 起），正在重连`;
@@ -418,6 +420,7 @@ function showNow() {
   if (b.running || b.standby) {
     items.push(["IMU 延迟", fmt(b.imu_age_ms, 0) + " ms"]);
     if (b.running) items.push(["舵机故障", b.hw_faults?.length ? b.hw_faults.join(", ") : "无"]);
+    if (b.running && b.battery_dv != null) items.push(["电池", `${fmt(b.battery_dv / 10, 1)} V，约 ${batteryPercent(b.battery_dv)}%`]);
     items.push([b.running ? "本 tick 缺读" : "没回话的舵机", b.missing?.length ? b.missing.join(", ") : "无"]);
   }
   if (cpuStart && r.t - cpuStart.t >= 10) items.push(["本监视的 A7Z 开销", `一个核的 ${fmt((r.cpu_s - cpuStart.cpu_s) / (r.t - cpuStart.t) * 100, 1)}%（${Math.round(r.t - cpuStart.t)} 秒平均）`]);

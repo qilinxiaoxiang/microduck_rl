@@ -394,6 +394,7 @@ def brain_log(now):
     out.update(mode=row.get("mode"), torque=row.get("torque"), loop_ms=row.get("loop_ms"), gb=row.get("gb"),
                imu_age_ms=None if row.get("imu_age") is None else row["imu_age"] * 1000,
                hw_faults=row.get("hw_faults") or [], missing=row.get("missing") or [],
+               battery=row.get("battery"), battery_dv=row.get("battery_dv"),
                joints={n: round(v, 4) for n, v in zip(NAMES, q)},  # rad, the simulator's joint convention
                jaw_deg=row.get("jaw_deg"),
                servo_v_min=min(recent) if recent else None, servo_v_max=max(recent) if recent else None,
