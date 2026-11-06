@@ -16,6 +16,9 @@ closed-loop, as the robot did. Each factor below is off in the ideal case and ca
   --tether     the charger lead on the trunk (cmu/mac/tether.py), parameters drawn from --seed
   --payload-g  a held ball as a point mass at the mouth tip (no ball contact; the jaw is not modelled)
 
+--starts-file replaces the robot's switch with simulated pick exits (cmu/pick_rise/handoff_eval.py --starts-out);
+with --all it scores a trained pick's exits under the conditions that reproduce the real fall.
+
 --sweep runs the ideal case, then each factor alone, then all together, and scores each against the real
 trajectory: time to 30/45 deg, tilt at fixed times, neck rise and peak yaw rate before the guard took over (0.888 s).
 Trunk velocity at the start is not logged and starts at zero.
@@ -288,6 +291,8 @@ ALL = dict(body="plugged", head_dated=True, vin=7.0, sensor_delay_ms=30, action_
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--sweep", action="store_true", help="ideal, each factor alone, all together")
+    ap.add_argument("--all", action="store_true", help="only the case that reproduces the real fall (ALL)")
+    ap.add_argument("--starts-file", type=Path, help="hand-over states from cmu/pick_rise/handoff_eval.py")
     ap.add_argument("--starts", type=int, default=1, help="start at the switch and this many-1 ticks before it")
     ap.add_argument("--seeds", type=int, default=1, help="seeds per case (random drops, tether draw)")
     ap.add_argument("--body", choices=SCENES, default=IDEAL["body"])
@@ -308,20 +313,29 @@ def main():
 
     stand = Policy("stand61")
     rows, sw, real, drops = real_trace()
-    starts = [start_state(stand, rows, sw - k, drops, sw) for k in range(args.starts)]
+    if args.starts_file:  # simulated pick exits (cmu/pick_rise/handoff_eval.py --starts-out) instead of the robot's
+        sf = json.loads(args.starts_file.read_text())
+        if sf["joint_names"] != stand.order:
+            raise ValueError("starts file joint order differs from stand61's")
+        starts = [dict(s, drop_ticks=drops if args.drops == "real" else []) for s in sf["starts"]]
+    else:
+        starts = [start_state(stand, rows, sw - k, drops, sw) for k in range(args.starts)]
     # Control: stand61 from its own nominal pose, upright, at rest, under the same factors. If the real starts fall
     # and this does not, the bowed exit (not the latency or the body alone) is what the conditions cannot absorb.
     starts.append({"label": "control_stand_nominal", "q": stand.default.tolist(), "dq": [0.0] * 14,
                    "gb": [0, 0, -1], "action": [0.0] * 14, "drop_ticks": drops})
+    base = IDEAL
     if args.sweep:
         cases = {"ideal": {}, **FACTORS, "all": ALL}
-        base = IDEAL
+    elif args.all:
+        cases = {"all": ALL}
     else:
         drops_arg = None if args.drops is None else ("real" if args.drops == "real" else float(args.drops))
-        cases = {"custom": dict(body=args.body, head_dated=args.head_dated, vin=args.vin, vin_drop_gain=args.vin_drop_gain, no_bam=args.no_bam,
-                                sensor_delay_ms=args.sensor_delay_ms, action_delay_ms=args.action_delay_ms, drops=drops_arg,
-                                floor_mu=args.floor_mu, tether=args.tether, payload_g=args.payload_g)}
-        base = IDEAL
+        cases = {"custom": dict(body=args.body, head_dated=args.head_dated, vin=args.vin,
+                                vin_drop_gain=args.vin_drop_gain, no_bam=args.no_bam,
+                                sensor_delay_ms=args.sensor_delay_ms, action_delay_ms=args.action_delay_ms,
+                                drops=drops_arg, floor_mu=args.floor_mu, tether=args.tether,
+                                payload_g=args.payload_g)}
     report = {"real": dict(score(real), source_lines=[rows[sw - 1]["source_line"], rows[sw]["source_line"]],
                            drop_ticks=drops, guard_took_over_s=GUARD_T),
               "cases": {}}

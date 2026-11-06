@@ -494,18 +494,23 @@ register_mjlab_task(
 # (cmu/planning/fetch-20261103 task D): its normaliser already carries the pixel slots' statistics, so the ONNX init
 # is copied unchanged. Plugged reproduces the source run's body; Battery-20261104 is the dated, physically
 # unqualified battery model, whose head/beak contact geometry is still the walking baseline's.
-from .cmu_seeing_pix_env_cfg import make_seeing_pix_env_cfg, seeing_pix_rl_cfg
+from .cmu_seeing_pix_env_cfg import seeing_pix_rl_cfg
+from .cmu_seeing_pix_rise_env_cfg import make_seeing_pix_handoff_env_cfg, seeing_pix_rise_rl_cfg
 
 
 class SeeingPixFromSpxRunner(GroundGraspFromPickRunner):
     INIT_ONNX = _Path(__file__).parent / "init_policies" / "spx-b_1800.onnx"
 
 
+# SeeingPickPix: the source T2 task (+ hand-over logging). SeeingPickPixRise: the same task whose main term pays the
+# hold after the rise only in stand61's admission state (cmu_seeing_pix_rise_env_cfg.py), the task D comparison.
 for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-20261104")):
-    register_mjlab_task(
-        task_id=f"Mjlab-SeeingPickPix-FromSpx-MicroDuck-CMU-{_suffix}",
-        env_cfg=make_seeing_pix_env_cfg(_variant),
-        play_env_cfg=make_seeing_pix_env_cfg(_variant, play=True),
-        rl_cfg=seeing_pix_rl_cfg(MicroduckStaticGraspRlCfg),
-        runner_cls=SeeingPixFromSpxRunner,
-    )
+    for _name, _rise, _rl in (("SeeingPickPix", False, seeing_pix_rl_cfg),
+                              ("SeeingPickPixRise", True, seeing_pix_rise_rl_cfg)):
+        register_mjlab_task(
+            task_id=f"Mjlab-{_name}-FromSpx-MicroDuck-CMU-{_suffix}",
+            env_cfg=make_seeing_pix_handoff_env_cfg(_variant, rise=_rise),
+            play_env_cfg=make_seeing_pix_handoff_env_cfg(_variant, play=True, rise=_rise),
+            rl_cfg=_rl(MicroduckStaticGraspRlCfg),
+            runner_cls=SeeingPixFromSpxRunner,
+        )
