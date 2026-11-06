@@ -33,11 +33,12 @@ def verify_files():
 
 
 class Policy:
-    def __init__(self, name):
-        self.name, self.kind = name, KINDS[name]
+    def __init__(self, name, path=None, kind=None):
+        """A supplied model by name, or any exported 61→14 graph by path with its kind (e.g. a trained pick)."""
+        self.name, self.kind = name, kind or KINDS[name]
         opts = ort.SessionOptions()
         opts.intra_op_num_threads = opts.inter_op_num_threads = 1
-        self.session = ort.InferenceSession(str(ROOT / "models" / (name + ".onnx")), opts,
+        self.session = ort.InferenceSession(str(path or ROOT / "models" / (name + ".onnx")), opts,
                                             providers=["CPUExecutionProvider"])
         self.meta = self.session.get_modelmeta().custom_metadata_map
         self.order = self.meta["joint_names"].split(",")

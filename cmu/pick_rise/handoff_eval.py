@@ -6,6 +6,9 @@ actor's with the command/head/body slots zeroed (48-60), previous action preserv
 is frozen so the scripted jaw stays shut. The env's training randomisation stays on (actuator lag 15-30 ms, obs noise,
 object and camera draws); fall/beak terminations are removed and judged here instead.
 
+--after pick keeps the pick policy in control past the hand-over instead (phase frozen at 0.90, its own command and
+pixel slots), the hold-on alternative: stand61 swings the neck at 5-8 rad/s and throws the ball (drop_diag.py).
+
 Per env, separately (task D's acceptance list): lifted (held at any point before the hand-over), empty bite (never
 pinched), held at the hand-over, held at the end, dropped (held at hand-over, not at the end), fell (tilt > 45 deg
 after the hand-over), peak tilt after it, stable at the end (tilt < 10 deg and trunk rate < 0.5 rad/s over the last
@@ -101,9 +104,10 @@ def run(a):
                 exit_rms, exit_tilt = adm["rms"].clone(), tilt_deg(robot).clone()
                 exit_state = dict(q=microduck_mdp._servo_joint_pos(env, robot).clone(),
                                   dq=microduck_mdp._servo_joint_vel(env, robot).clone(),
-                                  gb=robot.data.projected_gravity_b.clone(), action=act.clone())
+                                  gb=robot.data.projected_gravity_b.clone(), action=act.clone(),
+                                  obs_tail=obs[:, 48:61].clone())
                 default = microduck_mdp._servo_default_joint_pos(env, robot)[0].clone()
-            if k < pick_steps:
+            if k < pick_steps or a.after == "pick":  # hold-on: the pick policy keeps the body, phase frozen
                 act = pick(obs)
             else:
                 o = obs.clone()
@@ -137,7 +141,7 @@ def run(a):
                "exit_tilt_deg": round(float(exit_tilt.mean()), 2),
                "peak_tilt_after_handoff_deg": round(float(peak_tilt.mean()), 2)}
     report = {"task": a.task, "pick_onnx": str(a.pick_onnx), "pick_md5": md5(Path(a.pick_onnx)),
-              "stand_onnx": str(a.stand_onnx), "num_envs": n, "seed": a.seed, "window_m": a.window,
+              "after": a.after, "stand_onnx": str(a.stand_onnx), "num_envs": n, "seed": a.seed, "window_m": a.window,
               "handoff_phase": HANDOFF_PHASE, "post_s": a.post_s, "device": device,
               "wall_s": round(time.time() - t0, 1), "summary": summary,
               "per_env": [{"lifted": bool(lifted[i]), "empty_bite": bool(~ever_pinched[i]),
@@ -156,7 +160,7 @@ def run(a):
             starts.append({"label": f"sim_env_{i}", "held_at_handoff": bool(held_at[i]),
                            "q": (exit_state["q"][i]).tolist(), "dq": exit_state["dq"][i].tolist(),
                            "gb": exit_state["gb"][i].tolist(), "action": exit_state["action"][i].tolist(),
-                           "drop_ticks": []})
+                           "obs_tail": exit_state["obs_tail"][i].tolist(), "drop_ticks": []})
         Path(a.starts_out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.starts_out).write_text(json.dumps({"joint_names": names, "default": default.tolist(),
                                                   "starts": starts}, indent=1) + "\n")
@@ -171,7 +175,9 @@ def main():
     p.add_argument("--num-envs", type=int, default=256)
     p.add_argument("--seed", type=int, default=7)
     p.add_argument("--window", type=float, default=PIX_WINDOW_OPERATING, help="object start window (m)")
-    p.add_argument("--post-s", type=float, default=2.0, help="seconds of stand61 after the hand-over")
+    p.add_argument("--post-s", type=float, default=2.0, help="seconds after the hand-over")
+    p.add_argument("--after", choices=("stand", "pick"), default="stand",
+                   help="stand: stand61 takes over (the runtime today); pick: the pick policy holds on, phase frozen")
     p.add_argument("--device", default=None)
     p.add_argument("--out")
     p.add_argument("--starts-out")

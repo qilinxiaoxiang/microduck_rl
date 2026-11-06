@@ -17,7 +17,8 @@ closed-loop, as the robot did. Each factor below is off in the ideal case and ca
   --payload-g  a held ball as a point mass at the mouth tip (no ball contact; the jaw is not modelled)
 
 --starts-file replaces the robot's switch with simulated pick exits (cmu/pick_rise/handoff_eval.py --starts-out);
-with --all it scores a trained pick's exits under the conditions that reproduce the real fall.
+with --all it scores a trained pick's exits under the conditions that reproduce the real fall. --post-onnx keeps
+that pick in control after the hand-over (hold-on) instead of stand61, with its frozen phase and pixel slots.
 
 --sweep runs the ideal case, then each factor alone, then all together, and scores each against the real
 trajectory: time to 30/45 deg, tilt at fixed times, neck rise and peak yaw rate before the guard took over (0.888 s).
@@ -64,6 +65,7 @@ TICK = SIM_DT * DECIMATION
 GUARD_T = 0.888                # the robot's runtime left the policy (tilt guard, kp 400 stand) here
 SCORE_TIMES = (0.2, 0.4, 0.6, 0.8)
 HEAD_BODIES = ("neck", "jaw_soft")
+AGE_SLOT, AGE_MAX_S = 10, 2.0  # slot 58 (detection age) within slots 48-60; capped as in training
 
 
 def gravity_to_quat(gb):
@@ -207,13 +209,17 @@ def rollout(f, stand, start):
     drop_ticks = set(start["drop_ticks"]) if f["drops"] == "real" else set()
     rows, n_ticks = [], int(round(f["seconds"] / TICK))
     target = stand.default + prev
+    # Slots 48-60: zero for stand61; for a held-on pick, its own frozen phase and pixel slots from the hand-over.
+    tail = np.zeros(13) if stand.kind == "stand" else np.asarray(start["obs_tail"], dtype=float).copy()
     for tick in range(n_ticks):
         gyro, g, _, _ = sense()
         dropped = tick in drop_ticks or (isinstance(f["drops"], float) and rng.random() < f["drops"])
         if not dropped:  # a dropped servo read: the runtime skips the policy and the servos hold the last goal
             s_gyro, s_g, s_q, s_dq = sensed[0]
-            obs = np.r_[s_gyro, s_g, s_q, s_dq, prev, np.zeros(13)]
-            prev = stand.run(obs[None], "stand")[0].astype(np.float32)
+            obs = np.r_[s_gyro, s_g, s_q, s_dq, prev, tail]
+            prev = stand.run(obs[None], stand.kind)[0].astype(np.float32)
+        if stand.kind == "pixel_pick":  # hold-on: no new detection behind the beak, so the last one only ages
+            tail[AGE_SLOT] = min(tail[AGE_SLOT] + TICK, AGE_MAX_S)
         new_goal = stand.default + prev
         rows.append(dict(t=tick * TICK, tilt=math.degrees(math.acos(float(np.clip(-g[2], -1, 1)))),
                          gyro_z=float(gyro[2]), gyro=float(np.linalg.norm(gyro)), action_max=float(np.abs(prev).max()),
@@ -293,6 +299,7 @@ def main():
     ap.add_argument("--sweep", action="store_true", help="ideal, each factor alone, all together")
     ap.add_argument("--all", action="store_true", help="only the case that reproduces the real fall (ALL)")
     ap.add_argument("--starts-file", type=Path, help="hand-over states from cmu/pick_rise/handoff_eval.py")
+    ap.add_argument("--post-onnx", type=Path, help="this pick ONNX keeps control after the hand-over (hold-on)")
     ap.add_argument("--starts", type=int, default=1, help="start at the switch and this many-1 ticks before it")
     ap.add_argument("--seeds", type=int, default=1, help="seeds per case (random drops, tether draw)")
     ap.add_argument("--body", choices=SCENES, default=IDEAL["body"])
@@ -312,6 +319,8 @@ def main():
     args = ap.parse_args()
 
     stand = Policy("stand61")
+    if args.post_onnx:  # hold-on: the trained pick keeps control after the hand-over instead of stand61
+        stand = Policy("post", path=args.post_onnx, kind="pixel_pick")
     rows, sw, real, drops = real_trace()
     if args.starts_file:  # simulated pick exits (cmu/pick_rise/handoff_eval.py --starts-out) instead of the robot's
         sf = json.loads(args.starts_file.read_text())
@@ -322,8 +331,11 @@ def main():
         starts = [start_state(stand, rows, sw - k, drops, sw) for k in range(args.starts)]
     # Control: stand61 from its own nominal pose, upright, at rest, under the same factors. If the real starts fall
     # and this does not, the bowed exit (not the latency or the body alone) is what the conditions cannot absorb.
-    starts.append({"label": "control_stand_nominal", "q": stand.default.tolist(), "dq": [0.0] * 14,
-                   "gb": [0, 0, -1], "action": [0.0] * 14, "drop_ticks": drops})
+    if stand.kind == "stand":
+        starts.append({"label": "control_stand_nominal", "q": stand.default.tolist(), "dq": [0.0] * 14,
+                       "gb": [0, 0, -1], "action": [0.0] * 14, "drop_ticks": drops})
+    elif not args.starts_file:
+        raise ValueError("--post-onnx needs --starts-file (the pick's own command and pixel slots at the hand-over)")
     base = IDEAL
     if args.sweep:
         cases = {"ideal": {}, **FACTORS, "all": ALL}
