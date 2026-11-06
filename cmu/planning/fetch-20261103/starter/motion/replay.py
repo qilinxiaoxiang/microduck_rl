@@ -233,6 +233,7 @@ def pickup():
             "mean_neck_action_with_bit_zero_rad": float(altered[:, k].mean()),
             "mean_neck_action_change_rad": float((altered[:, k] - px[selected, k]).mean()),
             "interpretation": "Instantaneous policy dependence on one input on fixed historical states; not a closed-loop rise or a proposal to turn off the physical grip."}
+        result["holding_bit_all_joints"] = holding_bit_all_joints(pix, stand, x, px, altered, selected, pixel_rows, pre)
     # Semantic negative control: identical width is insufficient. Never pass pixel coordinates/phase to stand.
     try:
         stand.run(x[:1], "pixel_pick")
@@ -248,6 +249,52 @@ def pickup():
         raise AssertionError("renaming pixel inputs bypassed the stand admission contract")
     result["decision"] = "A jaw-held flag and end-of-pick timer are insufficient exit conditions. Evaluate loaded rise/stand admission on actual exit states; this replay does not validate a repair."
     return result
+
+
+def holding_bit_all_joints(pix, stand, x, px, altered, selected, pixel_rows, pre):
+    """Every output of the same holding-bit intervention, measured against stand's nominal pose.
+
+    pix and stand share joint order and defaults (checked by compatible()), so a pick action IS the
+    target's offset from stand nominal. Terminal-posture hypothesis: holding=1 moves targets AWAY from
+    stand nominal (larger |action|), i.e. the held exit is a posture stand was never trained to admit.
+    """
+    held, zero = px[selected], altered
+    names = pix.order
+    joints = {}
+    for k, name in enumerate(names):
+        joints[name] = {"mean_action_holding_rad": float(held[:, k].mean()),
+                        "mean_action_bit_zero_rad": float(zero[:, k].mean()),
+                        "mean_change_rad": float((zero[:, k] - held[:, k]).mean()),
+                        "mean_abs_offset_from_stand_nominal_holding_rad": float(np.abs(held[:, k]).mean()),
+                        "mean_abs_offset_from_stand_nominal_bit_zero_rad": float(np.abs(zero[:, k]).mean())}
+    away = [n for n in names if joints[n]["mean_abs_offset_from_stand_nominal_holding_rad"]
+            > joints[n]["mean_abs_offset_from_stand_nominal_bit_zero_rad"] + .02]
+    toward = [n for n in names if joints[n]["mean_abs_offset_from_stand_nominal_holding_rad"]
+              < joints[n]["mean_abs_offset_from_stand_nominal_bit_zero_rad"] - .02]
+    legs = [k for k, n in enumerate(names) if "hip" in n or "knee" in n or "ankle" in n]
+    l2_held = float(np.linalg.norm(held, axis=1).mean())
+    l2_zero = float(np.linalg.norm(zero, axis=1).mean())
+    # The last selected ticks before the switch: exact states for anyone re-running this comparison.
+    rows = [r for r, s in zip(pixel_rows, selected) if s]
+    boundary = []
+    for i in range(max(0, len(rows) - 5), len(rows)):
+        boundary.append({"source_line": rows[i]["source_line"], "phase": rows[i]["sp_phase"],
+                         "obs61": [round(float(v), 6) for v in x[selected][i]],
+                         "action_holding": [round(float(v), 4) for v in held[i]],
+                         "action_bit_zero": [round(float(v), 4) for v in zero[i]]})
+    qmap = dict(zip(LOG_ORDER, pre["q"]))
+    measured = {n: float(qmap[n] - stand.default[stand.order.index(n)]) for n in names}
+    return {"joint_order": names, "per_joint": joints,
+            "joints_moved_away_from_stand_nominal_by_holding": away,
+            "joints_moved_toward_stand_nominal_by_holding": toward,
+            "mean_L2_offset_from_stand_nominal_holding_rad": l2_held,
+            "mean_L2_offset_from_stand_nominal_bit_zero_rad": l2_zero,
+            "measured_offset_from_stand_nominal_at_handoff_rad": measured,
+            "last_selected_states": boundary,
+            "holding_increases_total_offset": l2_held > l2_zero,
+            "mean_L2_offset_legs_only_holding_rad": float(np.linalg.norm(held[:, legs], axis=1).mean()),
+            "mean_L2_offset_legs_only_bit_zero_rad": float(np.linalg.norm(zero[:, legs], axis=1).mean()),
+            "interpretation": "Fixed-state, open-loop. Supports or refutes only whether the holding input steers the pick's targets away from stand's admission pose; it does not show the rise would be stable either way."}
 
 
 def fixtures():

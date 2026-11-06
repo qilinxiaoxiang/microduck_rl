@@ -153,8 +153,112 @@ DELTA_SLIP = dict(foot_friction=(0.2, 1.3), track_lin_vel=dict(tau_s=0.5, std=ma
 # because walk61 never met a yaw disturbance in training. Changes from Pollen's recipe: the lead on 80 % of the
 # envs, and ft3's EMA velocity tracking, without which a fine-tune of walk61 drifts to standing (ft1/ft2).
 DELTA_TETHER = dict(tether=dict(fraction=0.8), track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)))
-DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP,
-          "tether": DELTA_TETHER}
+
+
+# t1 (2026-10-30, cmu/grasp/PLAN-continuous-vision.md section 5): the body follows the head. walk61 on the robot holds
+# the neck near HOME whatever is commanded (-0.09 rad absolute for -0.4..-0.8 asked, PICKUP.md) and stops stepping while a
+# head command is active; the as-built CPU sim (brain_sim_check.py --neck-pitch, plugged manifest, 2026-10-30) shows the
+# same policy behaviour (standing: -0.4 commanded -> -0.125 reached, -0.8 -> -0.26; with vx 0.25 and any neck command the
+# duck does not step at all, path 0.007 m in 6 s), so this is the policy, not the sim-to-real gap, and the sim measures it.
+# Changes to Pollen's recipe, nothing else (actuator, masses, noise, pushes stay as walk61 was trained):
+#   twist: forward only, vx uniform 0..0.30 (the robot-tested 0.25 inside the range), small vy, yaw as trained; 15 % of
+#          envs get the exact zero command (the deployment idle), was 25 % at the end of Pollen's curriculum;
+#   head_pose: fixed final ranges biased to looking down (neck delta -1.10..+0.40, head_pitch -0.30..+1.00 = the gaze
+#          loop's 0.35..1.35 absolute, yaw +-0.90, roll +-0.05), held 3-8 s per sample (a tracked target moves slowly);
+#   rewards: ft3's EMA velocity tracking (std^2 0.05, tau 0.5 s) so stepping at 0.15-0.30 m/s beats standing by
+#          0.7-1.5/s; head_pose_bias (L1 on the EMA head error) weight 3 -> 5 and tau 1.0 -> 0.5 s (the done criterion is
+#          the DC error after 0.5 s); head_pose_tracking stays at std 0.5 (a tight instantaneous std killed walking,
+#          Pollen's run 5yay13u4). tests/test_t1_delta.py scores the degenerate policies from these constants.
+DELTA_T1 = dict(
+    track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)),
+    twist_ranges=dict(lin_vel_x=(0.0, 0.30), lin_vel_y=(-0.10, 0.10), ang_vel_z=(-1.0, 1.0)),
+    rel_standing_envs=0.15,
+    head_ranges=((-1.10, 0.40), (-0.30, 1.00), (-0.90, 0.90), (-0.05, 0.05)),   # neck_pitch, head_pitch, head_yaw, head_roll deltas from HOME
+    head_resample_s=(3.0, 8.0),
+    head_bias=dict(weight=5.0, tau_s=0.5),
+)
+# t2 (2026-10-30, FINETUNE-DELTA.md "Run t2 plan"): T1 made the neck follow on the robot but rewrote walk61's gait in
+# states walk61 already handled (0.71 rad action distance on walk61's own robot walks, head at default) and fell in 2 of
+# 5 walks. t2 = T1 + a behaviour-cloning anchor to walk61 (Wolczyk et al., ICML 2024): during the critic warm-up the
+# actor IS walk61, so its mean actions on default-head states with vx 0 or 0.25-0.30 (walk61's robot-proven regime) are
+# kept, and after every PPO update one supervised step pulls the actor back toward them (anchor_loss). 20 % of head
+# resamples give the exact default head (zero_command_prob, as rel_standing_envs does for the twist), so the buffer
+# fills and the deployment's most common head state stays trained. The actor's observation normalizer is frozen at
+# walk61's for anchored runs: rsl_rl keeps updating it during a fine-tune (T1's drifted by up to 0.025 in mean, 3 % in
+# std), which would move every input the anchor compares. Rewards are T1's.
+DELTA_T2A = dict(DELTA_T1, default_head_envs=0.2, anchor=dict(beta=0.5, states=200_000, batch=4096, vx_band=(0.25, 0.30)))
+DELTA_T2B = dict(DELTA_T2A, anchor=dict(DELTA_T2A["anchor"], beta=2.0))
+# t3 (2026-10-30, FINETUNE-DELTA.md "Run t3 plan"): t2b walked like walk61 with the default head and shook like T1 as
+# soon as the neck was commanded (robot 14 jumps/s), which is where the t2 anchor did not reach. Three changes: (1) the
+# sim gap the jitter study identified goes into the training DR: BAM friction 1.0-1.4 (the study's calibrated value is
+# the top; at 1.0-1.5 the audit-t3 run of 2026-10-30 had walk61 falling 0.527 per env-minute, over the 0.5 limit, and
+# the 10/17 study already found x1.5 stops stepping) and gyro vibration proportional to leg speed (k 0.15-0.35, study
+# value 0.25), actor observation only; (2) a second-difference action term on every state (weight: -1.0 placeholder for
+# the audit, then set so its mass on walk61's own rollouts matches action_rate_l2's, recorded in the delta before the
+# run; audit-t3b gave -0.58); (3) the anchor also covers head-command states with a
+# counterfactual target: walk61's own leg actions on the same state with the head command zeroed, leg outputs only, at
+# beta_legs (walk61 does not step with a head command, so walk61(s) itself would teach standing).
+DELTA_T3A = dict(DELTA_T2B, joint_friction=(1.0, 1.4), gyro_vibration=dict(k_range=(0.15, 0.35)),
+                 action_acc=dict(weight=-0.58),  # audit-t3b: walk61 masses/s action_rate -0.199, action_acc at -1.0 -0.342
+                 anchor=dict(DELTA_T2B["anchor"], beta_legs=0.0))
+DELTA_T3B = dict(DELTA_T3A, anchor=dict(DELTA_T3A["anchor"], beta_legs=1.0))
+# audit-only diagnostics (no AUDIT_KEY, never trained): t2b plus one t3 DR change each, to attribute walk61's fall rate
+DELTA_T3_FRIC = dict(DELTA_T2B, joint_friction=(1.0, 1.5))
+DELTA_T3_VIB = dict(DELTA_T2B, gyro_vibration=dict(k_range=(0.15, 0.35)))
+DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP, "t1": DELTA_T1,
+          "t2a": DELTA_T2A, "t2b": DELTA_T2B, "t3a": DELTA_T3A, "t3b": DELTA_T3B,
+          "t3fric": DELTA_T3_FRIC, "t3vib": DELTA_T3_VIB, "tether": DELTA_TETHER}
+
+# columns of the 61-input actor vector: 48 proprioception, then twist(3), head_pose(4), body_pose(6)
+ACTOR_TWIST, ACTOR_HEAD = slice(48, 51), slice(51, 55)
+# the 14 action outputs: 0-4 left leg, 5-8 neck/head, 9-13 right leg (ctrl index = joint index on the walk model)
+LEG_OUT = [0, 1, 2, 3, 4, 9, 10, 11, 12, 13]
+
+
+def anchor_mask(x: torch.Tensor, vx_band, heads: bool = False) -> torch.Tensor:
+    """Rows of actor inputs x (N, 61) the anchor keeps: forward command 0 or in vx_band, and (unless heads) the exact
+    default head command."""
+    vx = x[:, ACTOR_TWIST.start]
+    keep = (vx == 0) | ((vx >= vx_band[0]) & (vx <= vx_band[1]))
+    if not heads:
+        keep &= (x[:, ACTOR_HEAD] == 0).all(dim=1)
+    return keep
+
+
+def actor_mean(actor, x: torch.Tensor) -> torch.Tensor:
+    """Deterministic action of an rsl_rl MLPModel actor on concatenated raw actor inputs (the Gaussian mean)."""
+    return actor.mlp(actor.obs_normalizer(x))
+
+
+def anchor_loss(actor, x: torch.Tensor, mu0: torch.Tensor, beta: float) -> torch.Tensor:
+    """beta x mean over states of the squared action distance to the anchor policy's mean actions mu0."""
+    return beta * torch.square(actor_mean(actor, x) - mu0).sum(dim=1).mean()
+
+
+def anchor_targets(actor, x: torch.Tensor, anchor: dict):
+    """Anchor rows, targets and per-output weights for a batch of actor inputs x under the frozen walk61 actor.
+
+    Default-head rows: target walk61(x), weight beta on all 14 outputs. Head-command rows (only when beta_legs > 0):
+    target walk61(x with the head command zeroed), weight beta_legs on the leg outputs and 0 on the head outputs.
+    Rows with no forward command in the band, and head rows when beta_legs is 0, are dropped.
+    """
+    beta_legs = float(anchor.get("beta_legs", 0.0))
+    keep = anchor_mask(x, anchor["vx_band"], heads=beta_legs > 0)
+    x = x[keep]
+    head_default = (x[:, ACTOR_HEAD] == 0).all(dim=1)
+    w = torch.zeros(len(x), 14, device=x.device, dtype=x.dtype)
+    w[head_default] = anchor["beta"]
+    w[torch.nonzero(~head_default).flatten()[:, None], torch.tensor(LEG_OUT, device=x.device)[None, :]] = beta_legs
+    x0 = x.clone()
+    x0[:, ACTOR_HEAD] = 0.0
+    with torch.no_grad():
+        mu0 = actor_mean(actor, x0)  # equals walk61(x) on default-head rows
+    return x, mu0, w
+
+
+def anchor_loss_w(actor, x: torch.Tensor, mu0: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+    """Mean over states of sum_j w_j (mu_j(s) - mu0_j)^2; with w = beta on every output it is anchor_loss."""
+    return (w * torch.square(actor_mean(actor, x) - mu0)).sum(dim=1).mean()
 
 
 class tether_lead:
@@ -271,6 +375,40 @@ def apply_delta(env_cfg, delta: dict):
         term.func = track_linear_velocity_ema
         term.params = dict(command_name=term.params["command_name"], std=delta["track_lin_vel"]["std"],
                            tau_s=delta["track_lin_vel"]["tau_s"])
+    # t1 keys. Curricula are collapsed to their final stage in a fine-tune (CURRICULA_DONE_STEP), and the curriculum
+    # functions write the final stage back into the live cfg on every call, so the final stage is edited as well.
+    if "twist_ranges" in delta:
+        for k, v in delta["twist_ranges"].items():
+            setattr(env_cfg.commands["twist"].ranges, k, tuple(v))
+    if "rel_standing_envs" in delta:
+        env_cfg.commands["twist"].rel_standing_envs = delta["rel_standing_envs"]
+        env_cfg.curriculum["standing_envs"].params["standing_stages"][-1]["rel_standing_envs"] = delta["rel_standing_envs"]
+    if "head_ranges" in delta:
+        ranges = tuple(tuple(r) for r in delta["head_ranges"])
+        env_cfg.commands["head_pose"].ranges = ranges
+        env_cfg.curriculum["head_pose_range"].params["range_stages"][-1]["ranges"] = ranges
+    if "head_resample_s" in delta:
+        env_cfg.commands["head_pose"].resampling_time_range = tuple(delta["head_resample_s"])
+    if "head_bias" in delta:
+        hb = delta["head_bias"]
+        env_cfg.rewards["head_pose_bias"].weight = hb["weight"]
+        env_cfg.rewards["head_pose_bias"].params["tau_s"] = hb["tau_s"]
+        env_cfg.curriculum["head_pose_bias_weight"].params["weight_stages"][-1]["weight"] = hb["weight"]
+    if "default_head_envs" in delta:
+        env_cfg.commands["head_pose"].zero_command_prob = delta["default_head_envs"]
+    # t3 keys
+    if "gyro_vibration" in delta:
+        import mjlab_microduck.tasks.mdp as microduck_mdp
+
+        term = env_cfg.observations["actor"].terms["base_ang_vel"]
+        assert term.func is microduck_mdp.base_ang_vel_imu_misaligned, term.func  # the recipe's actor gyro (IMU misalignment DR)
+        term.func = microduck_mdp.base_ang_vel_imu_misaligned_vibration
+        term.params = dict(term.params, k_range=tuple(delta["gyro_vibration"]["k_range"]))
+    if "action_acc" in delta:
+        import mjlab_microduck.tasks.mdp as microduck_mdp
+        from mjlab.managers import RewardTermCfg
+
+        env_cfg.rewards["action_acc_l2"] = RewardTermCfg(func=microduck_mdp.action_acc_l2, weight=float(delta["action_acc"]["weight"]))
     return env_cfg
 
 
@@ -345,6 +483,10 @@ def eval_policy(env, actor, steps: int, device: str) -> dict:
     err_sum, along_sum, mov_n, low_sum, low_n = 0.0, 0.0, 0, 0.0, 0
     term_sum = torch.zeros(len(rm.active_terms), device=env.device)
     rew_sum = 0.0
+    # head tracking (t1): |measured - HOME - command| per head joint, averaged over envs and steps (plain walk model:
+    # the measured angle is the servo joint; the backlash twin is not used here)
+    head_ids = [robot.joint_names.index(n) for n in ("neck_pitch", "head_pitch", "head_yaw", "head_roll")]
+    head_err = torch.zeros(4, device=env.device)
     with torch.inference_mode():
         for _ in range(steps):
             act = actor(obs)  # deterministic output
@@ -353,6 +495,8 @@ def eval_policy(env, actor, steps: int, device: str) -> dict:
             age += 1
             term_sum += rm._step_reward.sum(0)  # per-step values before the dt scale, i.e. reward per simulated second
             rew_sum += float(rew.sum())
+            hcmd = cm.get_command("head_pose")
+            head_err += ((robot.data.joint_pos[:, head_ids] - robot.data.default_joint_pos[:, head_ids]) - hcmd).abs().sum(0)
             cmd, v = cm.get_command("twist"), robot.data.root_link_lin_vel_b
             moving = cmd[:, 0].abs() > 0.15  # envs asked to walk forward/back at a clear speed
             if moving.any():
@@ -375,6 +519,8 @@ def eval_policy(env, actor, steps: int, device: str) -> dict:
                 survived_to_end=int((age >= steps).sum()),
                 track_err_xy=round(err_sum / max(mov_n, 1), 3), speed_along_cmd=round(along_sum / max(mov_n, 1), 3),
                 moving_samples=mov_n, low_cmd_speed=round(low_sum / max(low_n, 1), 3),
+                head_err_rad={name: round(float(x) / (n * steps), 4) for name, x in
+                              zip(("neck_pitch", "head_pitch", "head_yaw", "head_roll"), head_err)},
                 reward_per_s=round(rew_sum / (n * steps) / env.unwrapped.step_dt, 3),
                 terms_per_s={name: round(float(x) / (n * steps), 4) for name, x in zip(rm.active_terms, term_sum)})
 
@@ -482,6 +628,9 @@ def main():
         if args.delta not in DELTAS:
             delta.update(json.loads(args.delta))
         apply_delta(env_cfg, delta)
+    anchor = (delta or {}).get("anchor")
+    if anchor and args.warmup_iters <= 0:
+        raise SystemExit("the anchor collects walk61's states during the critic warm-up: --warmup-iters must be > 0")
     if not args.no_asbuilt:
         env_cfg.scene.entities["robot"] = apply_asbuilt_masses(env_cfg.scene.entities["robot"], manifest, args.audit, args.remove_battery_kg)
     env_cfg.scene.num_envs = args.num_envs
@@ -537,15 +686,62 @@ def main():
                 return orig_step(rewards, dones, extras, intrinsic_rewards)
             self.logger.process_env_step = hooked_step
             orig_update = self.alg.update
+            self.anchor_x, self.anchor_mu, self.anchor_w, self.anchor_parts = None, None, None, []
+            self.anchor_dist_sum, self.anchor_n = 0.0, 0
 
             def clamped_update():
+                if anchor and self.warm:
+                    self.collect_anchor_states()  # before update(): it clears the rollout storage
                 out = orig_update()
                 if args.max_lr and self.alg.learning_rate > args.max_lr:
                     self.alg.learning_rate = args.max_lr
                     for g in self.alg.optimizer.param_groups:
                         g["lr"] = args.max_lr
+                if anchor and not self.warm and self.anchor_x is not None:
+                    out["anchor"] = self.anchor_step()
                 return out
             self.alg.update = clamped_update
+
+        def collect_anchor_states(self):
+            """Keep vx 0 / vx_band actor inputs of this rollout (default head; head-command rows too when beta_legs > 0)
+            with the frozen walk61 actor's targets and per-output weights (anchor_targets)."""
+            actor = self.alg.actor
+            obs = self.alg.storage.observations
+            x = torch.cat([obs[g] for g in actor.obs_groups], dim=-1).flatten(0, 1)
+            x, mu0, w = anchor_targets(actor, x, anchor)
+            per_iter = math.ceil(anchor["states"] / max(1, args.warmup_iters))
+            if len(x) > per_iter:
+                sel = torch.randperm(len(x), device=x.device)[:per_iter]
+                x, mu0, w = x[sel], mu0[sel], w[sel]
+            self.anchor_parts.append((x.clone(), mu0, w))
+
+        def finish_anchor_states(self):
+            if not self.anchor_parts:
+                raise RuntimeError("anchor: the warm-up kept no state with vx 0 or in the band")
+            self.anchor_x = torch.cat([p[0] for p in self.anchor_parts])[: anchor["states"]]
+            self.anchor_mu = torch.cat([p[1] for p in self.anchor_parts])[: anchor["states"]]
+            self.anchor_w = torch.cat([p[2] for p in self.anchor_parts])[: anchor["states"]]
+            self.anchor_parts = []
+            torch.save(dict(x=self.anchor_x.cpu(), mu=self.anchor_mu.cpu(), w=self.anchor_w.cpu()), run_dir / "anchor_states.pt")
+            standing = int((self.anchor_x[:, ACTOR_TWIST.start] == 0).sum())
+            heads = int((~(self.anchor_x[:, ACTOR_HEAD] == 0).all(dim=1)).sum())
+            print(f"[anchor] {len(self.anchor_x)} walk61 states kept ({standing} at vx 0, {heads} with a head command), "
+                  f"beta {anchor['beta']}, beta_legs {anchor.get('beta_legs', 0.0)}", flush=True)
+
+        def anchor_step(self):
+            """One supervised step toward walk61's targets on a minibatch of the warm-up states."""
+            idx = torch.randint(len(self.anchor_x), (anchor["batch"],), device=self.anchor_x.device)
+            x, mu0, w = self.anchor_x[idx], self.anchor_mu[idx], self.anchor_w[idx]
+            loss = anchor_loss_w(self.alg.actor, x, mu0, w)
+            self.alg.optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.alg.actor.parameters(), self.alg.max_grad_norm)
+            self.alg.optimizer.step()
+            with torch.no_grad():  # distance on the anchored outputs only (w > 0)
+                dist = float(((actor_mean(self.alg.actor, x) - mu0) * (w > 0)).norm(dim=1).mean())
+            self.anchor_dist_sum += dist
+            self.anchor_n += 1
+            return float(loss)
 
         def save(self, path, infos=None):
             super().save(path, infos)
@@ -580,7 +776,9 @@ def main():
                        track_err=round(track, 4) if track == track else None, track_base=round(base, 4) if base == base else None,
                        speed_along_cmd=round(speed, 4) if speed == speed else None, speed_base=round(sbase, 4) if sbase == sbase else None,
                        low_cmd_speed=round(low, 4) if low == low else None, low_cmd_base=round(lbase, 4) if lbase == lbase else None,
-                       time=time.strftime("%Y-%m-%dT%H:%M:%S"))
+                       time=time.strftime("%Y-%m-%dT%H:%M:%S"),
+                       anchor_dist=round(self.anchor_dist_sum / self.anchor_n, 4) if self.anchor_n else None)
+            self.anchor_dist_sum, self.anchor_n = 0.0, 0
             progress_path.write_text(json.dumps({**row, "peak_reward": self.peak if self.peak > -math.inf else None,
                                                  "track_base_values": self.track_base, "speed_base_values": self.speed_base,
                                                  "low_base_values": self.low_base}, indent=1))
@@ -593,6 +791,8 @@ def main():
                     p.requires_grad_(True)
                 self.alg.schedule = "adaptive"
                 print(f"[cap] critic warm-up done at iter {it}; actor unfrozen, adaptive lr on", flush=True)
+                if anchor:
+                    self.finish_anchor_states()
             if not self.warm and rew == rew:
                 self.track_bad = self.track_bad + 1 if not track_ok else 0
                 if rew > self.peak and track_ok:
@@ -630,6 +830,11 @@ def main():
             runner.warm = False
         if prev.get("peak_reward") is not None:
             runner.peak = float(prev["peak_reward"])
+        if anchor and not runner.warm:
+            st = torch.load(run_dir / "anchor_states.pt")
+            runner.anchor_x, runner.anchor_mu = st["x"].to(device), st["mu"].to(device)
+            runner.anchor_w = st["w"].to(device) if "w" in st else torch.full_like(runner.anchor_mu, anchor["beta"])
+            print(f"[anchor] resumed with {len(runner.anchor_x)} stored walk61 states", flush=True)
     else:
         mean, std = load_walk61_into_actor(runner.alg.actor, args.onnx, args.init_std)
         env.unwrapped.common_step_counter = CURRICULA_DONE_STEP
@@ -642,6 +847,17 @@ def main():
         d0 = compare_onnx(args.onnx, str(run_dir / "model_0.onnx"))
         print(f"[init] model_0.onnx vs walk61.onnx max abs diff on 256 random obs: {d0:.2e}", flush=True)
         assert d0 < 1e-4, d0
+    if anchor:
+        # walk61's normalizer stays fixed (rsl_rl would keep updating it), so the anchor targets and the export use it
+        runner.alg.actor.obs_normalizer.until = 1
+        o = env.get_observations()
+        x = torch.cat([o[g] for g in runner.alg.actor.obs_groups], dim=-1)
+        cm = env.unwrapped.command_manager
+        assert x.shape[1] == 61, x.shape
+        assert torch.allclose(x[:, ACTOR_HEAD], cm.get_command("head_pose")), "actor input columns 51-54 are not the head command"
+        assert torch.allclose(x[:, ACTOR_TWIST], cm.get_command("twist")[:, :3]), "actor input columns 48-50 are not the twist command"
+        print(f"[anchor] beta {anchor['beta']}, beta_legs {anchor.get('beta_legs', 0.0)}, {anchor['states']} states, minibatch {anchor['batch']}, "
+              f"vx 0 or {anchor['vx_band']}; actor normalizer frozen; input columns checked against the commands", flush=True)
     if runner.warm:
         for p in runner.alg.actor.parameters():
             p.requires_grad_(False)

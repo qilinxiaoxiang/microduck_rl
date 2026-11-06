@@ -1,0 +1,8 @@
+/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl/.venv/lib/python3.12/site-packages/mjlab/entity/entity.py:149: UserWarning: Actuator config matched 14 joint(s) but the same expressions also match 12 site(s): imu, left_foot, head_camera, tof, head_imu, mouth_tip, lip_up, pad_up, lip_low, jaw_tip_bottom, pad_low, right_foot. Add a separate config with transmission_type=TransmissionType.SITE if those should be actuated too.
+  self._add_actuators()
+[mdp] Patches 1-2 active: NaN-safe reward/advantage
+[mdp] Patch 4 active: ONNX export filters passive_* joints
+[mdp] Patch 5 active: MICRODUCK_WARM_START=1 restarts curricula after checkpoint load
+[cmu:plugged] total mass 737.2 g -> 859.0 g
+[sg_search_cmu] model task Mjlab-StaticGrasp-Hover-FromPick-MicroDuck-CMU-Plugged-Ball mass g 860.3
+cmu_sym_lips_5         margin  1.32 cm (tip push 1.61 N)  beak low  5.00 mm [CAD  5.01 box  5.00]  lips up/jaw   5.9/  5.0  pitch  64.4 jaw 25.7 bis  77.2  tau 0.24 right_knee  overrun 0.13  body 11.2  tilt [0.8 0.8]  self 0  trunk 47  reach 9.9  cost -2.60

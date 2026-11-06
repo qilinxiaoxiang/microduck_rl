@@ -1,0 +1,111 @@
+{
+ "log": "/Users/xiangzheng/code/robotics/microduck-sim/guide/firmware/mac/robot-runs-20261030-t1/walk61_see_walks.jsonl",
+ "states": 649,
+ "gate": 0.25,
+ "walk61_action_norm": 0.97,
+ "t3a_final": {
+  "onnx": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl-grasp/cmu/whole/runtime-overlay/models-t3a-final/walk61.onnx",
+  "distance": 0.192,
+  "passed": true,
+  "per_joint": {
+   "left_hip_yaw": 0.035,
+   "left_hip_roll": 0.043,
+   "left_hip_pitch": 0.053,
+   "left_knee": 0.047,
+   "left_ankle": 0.052,
+   "neck_pitch": 0.027,
+   "head_pitch": 0.027,
+   "head_yaw": 0.03,
+   "head_roll": 0.03,
+   "right_hip_yaw": 0.048,
+   "right_hip_roll": 0.041,
+   "right_hip_pitch": 0.06,
+   "right_knee": 0.05,
+   "right_ankle": 0.035
+  }
+ },
+ "t3a_best": {
+  "onnx": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl-grasp/cmu/whole/runtime-overlay/models-t3a-best/walk61.onnx",
+  "distance": 0.213,
+  "passed": true,
+  "per_joint": {
+   "left_hip_yaw": 0.042,
+   "left_hip_roll": 0.042,
+   "left_hip_pitch": 0.051,
+   "left_knee": 0.053,
+   "left_ankle": 0.06,
+   "neck_pitch": 0.037,
+   "head_pitch": 0.042,
+   "head_yaw": 0.036,
+   "head_roll": 0.02,
+   "right_hip_yaw": 0.057,
+   "right_hip_roll": 0.05,
+   "right_hip_pitch": 0.052,
+   "right_knee": 0.056,
+   "right_ankle": 0.049
+  }
+ },
+ "t3b_final": {
+  "onnx": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl-grasp/cmu/whole/runtime-overlay/models-t3b-final/walk61.onnx",
+  "distance": 0.242,
+  "passed": true,
+  "per_joint": {
+   "left_hip_yaw": 0.055,
+   "left_hip_roll": 0.043,
+   "left_hip_pitch": 0.055,
+   "left_knee": 0.067,
+   "left_ankle": 0.062,
+   "neck_pitch": 0.043,
+   "head_pitch": 0.043,
+   "head_yaw": 0.054,
+   "head_roll": 0.035,
+   "right_hip_yaw": 0.055,
+   "right_hip_roll": 0.04,
+   "right_hip_pitch": 0.064,
+   "right_knee": 0.066,
+   "right_ankle": 0.047
+  }
+ },
+ "t3b_best": {
+  "onnx": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl-grasp/cmu/whole/runtime-overlay/models-t3b-best/walk61.onnx",
+  "distance": 0.239,
+  "passed": true,
+  "per_joint": {
+   "left_hip_yaw": 0.054,
+   "left_hip_roll": 0.049,
+   "left_hip_pitch": 0.043,
+   "left_knee": 0.063,
+   "left_ankle": 0.06,
+   "neck_pitch": 0.041,
+   "head_pitch": 0.038,
+   "head_yaw": 0.044,
+   "head_roll": 0.048,
+   "right_hip_yaw": 0.065,
+   "right_hip_roll": 0.053,
+   "right_hip_pitch": 0.062,
+   "right_knee": 0.065,
+   "right_ankle": 0.045
+  }
+ },
+ "t2b_best": {
+  "onnx": "/Users/xiangzheng/code/robotics/microduck-sim/microduck_rl-grasp/cmu/whole/runtime-overlay/models-t2b-best/walk61.onnx",
+  "distance": 0.221,
+  "passed": true,
+  "per_joint": {
+   "left_hip_yaw": 0.049,
+   "left_hip_roll": 0.041,
+   "left_hip_pitch": 0.051,
+   "left_knee": 0.045,
+   "left_ankle": 0.05,
+   "neck_pitch": 0.044,
+   "head_pitch": 0.034,
+   "head_yaw": 0.032,
+   "head_roll": 0.027,
+   "right_hip_yaw": 0.069,
+   "right_hip_roll": 0.034,
+   "right_hip_pitch": 0.064,
+   "right_knee": 0.057,
+   "right_ankle": 0.065
+  }
+ }
+}

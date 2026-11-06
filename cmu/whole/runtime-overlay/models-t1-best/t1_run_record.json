@@ -1,0 +1,74 @@
+{
+ "run_name": "t1",
+ "task": "Mjlab-Velocity-Flat-MicroDuck",
+ "gpu": "kaggle-Tesla-T4",
+ "num_envs": 4096,
+ "max_iters": 1000,
+ "warmup_iters": 100,
+ "init_std": 0.25,
+ "seed": 1,
+ "delta": {
+  "track_lin_vel": {
+   "tau_s": 0.5,
+   "std": 0.22360679774997896
+  },
+  "twist_ranges": {
+   "lin_vel_x": [
+    0.0,
+    0.3
+   ],
+   "lin_vel_y": [
+    -0.1,
+    0.1
+   ],
+   "ang_vel_z": [
+    -1.0,
+    1.0
+   ]
+  },
+  "rel_standing_envs": 0.15,
+  "head_ranges": [
+   [
+    -1.1,
+    0.4
+   ],
+   [
+    -0.3,
+    1.0
+   ],
+   [
+    -0.9,
+    0.9
+   ],
+   [
+    -0.05,
+    0.05
+   ]
+  ],
+  "head_resample_s": [
+   3.0,
+   8.0
+  ],
+  "head_bias": {
+   "weight": 5.0,
+   "tau_s": 0.5
+  }
+ },
+ "asbuilt": true,
+ "cmu_config": "plugged",
+ "manifest": "/root/assets/manifests/plugged.json",
+ "remove_battery_kg": 0.09,
+ "caps": {
+  "max_hours": 3.0,
+  "max_dollars": 1.0,
+  "rate_per_hour": 0.0
+ },
+ "source_onnx": "/root/assets/walk61.onnx",
+ "started": "2026-10-30T08:29:13",
+ "finished": "2026-10-30T09:48:11",
+ "final_iter": 999,
+ "stop_reason": "max_iters reached",
+ "elapsed_s": 4851.1,
+ "dollars": 0.0,
+ "onnx": "/kaggle/working/runs/t1/t1.onnx"
+}

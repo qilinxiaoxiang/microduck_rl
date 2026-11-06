@@ -286,3 +286,226 @@ register_cmu_tasks(MicroduckOnPolicyRunner)
 # CMU aiming crouch (cmu_aim_pick_env_cfg.py): the ground pick with an object the beak has to reach.
 from .cmu_aim_pick_env_cfg import register_aim_pick_tasks
 register_aim_pick_tasks(MicroduckOnPolicyRunner)
+
+# ── Ground grasp (2026-10-10): the ground-pick slot with an opening beak + a real object ──
+from pathlib import Path as _Path
+
+from .microduck_ground_grasp_env_cfg import (
+    make_microduck_ground_grasp_env_cfg,
+    MicroduckGroundGraspRlCfg,
+)
+
+
+class GroundGraspFromPickRunner(MicroduckOnPolicyRunner):
+    """Warm start from TODAY's ground-pick move (Rémi's suggestion): the actor MLP and its observation normalizer are
+    copied from the deployed ONNX (same 61 -> 512 -> 256 -> 128 -> 14 ELU network; the exporter bakes
+    (obs - mean) / std into it). The critic stays fresh (its observations differ: object, mouth, contacts), the
+    exploration std starts at INIT_STD so the inherited move is not drowned in noise, and the normalizer count is huge
+    so the inherited statistics stay put. A real resume (--agent.resume) loads over this as usual."""
+
+    INIT_ONNX = _Path(__file__).parent / "init_policies" / "alpha_ground_pick.onnx"
+    INIT_STD = 0.25
+    # A FRESH Adam moves every weight by ~lr on its first steps (m/sqrt(v) ~ sign(g)): at the cfg's 1e-3 that shifted
+    # the inherited actions by ~1 rad in ONE update (measured on the smoke run). Start low; the adaptive KL schedule
+    # raises it (x1.5 per update while KL < desired/2) once the moments are warm.
+    INIT_LR = 1e-4
+
+    def __init__(self, env, train_cfg: dict, log_dir=None, device="cpu", **kwargs):
+        super().__init__(env, train_cfg, log_dir, device, **kwargs)
+        self._init_actor_from_onnx()
+
+    def _init_actor_from_onnx(self):
+        import onnx
+        import torch
+        from onnx import numpy_helper
+
+        init = {i.name: numpy_helper.to_array(i) for i in onnx.load(str(self.INIT_ONNX)).graph.initializer}
+        actor = self.alg.actor
+        sd = actor.state_dict()
+        std_key = next(k for k in init if k.startswith("onnx::Div"))
+        std = init[std_key] - actor.obs_normalizer.eps      # the exporter bakes (obs - mean) / (std + eps)
+        new = {
+            "obs_normalizer._mean": init["obs_normalizer._mean"],
+            "obs_normalizer._std": std,
+            "obs_normalizer._var": std ** 2,
+        }
+        for k in ("mlp.0.weight", "mlp.0.bias", "mlp.2.weight", "mlp.2.bias", "mlp.4.weight", "mlp.4.bias",
+                  "mlp.6.weight", "mlp.6.bias"):
+            new[k] = init[k]
+        for k, v in new.items():
+            t = torch.as_tensor(v, dtype=sd[k].dtype, device=sd[k].device).reshape(sd[k].shape)
+            sd[k].copy_(t)
+        sd["obs_normalizer.count"].fill_(1e9)
+        sd["distribution.std_param"].fill_(self.INIT_STD)
+        actor.load_state_dict(sd)
+        self.alg.learning_rate = self.INIT_LR
+        for g in self.alg.optimizer.param_groups:
+            g["lr"] = self.INIT_LR
+        print(f"[ground_grasp] actor initialised from {self.INIT_ONNX.name} (std {self.INIT_STD}, lr {self.INIT_LR})")
+
+
+register_mjlab_task(
+    task_id="Mjlab-GroundGrasp-Flat-MicroDuck",
+    env_cfg=make_microduck_ground_grasp_env_cfg(),
+    play_env_cfg=make_microduck_ground_grasp_env_cfg(play=True),
+    rl_cfg=MicroduckGroundGraspRlCfg,
+    runner_cls=MicroduckOnPolicyRunner,
+)
+
+register_mjlab_task(
+    task_id="Mjlab-GroundGrasp-FromPick-MicroDuck",
+    env_cfg=make_microduck_ground_grasp_env_cfg(),
+    play_env_cfg=make_microduck_ground_grasp_env_cfg(play=True),
+    rl_cfg=MicroduckGroundGraspRlCfg,
+    runner_cls=GroundGraspFromPickRunner,
+)
+
+# Variant: same, plus a Gaussian pull of the beak pitch toward 60° in the grasp window (the static pose study's sweet
+# spot: both lips < 1 cm from the floor) — for when the task alone keeps today's straight-down beak.
+register_mjlab_task(
+    task_id="Mjlab-GroundGrasp-FromPickPitch60-MicroDuck",
+    env_cfg=make_microduck_ground_grasp_env_cfg(beak_pitch_pref_weight=3.0, beak_pitch_target=60.0),
+    play_env_cfg=make_microduck_ground_grasp_env_cfg(play=True, beak_pitch_pref_weight=3.0, beak_pitch_target=60.0),
+    rl_cfg=MicroduckGroundGraspRlCfg,
+    runner_cls=GroundGraspFromPickRunner,
+)
+
+# Tall objects standing up (small toys, 3-5 cm): the beak takes the top slice. Fine-tuned from a floor-grasp checkpoint.
+register_mjlab_task(
+    task_id="Mjlab-GroundGrasp-Tall-MicroDuck",
+    env_cfg=make_microduck_ground_grasp_env_cfg(tall=True),
+    play_env_cfg=make_microduck_ground_grasp_env_cfg(play=True, tall=True),
+    rl_cfg=MicroduckGroundGraspRlCfg,
+    runner_cls=MicroduckOnPolicyRunner,
+)
+
+# Flat objects (2x2-Lego-like, 0.8-1.2 cm tall): no bisector preference, RL picks the beak angle.
+register_mjlab_task(
+    task_id="Mjlab-GroundGrasp-Flat-Objects-MicroDuck",
+    env_cfg=make_microduck_ground_grasp_env_cfg(flat=True),
+    play_env_cfg=make_microduck_ground_grasp_env_cfg(play=True, flat=True),
+    rl_cfg=MicroduckGroundGraspRlCfg,
+    runner_cls=MicroduckOnPolicyRunner,
+)
+
+
+# ── Static grasp (2026-10-26): the ground-grasp move held in a statically stable crouch, beak 1-2 mm off the floor ──
+import copy as _copy
+
+from .microduck_static_grasp_env_cfg import make_microduck_static_grasp_env_cfg
+
+MicroduckStaticGraspRlCfg = _copy.deepcopy(MicroduckGroundGraspRlCfg)
+MicroduckStaticGraspRlCfg.experiment_name = "static_grasp"
+MicroduckStaticGraspRlCfg.run_name = "static_grasp"
+
+register_mjlab_task(
+    task_id="Mjlab-StaticGrasp-FromPick-MicroDuck",
+    env_cfg=make_microduck_static_grasp_env_cfg(),
+    play_env_cfg=make_microduck_static_grasp_env_cfg(play=True),
+    rl_cfg=MicroduckStaticGraspRlCfg,
+    runner_cls=GroundGraspFromPickRunner,
+)
+
+# Strict: beak contact and a CoM past the toes cost far more (run 1 learned to lean on its beak), wider pose / lip pulls.
+register_mjlab_task(
+    task_id="Mjlab-StaticGrasp-Strict-FromPick-MicroDuck",
+    env_cfg=make_microduck_static_grasp_env_cfg(strict=True),
+    play_env_cfg=make_microduck_static_grasp_env_cfg(play=True, strict=True),
+    rl_cfg=MicroduckStaticGraspRlCfg,
+    runner_cls=GroundGraspFromPickRunner,
+)
+
+# Retimed: the beak arrives by phase 0.24, holds still and low until 0.34, bites 0.34-0.40 (run 2 never hovered).
+register_mjlab_task(
+    task_id="Mjlab-StaticGrasp-Retimed-FromPick-MicroDuck",
+    env_cfg=make_microduck_static_grasp_env_cfg(retimed=True),
+    play_env_cfg=make_microduck_static_grasp_env_cfg(play=True, retimed=True),
+    rl_cfg=MicroduckStaticGraspRlCfg,
+    runner_cls=GroundGraspFromPickRunner,
+)
+
+# Hover: retimed + level head + episode ends if the beak presses the floor (> 0.5 N) during the hold (run 3 rested on it).
+register_mjlab_task(
+    task_id="Mjlab-StaticGrasp-Hover-FromPick-MicroDuck",
+    env_cfg=make_microduck_static_grasp_env_cfg(hover=True),
+    play_env_cfg=make_microduck_static_grasp_env_cfg(play=True, hover=True),
+    rl_cfg=MicroduckStaticGraspRlCfg,
+    runner_cls=GroundGraspFromPickRunner,
+)
+
+# CMU grasp variants (cmu_grasp_env_cfg.py): Pollen's ground / static grasp on the CMU as-built masses, with the
+# 1.0-1.5 cm lumpy printed ball (-Ball-) Shawn tests on the robot.
+from .cmu_grasp_env_cfg import make_cmu_grasp_env_cfg
+
+for _base_name, _factory, _kw, _rl in (
+    ("GroundGrasp-FromPick", make_microduck_ground_grasp_env_cfg, {}, MicroduckGroundGraspRlCfg),
+    ("StaticGrasp-Hover-FromPick", make_microduck_static_grasp_env_cfg, {"hover": True}, MicroduckStaticGraspRlCfg),
+):
+    for _ball in (True, False):
+        register_mjlab_task(
+            task_id=f"Mjlab-{_base_name}-MicroDuck-CMU-Plugged{'-Ball' if _ball else ''}",
+            env_cfg=make_cmu_grasp_env_cfg(_factory, "plugged", ball=_ball, **_kw),
+            play_env_cfg=make_cmu_grasp_env_cfg(_factory, "plugged", ball=_ball, play=True, **_kw),
+            rl_cfg=_rl,
+            runner_cls=GroundGraspFromPickRunner,
+        )
+
+# CMU seeing pick (cmu_seeing_pick_env_cfg.py): the static hover grasp with the object seen by the head camera in
+# body slots 55-60, several object shapes, a placement window and mid-descent kicks (cmu/grasp/PLAN-seeing-pickup.md).
+from .cmu_seeing_pick_env_cfg import (
+    BODY_SLOT_MEAN as _SP_MEAN,
+    BODY_SLOT_START as _SP_START,
+    BODY_SLOT_STD as _SP_STD,
+    make_seeing_pick_env_cfg,
+    seeing_pick_rl_cfg,
+)
+
+
+class SeeingPickFromPickRunner(GroundGraspFromPickRunner):
+    """The ground-pick warm start, plus the body slots: the inherited network saw zeros there (normaliser std 0.01),
+    so their mean / std are set to the camera values' scale and their first-layer columns start at zero. At
+    iteration 0 the policy therefore moves exactly like alpha_ground_pick and learns to use the slots."""
+
+    def _init_actor_from_onnx(self):
+        super()._init_actor_from_onnx()
+        import torch
+
+        actor = self.alg.actor
+        sl = slice(_SP_START, _SP_START + len(_SP_MEAN))
+        with torch.no_grad():
+            norm = actor.obs_normalizer
+            norm._mean[..., sl] = torch.tensor(_SP_MEAN, device=norm._mean.device)
+            norm._std[..., sl] = torch.tensor(_SP_STD, device=norm._std.device)
+            norm._var[..., sl] = norm._std[..., sl] ** 2
+            actor.mlp[0].weight[:, sl] = 0.0
+        print(f"[seeing_pick] body slots {sl.start}-{sl.stop - 1}: normaliser reset, first-layer columns zeroed")
+
+
+register_mjlab_task(
+    task_id="Mjlab-SeeingPick-FromPick-MicroDuck-CMU-Plugged",
+    env_cfg=make_seeing_pick_env_cfg("plugged"),
+    play_env_cfg=make_seeing_pick_env_cfg("plugged", play=True),
+    rl_cfg=seeing_pick_rl_cfg(MicroduckStaticGraspRlCfg),
+    runner_cls=SeeingPickFromPickRunner,
+)
+
+# CMU seeing pick that watches the picture (cmu_seeing_pix_env_cfg.py, T2): body slots 55-60 are the detection's
+# (u, v, width, age, holding, visible) instead of a floor position. Warm start from the trained T2 export spx-b_1800
+# (cmu/planning/fetch-20261103 task D): its normaliser already carries the pixel slots' statistics, so the ONNX init
+# is copied unchanged. Plugged reproduces the source run's body; Battery-20261104 is the dated, physically
+# unqualified battery model, whose head/beak contact geometry is still the walking baseline's.
+from .cmu_seeing_pix_env_cfg import make_seeing_pix_env_cfg, seeing_pix_rl_cfg
+
+
+class SeeingPixFromSpxRunner(GroundGraspFromPickRunner):
+    INIT_ONNX = _Path(__file__).parent / "init_policies" / "spx-b_1800.onnx"
+
+
+for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-20261104")):
+    register_mjlab_task(
+        task_id=f"Mjlab-SeeingPickPix-FromSpx-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_seeing_pix_env_cfg(_variant),
+        play_env_cfg=make_seeing_pix_env_cfg(_variant, play=True),
+        rl_cfg=seeing_pix_rl_cfg(MicroduckStaticGraspRlCfg),
+        runner_cls=SeeingPixFromSpxRunner,
+    )
