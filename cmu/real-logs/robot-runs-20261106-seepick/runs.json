@@ -1,0 +1,122 @@
+[
+ {
+  "run": 1,
+  "tag": "table-colour-scan",
+  "brain_log": "duck_wired_log_app1106-pick.jsonl",
+  "seepick_trace": null,
+  "t_start": 1793998934.3,
+  "t_end": 1793998972.0,
+  "window": [
+   1793998929.3,
+   1793998987.0
+  ],
+  "rows": 2734,
+  "file": "run1-table-colour-scan.jsonl.gz",
+  "outcome": "default orange range never saw the ball; scanned and turned once, stopped by hand (duck on a table)"
+ },
+ {
+  "run": 2,
+  "tag": "table-hand-as-ball-fall",
+  "brain_log": "duck_wired_log_app1106-pick.jsonl",
+  "seepick_trace": "seepick_1106b.jsonl",
+  "t_start": 1793999030.0,
+  "t_end": 1793999032.96,
+  "window": [
+   1793999025.0,
+   1793999047.96
+  ],
+  "rows": 1112,
+  "file": "run2-table-hand-as-ball-fall.jsonl.gz",
+  "outcome": "wide range took the hand as the ball, steering flipped +-0.3, roll 15 deg, action guard; walk written back, fell"
+ },
+ {
+  "run": 3,
+  "tag": "table-lookdown-rocking-fall",
+  "brain_log": "duck_wired_log_app1106-pick.jsonl",
+  "seepick_trace": "seepick_1106c.jsonl",
+  "t_start": 1793999225.53,
+  "t_end": 1793999305.49,
+  "window": [
+   1793999220.53,
+   1793999320.49
+  ],
+  "rows": 4745,
+  "file": "run3-table-lookdown-rocking-fall.jsonl.gz",
+  "outcome": "walked 0.31 m straight; near look pose 1 s after a turn in place (gyro median 0.97 rad/s), fell forward"
+ },
+ {
+  "run": 4,
+  "tag": "table-aim-lookdown-fall",
+  "brain_log": "duck_wired_log_app1106-pick.jsonl",
+  "seepick_trace": "seepick_1106d.jsonl",
+  "t_start": 1793999479.77,
+  "t_end": 1793999562.88,
+  "window": [
+   1793999474.77,
+   1793999577.88
+  ],
+  "rows": 4890,
+  "file": "run4-table-aim-lookdown-fall.jsonl.gz",
+  "outcome": "arrived at 0.14 m; seepick aim lowered the head right after a turn (gyro 1-1.5 rad/s), fell; aim kept writing walk"
+ },
+ {
+  "run": 5,
+  "tag": "standing-pick-miss",
+  "brain_log": "duck_wired_log_app1106-pick.jsonl",
+  "seepick_trace": "seepick_1106f.jsonl",
+  "t_start": 1794000176.84,
+  "t_end": 1794000201.24,
+  "window": [
+   1794000171.84,
+   1794000216.24
+  ],
+  "rows": 2102,
+  "file": "run5-standing-pick-miss.jsonl.gz",
+  "outcome": "--pick-here 0.087 0: six creeps did not move it, picked at dx +3.2 cm, empty bite, no fall"
+ },
+ {
+  "run": 6,
+  "tag": "carpet-turn-pingpong-fall",
+  "brain_log": "duck_wired_log_app1106-163250.jsonl",
+  "seepick_trace": "seepick_1106g.jsonl",
+  "t_start": 1794000855.54,
+  "t_end": 1794000878.01,
+  "window": [
+   1794000850.54,
+   1794000893.01
+  ],
+  "rows": 2033,
+  "file": "run6-carpet-turn-pingpong-fall.jsonl.gz",
+  "outcome": "six in-place turns back and forth (13-22 deg overshoot vs 15 deg re-turn), 7th at vtheta 0.5 rolled it over"
+ },
+ {
+  "run": 7,
+  "tag": "carpet-walkup-blind-edge",
+  "brain_log": "duck_wired_log_app1106-163250.jsonl",
+  "seepick_trace": "seepick_1106h.jsonl",
+  "t_start": 1794001077.09,
+  "t_end": 1794001137.86,
+  "window": [
+   1794001072.09,
+   1794001152.86
+  ],
+  "rows": 3810,
+  "file": "run7-carpet-walkup-blind-edge.jsonl.gz",
+  "outcome": "turn 0.3 + re-turn 35 deg: walked up without a fall, arrived; aim turn left the ball under the picture at 0.121 m, gave up"
+ },
+ {
+  "run": 8,
+  "tag": "carpet-pick-holding",
+  "brain_log": "duck_wired_log_app1106-163250.jsonl",
+  "seepick_trace": "seepick_1106i.jsonl",
+  "t_start": 1794001210.36,
+  "t_end": 1794001248.23,
+  "window": [
+   1794001205.36,
+   1794001263.23
+  ],
+  "rows": 2736,
+  "file": "run8-carpet-pick-holding.jsonl.gz",
+  "outcome": "started ~11 cm from the ball: try 1 empty at dx +0.9 dy -1.1 cm, try 2 blind at dx +3.0 cm, jaw HOLDING the ball"
+ }
+]

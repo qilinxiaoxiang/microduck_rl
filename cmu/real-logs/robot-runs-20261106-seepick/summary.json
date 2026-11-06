@@ -1,0 +1,122 @@
+[
+ {
+  "run": 1,
+  "tag": "table-colour-scan",
+  "max_tilt_deg": 10.9,
+  "max_tilt_outside_pick_deg": 10.9,
+  "fell": false,
+  "walk_to_stand_switches": 0,
+  "max_abs_action_rad": 1.18,
+  "in_place_turns": 2,
+  "jaw_holding_s": 0.0,
+  "battery_v": [
+   7.9,
+   8.0
+  ]
+ },
+ {
+  "run": 2,
+  "tag": "table-hand-as-ball-fall",
+  "max_tilt_deg": 129.6,
+  "max_tilt_outside_pick_deg": 129.6,
+  "fell": true,
+  "walk_to_stand_switches": 2,
+  "max_abs_action_rad": 5.72,
+  "in_place_turns": 0,
+  "jaw_holding_s": 0.0,
+  "battery_v": [
+   7.8,
+   8.0
+  ]
+ },
+ {
+  "run": 3,
+  "tag": "table-lookdown-rocking-fall",
+  "max_tilt_deg": 90.7,
+  "max_tilt_outside_pick_deg": 90.7,
+  "fell": true,
+  "walk_to_stand_switches": 1,
+  "max_abs_action_rad": 4.94,
+  "in_place_turns": 7,
+  "jaw_holding_s": 0.0,
+  "battery_v": [
+   7.2,
+   7.8
+  ]
+ },
+ {
+  "run": 4,
+  "tag": "table-aim-lookdown-fall",
+  "max_tilt_deg": 92.2,
+  "max_tilt_outside_pick_deg": 92.2,
+  "fell": true,
+  "walk_to_stand_switches": 35,
+  "max_abs_action_rad": 9.21,
+  "in_place_turns": 9,
+  "jaw_holding_s": 0.0,
+  "battery_v": [
+   6.9,
+   7.6
+  ]
+ },
+ {
+  "run": 5,
+  "tag": "standing-pick-miss",
+  "max_tilt_deg": 47.4,
+  "max_tilt_outside_pick_deg": 7.3,
+  "fell": false,
+  "walk_to_stand_switches": 0,
+  "max_abs_action_rad": 1.91,
+  "in_place_turns": 0,
+  "jaw_holding_s": 0.0,
+  "battery_v": [
+   6.9,
+   7.2
+  ]
+ },
+ {
+  "run": 6,
+  "tag": "carpet-turn-pingpong-fall",
+  "max_tilt_deg": 95.0,
+  "max_tilt_outside_pick_deg": 95.0,
+  "fell": true,
+  "walk_to_stand_switches": 1,
+  "max_abs_action_rad": 5.13,
+  "in_place_turns": 8,
+  "jaw_holding_s": 0.0,
+  "battery_v": [
+   7.7,
+   8.1
+  ]
+ },
+ {
+  "run": 7,
+  "tag": "carpet-walkup-blind-edge",
+  "max_tilt_deg": 11.8,
+  "max_tilt_outside_pick_deg": 11.8,
+  "fell": false,
+  "walk_to_stand_switches": 0,
+  "max_abs_action_rad": 1.33,
+  "in_place_turns": 5,
+  "jaw_holding_s": 0.0,
+  "battery_v": [
+   7.8,
+   7.9
+  ]
+ },
+ {
+  "run": 8,
+  "tag": "carpet-pick-holding",
+  "max_tilt_deg": 49.2,
+  "max_tilt_outside_pick_deg": 7.3,
+  "fell": false,
+  "walk_to_stand_switches": 0,
+  "max_abs_action_rad": 2.01,
+  "in_place_turns": 0,
+  "jaw_holding_s": 27.8,
+  "battery_v": [
+   7.4,
+   7.8
+  ]
+ }
+]

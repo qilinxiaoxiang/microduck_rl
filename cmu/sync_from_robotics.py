@@ -46,6 +46,8 @@ add(MAC, "mac", [
     "tether.py", "test_tether.py",  # charger-lead wrench: brain_sim_check.py --tether and the fine-tune tether event import it
     "approach.py", "approach_sim.py", "duck_kin.py", "duck_kin.json", "duck_kin_export.py", "turn_test.py",
     "test_approach.py", "test_duck_kin.py", "APPROACH.md", "a7z_cam.py",  # walk to the object while turning (step 2)
+    "u20cam_intrinsics.json", "u20cam_mount.json",  # duck_kin.py loads both (head camera lens and mount)
+    "seepick.py", "test_seepick.py",  # find, walk, learned pick, retry (steps 1-4; robot runs 2026-11-06)
     "shoot.py", "shoot.sh", "SHOOT.md", "dance.json", "sitlook.json", "test_shoot_sitfind.py",  # the five filmed homepage takes (2026-10-24)
 ])
 add(f"{MAC}/jitter-20261018", "mac/jitter-20261018", ["jitter_sim.py", "compare.py", "osc_metrics.py", "band.py", "summ.sh"])
@@ -82,6 +84,7 @@ add("build-pack-20260913/procurement/feet-sole-20261018/sweep", "model/sole/swee
 DIR_COPIES = [  # (source dir, dest dir): every regular file, no recursion
     (f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016"),
     (f"{MAC}/robot-runs-20261018", "real-logs/robot-runs-20261018"),
+    (f"{MAC}/robot-runs-20261106-seepick", "real-logs/robot-runs-20261106-seepick"),
     (f"{WHOLE}/runtime-overlay/models-ft3-it999", "whole/runtime-overlay/models-ft3-it999"),
 ]
 

@@ -7,7 +7,7 @@ writes walk_wired's control file. Final-goal step 2 (walk to it), D-019; the cro
 
 Walking uses vx 0.25 with vtheta within +-0.3 (the app's arc rate; walk_brain holds it with the IMU against the
 robot's left drift, trim in ~/.duck_yaw_trim.json), proportional to the bearing (K_TURN). Turning in place is vx 0,
-vtheta +-0.5 (walk_brain applies no straight-walk trim there, SPIN_TURN_MAX): used when the object is more than
+vtheta +-0.3 (VTH_SPIN; walk_brain applies no straight-walk trim there, SPIN_TURN_MAX): used when the object is more than
 FACE_START to the side at the start, or closer than FACE_NEAR_R and more than FACE_NEAR to the side (Shawn,
 2026-10-24: get close as fast as possible, turning in place allowed). The first robot run (2026-10-24,
 approach_1024-215636) also used turning in place, vtheta 0.6 and head yaw while walking, none of them robot-tested:
@@ -61,10 +61,21 @@ V_ONSET_S = 1.0      # the gait needs about a second to get going; the estimate 
 VTH_ARC = 0.3        # rad/s: the largest arc command, the app's arc rate (robot-remote.js ARC_VTHETA)
 K_TURN = 1.0         # vtheta = K_TURN x bearing within +-VTH_ARC (two-level +-0.3 arcs overshot left in the sim)
 BEARING_DEAD = math.radians(2)
-VTH_SPIN = 0.5       # rad/s turning in place (walk_brain: no straight-walk trim, SPIN_TURN_MAX)
+VTH_SPIN = 0.3       # rad/s turning in place (walk_brain: no straight-walk trim, SPIN_TURN_MAX). Was 0.5 (sim only):
+#                      robot 2026-11-06 on carpet, the 7th in-place turn at 0.5 rolled the duck onto its side
+# Every in-place turn on the robot 2026-11-06 (table and carpet) stopped 13-22 deg past straight ahead, more than
+# FACE_NEAR, so the next check turned it back the other way: 6 turns in a row, then the fall. After a first turn the
+# residual is left to the walking arcs (+-0.3, robot-tested): another turn needs FACE_REFACE, and after FACE_MAX_N turns
+# only MAX_WALK_BEARING.
+FACE_REFACE = math.radians(35)
+FACE_MAX_N = 3
+NOT_IN_VIEW = "no orange object in front"   # the head scan found nothing: seepick turns the body and scans again
 FACE_START = math.radians(20)   # bearing beyond which a walk starts with a turn in place
 FACE_NEAR, FACE_NEAR_R = math.radians(15), 0.35   # closer than FACE_NEAR_R and further off than FACE_NEAR: stop, turn
 FACE_DONE = math.radians(6)
+FACE_SPRING = math.radians(12)   # an in-place turn springs back when it stops. Robot 2026-11-01, 16 spins: right +5 to +31 deg
+                                 # (median about +10), left -2 to -10. So the object is carried this far past straight ahead
+FACE_MEAN_S = 0.5                # the bearing that ends a turn is averaged over this: the gait sways the body +-10 deg
 FACE_MAX_TURN = math.radians(150)
 FACE_MAX_S = 10.0
 FACE_REST_S = 1.0    # standing after a turn in place before walking: the in-place turn coasts (sim, 2026-10-24)
@@ -75,7 +86,9 @@ BLIND_MAX_M = 0.25   # after the object left the bottom of the picture: at most 
 BLIND_OK_M = 0.15    # a stop it cannot see counts as arrived only after the object left the bottom of the picture
                      # and within this walk since the last detection
 SIDE_TURN_MAX = math.radians(60)  # after it left a side of the picture: arc that way at most this far, then look
-DONE_R = (0.05, 0.17)            # measured range accepted as arrived
+DONE_R = (0.05, 0.20)            # measured range accepted as arrived: the lowest look (NEAR_HEAD) sees the floor from
+#                                  ~0.11 to ~0.25 m, and seepick's creep closes the last centimetres under the camera
+#                                  (was 0.17: a second walk from 0.174 m overshot into the blind zone, 2026-10-30)
 DONE_BEARING = math.radians(25)  # measured bearing accepted as arrived
 MAX_APPROACHES = 4
 PATH_SLACK = 0.30    # m walked (dead reckoning) beyond the first distance to the object: stop
@@ -86,7 +99,9 @@ HEAD_YAW_WALK = 0.0  # rad: no head yaw while walking or before a walk. Sim with
                      # looking toward the turn eats it, so the body turns and the head only pitches
 HEAD_PITCH_WALK = (0.5, 1.1)  # head pitch range while walking (0.5 sees from 0.32 m, 1.1 from 0.13 m)
 AIM_PERIOD_S = 0.25  # head aim recomputed at most this often (A7Z CPU)
-NEAR_HEAD = {"neck_pitch": -0.4, "head_pitch": 1.1, "head_yaw": 0.0}   # sees the floor 0.03-0.19 m out (CAD camera)
+NEAR_HEAD = {"neck_pitch": -0.4, "head_pitch": 1.4, "head_yaw": 0.0}   # the lowest look: the servo reaches ~1.3 and the
+# picture then starts 0.10-0.12 m in front of the foot-frame origin (ruler, robot 2026-10-30); at 1.1 it started at
+# ~0.15 m and the object at the pick spot sat cut on the bottom edge. The policy ignores neck_pitch (stays 0.2-0.4).
 AIM_V = 0.55         # standing: aim the object at this fraction of the image height
 # standing scan (head_pitch, head_yaw); head yaw only while standing. CAD camera on STAND: pitch 0.5 sees the floor
 # from 0.32 m, 0.9 from 0.17 m; yaw +-0.6 with the 51.6 deg picture width covers +-60 deg
@@ -96,10 +111,12 @@ SCAN_DWELL_S = 1.0
 LOST_S = 1.5         # no detection this long while walking: stop and look
 JUMP_M = 0.25        # a detection this far from the estimate needs a second one agreeing within JUMP_AGREE_M
 JUMP_AGREE_M = 0.10
-TURN_CHECK_S = 1.5   # a turn held this long must show at least TURN_MIN_RATE in its direction
+TURN_CHECK_S = 3.0   # a turn held this long must show at least TURN_MIN_RATE in its direction (fitted slope)
 TURN_MIN_RATE = math.radians(3)
-WRONG_WAY_RATE = math.radians(10)    # over WRONG_WAY_S, against the command (or either way when straight: 2x)
-WRONG_WAY_S = 1.0
+WRONG_WAY_RATE = math.radians(10)    # fitted over WRONG_WAY_S, against the command. A real reversal ran 20-29 deg/s; 26 robot
+                                     # spins on 2026-11-01 reach +21.6 deg/s over 1 s (sway) but +7.3 over 1.5 s (wrongway_replay.py)
+LINE_RATE = math.radians(20)         # fitted over WRONG_WAY_S, either way on a straight walk
+WRONG_WAY_S = 1.5
 FRAME_MAX_AGE_S = 0.6
 STATE_MAX_AGE_S = 0.5
 STALE_WALK_S = 0.3   # stale state this long while walking: stop
@@ -107,11 +124,19 @@ STALE_START_S = 8.0  # stale state this long before the first step: give up
 CMD_PERIOD_S = 0.2
 CMD_FOR_S = 0.6
 SETTLE_S = 1.2       # after a stop, before measuring
+# The look-down head pose (NEAR_HEAD, head pitch 1.4) waits for a body that has stopped rocking: |trunk gyro| under
+# STILL_GYRO for STILL_S. Robot 2026-11-06: standing calm reads median 0.01-0.4 rad/s; 1 s after a turn in place it
+# was still rocking (median 0.97, peak 3.07), the head went down at once (the "already at" path skipped the settle)
+# and the duck fell forward (seepick-fall-20261106/).
+STILL_GYRO, STILL_S = 0.5, 0.5
 HEAD_SETTLE_RAD = 0.1
 HEAD_STILL_RAD, HEAD_STILL_S = 0.02, 0.3   # a head that has stopped short of its goal (load, limits) still measures
 MEASURE_N, MEASURE_S = 5, 3.0
 ALPHA_WALK, ALPHA_STAND = 0.5, 0.8   # filter gain of a new detection
 MIN_AREA = 60
+
+
+MAX_SEE_R = 1.0      # m
 
 
 def below_horizon(kin, st, w, h):
@@ -122,7 +147,11 @@ def below_horizon(kin, st, w, h):
 
     def accept(x, y, bw, bh):
         v = kin.horizon_v(x + bw / 2.0, st["q"], st["gb"], w, h)
-        return v is None or y > v
+        if not (v is None or y > v):
+            return False
+        # a 12 mm ball is seen to about 0.6 m. Runs 12 and 13 took orange 2.8-5.9 m away for it and walked over the real ball toward it (robot 2026-11-01)
+        p = kin.pixel_to_ground(x + bw / 2.0, y + bh, st["q"], st["gb"], w, h)
+        return p is None or math.hypot(*p) <= MAX_SEE_R
     return accept
 
 
@@ -154,13 +183,18 @@ class Approach:
         self.seen_walked = 0.0     # self.walked at the last detection
         self.pending = None        # a far-off detection waiting for a second one
         self.last_idx, self.walk_t0, self.cmd, self.cmd_t = None, None, None, 0.0
+        self.face_b0 = None
+        self.spin_head = None      # head command held through a spin entered from a walk; None: the default pose, reached before the spin
         self.scan_i, self.approaches, self.meas = 0, 0, []
         self.head = dict(DEFAULT_HEAD)
         self.turn = 0              # arc in force: -1 right, 0 straight, +1 left
         self.turn_t0 = None
         self.face_yaw0 = None      # IMU yaw when a turn in place began
         self.rest_until = 0.0      # p_ready stands until then
+        self.rock_t = -1e9         # last time the trunk gyro was over STILL_GYRO
+        self.faces = 0             # in-place turns started in this approach (FACE_REFACE, FACE_MAX_N)
         self.yaws = collections.deque(maxlen=200)   # (t, unwrapped yaw) while walking
+        self.face_dir, self.face_bs = None, collections.deque()   # the turn in place: its direction, recent bearings
         self.head_qs = collections.deque()          # (t, neck/head pitch/yaw) for head_still
         self.walked, self.walk_budget = 0.0, None
         self.stale_t = None
@@ -176,10 +210,14 @@ class Approach:
         self.log(f"[{self.now():.1f}] {self.phase} -> {phase}{': ' + why if why else ''}")
         self.phase, self.t_phase = phase, self.now()
 
-    def finish(self, ok, why, **kw):
+    def finish(self, ok, why, stop=True, **kw):
+        """stop=False leaves the control file alone: a guard or a person put the brain in another mode, and writing walk
+        back would hand a tilted robot to the policy again (2026-11-06 seepick: the walk written 0.12 s after a guard
+        stand drove a 15 deg roll to a 5.72 rad action and the duck fell)."""
         self.result = dict(ok=ok, why=why, **kw)
         self.walk_t0 = None
-        self.send({"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0, "head": dict(self.head)}, force=True)
+        if stop:
+            self.send({"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0, "head": dict(self.head)}, force=True)
         self.enter("done" if ok else "failed", why)
 
     def send(self, cmd, force=False):
@@ -202,7 +240,12 @@ class Approach:
         if turn != self.turn or self.turn_t0 is None:
             self.turn, self.turn_t0 = turn, now
         cmd = {"mode": "walk", "vx": vx, "vy": 0.0, "vtheta": round(vth, 3), "for_s": CMD_FOR_S}
-        if now - self.walk_t0 >= HEAD_FREE_S:
+        if not vx:
+            # the head does not move during a spin. All three spin falls had it moving: run 8 ramp 1.33 to 0.45 as the spin began, run 10 drop of
+            # 0.6 rad at 1.25 s, run 11 pitch 0.72 to 0.19 and neck bowed when the head command was dropped at a walk-to-spin change (robot 2026-11-01)
+            if self.spin_head is not None:
+                cmd["head"] = self.spin_head
+        elif now - self.walk_t0 >= HEAD_FREE_S:
             if st is not None and self.est is not None and now - getattr(self, "aim_t", -1.0) >= AIM_PERIOD_S:
                 self.head, self.aim_t = self.aim_head(st, *self.est, walking=True), now
             cmd["head"] = {k: self.head[k] for k in ("head_pitch", "head_yaw") if k in self.head}
@@ -213,10 +256,26 @@ class Approach:
         stop = self.walk_t0 is not None or bool((self.cmd or {}).get("vtheta") or (self.cmd or {}).get("vx"))
         self.walk_t0, self.turn, self.turn_t0 = None, 0, None
         self.head = dict(head)
-        self.send({"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0, "head": self.head}, force=stop)
+        sent = dict(self.head)
+        if self.rocking():   # no look-down on a rocking body (STILL_GYRO); the wanted pose goes out once it is calm
+            for k in ("head_pitch", "neck_pitch"):
+                if k in sent:
+                    sent[k] = min(sent[k], DEFAULT_HEAD[k]) if k == "head_pitch" else DEFAULT_HEAD[k]
+        self.send({"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0, "head": sent}, force=stop)
+
+    def face_limit(self, base):
+        """Bearing beyond which an in-place turn starts: base before the first turn, FACE_REFACE after it (the turn
+        overshoots; the arcs take the rest), MAX_WALK_BEARING once FACE_MAX_N turns are used."""
+        if self.faces >= FACE_MAX_N:
+            return MAX_WALK_BEARING
+        return base if self.faces == 0 else max(base, FACE_REFACE)
+
+    def rocking(self):
+        return self.now() - self.rock_t < STILL_S
 
     def head_arrived(self, st, head):
-        return all(abs(st["q"][k] - v) < HEAD_SETTLE_RAD for k, v in head.items() if k in st["q"])
+        # neck_pitch is not waited for: the walking policy ignores neck commands (the neck stays 0.2-0.4 on the robot)
+        return all(abs(st["q"][k] - v) < HEAD_SETTLE_RAD for k, v in head.items() if k in st["q"] and k != "neck_pitch")
 
     def head_still(self, st):
         """The head joints moved less than HEAD_STILL_RAD over the last HEAD_STILL_S (the near pose stops short of
@@ -285,10 +344,11 @@ class Approach:
             self.trace.append(dict(t=self.now(), phase=self.phase, frame=idx, cut=[x, y], est=list(self.est)))
             if self.walk_t0 is not None:
                 return None
-            # standing: still a measurement (an upper bound on the range, the bearing good); a tall object at 0.09 m
-            # stays cut in the near head pose (as-built sim), so dropping these left the stop unmeasured
-            return dict(x=x, y=y, cut=True, area=int(det["area"]), cx=det["cx"], cy=det["cy"], frame=idx,
-                        lag=round(self.now() - t_cap, 3))
+            # standing: still a measurement, the bounded range with this frame's bearing (the raw projection sent the
+            # fake robot over a tall cut object, 2026-10-30); a tall object at 0.09 m stays cut in the near head pose
+            # (as-built sim), so dropping these left the stop unmeasured
+            return dict(x=self.est[0], y=self.est[1], cut=True, area=int(det["area"]), cx=det["cx"], cy=det["cy"],
+                        frame=idx, lag=round(self.now() - t_cap, 3))
         fresh = self.est is None or self.now() - (self.seen_t or 0) > 2 * LOST_S
         if not fresh and math.hypot(x - self.est[0], y - self.est[1]) > JUMP_M:
             # far from the estimate: a moved object or a false blob; take it once a second frame agrees
@@ -341,16 +401,19 @@ class Approach:
                           self.yaws[-1][1] + wrap(st["yaw"] - self.yaws[-1][1])))
 
         def rate(span):
-            old = [p for p in self.yaws if p[0] <= self.yaws[-1][0] - span]
-            if not old:
+            """Fitted slope over the last span s: a gait in place sways +-10 deg, so two end points can cancel a turn
+            (robot 2026-11-01: 43 deg gained in 2.2 s read as -1.2 deg/s)."""
+            if self.yaws[0][0] > self.yaws[-1][0] - span:
                 return None
-            t0, y0 = old[-1]
-            return (self.yaws[-1][1] - y0) / max(1e-3, self.yaws[-1][0] - t0)
+            pts = [p for p in self.yaws if p[0] >= self.yaws[-1][0] - span]
+            mt, my = sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts)
+            den = sum((p[0] - mt) ** 2 for p in pts)
+            return sum((p[0] - mt) * (p[1] - my) for p in pts) / den if den > 0 else None
         w = rate(WRONG_WAY_S)
         if w is not None and now - self.walk_t0 > HEAD_FREE_S:
             if self.turn and self.turn * w < -WRONG_WAY_RATE and now - self.turn_t0 > WRONG_WAY_S:
                 return f"turning the wrong way: {math.degrees(w):+.0f} deg/s while the arc is {'left' if self.turn > 0 else 'right'}"
-            if not self.turn and abs(w) > 2 * WRONG_WAY_RATE and now - self.turn_t0 > WRONG_WAY_S:
+            if not self.turn and abs(w) > LINE_RATE and now - self.turn_t0 > WRONG_WAY_S:
                 return f"not holding the line: {math.degrees(w):+.0f} deg/s on a straight walk"
         if self.turn and now - self.turn_t0 >= TURN_CHECK_S:
             w = rate(TURN_CHECK_S)
@@ -371,8 +434,11 @@ class Approach:
             return
         if self.phase in ("done", "failed"):
             return
+        if st.get("gyro") is not None and math.sqrt(sum(g * g for g in st["gyro"])) > STILL_GYRO:
+            self.rock_t = now
         if self.phase != "start" and st["mode"] != "walk":
-            self.finish(False, f"walk_wired is in {st['mode']} mode (a guard, a head grip or a manual command)")
+            self.finish(False, f"walk_wired is in {st['mode']} mode (a guard, a head grip or a manual command)",
+                        stop=False)
             return
         if not st.get("ok", True):    # servo reads missing or the IMU not fresh: the robot is blind
             self.stale_t = self.stale_t or now
@@ -408,7 +474,7 @@ class Approach:
         self.scan_i += 1
         self.t_phase = now
         if self.scan_i >= len(SCAN):
-            self.finish(False, "no orange object in front (it does not turn around to search)")
+            self.finish(False, NOT_IN_VIEW)
 
     def p_ready(self, st, now, m):
         """Standing, head to the default pose (no head yaw when the walk starts)."""
@@ -428,9 +494,11 @@ class Approach:
                 self.enter("settle", f"already at x {self.est[0]:.2f} y {self.est[1]:.2f}: measure")
                 self.t_phase -= SETTLE_S
                 return
-            if abs(b) > (FACE_NEAR if near else FACE_START):
+            if abs(b) > self.face_limit(FACE_NEAR if near else FACE_START):
+                self.faces += 1
                 self.enter("face", f"bearing {math.degrees(b):+.0f} deg: turn in place first")
-                self.face_yaw0 = st["yaw"]
+                self.face_yaw0, self.face_dir = st["yaw"], None
+                self.spin_head = None
                 return
             self.enter("approach", f"walk: estimate x {self.est[0]:.2f} y {self.est[1]:.2f}")
 
@@ -441,12 +509,31 @@ class Approach:
             if why:
                 self.finish(False, why)
                 return
-        if self.est is None or now - (self.seen_t or 0) > 2.0:
+        lost = self.est is None or now - (self.seen_t or 0) > 2.0
+        if lost and self.face_dir is not None and self.face_b0 is not None and abs(self.face_b0) > 0:
+            # the default head does not see a near object: finish the bearing it had on the IMU
+            if self.face_dir * wrap(st["yaw"] - self.face_yaw0) >= abs(self.face_b0) - FACE_SPRING or now - self.t_phase > FACE_MAX_S:
+                self.face_dir, self.face_b0 = None, None
+                self.stand(self.head)
+                self.rest_until = now + FACE_REST_S
+                self.enter("ready", "turned the bearing on the IMU")
+                return
+            self.walk(0.0, self.face_dir * VTH_SPIN, st)
+            return
+        if lost:
             self.enter("settle", "lost while turning in place: look")
             self.stand(self.head)
             return
         b = math.atan2(self.est[1], self.est[0])
-        if abs(b) < FACE_DONE:
+        if self.face_dir is None:
+            self.face_dir, self.face_b0 = (1 if b > 0 else -1), b
+            self.face_bs.clear()
+        self.face_bs.append((now, b))
+        while now - self.face_bs[0][0] > FACE_MEAN_S:
+            self.face_bs.popleft()
+        mean = sum(p[1] for p in self.face_bs) / len(self.face_bs)
+        if self.face_bs[-1][0] - self.face_bs[0][0] >= 0.8 * FACE_MEAN_S and self.face_dir * mean < FACE_DONE - FACE_SPRING:
+            self.face_dir = None
             self.stand(self.head)
             self.rest_until = now + FACE_REST_S
             self.enter("ready", f"facing it (bearing {math.degrees(b):+.0f} deg)")
@@ -455,7 +542,7 @@ class Approach:
             self.enter("settle", "turned in place too long: look")
             self.stand(self.head)
             return
-        self.walk(0.0, math.copysign(VTH_SPIN, b), st)
+        self.walk(0.0, self.face_dir * VTH_SPIN, st)
 
     def p_approach(self, st, now, m):
         x, y = self.est
@@ -504,9 +591,11 @@ class Approach:
             self.enter("settle", f"not seen for {LOST_S} s at r {r:.2f}: stop and look")
             self.stand(self.head)
             return
-        if (r < FACE_NEAR_R and abs(b) > FACE_NEAR) or abs(b) > MAX_WALK_BEARING:   # too far off for the arcs
+        if (r < FACE_NEAR_R and abs(b) > self.face_limit(FACE_NEAR)) or abs(b) > MAX_WALK_BEARING:   # too far off for the arcs
+            self.faces += 1
             self.stand(self.head)
-            self.face_yaw0 = st["yaw"]
+            self.face_yaw0, self.face_dir = st["yaw"], None
+            self.spin_head = {k: self.head[k] for k in ("head_pitch", "head_yaw") if k in self.head} if self.walk_t0 is not None and now - self.walk_t0 >= HEAD_FREE_S else None
             self.enter("face", f"r {r:.2f} bearing {math.degrees(b):+.0f} deg: stop and turn in place")
             return
         vth = 0.0 if abs(b) < BEARING_DEAD else max(-VTH_ARC, min(VTH_ARC, K_TURN * b))
@@ -516,9 +605,13 @@ class Approach:
                      f"vtheta {vth:+.2f}, walked {self.walked:.2f} m")
 
     def p_settle(self, st, now, m):
-        if now - self.t_phase < SETTLE_S:
+        if now - self.t_phase < SETTLE_S or self.rocking():
+            if self.rocking():
+                self.stand(self.head)   # stand() holds the head up while the body rocks
             return
-        if self.est is not None:
+        if self.est is not None and self.head.get("neck_pitch") != NEAR_HEAD["neck_pitch"]:
+            # the near pose chosen in p_measure ("not seen at the stop") stays; re-aiming here undid it every time and
+            # the settle/measure pair looped for ever (test_object_beside..., 2026-10-30)
             self.head = self.aim_head(st, *self.est)
         self.stand(self.head)
         if self.head_arrived(st, self.head) or now - self.t_phase > SETTLE_S + 2.0:
@@ -652,6 +745,7 @@ def parse_state(row):
     # first robot run had all 14 missing for 5.5 s after the walk switch, gyro frozen at 0)
     ok = bool(row.get("imu_valid", True)) and len(row.get("missing") or []) < len(NAMES) // 2
     return dict(t=row["t"], mode=row["mode"], torque=row.get("torque"), gb=row["gb"], q=dict(zip(NAMES, row["q"])),
+                gyro=row.get("gyro_body"),
                 yaw=yaw_of(body_quat(row["quat"])) if row.get("quat") else 0.0, ok=ok)
 
 

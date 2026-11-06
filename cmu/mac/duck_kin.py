@@ -263,11 +263,17 @@ class DuckKin:
         self.cam_site = self.sites["head_camera"]
         self.offsets = (0.0, 0.0, 0.0)            # pitch, yaw, roll in deg (from the mount fit)
         self.shift = np.zeros(3)                  # lens shift in the camera frame, m
+        self.head_gain = 1.0                      # the head_pitch reading times this is the angle the head really turns
         if mount is not None:
             self.cam_site = self.mount_site(mount)
             o = mount.get("offsets_deg") or {}
             self.offsets = (float(o.get("pitch", 0.0)), float(o.get("yaw", 0.0)), float(o.get("roll", 0.0)))
             self.shift = np.array(mount.get("shift_m") or (0.0, 0.0, 0.0), float)
+            self.head_gain = float(mount.get("head_pitch_gain", 1.0))
+        # In the bow the real camera sits lower than the rigid chain says (2026-10-30: 13-20 px per mm along a ruler
+        # on the floor where the chain predicts 9-12); measured as a height, applied by neck angle, zero standing
+        # (camera-calib-20261030/bend-20261030/empirical_pose.py --dz-only).
+        self.bow = (mount or {}).get("bow_height_correction")
         self.pitch_offset = math.radians(pitch_offset_deg)
         self._R_off = None
         self._key, self._pose = None, None
@@ -313,7 +319,7 @@ class DuckKin:
     # --- kinematics ---------------------------------------------------------------------------------------------
     def place(self, q, gb=UPRIGHT):
         """World (= foot frame) rotation and position of every body for joints q (dict) and trunk gravity gb."""
-        key = (tuple(round(float(q[n]), 6) for n in self.names), tuple(round(float(x), 6) for x in gb))
+        key = (tuple(round(float(q[n]), 6) for n in self.names), tuple(round(float(x), 6) for x in gb), self.head_gain)
         if key == self._key:
             return self._pose
         Rs, ps = [], []
@@ -324,7 +330,10 @@ class DuckKin:
                 Rp, pp = Rs[b["parent"]], ps[b["parent"]]
                 R, p = Rp @ b["R0"], pp + Rp @ b["p0"]
                 for j in b["joints"]:  # hinge about axis through pos (body frame), angle relative to qpos0
-                    Rj = axis_angle(j["axis"], float(q[j["name"]]) - j["qpos0"])
+                    ang = float(q[j["name"]]) - j["qpos0"]
+                    if j["name"] == "head_pitch":
+                        ang *= self.head_gain   # ruler check 2026-10-30: the head turns about 0.92 x its reading
+                    Rj = axis_angle(j["axis"], ang)
                     p = p + R @ (j["pos"] - Rj @ j["pos"])
                     R = R @ Rj
             Rs.append(R)
@@ -357,9 +366,24 @@ class DuckKin:
         Rc = Rb @ s["R"]
         return pb + Rb @ s["p"] + Rc @ self.shift, Rc @ self._offset()
 
+    def bow_dz(self, q):
+        """Measured height correction of the camera (m, foot frame z) at this neck angle: the mount's
+        bow_height_correction dz_m in full at neck_pitch <= neck_full, zero at >= neck_none, linear between (the
+        between is not measured; the standing fit and the bow holds are)."""
+        b = self.bow
+        if not b:
+            return 0.0
+        n, full, none = float(q["neck_pitch"]), float(b["neck_full"]), float(b["neck_none"])
+        w = min(1.0, max(0.0, (none - n) / (none - full)))
+        return w * float(b["dz_m"])
+
     def camera_pose(self, q, gb=UPRIGHT):
-        """(pos, R) of the camera in the foot frame; R columns = optical axis, image left, image up."""
-        return self.camera_from_body(*self.camera_body_pose(q, gb))
+        """(pos, R) of the camera in the foot frame; R columns = optical axis, image left, image up. Includes the
+        measured bow height correction (bow_dz); camera_body_pose + camera_from_body, which the standing mount fit
+        uses, do not (the correction is zero standing)."""
+        pos, R = self.camera_from_body(*self.camera_body_pose(q, gb))
+        dz = self.bow_dz(q)
+        return (pos + np.array([0.0, 0.0, dz]) if dz else pos), R
 
     def mouth_tip(self, q, gb=UPRIGHT):
         return self.site_pose("mouth_tip", q, gb)[0]

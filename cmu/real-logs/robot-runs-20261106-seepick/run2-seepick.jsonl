@@ -1,0 +1,3 @@
+{"t": 1793999029.9958768, "phase": "approach", "why": "try 1: start"}
+{"t": 1793999032.960645, "phase": "failed", "why": "walk_wired is in stand mode (a guard, a head grip or a manual command)"}
+{"result": {"ok": false, "why": "walk_wired is in stand mode (a guard, a head grip or a manual command)", "tries": 1, "attempts": []}}
