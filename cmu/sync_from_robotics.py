@@ -201,17 +201,7 @@ RULES = {
         ("str", "vin_drop_resistance=config.get('wire_resistance',0.0),",
          "vin_drop_gain=config.get('vin_drop_gain',0.0),  # cmu/ copy: bam 62bd8ce API, see sync_from_robotics.py", 1),
     ],
-    "whole/dynamics/realgap-20261014/static_gap.py": [
-        ("str", "    c.update(remove_old_battery_kg=battery, **kw)\n    return c\n",
-         "    c.update(remove_old_battery_kg=battery, **kw)\n"
-         "    if c.get('mass_manifest') and not Path(c['mass_manifest']).is_absolute():  # cmu/ copy: paths relative to the config\n"
-         "        c['mass_manifest'] = str(MODELS[model].parent / c['mass_manifest'])\n"
-         "    return c\n", 1),
-    ],
-    "whole/dynamics/asbuilt-20261015/asbuilt.config.json": [
-        ("str", f'"{ABS_SIM}{WHOLE}/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json"', '"asbuilt-mass-manifest.json"', 1)],
-    "whole/dynamics/v19-20261014/runs/const-bat90-sensor0-nocomp-seed0.config.json": [
-        ("str", f'"{ABS_SIM}{WHOLE}/dynamics/v19-20261014/v19-mass-manifest.json"', '"../v19-mass-manifest.json"', 1)],
+    # static_gap.cfg and the two run configs carry config-relative manifest paths in the source since 2026-11-09
     "whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
     "whole/dynamics/v19-20261014/v19-mass-manifest.json": [("str", ABS_SIM, f"{SIM_REL}/", 0)],
     "whole/dynamics/asbuilt-20261015/build_asbuilt_manifest.py": [("str", "/private/tmp/claude-501/", "/private/tmp/", 0)],
