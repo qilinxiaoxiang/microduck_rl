@@ -231,14 +231,14 @@
     "walk_ticks": 375
    },
    "sim_outcomes": {
-    "up": 3
+    "stop_topple": 3
    },
    "sim_outcome": "up",
    "sim_jitter": 0.109,
    "sim_max_tilt_deg": [
-    42.4,
-    37.6,
-    39.1
+    46.4,
+    46.9,
+    48.2
    ],
    "sim_jump_share": [
     0.003,
@@ -262,14 +262,14 @@
     "walk_ticks": 4008
    },
    "sim_outcomes": {
-    "up": 3
+    "stop_topple": 3
    },
    "sim_outcome": "up",
    "sim_jitter": 0.099,
    "sim_max_tilt_deg": [
-    41.7,
-    43.3,
-    44.2
+    46.1,
+    48.2,
+    49.4
    ],
    "sim_jump_share": [
     0.002,
@@ -324,14 +324,14 @@
     "walk_ticks": 1039
    },
    "sim_outcomes": {
-    "up": 3
+    "stop_topple": 3
    },
    "sim_outcome": "up",
    "sim_jitter": 0.191,
    "sim_max_tilt_deg": [
-    37.9,
-    41.6,
-    44.0
+    49.4,
+    45.8,
+    47.6
    ],
    "sim_jump_share": [
     0.011,

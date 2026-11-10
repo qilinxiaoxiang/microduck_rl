@@ -54,7 +54,8 @@ add(f"{MAC}/jitter-20261018", "mac/jitter-20261018", ["jitter_sim.py", "compare.
 add(f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016", [])  # filled below from the directory listing
 add(f"{MAC}/robot-runs-20261018", "real-logs/robot-runs-20261018", [])
 # sim-vs-robot scorecard (2026-11-09): replays the robot runs in real-logs/ through brain_sim_check.py --cmd-replay
-add(f"{MAC}/scorecard-20261109", "mac/scorecard-20261109", ["README.md", "scorecard.py", "cases.json", "scorecard.json", "scorecard.md"])
+add(f"{MAC}/scorecard-20261109", "mac/scorecard-20261109", ["README.md", "scorecard.py", "cases.json", "scorecard.json", "scorecard.md",
+    "control_nostand.py", "control-nostand-card.json"])  # scorecard-auto.json and control-nostand.json carry ledger ids of private logs
 add(PI, "pi", [
     "stand_pose.py", "battery.py", "dxl_fast.py", "jaw_limits.py", "jaw_limits.json", "jaw_pose_caps.json",
     "jaw_calibration.json", "test_battery.py", "test_jaw_limits.py", "pi_imu_uart.py", "pi_bridge.py", "stand.py",

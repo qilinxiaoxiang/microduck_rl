@@ -9,10 +9,10 @@ Outcome matched in 5 of 12 replayed robot runs (sim majority over seeds [0, 1, 2
 - **1018d-walk61-025-second** (bench-usb-20261018): robot up, sim {'up': 3} (max tilt robot 6.8, sim [5.7, 6.3, 5.7] deg); MATCH. Jitter robot 1.124 sim 0.157 (ratio 0.14), action jumps robot 0.299 sim [0.007, 0.007, 0.007].
 - **1018g-ft3-020** (bench-usb-20261018): robot fell at 2.6 s, sim {'up': 3} (max tilt robot 57.2, sim [8.1, 5.1, 6.8] deg); MISS. Jitter robot 1.641 sim 0.161 (ratio 0.1), action jumps robot 0.61 sim [0.004, 0.004, 0.008].
 - **1106-run1-table-scan** (battery-a7z-20261106): robot up, sim {'up': 3} (max tilt robot 10.9, sim [8.5, 8.1, 8.1] deg); MATCH. Jitter robot 0.187 sim 0.082 (ratio 0.44), action jumps robot 0.007 sim [0.001, 0.001, 0.0].
-- **1106-run2-table-steer-flip** (battery-a7z-20261106): robot fell at 8.2 s, sim {'up': 3} (max tilt robot 129.6, sim [42.4, 37.6, 39.1] deg); MISS. Jitter robot 0.495 sim 0.109 (ratio 0.22), action jumps robot 0.103 sim [0.003, 0.0, 0.0].
-- **1106-run3-table-lookdown** (battery-a7z-20261106): robot fell at 84.9 s, sim {'up': 3} (max tilt robot 60.3, sim [41.7, 43.3, 44.2] deg); MISS. Jitter robot 0.372 sim 0.099 (ratio 0.27), action jumps robot 0.049 sim [0.002, 0.002, 0.001].
+- **1106-run2-table-steer-flip** (battery-a7z-20261106): robot fell at 8.2 s, sim {'stop_topple': 3} (max tilt robot 129.6, sim [46.4, 46.9, 48.2] deg); MISS. Jitter robot 0.495 sim 0.109 (ratio 0.22), action jumps robot 0.103 sim [0.003, 0.0, 0.0].
+- **1106-run3-table-lookdown** (battery-a7z-20261106): robot fell at 84.9 s, sim {'stop_topple': 3} (max tilt robot 60.3, sim [46.1, 48.2, 49.4] deg); MISS. Jitter robot 0.372 sim 0.099 (ratio 0.27), action jumps robot 0.049 sim [0.002, 0.002, 0.001].
 - **1106-run4-table-aim-lookdown** (battery-a7z-20261106): robot fell at 84.5 s, sim {'up': 3} (max tilt robot 92.2, sim [9.6, 9.9, 9.6] deg); MISS. Jitter robot 0.369 sim 0.127 (ratio 0.34), action jumps robot 0.048 sim [0.005, 0.007, 0.008].
-- **1106-run6-carpet-turns-05** (battery-a7z-20261106): robot fell at 27.4 s, sim {'up': 3} (max tilt robot 95.0, sim [37.9, 41.6, 44.0] deg); MISS. Jitter robot 0.499 sim 0.191 (ratio 0.38), action jumps robot 0.047 sim [0.011, 0.009, 0.004].
+- **1106-run6-carpet-turns-05** (battery-a7z-20261106): robot fell at 27.4 s, sim {'stop_topple': 3} (max tilt robot 95.0, sim [49.4, 45.8, 47.6] deg); MISS. Jitter robot 0.499 sim 0.191 (ratio 0.38), action jumps robot 0.047 sim [0.011, 0.009, 0.004].
 - **1106-run7-carpet-turns-03** (battery-a7z-20261106): robot up, sim {'up': 3} (max tilt robot 11.8, sim [8.9, 8.9, 8.5] deg); MATCH. Jitter robot 0.231 sim 0.087 (ratio 0.38), action jumps robot 0.008 sim [0.001, 0.001, 0.0].
 
 Cited from earlier studies (not rerun):

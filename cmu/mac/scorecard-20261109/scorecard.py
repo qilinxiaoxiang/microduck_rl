@@ -19,6 +19,7 @@ import argparse
 import collections
 import concurrent.futures
 import gzip
+import hashlib
 import json
 import math
 import os
@@ -161,6 +162,37 @@ def run(n_jobs):
             print(f"{case} seed {seed}: exit {rc}", flush=True)
 
 
+def sim_summary(tick_log):
+    """brain_sim_check.py's own result line (the JSON summary saved in <tick log>.out), or None."""
+    try:
+        text = open(tick_log + ".out").read().split("--- stderr tail")[0]
+    except OSError:
+        return None
+    for line in reversed(text.splitlines()):
+        line = line.strip()
+        if line.startswith("{"):
+            try:
+                return json.loads(line)
+            except ValueError:
+                continue
+    return None
+
+
+def sim_metrics(tick_log, t_from, t_to, replay):
+    """metrics() on the sim tick log, with the fall taken from the sim's own summary: brain_sim_check.py writes a tick's
+    row before stepping the physics and stops in the step where the trunk passes its fall limit, so the falling tick is
+    never in the tick log (the last row sits at 40-44 deg). Before 2026-11-10 the card read falls from the tick log
+    alone and counted every sim fall as up. A missing or unreadable summary is outcome 'error', never 'up'."""
+    m = metrics(rows_of(tick_log), t_from, t_to, replay)
+    s = sim_summary(tick_log)
+    if s is None:
+        return dict(m, outcome="error")
+    if s.get("fell_at") is not None and s["fell_at"] - t_from <= t_to - t_from + 0.5:
+        m.update(outcome="fell", fell_at=round(s["fell_at"] - t_from, 2),
+                 max_tilt_deg=max(m["max_tilt_deg"], s.get("max_tilt") or 0.0))
+    return m
+
+
 def report():
     cfg = json.load(open(os.path.join(HERE, "cases.json")))
     rows_out = []
@@ -173,10 +205,16 @@ def report():
         for seed in SEEDS:
             tl = os.path.join(OUT, f"{case['id']}.seed{seed}.ticks.jsonl")
             if os.path.exists(tl) and os.path.getsize(tl):
-                srows = rows_of(tl)
-                sims.append(metrics(srows, WALK_AT, WALK_AT + span, rp))
+                sims.append(sim_metrics(tl, WALK_AT, WALK_AT + span, rp))
+        if rp:  # a sim fall right after the robot's own replayed stop is the switch's (see auto())
+            stops = [t for t, c in json.load(open(os.path.join(OUT, f"{case['id']}.replay.json"))) if c.get("mode") in ("stand", "monitor")]
+            for sm in sims:
+                if sm["outcome"] == "fell" and any(0 <= sm["fell_at"] - t <= STOP_TOPPLE_S for t in stops):
+                    sm["outcome"] = "stop_topple"
         votes = collections.Counter(s["outcome"] for s in sims)
         sim_outcome = votes.most_common(1)[0][0] if sims else None
+        if sim_outcome == "stop_topple":
+            sim_outcome = "up"
         sj = [s["jitter"] for s in sims if s["jitter"]]
         sim_jit = round(sum(sj) / len(sj), 3) if sj else None
         rows_out.append({
@@ -209,6 +247,7 @@ def report():
     print("\n".join(lines))
 
 
+STOP_TOPPLE_S = 1.0  # a sim fall this soon after a replayed stand/monitor command is the switch's, not the plant's
 AUTO_MAX_S = 30.0  # a replay covers at most this much of an action (the last 30 s before a fall)
 # Mass model by the date of the run (the body the robot carried; the sim has no per-run record of it)
 MODEL_BY_DATE = [("2026-11-02", "battery-20261104"), ("0000-00-00", None)]
@@ -235,9 +274,12 @@ def auto(episodes_path, data, n_jobs):
         rows = rows_of(os.path.join(data, e["trajectory"]))
         if not rows:
             continue
-        t0, t1 = e["t_start"], e["t_end"] + 1.0
+        # the robot's outcome is the ledger's: each fall is charged to one action (run_ledger.py charge_falls), so a
+        # replay window never runs past the action's end into the next one's fall (before 2026-11-10 it ran 1 s past
+        # and 4 of 12 falls were counted twice)
+        t0, t1 = e["t_start"], e["t_end"]
         if e["outcome"] == "fell":
-            fall = next((r["t"] for r in rows if r.get("gb") and r["t"] >= t0 and tilt_deg(r["gb"]) > FALL_DEG), t1)
+            fall = next((r["t"] for r in rows if r.get("gb") and r["t"] >= t0 and tilt_deg(r["gb"]) > FALL_DEG), t1 + 1.0)
             t0, t1 = max(t0, fall - AUTO_MAX_S), fall + 1.0
         else:
             t1 = min(t1, t0 + AUTO_MAX_S)
@@ -251,20 +293,23 @@ def auto(episodes_path, data, n_jobs):
         man = manifest_for(e["day"])
         if man:
             args += ["--manifest", os.path.join(MANIFESTS, man + ".json")]
-        rp = os.path.join(out_dir, f"{e['id']}.replay.json")
+        # sims are cached by action and by everything that shapes them (window, supply, model, commands)
+        key = hashlib.sha1(json.dumps([args, replay]).encode()).hexdigest()[:8]
+        rp = os.path.join(out_dir, f"{e['id']}.{key}.replay.json")
         json.dump(replay, open(rp, "w"))
         args += ["--cmd-replay", rp]
-        plans[e["id"]] = dict(e=e, rows=rows, t0=t0, t1=t1, model=man)
+        plans[e["id"]] = dict(e=e, rows=rows, t0=t0, t1=t1, model=man, key=key, argv=list(args))
         for seed in SEEDS:
-            tl = os.path.join(out_dir, f"{e['id']}.seed{seed}.ticks.jsonl")
-            if not (os.path.exists(tl) and os.path.getsize(tl)):
+            tl = os.path.join(out_dir, f"{e['id']}.{key}.seed{seed}.ticks.jsonl")
+            if not (os.path.exists(tl) and os.path.getsize(tl) and os.path.exists(tl + ".out")):  # a killed run leaves no .out
                 jobs.append({"case": e["id"], "seed": seed, "tick_log": tl,
                              "argv": [SIM_PY, os.path.join(MAC, "brain_sim_check.py")] + args + ["--seed", str(seed), "--tick-log", tl]})
 
     def one(job):
         p = subprocess.run(job["argv"], capture_output=True, text=True, timeout=900)
         with open(job["tick_log"] + ".out", "w") as f:
-            f.write(f"exit {p.returncode}\n{p.stdout.strip()[-2000:]}\n--- stderr tail\n{p.stderr[-3000:]}")
+            # the whole summary line: sim_summary() reads the fall from it (a 2000-character tail cut it, 2026-11-10)
+            f.write(f"exit {p.returncode}\n{(p.stdout.strip().splitlines() or [''])[-1]}\n--- stderr tail\n{p.stderr[-3000:]}")
         return p.returncode
 
     if jobs:
@@ -273,22 +318,40 @@ def auto(episodes_path, data, n_jobs):
     results = []
     for cid, pl in plans.items():
         real = metrics(pl["rows"], pl["t0"], pl["t1"], True)
+        robot = "fell" if pl["e"]["outcome"] == "fell" else "up"
         sims = []
         for seed in SEEDS:
-            tl = os.path.join(out_dir, f"{cid}.seed{seed}.ticks.jsonl")
+            tl = os.path.join(out_dir, f"{cid}.{pl['key']}.seed{seed}.ticks.jsonl")
             if os.path.exists(tl) and os.path.getsize(tl):
-                sims.append(metrics(rows_of(tl), WALK_AT, WALK_AT + pl["t1"] - pl["t0"], True))
+                sims.append(sim_metrics(tl, WALK_AT, WALK_AT + pl["t1"] - pl["t0"], True))
         if not sims:
             continue
+        # The robot's controller (app, approach.py, seepick.py) writes a stand when it sees the robot tipping, so the
+        # replay hands the sim that stop while the sim is still upright (robot 15-49 deg, sim 3-7 deg on 2026-11-02..06).
+        # In the sim the switch itself tips the robot over: with the stand replaced by walk at zero command, 12 of the
+        # 13 sim falls next to a robot fall did not happen (control_nostand.py). Such a fall is counted as
+        # "stop_topple", never as a predicted fall.
+        replay = json.load(open(pl["argv"][pl["argv"].index("--cmd-replay") + 1]))
+        stops = [t for t, c in replay if c.get("mode") in ("stand", "monitor")]
+        for sm in sims:
+            if sm["outcome"] == "fell" and any(0 <= sm["fell_at"] - t <= STOP_TOPPLE_S for t in stops):
+                sm["outcome"] = "stop_topple"
         votes = collections.Counter(s["outcome"] for s in sims)
         so = votes.most_common(1)[0][0]
-        results.append(dict(id=cid, kind=pl["e"]["kind"], day=pl["e"]["day"], model=pl["model"],
-                            robot=real["outcome"], sim=so, sim_votes=dict(votes), match=so == real["outcome"],
+        if so in ("guard", "stop_topple"):
+            so = "up"
+        sf = sorted(s["fell_at"] for s in sims if s["outcome"] == "fell")
+        lag = round(sf[len(sf) // 2] - real["fell_at"], 2) if robot == "fell" and so == "fell" and real["fell_at"] is not None else None
+        results.append(dict(id=cid, kind=pl["e"]["kind"], day=pl["e"]["day"], when=pl["e"]["when"], model=pl["model"],
+                            robot=robot, sim=so, sim_votes=dict(votes), match=so == robot,
+                            robot_fell_at=real["fell_at"], sim_fell_at=sf, sim_fall_lag_s=lag, sim_argv=pl["argv"],
                             robot_max_tilt=real["max_tilt_deg"], sim_max_tilt=[s["max_tilt_deg"] for s in sims],
                             robot_jitter=real["jitter"], sim_jitter=[s["jitter"] for s in sims]))
-    falls = [r for r in results if r["robot"] == "fell"]
-    summ = (f"{sum(r['match'] for r in results)}/{len(results)} actions match (fall or not); robot falls predicted "
-            f"{sum(r['match'] for r in falls)}/{len(falls)}") if results else "no replays yet"
+    cell = collections.Counter((r["robot"], r["sim"]) for r in results)
+    errors = sum(1 for r in results if r["sim"] == "error")
+    summ = (f"{sum(r['match'] for r in results)}/{len(results)} actions match; both up {cell[('up', 'up')]}, "
+            f"both fell {cell[('fell', 'fell')]}, robot only fell {cell[('fell', 'up')]}, sim only fell {cell[('up', 'fell')]}"
+            + (f", {errors} sim errors" if errors else "")) if results else "no replays yet"
     by_kind = {k: f"{sum(r['match'] for r in rs)}/{len(rs)}" for k, rs in
                collections.defaultdict(list, {k: [r for r in results if r['kind'] == k] for k in {r['kind'] for r in results}}).items()}
     by_day = {d: f"{sum(r['match'] for r in results if r['day'] == d)}/{sum(1 for r in results if r['day'] == d)}"
