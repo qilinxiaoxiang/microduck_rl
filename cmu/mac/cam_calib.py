@@ -527,6 +527,7 @@ def report_and_write(kin, obs, args, captures_path):
         mount = json.load(f)
     mount["offsets_deg"] = {"pitch": round(fit["pitch"], 3), "yaw": round(fit["yaw"], 3), "roll": round(fit["roll"], 3)}
     mount["shift_m"] = [round(v, 5) for v in fit["shift_m"]]
+    mount["head_pitch_gain"] = kin.head_gain   # the gain the fit was made with (duck_kin.place)
     mount["source"] = "fit"
     mount["fit"] = {
         "date": time.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -585,7 +586,8 @@ def run_mount(args):
     head = dict(MOUNT_HEAD, head_pitch=args.head_pitch)
     args.head_used = head
     lo, hi = (tuple(int(v) for v in a.split(",")) for a in (args.hsv_lo, args.hsv_hi))
-    detect = lambda f, accept=None: orange_target.detect(f, lo, hi, 60, accept=accept)  # noqa: E731
+    detect = lambda f, accept=None: orange_target.detect(f, lo, hi, args.min_area, accept=accept,  # noqa: E731
+                                                        open_px=args.open_px)
     cam = ShmCamera(require_calibration=False)
     obs = []
     try:
@@ -660,6 +662,8 @@ def main():
     ap.add_argument("--cmd", default="/tmp/duck_cmd.json")
     ap.add_argument("--log", default=None)
     ap.add_argument("--hsv-lo", default="5,120,120")
+    ap.add_argument("--min-area", type=int, default=60, help="--mount: smallest blob in px (a 12 mm ball at 0.6 m: ~20)")
+    ap.add_argument("--open-px", type=int, default=5, help="--mount: opening kernel side; 3 or 0 for a blob under 8 px")
     ap.add_argument("--hsv-hi", default="22,255,255")
     args = ap.parse_args()
     if args.board_png:

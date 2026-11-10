@@ -1,0 +1,401 @@
+{
+ "replayed": [
+  {
+   "id": "1018a-walk61-025",
+   "condition": "bench-usb-20261018",
+   "note": "window ends at the stop: the robot then walked into a laptop",
+   "robot": {
+    "outcome": "up",
+    "fell_at": null,
+    "guard_at": null,
+    "max_tilt_deg": 11.5,
+    "jitter": 1.255,
+    "jump_share": 0.349,
+    "walk_ticks": 200
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.213,
+   "sim_max_tilt_deg": [
+    5.7,
+    6.3,
+    5.7
+   ],
+   "sim_jump_share": [
+    0.01,
+    0.011,
+    0.01
+   ],
+   "jitter_ratio": 0.17,
+   "match": true
+  },
+  {
+   "id": "1018b-ft3-020-first",
+   "condition": "bench-usb-20261018",
+   "note": null,
+   "robot": {
+    "outcome": "guard",
+    "fell_at": null,
+    "guard_at": 2.97,
+    "max_tilt_deg": 41.3,
+    "jitter": 1.38,
+    "jump_share": 0.433,
+    "walk_ticks": 148
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.186,
+   "sim_max_tilt_deg": [
+    8.1,
+    5.1,
+    6.8
+   ],
+   "sim_jump_share": [
+    0.008,
+    0.004,
+    0.012
+   ],
+   "jitter_ratio": 0.13,
+   "match": false
+  },
+  {
+   "id": "1018b-ft3-020-second",
+   "condition": "bench-usb-20261018",
+   "note": null,
+   "robot": {
+    "outcome": "fell",
+    "fell_at": 4.23,
+    "guard_at": 4.21,
+    "max_tilt_deg": 92.0,
+    "jitter": 1.567,
+    "jump_share": 0.619,
+    "walk_ticks": 210
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.186,
+   "sim_max_tilt_deg": [
+    8.1,
+    5.1,
+    6.8
+   ],
+   "sim_jump_share": [
+    0.008,
+    0.004,
+    0.012
+   ],
+   "jitter_ratio": 0.12,
+   "match": false
+  },
+  {
+   "id": "1018d-walk61-025-first",
+   "condition": "bench-usb-20261018",
+   "note": null,
+   "robot": {
+    "outcome": "up",
+    "fell_at": null,
+    "guard_at": null,
+    "max_tilt_deg": 7.7,
+    "jitter": 0.896,
+    "jump_share": 0.173,
+    "walk_ticks": 300
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.157,
+   "sim_max_tilt_deg": [
+    5.7,
+    6.3,
+    5.7
+   ],
+   "sim_jump_share": [
+    0.007,
+    0.007,
+    0.007
+   ],
+   "jitter_ratio": 0.18,
+   "match": true
+  },
+  {
+   "id": "1018d-walk61-025-second",
+   "condition": "bench-usb-20261018",
+   "note": null,
+   "robot": {
+    "outcome": "up",
+    "fell_at": null,
+    "guard_at": null,
+    "max_tilt_deg": 6.8,
+    "jitter": 1.124,
+    "jump_share": 0.299,
+    "walk_ticks": 300
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.157,
+   "sim_max_tilt_deg": [
+    5.7,
+    6.3,
+    5.7
+   ],
+   "sim_jump_share": [
+    0.007,
+    0.007,
+    0.007
+   ],
+   "jitter_ratio": 0.14,
+   "match": true
+  },
+  {
+   "id": "1018g-ft3-020",
+   "condition": "bench-usb-20261018",
+   "note": null,
+   "robot": {
+    "outcome": "fell",
+    "fell_at": 2.62,
+    "guard_at": 2.54,
+    "max_tilt_deg": 57.2,
+    "jitter": 1.641,
+    "jump_share": 0.61,
+    "walk_ticks": 126
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.161,
+   "sim_max_tilt_deg": [
+    8.1,
+    5.1,
+    6.8
+   ],
+   "sim_jump_share": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "jitter_ratio": 0.1,
+   "match": false
+  },
+  {
+   "id": "1106-run1-table-scan",
+   "condition": "battery-a7z-20261106",
+   "note": "standing scan with head moves, no fall",
+   "robot": {
+    "outcome": "up",
+    "fell_at": null,
+    "guard_at": null,
+    "max_tilt_deg": 10.9,
+    "jitter": 0.187,
+    "jump_share": 0.007,
+    "walk_ticks": 2733
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.082,
+   "sim_max_tilt_deg": [
+    8.5,
+    8.1,
+    8.1
+   ],
+   "sim_jump_share": [
+    0.001,
+    0.001,
+    0.0
+   ],
+   "jitter_ratio": 0.44,
+   "match": true
+  },
+  {
+   "id": "1106-run2-table-steer-flip",
+   "condition": "battery-a7z-20261106",
+   "note": "steering flipped +-0.3 while walking; guard stand, walk rewritten 0.12 s later, fell",
+   "robot": {
+    "outcome": "fell",
+    "fell_at": 8.17,
+    "guard_at": 7.9,
+    "max_tilt_deg": 129.6,
+    "jitter": 0.495,
+    "jump_share": 0.103,
+    "walk_ticks": 375
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.109,
+   "sim_max_tilt_deg": [
+    42.4,
+    37.6,
+    39.1
+   ],
+   "sim_jump_share": [
+    0.003,
+    0.0,
+    0.0
+   ],
+   "jitter_ratio": 0.22,
+   "match": false
+  },
+  {
+   "id": "1106-run3-table-lookdown",
+   "condition": "battery-a7z-20261106",
+   "note": "look-down head pose about 1 s after an in-place turn while the trunk rocked; fell forward",
+   "robot": {
+    "outcome": "fell",
+    "fell_at": 84.92,
+    "guard_at": 84.91,
+    "max_tilt_deg": 60.3,
+    "jitter": 0.372,
+    "jump_share": 0.049,
+    "walk_ticks": 4008
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.099,
+   "sim_max_tilt_deg": [
+    41.7,
+    43.3,
+    44.2
+   ],
+   "sim_jump_share": [
+    0.002,
+    0.002,
+    0.001
+   ],
+   "jitter_ratio": 0.27,
+   "match": false
+  },
+  {
+   "id": "1106-run4-table-aim-lookdown",
+   "condition": "battery-a7z-20261106",
+   "note": "look-down after seepick's aim turn; fell",
+   "robot": {
+    "outcome": "fell",
+    "fell_at": 84.54,
+    "guard_at": 84.53,
+    "max_tilt_deg": 92.2,
+    "jitter": 0.369,
+    "jump_share": 0.048,
+    "walk_ticks": 3985
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.127,
+   "sim_max_tilt_deg": [
+    9.6,
+    9.9,
+    9.6
+   ],
+   "sim_jump_share": [
+    0.005,
+    0.007,
+    0.008
+   ],
+   "jitter_ratio": 0.34,
+   "match": false
+  },
+  {
+   "id": "1106-run6-carpet-turns-05",
+   "condition": "battery-a7z-20261106",
+   "note": "six in-place turns at +-0.5 rad/s; the 7th rolled it over on carpet",
+   "robot": {
+    "outcome": "fell",
+    "fell_at": 27.45,
+    "guard_at": 27.41,
+    "max_tilt_deg": 95.0,
+    "jitter": 0.499,
+    "jump_share": 0.047,
+    "walk_ticks": 1039
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.191,
+   "sim_max_tilt_deg": [
+    37.9,
+    41.6,
+    44.0
+   ],
+   "sim_jump_share": [
+    0.011,
+    0.009,
+    0.004
+   ],
+   "jitter_ratio": 0.38,
+   "match": false
+  },
+  {
+   "id": "1106-run7-carpet-turns-03",
+   "condition": "battery-a7z-20261106",
+   "note": "walk-up with in-place turns at 0.3 rad/s; no fall",
+   "robot": {
+    "outcome": "up",
+    "fell_at": null,
+    "guard_at": null,
+    "max_tilt_deg": 11.8,
+    "jitter": 0.231,
+    "jump_share": 0.008,
+    "walk_ticks": 3731
+   },
+   "sim_outcomes": {
+    "up": 3
+   },
+   "sim_outcome": "up",
+   "sim_jitter": 0.087,
+   "sim_max_tilt_deg": [
+    8.9,
+    8.9,
+    8.5
+   ],
+   "sim_jump_share": [
+    0.001,
+    0.001,
+    0.0
+   ],
+   "jitter_ratio": 0.38,
+   "match": true
+  }
+ ],
+ "cited": [
+  {
+   "id": "1101-groundpick-bend",
+   "condition": "charger-a7z-20261030",
+   "robot": "held bend: ankles stop at 1.25 rad, trunk 37.4 deg, camera 14.5 mm over the floor",
+   "sim": "as-built sim with the D-040 heel stop 1.36 rad: trunk 34.7 deg, camera 21.5 mm (limit 1.25 gives 37.6 deg, 15.6 mm)",
+   "verdict": "miss until the ankle cables move to the front socket; then the robot should stop near 1.36 rad",
+   "source": "microduck-sim/scan-20261101/README.md (closed_loop_port.json, closed_loop_heel.json); DECISIONS.md D-040"
+  },
+  {
+   "id": "1030-getup-side",
+   "condition": "charger-a7z-20261030",
+   "robot": "stand61 from lying on the side: 0 of 2 rose",
+   "sim": "stand61 from the side: 10 of 10 rose (50 of 50 over all starts)",
+   "verdict": "miss",
+   "source": "microduck-sim/CURRENT-STATE.json facts.getup"
+  }
+ ],
+ "matched": "5 of 12",
+ "seeds": [
+  0,
+  1,
+  2
+ ],
+ "fall_deg": 45.0
+}

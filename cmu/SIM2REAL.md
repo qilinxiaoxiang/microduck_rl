@@ -6,6 +6,18 @@ what was tried and failed, and the hypotheses that are still open, each with a t
 the current robot condition is in [robot-condition.json](robot-condition.json). Fine-tune run details and the
 literature behind each change are in [finetune/modal/FINETUNE-DELTA.md](finetune/modal/FINETUNE-DELTA.md).
 
+## Scorecard, 2026-11-09: a sim pass does not predict that the robot stays up
+
+`mac/scorecard-20261109/` replays recorded robot runs in the as-built sim with the robot's own commands
+(`brain_sim_check.py --cmd-replay`) and compares the outcome. Of 12 runs (2026-10-18 walks, 2026-11-06 seeing-pick
+attempts), 5 match, and all 5 are runs where nothing happened. In every one of the 7 misses the robot fell or tripped
+its guard while the sim stayed up on all three seeds. Over 230 logged robot actions from 2026-11-02 to 11-06 the sim
+called the outcome right for 195 of 211 replayed actions, but none of the robot's 16 falls. Trunk jitter in the sim is
+0.10-0.44 of the robot's. So for walking, bending, picking and getting up, a policy that stays up in this sim is not
+yet evidence that it stays up on the robot; the get-up (sim 10/10, robot 0/2) and the held bend (the robot's ankles
+stop at 1.25 rad on their cable plugs, the sim's reach 1.36-1.43) miss the same way. Details and the robot runs
+planned after the cable tidy are in the scorecard's README.md.
+
 ## How sim and real are compared
 
 - The CPU check `mac/brain_sim_check.py` runs the exact Mac-side control code (`mac/walk_brain.py`: mode logic,

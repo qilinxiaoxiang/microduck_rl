@@ -1,18 +1,22 @@
 {
   "purpose": "The CMU MicroDuck's current measured condition, as far as the simulation needs it. Copied from the private microduck-sim/CURRENT-STATE.json (the robot's single source of current facts, checked against the newest real run on Shawn's Mac). simcheck/sim_suite.py turns these into brain_sim_check.py flags for its 'real' cases. Never edit by hand on the fork: update CURRENT-STATE.json from a measurement, then copy.",
   "copied_from": "microduck-sim/CURRENT-STATE.json",
-  "copied_on": "2026-10-19",
+  "copied_on": "2026-11-10",
   "facts": {
     "servo_rail_v": {
-      "value": 7.0,
-      "no_load_v": 7.32,
-      "meaning": "Servo supply while walking (XL4015 #1 from the 20 V bench supply; the 2S battery backpack gives 6.6-8.4 V). The sim holds the supply constant at this value (--volt).",
-      "verified_at": "2026-10-16"
+      "value": 7.6,
+      "meaning": "Servo supply while walking on the 2S battery backpack (median 7.6 V over the 2026-11-02..11-06 walks and turns, 7.2-8.2 V). The sim holds the supply constant at this value (--volt).",
+      "verified_at": "2026-11-06",
+      "before": {
+        "value": 7.0,
+        "until": "2026-11-06",
+        "why": "XL4015 bench rail; the robot now runs on the battery"
+      }
     },
     "imu_rate_hz": {
       "value": 50,
-      "meaning": "IMU samples reaching the 50 Hz policy loop: full rate, every tick fresh (median 51/s on the 2026-10-18 runs). No IMU hold in the real cases (--imu-hz 0).",
-      "verified_at": "2026-10-18"
+      "meaning": "IMU samples reaching the policy loop: a new frame on every tick (99.7-100 % of ticks, robot logs 2026-11-02..11-06). No IMU hold in the real cases (--imu-hz 0). The robot's loop itself runs 46-49 ticks/s, not exactly 50.",
+      "verified_at": "2026-11-06"
     },
     "imu_added_delay_ms": {
       "value": 0,
@@ -20,13 +24,15 @@
       "verified_at": "2026-10-17"
     },
     "servo_read_drop_fraction": {
-      "value": 0.04,
-      "meaning": "Fraction of 20 ms walk ticks without a fresh servo sync read while the legs step; the policy skips those ticks and the servos hold the last goals (--drop 0.04).",
-      "verified_at": "2026-10-17"
+      "value": 0.036,
+      "meaning": "Fraction of 20 ms walk ticks without a fresh servo sync read while the legs step; the policy skips those ticks and the servos hold the last goals (--drop 0.036). 3.3-4.3 % on the five newest robot logs, 2026-11-02..11-06.",
+      "verified_at": "2026-11-06"
     },
     "walking_policy": {
       "value": "walk61.onnx (Pollen BEST_alpha_walking) at 0.25 m/s, 3-4 s walks; KP_RL 200 walking, KP 400 in open-loop stand mode",
-      "candidates": ["whole/runtime-overlay/models-ft3-it999 (ft3 iteration 999): better in the sim, lost balance at 2.5-4 s in three of three robot walks at 0.20 m/s on 2026-10-17/18"],
+      "candidates": [
+        "whole/runtime-overlay/models-ft3-it999 (ft3 iteration 999): better in the sim, lost balance at 2.5-4 s in three of three robot walks at 0.20 m/s on 2026-10-17/18"
+      ],
       "verified_at": "2026-10-18"
     },
     "sole": {

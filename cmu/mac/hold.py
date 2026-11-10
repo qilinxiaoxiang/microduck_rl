@@ -51,6 +51,10 @@ LOAD_TAU = 0.06             # s, leg current smoothing
 GATE_LO, GATE_HI = 0.1, 0.4  # engagement over which unloaded feet count as held (linear in between)
 A_TOUCH = 0.6               # the hand alone takes at most this share of the authority, until a lift has landed
 AIRBORNE, LANDED = 0.5, 0.8  # h_load that counts as lifted; load share that counts as set down again
+LAND_S = 0.1                # s the load share must stay over LANDED, read with the legs paused, to count as set down
+S_QUIET = 0.1               # authority at or below which the leg current is the floor's push, not the policy's motion
+REGRIP_S = 0.5              # s the pads may read no hand mid-lift (a regrip) before the lift ends
+STILL_W, STILL_S = 0.2, 0.2  # |gyro| under STILL_W rad/s for STILL_S: the body rests on something (in the hand 0.25-1.0)
 DOWN_RATE = 4.0             # authority falls at most this per s (0.25 s from full to none)
 UP_RATE = 10.0              # and comes back at most this per s (0.1 s)
 KP_LEG_MIN = 80             # legs in the air
@@ -117,6 +121,9 @@ class HoldEstimator:
         self.levels = [0.0] * len(PADS)
         self.airborne = False     # the feet have been off the ground under this grip
         self.landed = False       # and are back on it: the hand term stays off until the hand leaves
+        self.land_s = 0.0         # s of quiet foot load seen so far in this lift
+        self.gap_s = 0.0          # s the pads have read no hand during this lift
+        self.still_s = 0.0        # s the body gyro has stayed under STILL_W
         self.set_cal(cal or {})
 
     def set_cal(self, cal):
@@ -138,6 +145,12 @@ class HoldEstimator:
         out = []
         for k, c in enumerate(counts):
             d = c - self.base[k]
+            if d < -self.pad_lo[k]:
+                # a hand only raises the count; a reading this far under the baseline is a bad block. Following it
+                # latched R2 on 2026-10-30 02:09:32 (one read 1400 under, the baseline sank, the rest value then read
+                # as a full hand for good, so a lift never ended and the set-down duck sagged at kp 80 and fell)
+                out.append(0.0)
+                continue
             if d < self.pad_lo[k]:  # untouched: follow slow drift (temperature, humidity)
                 self.base[k] += (c - self.base[k]) * min(1.0, dt / BASELINE_TAU)
                 d = c - self.base[k]
@@ -153,9 +166,11 @@ class HoldEstimator:
             load = (legs_ma - air) / (st - air)
         return clip01(load)
 
-    def update(self, dt, counts=None, age=None, legs_ma=None, load=None):
+    def update(self, dt, counts=None, age=None, legs_ma=None, load=None, gyro=None):
         """counts: raw pad counts (PADS order) or None; age: s since that block; legs_ma: summed |current| of the ten
-        leg servos, or load: a ready 0..1 share. Returns self."""
+        leg servos, or load: a ready 0..1 share; gyro: body angular rate magnitude (rad/s), None if unknown.
+        Returns self."""
+        self.still_s = self.still_s + dt if gyro is not None and gyro < STILL_W else 0.0
         fresh = counts is not None and age is not None and age <= TOUCH_STALE_S
         self.stale_s = 0.0 if fresh else self.stale_s + dt
         if fresh or self.stale_s > STALE_KEEP_S:
@@ -180,13 +195,32 @@ class HoldEstimator:
         # set down with the hand still on the head: the robot must balance on its own feet now, so only the load term
         # counts until the hand leaves (sim 2026-10-22, pivot hand: the hand term kept s at 0.4 after touchdown, the
         # policy's raw action grew to 1.57 rad and the release jumped 1.0-1.3 rad and tilted it 14-33 deg)
-        if self.e < GATE_LO:
+        # A lift ends only when the hand lets go (e < GATE_LO) or the feet are set down. A hand shifting on the head
+        # in the air is still a hand (2026-10-30 01:33: coverage 0.46 -> 0.17 for 0.15 s shrank the gate, the
+        # authority came back, the policy's own leg motion drew 329 mA, read as load 0.80 = "landed", and walk61 at zero
+        # command got full authority in the air). Set-down counts only on load read while the legs hold the pause pose
+        # (s <= S_QUIET) for LAND_S, never on current the policy's motion makes.
+        # A regrip empties the pads too (2026-10-30 02:15:45: R1 -> L2, coverage under GATE_LO for 0.17 s, e under it
+        # for 0.5 s as it climbs back with GRIP_TAU; the lift ended, walk61 flailed in the hand for 3 s and the
+        # policy's own current read as load 1.0, so the lift never came back). Mid-lift the hand counts as gone only
+        # after REGRIP_S, or at once when the body is still: set down and let go, |gyro| 0.02-0.05 rad/s, against
+        # 0.25-1.0 in the hand. Leg current at kp 80 cannot tell the floor (110 mA set down, 101-125 in the air).
+        hand = self.e >= GATE_LO or self.cov >= GATE_LO
+        mid_lift = self.airborne and not self.landed
+        self.gap_s = self.gap_s + dt if mid_lift and not hand else 0.0
+        if not hand and not (mid_lift and self.gap_s < REGRIP_S and self.still_s < STILL_S):
             self.airborne = self.landed = False
+            self.land_s = self.gap_s = 0.0
+        elif mid_lift:
+            quiet_load = self.load_f is not None and self.load_f > LANDED and self.s <= S_QUIET
+            self.land_s = self.land_s + dt if quiet_load else 0.0
+            self.landed = self.land_s >= LAND_S
         elif self.h_load > AIRBORNE:
             self.airborne = True
-        elif self.airborne and self.load_f is not None and self.load_f > LANDED:
-            self.landed = True
-        held = self.h_load if self.landed else max(self.a_touch * self.e, self.h_load)
+        lifted = self.airborne and not self.landed
+        if lifted:
+            self.h_load = 1.0  # the legs stay soft and the neck stiff for the whole lift
+        held = 1.0 if lifted else self.h_load if self.landed else max(self.a_touch * self.e, self.h_load)
         target = 1.0 - held
         if target < self.s:
             self.s = max(target, self.s - DOWN_RATE * dt)
@@ -213,7 +247,8 @@ class HoldEstimator:
         r = lambda x: None if x is None else round(x, 3)  # noqa: E731
         return {"lv": [r(v) for v in self.levels], "cov": r(self.cov), "e": r(self.e), "load": r(self.load_f),
                 "h_load": r(self.h_load), "s": r(self.s), "kp_leg": self.gains()["left_knee"],
-                "kp_neck": self.gains()["neck_pitch"], "landed": self.landed}
+                "kp_neck": self.gains()["neck_pitch"], "landed": self.landed, "gap": r(self.gap_s),
+                "still": r(self.still_s)}
 
 
 def legs_current_ma(cur, names):

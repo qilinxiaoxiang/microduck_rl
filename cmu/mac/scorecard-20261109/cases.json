@@ -1,0 +1,168 @@
+{
+  "purpose": "Recorded MicroDuck robot runs that the as-built simulation must predict. scorecard.py replays each in brain_sim_check.py and compares outcome (up / guard / fell) and trunk jitter with the robot's own log.",
+  "conditions": {
+    "bench-usb-20261018": "MacBook brain over the OpenRB USB lead, bench supply lead, A7Z IMU stream over J12; sandpaper soles; head camera cable and Dupont leads loose",
+    "battery-a7z-20261106": "A7Z brain, battery backpack, 1 m head camera USB cable coiled by the backpack, Dupont leads loose (before the short cables and tie-down)",
+    "tidied-cables": "short head camera USB cable fitted and Dupont leads tied down (Shawn, week of 2026-11-09); add the new runs under this condition",
+    "charger-a7z-20261030": "A7Z brain, 20 V charger pack on the back, head camera cable and Dupont leads loose"
+  },
+  "cases": [
+    {
+      "id": "1018a-walk61-025",
+      "condition": "bench-usb-20261018",
+      "kind": "schedule",
+      "log": "../../real-logs/robot-runs-20261018/duck_wired_log_1018a.jsonl.gz",
+      "t0_file": "../../real-logs/robot-runs-20261018/walk_t0_1018a",
+      "window_s": 4.0,
+      "policy_dir": null,
+      "vx": 0.25,
+      "walk_s": 4.0,
+      "volt": 7.0,
+      "drop": 0.04,
+      "manifest": null,
+      "note": "window ends at the stop: the robot then walked into a laptop"
+    },
+    {
+      "id": "1018b-ft3-020-first",
+      "condition": "bench-usb-20261018",
+      "kind": "schedule",
+      "log": "../../real-logs/robot-runs-20261018/duck_wired_log_1018b.jsonl.gz",
+      "t0_file": "../../real-logs/robot-runs-20261018/walk_t0_1018b",
+      "window_s": 5.0,
+      "policy_dir": "models-ft3-it999",
+      "vx": 0.2,
+      "walk_s": 4.0,
+      "volt": 7.0,
+      "drop": 0.04,
+      "manifest": null
+    },
+    {
+      "id": "1018b-ft3-020-second",
+      "condition": "bench-usb-20261018",
+      "kind": "schedule",
+      "log": "../../real-logs/robot-runs-20261018/duck_wired_log_1018b.jsonl.gz",
+      "t0_file": "../../real-logs/robot-runs-20261018/walk_t0_1018c",
+      "window_s": 5.0,
+      "policy_dir": "models-ft3-it999",
+      "vx": 0.2,
+      "walk_s": 4.0,
+      "volt": 7.0,
+      "drop": 0.04,
+      "manifest": null
+    },
+    {
+      "id": "1018d-walk61-025-first",
+      "condition": "bench-usb-20261018",
+      "kind": "schedule",
+      "log": "../../real-logs/robot-runs-20261018/duck_wired_log_1018d.jsonl.gz",
+      "t0_file": "../../real-logs/robot-runs-20261018/walk_t0_1018e",
+      "window_s": 6.0,
+      "policy_dir": null,
+      "vx": 0.25,
+      "walk_s": 3.0,
+      "volt": 7.0,
+      "drop": 0.04,
+      "manifest": null
+    },
+    {
+      "id": "1018d-walk61-025-second",
+      "condition": "bench-usb-20261018",
+      "kind": "schedule",
+      "log": "../../real-logs/robot-runs-20261018/duck_wired_log_1018d.jsonl.gz",
+      "t0_file": "../../real-logs/robot-runs-20261018/walk_t0_1018f",
+      "window_s": 6.0,
+      "policy_dir": null,
+      "vx": 0.25,
+      "walk_s": 3.0,
+      "volt": 7.0,
+      "drop": 0.04,
+      "manifest": null
+    },
+    {
+      "id": "1018g-ft3-020",
+      "condition": "bench-usb-20261018",
+      "kind": "schedule",
+      "log": "../../real-logs/robot-runs-20261018/duck_wired_log_1018g.jsonl.gz",
+      "t0_file": "../../real-logs/robot-runs-20261018/walk_t0_1018g",
+      "window_s": 5.0,
+      "policy_dir": "models-ft3-it999",
+      "vx": 0.2,
+      "walk_s": 3.0,
+      "volt": 7.0,
+      "drop": 0.04,
+      "manifest": null
+    },
+    {
+      "id": "1106-run1-table-scan",
+      "condition": "battery-a7z-20261106",
+      "kind": "replay",
+      "log": "../../real-logs/robot-runs-20261106-seepick/run1-table-colour-scan.jsonl.gz",
+      "policy_dir": null,
+      "manifest": "battery-20261104",
+      "note": "standing scan with head moves, no fall"
+    },
+    {
+      "id": "1106-run2-table-steer-flip",
+      "condition": "battery-a7z-20261106",
+      "kind": "replay",
+      "log": "../../real-logs/robot-runs-20261106-seepick/run2-table-hand-as-ball-fall.jsonl.gz",
+      "policy_dir": null,
+      "manifest": "battery-20261104",
+      "note": "steering flipped +-0.3 while walking; guard stand, walk rewritten 0.12 s later, fell"
+    },
+    {
+      "id": "1106-run3-table-lookdown",
+      "condition": "battery-a7z-20261106",
+      "kind": "replay",
+      "log": "../../real-logs/robot-runs-20261106-seepick/run3-table-lookdown-rocking-fall.jsonl.gz",
+      "policy_dir": null,
+      "manifest": "battery-20261104",
+      "note": "look-down head pose about 1 s after an in-place turn while the trunk rocked; fell forward"
+    },
+    {
+      "id": "1106-run4-table-aim-lookdown",
+      "condition": "battery-a7z-20261106",
+      "kind": "replay",
+      "log": "../../real-logs/robot-runs-20261106-seepick/run4-table-aim-lookdown-fall.jsonl.gz",
+      "policy_dir": null,
+      "manifest": "battery-20261104",
+      "note": "look-down after seepick's aim turn; fell"
+    },
+    {
+      "id": "1106-run6-carpet-turns-05",
+      "condition": "battery-a7z-20261106",
+      "kind": "replay",
+      "log": "../../real-logs/robot-runs-20261106-seepick/run6-carpet-turn-pingpong-fall.jsonl.gz",
+      "policy_dir": null,
+      "manifest": "battery-20261104",
+      "note": "six in-place turns at +-0.5 rad/s; the 7th rolled it over on carpet"
+    },
+    {
+      "id": "1106-run7-carpet-turns-03",
+      "condition": "battery-a7z-20261106",
+      "kind": "replay",
+      "log": "../../real-logs/robot-runs-20261106-seepick/run7-carpet-walkup-blind-edge.jsonl.gz",
+      "policy_dir": null,
+      "manifest": "battery-20261104",
+      "note": "walk-up with in-place turns at 0.3 rad/s; no fall"
+    }
+  ],
+  "cited": [
+    {
+      "id": "1101-groundpick-bend",
+      "condition": "charger-a7z-20261030",
+      "robot": "held bend: ankles stop at 1.25 rad, trunk 37.4 deg, camera 14.5 mm over the floor",
+      "sim": "as-built sim with the D-040 heel stop 1.36 rad: trunk 34.7 deg, camera 21.5 mm (limit 1.25 gives 37.6 deg, 15.6 mm)",
+      "verdict": "miss until the ankle cables move to the front socket; then the robot should stop near 1.36 rad",
+      "source": "microduck-sim/scan-20261101/README.md (closed_loop_port.json, closed_loop_heel.json); DECISIONS.md D-040"
+    },
+    {
+      "id": "1030-getup-side",
+      "condition": "charger-a7z-20261030",
+      "robot": "stand61 from lying on the side: 0 of 2 rose",
+      "sim": "stand61 from the side: 10 of 10 rose (50 of 50 over all starts)",
+      "verdict": "miss",
+      "source": "microduck-sim/CURRENT-STATE.json facts.getup"
+    }
+  ]
+}
