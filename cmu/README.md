@@ -24,8 +24,8 @@ The physical build (parts list, printed parts, wiring, assembly guide, bring-up 
   `electrical/` (the NP-F970 battery entry), `runtime-overlay/` (the deployed policies `walk61`, `stand61`,
   `groundpick61` with their source hashes, and the ft3 candidate in `models-ft3-it999/`).
 - `simcheck/`: the eight-case acceptance suite and its reference rows for walk61 and ft3.
-- `deploy/`: `deploy_policy.py`, the path from an exported walking ONNX to the robot (contract check, the suite on both
-  backpacks against walk61 run by the same code, copy to the A7Z, status, rollback); usage in the top-level README.
+- `deploy/`: `deploy_policy.py`, the path from an exported walking ONNX to the robot (contract check, the suite on the
+  current model, cmu/model/current.json, against walk61 run by the same code, copy to the A7Z, status, rollback); usage in the top-level README.
 - `real-logs/`: the 2026-10-18 robot tick logs and the real-versus-sim jitter numbers.
 - `finetune/`: the walk61 fine-tune pipeline (`modal/`, with the reward audit gate, tracking guard and cost caps) and
   its Kaggle launcher (`kaggle/`); `modal/FINETUNE-DELTA.md` is the run history.

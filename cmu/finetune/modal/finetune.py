@@ -13,7 +13,8 @@ laptop sleeps or the terminal dies; the FunctionCall id is written to cmu/finetu
 The GPU is fixed at import time: MICRODUCK_GPU=L4 (default) | A10 | L40S | A100-40GB.
 Assets (walk61/stand61 ONNX, the as-built mass manifest, the battery audit) are the fork's own files under cmu/;
 the mass-variant manifests cmu/model/manifests/*.json, when present, ride along as /root/assets/manifests/ for the
-worker's --cmu-config plugged|battery.
+worker's --cmu-config current (the robot as it is now, via cmu/model/current.json in the repository copy) or a dated
+variant.
 """
 import json
 import os

@@ -173,6 +173,9 @@ EXEC_BLOCK = re.compile(
     r'if os\.path\.realpath\(sys\.prefix\) != os\.path\.realpath\(os\.path\.dirname\(os\.path\.dirname\(SIM_PYTHON\)\)\):\n'
     r'    os\.execv\(SIM_PYTHON, \[SIM_PYTHON, os\.path\.abspath\(__file__\)\] \+ sys\.argv\[1:\]\)\n')
 EXEC_NOTE = "# cmu/ copy: runs in the repository's uv environment (uv run <script>); no private venv re-exec.\n"
+# cmu/model/current.json (the robot as it is now): beside microduck_rl in the robotics tree, cmu/model in the fork
+CURRENT_HOP = '"..", "..", "..", "microduck_rl", "cmu", "model", "current.json"'
+CURRENT_HOP_FORK = '"..", "model", "current.json"'
 ABS_SIM = os.path.expanduser("~/code/robotics/") + SIM_REL + "/"  # the private tree's absolute path, stripped from copied JSON
 DUCK_IP = re.compile(r"\b100\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")  # the robot's private Tailscale address (100.64/10); the copies carry the placeholder DUCK_IP
 
@@ -185,9 +188,11 @@ RULES = {
     "whole/runtime-overlay/source-lock.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
     "whole/electrical/existing-model-mass-audit.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
     "mac/brain_sim_check.py": [("str", WHOLE_HOP, '"..", "whole"', 1), ("re", EXEC_BLOCK, EXEC_NOTE, 1),
+        ("str", CURRENT_HOP, CURRENT_HOP_FORK, 1),
         ("str", "# The as-built model needs the patched bam in ~/.venvs/microduck-dyn (the pip release lacks vin_drop_resistance);\n",
          "# The as-built model uses bam at the commit locked in uv.lock (the one Pollen trains with).\n", 1)],
-    "mac/pickup_sim.py": [("str", WHOLE_HOP, '"..", "whole"', 1), ("re", EXEC_BLOCK, EXEC_NOTE, 1)],
+    "mac/pickup_sim.py": [("str", WHOLE_HOP, '"..", "whole"', 1), ("re", EXEC_BLOCK, EXEC_NOTE, 1),
+        ("str", CURRENT_HOP, CURRENT_HOP_FORK, 1)],
     "mac/target_ground.py": [("str", WHOLE_HOP, '"..", "whole"', 1)],
     "mac/jitter-20261018/jitter_sim.py": [("re", EXEC_BLOCK, EXEC_NOTE, 1)],
     # the scorecard finds the runtime overlay and the mass manifests under cmu/, the robot logs under real-logs/, and

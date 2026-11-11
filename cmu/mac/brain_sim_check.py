@@ -206,6 +206,14 @@ def sp_add_mouth(spec, beak_mu, beak_priority=False):
     j.frictionloss = 0.0
     j.solref_friction = [-5e4, -2e2]
     j.solimp_friction = [.99, .9999, .001, .5, 2]
+    # the drawn jaw (visual.json piece "jaw", e.g. cmu_jaw_soft__jaw_yellow) moves with the hinge: drawn on the head
+    # body it stayed shut while the beak boxes opened, and the held ball sat inside a closed beak (2026-11-11 demo video)
+    for g in list(head.geoms):
+        if "__jaw_" in g.name and g.contype == 0 and g.conaffinity == 0:
+            kw = dict(name=g.name, type=g.type, meshname=g.meshname, rgba=list(g.rgba), pos=list(np.asarray(g.pos) - SP_MOUTH_PIVOT),
+                      quat=list(g.quat), contype=0, conaffinity=0, group=g.group, density=0, mass=0)
+            spec.delete(g)
+            jaw.add_geom(**kw)
     removed = []
     for g in list(head.geoms):
         if g.meshname in SP_UNDERSIDE_HULLS and not (g.contype == 0 and g.conaffinity == 0):
@@ -946,6 +954,36 @@ def foot_load(m, d, floor, foot_geoms):
     return tot
 
 
+CURRENT_MODEL = os.path.join(HERE, "..", "model", "current.json")
+
+
+def resolve_model(args):
+    """Refuse a stale robot unless asked for on purpose. The current robot is microduck_rl/cmu/model/current.json
+    (`--model asbuilt --manifest current`, or a manifest built on it such as a flight-pack manifest). 2026-11-11: the
+    office-hours demo ran the retired charger-pack model for a day because scripts copied a dated study's
+    `--manifest plugged.json`; Pollen's v19 masses and the 2026-10-15 base manifest are older still."""
+    cur = json.load(open(CURRENT_MODEL))
+    cur_path = os.path.normpath(os.path.join(os.path.dirname(CURRENT_MODEL), "..", "..", cur["mass_manifest"]))
+    if args.manifest == "current":
+        args.manifest = cur_path
+    variant = None
+    if args.model == "asbuilt" and args.manifest:
+        sys.path.insert(0, os.path.dirname(CURRENT_MODEL))
+        from visual import visual_variant_for_manifest
+        variant = visual_variant_for_manifest(args.manifest)
+    is_current = variant == cur["variant"]
+    info = dict(variant=variant if args.model == "asbuilt" else args.model, current=is_current,
+                current_variant=cur["variant"], historical_reason=args.historical_model)
+    if not is_current:
+        if not args.historical_model:
+            raise SystemExit(f"brain_sim_check: --model {args.model} --manifest {args.manifest} is not the robot as it is now "
+                             f"({cur['variant']}: {cur['describes']}). Use --model asbuilt --manifest current, or pass "
+                             f"--historical-model REASON to run an old model on purpose.")
+        print(f"[model] HISTORICAL model on purpose ({info['variant']}, not {cur['variant']}): {args.historical_model}",
+              file=sys.stderr, flush=True)
+    return info
+
+
 def run(args):
     zero = {k: float(v) for k, v in args.zero}
     c0 = cfg(0.09, model=args.model, kp=200, voltage=args.volt)
@@ -1098,6 +1136,8 @@ def run(args):
     if args.cmd_replay:  # [[s after --walk-at, control-file command], ...] in time order (scorecard.py writes it)
         replay = [(float(rt), dict(rc)) for rt, rc in json.load(open(args.cmd_replay))]
     settled_at = None
+    if STORY is not None:  # fullflow_sim.py: a scripted scene drives the commands and records the video
+        STORY.setup(m, d, sp, args, trunk)
     for tick in range(int(T / 0.02)):
         t = tick * 0.02
         # what the sensors report, in commanded (encoder) frame and the BNO's own frame
@@ -1186,6 +1226,8 @@ def run(args):
                     if quack_ok[qt]:
                         want["head"] = quack_head_pose({"head_roll": args.quack_roll, "head_yaw": args.quack_yaw,
                                                         "head_pitch": args.quack_pitch}, t - qt, brain)
+        if STORY is not None:
+            want = STORY.want(t, want, brain)
         if sp is not None and sp.active(t) and guard["stop"] is None:
             want = sp.want(t)
         if stop_at is not None and t >= stop_at:
@@ -1367,6 +1409,10 @@ def run(args):
             sp.observe(t, brain, info, tilt, tz)
         if sp_trace is not None:
             sp_trace.row(t, brain, info, goal, m, d, sp, qa, z0, names, tilt, tz)
+        if STORY is not None:
+            STORY.after(t, brain, info, tilt)
+            if STORY.done:
+                break
         if args.kick_at is not None:
             fz = float(d.geom_xpos[kick_geom, 2])
             if kick_start_t is None:
@@ -1584,6 +1630,7 @@ def hold_summary(args, rows, hand, guard, stable_after, leg_names):
 
 
 tick_log = None
+STORY = None  # fullflow_sim.Story: setup(m, d, sp, args, trunk), want(t, want, brain) -> want, after(t, brain, info, tilt), done
 
 
 def head_keys(keys, t):
@@ -1628,7 +1675,11 @@ def main():
     ap.add_argument("--model", choices=("v19", "asbuilt"), default="v19",
                     help="mass model: v19 (default) or asbuilt (2026-10-15, D-007 bench backpack)")
     ap.add_argument("--manifest", default=None,
-                    help="signed-part mass manifest to use instead of the model's own (same schema; e.g. a plugged/battery variant)")
+                    help="signed-part mass manifest instead of the model's own; 'current' = microduck_rl/cmu/model/current.json, "
+                         "the robot as it is now (any other model needs --historical-model)")
+    ap.add_argument("--historical-model", default=None, metavar="REASON",
+                    help="run a model other than the current robot on purpose (a dated study's reproduction); the reason is "
+                         "printed and written to the result")
     ap.add_argument("--walk-ramp", type=float, default=0.0, help="Brain walk_ramp; 1.5 reproduces the old behaviour")
     ap.add_argument("--com-x", type=float, default=0.0, help="whole-robot COM shift forward, mm")
     ap.add_argument("--zero", nargs=2, action="append", default=[], metavar=("JOINT", "DEG"))
@@ -1782,8 +1833,10 @@ def main():
     for name, val in args.hold_set:
         assert hasattr(_hold, name) and name.isupper(), name
         setattr(_hold, name, type(getattr(_hold, name))(float(val)))
+    model_info = resolve_model(args)
     out = run(args)
-    out["manifest"] = args.manifest  # as given on the command line (None = the model's own manifest)
+    out["manifest"] = args.manifest  # as resolved (None = the model's own manifest)
+    out["model"] = model_info
     if not args.trace:
         out.pop("trace")
     print(json.dumps(out))

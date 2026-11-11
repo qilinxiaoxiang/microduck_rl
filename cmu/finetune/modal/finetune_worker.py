@@ -30,11 +30,14 @@ import torch
 
 TASK = "Mjlab-Velocity-Flat-MicroDuck"
 CURRICULA_DONE_STEP = 2000 * 24 + 24  # every velocity curriculum reaches its final stage by iter 2000
-# --cmu-config: which mass manifest describes the robot. "asbuilt" is --manifest (the 2026-10-15 base manifest);
-# "plugged" and "battery" are the full part lists cmu/model/manifests/<variant>.json, shipped by finetune.py and the
-# Kaggle pack as /root/assets/manifests/<variant>.json when they exist in the repo.
-CMU_CONFIGS = ("asbuilt", "plugged", "battery")
+# --cmu-config: which mass manifest describes the robot. Use "current": the robot as it is now, the variant named in
+# cmu/model/current.json (read from the repository copy the job runs from; its manifest sha256 is checked).
+# "asbuilt" is --manifest (the 2026-10-15 base manifest by default, or any manifest passed, e.g. the flight pack's);
+# "plugged", "battery" and "battery-20261104" are the full part lists cmu/model/manifests/<variant>.json, shipped by
+# finetune.py and the Kaggle pack as /root/assets/manifests/<variant>.json. plugged and battery are historical.
+CMU_CONFIGS = ("asbuilt", "plugged", "battery", "battery-20261104", "current")
 MANIFESTS_DIR = "/root/assets/manifests"
+CURRENT_FILE = Path(__file__).resolve().parents[3] / "cmu" / "model" / "current.json"  # repo root/cmu/model/current.json
 
 
 class StopTraining(Exception):
@@ -274,15 +277,29 @@ def apply_delta(env_cfg, delta: dict):
     return env_cfg
 
 
-def resolve_manifest(cmu_config: str, manifest: str, manifests_dir: str = MANIFESTS_DIR) -> str:
-    """Path of the mass manifest for --cmu-config; exits with the repo file to add when a variant is not shipped."""
+def resolve_manifest(cmu_config: str, manifest: str, manifests_dir: str = MANIFESTS_DIR,
+                     current_file: Path = CURRENT_FILE) -> str:
+    """Path of the mass manifest for --cmu-config; exits with the repo file to add when a variant is not shipped.
+    "current" resolves through cmu/model/current.json and checks the shipped manifest against its sha256."""
     if cmu_config == "asbuilt":
         return manifest
+    expect_sha = None
+    if cmu_config == "current":
+        if not Path(current_file).exists():
+            raise SystemExit(f"--cmu-config current: {current_file} is missing from the job's repository copy")
+        cur = json.loads(Path(current_file).read_text())
+        cmu_config, expect_sha = cur["variant"], cur["mass_manifest_sha256"]
+        print(f"[asbuilt] cmu-config current = {cmu_config} ({current_file})", flush=True)
     path = Path(manifests_dir) / f"{cmu_config}.json"
     if not path.exists():
         raise SystemExit(f"--cmu-config {cmu_config}: {path} is missing. The repo file cmu/model/manifests/{cmu_config}.json must exist "
                          f"(finetune.py and the Kaggle pack copy cmu/model/manifests/*.json to {manifests_dir}/); "
                          f"it is the full part list for the {cmu_config} robot in the base manifest's schema.")
+    if expect_sha is not None:
+        import hashlib
+        got = hashlib.sha256(path.read_bytes()).hexdigest()
+        if got != expect_sha:
+            raise SystemExit(f"--cmu-config current: {path} has sha256 {got}, cmu/model/current.json records {expect_sha}")
     return str(path)
 
 
@@ -387,7 +404,9 @@ def main():
     ap.add_argument("--onnx", default="/root/assets/walk61.onnx", help="init policy; for --eval-variants a comma list of policies to roll out")
     ap.add_argument("--manifest", default="/root/assets/asbuilt-mass-manifest.json", help="mass manifest for --cmu-config asbuilt")
     ap.add_argument("--cmu-config", choices=CMU_CONFIGS, default="asbuilt",
-                    help=f"robot mass configuration: asbuilt = --manifest; plugged/battery = {MANIFESTS_DIR}/<variant>.json (from cmu/model/manifests/)")
+                    help=f"robot mass configuration: current = the robot as it is now (cmu/model/current.json; use this); "
+                         f"asbuilt = --manifest; plugged/battery/battery-20261104 = {MANIFESTS_DIR}/<variant>.json "
+                         f"(from cmu/model/manifests/; plugged and battery are historical)")
     ap.add_argument("--audit", default="/root/assets/existing-model-mass-audit.json")
     ap.add_argument("--remove-battery-kg", type=float, default=0.09)
     ap.add_argument("--num-envs", type=int, default=4096)

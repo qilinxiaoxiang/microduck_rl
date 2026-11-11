@@ -496,39 +496,37 @@ MicroduckAimPickRlCfg = dataclasses.replace(
     MicroduckGroundPickRlCfg, experiment_name="aim_pick", run_name="aim_pick",
 )
 
-# (task id, CMU mass variant or None for Pollen's masses)
+# (task id, CMU mass variant or None for Pollen's masses). Use -CMU-Current: the robot as it is now, resolved through
+# cmu/model/current.json at import. -CMU-Plugged (charger pack, retired 2026-11-03) and -CMU-Battery (the 2026-10-15
+# backpack plan) are historical ids, kept so their runs reproduce.
 AIM_PICK_TASKS = (
+    ("Mjlab-AimPick-Flat-MicroDuck-CMU-Current", "current"),
     ("Mjlab-AimPick-Flat-MicroDuck", None),
     ("Mjlab-AimPick-Flat-MicroDuck-CMU-Plugged", "plugged"),
     ("Mjlab-AimPick-Flat-MicroDuck-CMU-Battery", "battery"),
 )
 
 
-def make_cmu_aim_pick_env_cfg(variant: str | None, play: bool = False) -> ManagerBasedRlEnvCfg:
-    """The aim-pick env on Pollen's masses (variant None) or on a CMU as-built mass variant (cmu/model)."""
+def make_cmu_aim_pick_env_cfg(variant: str | None = "current", play: bool = False) -> ManagerBasedRlEnvCfg:
+    """The aim-pick env on a CMU mass variant (cmu/model). Default `current` = cmu/model/current.json, with the
+    current robot's visual layer; the dated variants are historical; None = Pollen's masses."""
     cfg = make_aim_pick_env_cfg(play=play)
     if variant is None:
         return cfg
-    from .cmu_asbuilt import load_apply_masses
+    from .cmu_asbuilt import cmu_robot_spec_fn
 
-    apply_masses = load_apply_masses()
-    parts = apply_masses.variant_parts(variant)
     robot = cfg.scene.entities["robot"]
-    base_spec_fn = robot.spec_fn
-
-    def spec_fn() -> mujoco.MjSpec:
-        spec = base_spec_fn()
-        report = apply_masses.apply_parts_to_spec(spec, parts)
-        print(f"[cmu:{variant}] total mass {report['total_before_g']:.1f} g -> {report['total_after_g']:.1f} g")
-        return spec
-
+    spec_fn = cmu_robot_spec_fn(robot.spec_fn, variant)
     cfg.scene.entities = {**cfg.scene.entities, "robot": dataclasses.replace(robot, spec_fn=spec_fn)}
     return cfg
 
 
 def aim_pick_rl_cfg(variant: str | None):
+    from .cmu_asbuilt import run_label
+
     suffix = f"_cmu_{variant}" if variant else ""
-    return dataclasses.replace(MicroduckAimPickRlCfg, experiment_name=f"aim_pick{suffix}", run_name=f"aim_pick{suffix}")
+    run = f"_cmu_{run_label(variant)}" if variant else ""
+    return dataclasses.replace(MicroduckAimPickRlCfg, experiment_name=f"aim_pick{suffix}", run_name=f"aim_pick{run}")
 
 
 def register_aim_pick_tasks(runner_cls) -> None:

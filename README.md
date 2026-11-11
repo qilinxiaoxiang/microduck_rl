@@ -1,5 +1,13 @@
 # MicroDuck RL, CMU fork
 
+> **Which model to use.** Train and simulate on `current`: the `-CMU-Current` tasks (for example
+> `Mjlab-Velocity-Flat-MicroDuck-CMU-Current`, `Mjlab-AimPick-Flat-MicroDuck-CMU-Current`), `--variant current` in
+> `cmu/simcheck/sim_suite.py` and `cmu/model/apply_masses.py`, `--manifest current` in `cmu/mac/brain_sim_check.py`.
+> [`cmu/model/current.json`](cmu/model/current.json) is the single pointer to the robot as it is now (on 2026-11-11
+> `battery-20261104`: battery backpack, orange A7Z saddle, no charger box). The dated variants (`Plugged`, `Battery`,
+> `Battery-20261104`, `asbuilt`) are history, kept so old runs reproduce; `brain_sim_check.py` refuses them without
+> `--historical-model REASON`.
+
 The CMU team's fork of [pollen-robotics/microduck_rl](https://github.com/pollen-robotics/microduck_rl) for our
 MicroDuck: Pollen's complete training recipe (mjlab on MuJoCo Warp, PPO, the BAM XL330 actuator model, the 61-input
 observation contract, ONNX export) plus one directory, `cmu/`, that holds everything specific to the robot on our
@@ -101,10 +109,11 @@ Code: `cmu/simulator/app/robot-live.html`, `src/robot-remote.js` (page), `a7z-br
 The training stack is Pollen's, the one that produced the `walk61` policy the robot walks with: PPO (rsl_rl) on mjlab
 (MuJoCo Warp, thousands of parallel environments on one GPU), the BAM XL330 actuator model, domain randomization,
 the 61-input observation contract and ONNX export. On top of it, `cmu/` registers the same tasks on our robot's
-measured masses, one per backpack:
+measured masses:
 
-- `Mjlab-Velocity-{Flat,Rough}-MicroDuck-CMU-Plugged`: the charger pack (`cmu/model/variants/plugged.json`).
-- `Mjlab-Velocity-{Flat,Rough}-MicroDuck-CMU-Battery`: the 2S battery pack (`cmu/model/variants/battery.json`).
+- `Mjlab-Velocity-{Flat,Rough}-MicroDuck-CMU-Current`: the robot as it is now (`cmu/model/current.json`). Use this.
+- Historical: `-CMU-Plugged` (charger pack, retired 2026-11-03), `-CMU-Battery` (the 2026-10-15 backpack plan),
+  `-CMU-Battery-20261104` (the same robot as Current today, under its dated name).
 
 Teammates train in parallel without coordinating: each run is your own process on your own GPU and writes to your
 own `logs/`; nothing is shared until you hand over an ONNX. A GPU is required for training (a Mac or CPU-only laptop
@@ -115,9 +124,9 @@ about 80 minutes per 1000 iterations at 4096 environments), Modal, or any CUDA m
 ```bash
 git clone https://github.com/qilinxiaoxiang/microduck_rl && cd microduck_rl
 uv sync --extra cmu
-uv run train Mjlab-Velocity-Flat-MicroDuck-CMU-Plugged --env.scene.num-envs 64 --agent.max_iterations 5   # smoke test first
-uv run train Mjlab-Velocity-Flat-MicroDuck-CMU-Plugged --env.scene.num-envs 4096
-uv run scripts/export.py Mjlab-Velocity-Flat-MicroDuck-CMU-Plugged --wandb-run-path <entity/project/run_id>
+uv run train Mjlab-Velocity-Flat-MicroDuck-CMU-Current --env.scene.num-envs 64 --agent.max_iterations 5   # smoke test first
+uv run train Mjlab-Velocity-Flat-MicroDuck-CMU-Current --env.scene.num-envs 4096
+uv run scripts/export.py Mjlab-Velocity-Flat-MicroDuck-CMU-Current --wandb-run-path <entity/project/run_id>
 ```
 
 Read [AGENTS.md](AGENTS.md) before changing rewards or observations (the 61-input layout and the reward sign rules
@@ -126,19 +135,16 @@ launch without a reward audit). Start with the gap in [cmu/SIM2REAL.md](cmu/SIM2
 team has yet walked better than `walk61` on the robot. The ft3 fine-tune walked farther in simulation and fell in
 three of three robot walks; the deploy gate below rejects it.
 
-The two backpacks differ in mass and centre of mass (930.1 g against 901.6 g, centre of mass 2.1 mm further back
-on the battery pack, from `uv run --no-sync python cmu/model/make_variants.py`; the battery-pack parts are plan
-estimates from 2026-10-15 and the pack on the robot is the 2026-10-31 redesign, so the battery masses change once
-weighed) and in the charger lead that trails behind the charger pack (`brain_sim_check.py --tether` adds its
-pull; the `tether` fine-tune delta trains with it). Train on either variant; the gate checks both, because the robot
-swaps packs.
+Train on `current`. The charger pack and its trailing lead (`brain_sim_check.py --tether`, the `tether` fine-tune
+delta) are history since 2026-11-03; the gate checks the current robot only (`--also plugged,battery` adds the
+historical models as report-only rows).
 
 ### 3. Put your trained policy on the robot and check it
 
 `cmu/deploy/deploy_policy.py` takes an exported walking ONNX the rest of the way:
 
 ```bash
-# anyone, any laptop: the contract check and the simulation gate on both backpacks (about 2 to 4 minutes on CPU)
+# anyone, any laptop: the contract check and the simulation gate on the current robot (about 1 to 2 minutes on CPU)
 uv run --no-sync python cmu/deploy/deploy_policy.py check path/to/walk.onnx --name yourname-walk-v1
 
 # on the robot's MacBook (needs `ssh a7z`), after the check passes: copy, activate, restart an idle brain
@@ -149,7 +155,7 @@ uv run --no-sync python cmu/deploy/deploy_policy.py rollback --restart  # back t
 
 - Contract: input `obs` [1, 61], output `actions` [1, 14]; anything else cannot run on the robot.
 - Gate: your policy replaces `walk61.onnx` in a copy of the deployed set (stand, sit, ground-pick and kick policies
-  stay Pollen's) and runs the simulation suite (`cmu/simcheck/`) on the charger-pack and battery-pack models at the
+  stay Pollen's) and runs the simulation suite (`cmu/simcheck/`) on the current model (`cmu/model/current.json`) at the
   robot's measured condition (`cmu/robot-condition.json`: servo rail, dropped reads, IMU). It must match or beat
   `walk61`, run by the same code at the same moment, on every real case: no fall where walk61 stands, tilt within
   2 degrees, at least 90 % of its distance, at most 2 more action jumps. Rows go to `cmu/deploy/runs/<name>/`.
@@ -172,9 +178,9 @@ the first deploy of a new policy is watched at the robot.
 
 ## What is different about our robot
 
-- Two mass configurations: `plugged` (bench supply through a rear box without its lid, the robot as it walks today)
-  and `battery` (2S 650 mAh backpack). Both are derived from a measured as-built part manifest on top of Pollen's
-  MJCF and registered as training tasks (`cmu/model/`).
+- One current mass model, `current` (`cmu/model/current.json`, battery-20261104 on 2026-11-11: 2S battery backpack,
+  orange A7Z saddle, no charger box), derived from a measured as-built part manifest on top of Pollen's MJCF and
+  registered as training tasks (`cmu/model/`). The older `plugged` and `battery` variants are history.
 - Head computer is a Radxa Cubie A7Z instead of Pollen's board; the brain (`walk_wired.py`, 50 Hz) runs on it and
   drives the servos over the OpenRB's J12 UART, or runs on a MacBook over the OpenRB's USB port.
 - Servo rail 7.0 V while walking, position gain 200 in walk mode, 400 in open-loop stand mode, no action filter.
@@ -198,21 +204,19 @@ cd microduck_rl
 uv sync --extra cmu          # Pollen's deps plus opencv and pyserial for the pickup and runtime scripts
 
 # 1. Walk the as-built model in CPU MuJoCo with the robot's exact Mac-side control logic (about 2 s)
-uv run cmu/mac/brain_sim_check.py --model asbuilt --volt 7.0 --drop 0.04 --vx 0.25 --walk-s 6
+uv run cmu/mac/brain_sim_check.py --model asbuilt --manifest current --volt 7.0 --drop 0.04 --vx 0.25 --walk-s 6
 
 # 2. Judge a candidate policy directory before a robot test (eight cases, real condition from robot-condition.json)
-uv run cmu/simcheck/sim_suite.py cmu/whole/runtime-overlay/models out.jsonl                      # today's as-built masses
-uv run cmu/simcheck/sim_suite.py cmu/whole/runtime-overlay/models out.jsonl --variant battery    # on the battery backpack
+uv run cmu/simcheck/sim_suite.py cmu/whole/runtime-overlay/models out.jsonl                      # the current robot (default)
 
 # 3. Train Pollen's velocity task on our masses (GPU)
-uv run train Mjlab-Velocity-Flat-MicroDuck-CMU-Plugged --env.scene.num-envs 4096
-uv run train Mjlab-Velocity-Flat-MicroDuck-CMU-Battery --env.scene.num-envs 4096
+uv run train Mjlab-Velocity-Flat-MicroDuck-CMU-Current --env.scene.num-envs 4096
 
 # 4. Closed-loop pickup in simulation: camera render, orange detector, floor projection, walk, crouch, grip, rise
 uv run cmu/mac/pickup_sim.py --obj 0.35 -0.60 --volt 7.0 --pitch-offset 4.75 --max-s 400
 
 # 5. Export a scene with explicit as-built inertials for any MuJoCo tool
-uv run cmu/model/apply_masses.py --variant battery --out cmu/model/scenes/scene_battery.xml
+uv run cmu/model/apply_masses.py --variant current --out cmu/model/scenes/scene_current.xml
 ```
 
 Everything in `uv run list-envs` from Pollen still works; the `-CMU-` tasks are the same recipe on our masses.

@@ -22,6 +22,7 @@ import argparse
 import glob
 import json
 import math
+import os
 import struct
 import sys
 import time
@@ -163,6 +164,16 @@ def run_real(args):
     print("done" if stop is None else "aborted", "; STAND, KP", KP_DEFAULT, "torque on; log", args.out, flush=True)
 
 
+def current_cfg(b, **kw):
+    """static_gap.cfg for the robot as it is now: the mass manifest brain_sim_check.CURRENT_MODEL (current.json) names.
+    Until 2026-11-11 these sims loaded the 2026-10-15 base manifest (bench box, Pi Zero W head)."""
+    c0 = b.cfg(0.09, model="asbuilt", **kw)
+    with open(b.CURRENT_MODEL) as f:
+        cur = json.load(f)
+    c0["mass_manifest"] = os.path.normpath(os.path.join(os.path.dirname(b.CURRENT_MODEL), "..", "..", cur["mass_manifest"]))
+    return c0
+
+
 def run_sim(args):
     import brain_sim_check as b  # re-execs under the sim venv; brings evaluate_delay and static_gap onto the path
     import mujoco
@@ -170,7 +181,7 @@ def run_sim(args):
     from walk_brain import STAND
     spec = load_poses(args.poses, STAND)
     plan = schedule(spec)
-    m, d, c, names, bam = b.ev.load(b.cfg(0.09, model="asbuilt", kp=spec["kp"], voltage=args.volt))
+    m, d, c, names, bam = b.ev.load(current_cfg(b, kp=spec["kp"], voltage=args.volt))
     pose = {n: plan[0][2][n] for n in names}
     Rt = b.feet_flat_rot(m, d, names, pose)
     qt = np.zeros(4)
@@ -229,7 +240,7 @@ def kinematic_pitch():
     import numpy as np
     from static_gap import sole_normal
     from walk_brain import STAND
-    m, d, c, names, bam = b.ev.load(b.cfg(0.09, model="asbuilt"))
+    m, d, c, names, bam = b.ev.load(current_cfg(b))
     ji = b.setup(m, d, names, STAND)
     qa = m.jnt_qposadr[ji]
     sole = ("left_foot_collision", "right_foot_collision")

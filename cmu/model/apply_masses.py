@@ -7,7 +7,13 @@ one from `cmu/finetune/modal/finetune_worker.py::apply_asbuilt_masses` (itself t
 (given, or a solid box from `dimensions_m`), moved to the body origin with the parallel-axis theorem, summed
 with the body's official inertial, and written back as an explicit inertial (`fullinertia`) on the MjSpec body.
 
+Which model to use: `current`. It is an alias resolved through cmu/model/current.json (the one pointer to the robot as
+it is now; today battery-20261104), and the CLI default. The dated variants below are history, kept so old runs can
+be reproduced.
+
 Variants (`variant_parts`):
+  current   alias: the variant named in current.json, whose manifest sha256 is checked on every resolve.
+  battery-20261104  the 2026-11-04 battery backpack, orange A7Z saddle, charger box removed (current on 2026-11-11).
   official  Pollen's model, no parts.
   asbuilt   the 2026-10-15 as-built manifest (bench box, Pi Zero W head) with the NP-F970 battery (90 g) removed.
   plugged   asbuilt with the Pi Zero W replaced by the Cubie A7Z and the AC019 antenna (manifests/plugged.json).
@@ -16,7 +22,7 @@ The 90 g battery removal is applied to every variant: Pollen's trunk mesh lumps 
 builds carry. The generated manifests list parts only (same schema as the base manifest).
 
 CLI:
-  uv run --no-sync python cmu/model/apply_masses.py --variant battery [--out cmu/model/scenes/scene_battery.xml]
+  uv run --no-sync python cmu/model/apply_masses.py [--variant current] [--out cmu/model/scenes/scene_current.xml]
 prints the per-body report, the total mass and the whole-robot centre of mass at the HOME (STAND) pose in the
 trunk_base frame, and with --out writes a self-contained MJCF scene (collision geoms, sites and keyframes of
 `src/mjlab_microduck/robot/microduck/scene.xml` untouched; explicit inertials on the touched bodies) that any
@@ -43,7 +49,10 @@ MANIFEST_DIR = MODEL_DIR / "manifests"
 # only in robot_allcollisions.xml; this scene carries the 7 sites of the groundcontact export.
 SCENE_XML = REPO_ROOT / "src/mjlab_microduck/robot/microduck/scene.xml"
 BATTERY_REMOVE_KG = 0.090
-VARIANTS = ("official", "asbuilt", "plugged", "battery", "battery-20261104")
+VARIANTS = ("official", "asbuilt", "plugged", "battery", "battery-20261104")  # dated variants (make_variants measures each)
+CURRENT = "current"  # alias for the variant named in current.json
+CHOICES = (CURRENT,) + VARIANTS
+CURRENT_FILE = MODEL_DIR / "current.json"
 # The shin servo's case meets the heel at 1.36 rad (scan-20261101/heel_contact.py). The foot's only collision shape is
 # the sole and MuJoCo filters parent-child contacts, so this joint range is the stop.
 ANKLE_HEEL_STOP_RAD = 1.36
@@ -143,10 +152,43 @@ def apply_parts_to_spec(spec: mujoco.MjSpec, parts: list[dict]) -> dict:
     return report
 
 
-def variant_parts(variant: str) -> list[dict]:
-    """Full signed part list for a variant: its manifest parts plus the 90 g battery removal."""
+def current_variant() -> str:
+    """The dated variant current.json names, after checking its manifest exists and matches the recorded sha256."""
+    import hashlib
+    cur = json.loads(CURRENT_FILE.read_text())
+    variant = cur["variant"]
     if variant not in VARIANTS:
-        raise ValueError(f"unknown variant {variant!r}; choose from {VARIANTS}")
+        raise ValueError(f"{CURRENT_FILE}: variant {variant!r} is not one of {VARIANTS}")
+    path = REPO_ROOT / cur["mass_manifest"]
+    if not path.exists():
+        raise FileNotFoundError(f"{CURRENT_FILE}: mass manifest {path} missing")
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if digest != cur["mass_manifest_sha256"]:
+        raise ValueError(f"{CURRENT_FILE}: {cur['mass_manifest']} has sha256 {digest}, current.json records "
+                         f"{cur['mass_manifest_sha256']}; update both in one commit")
+    return variant
+
+
+def resolve_variant(variant: str) -> str:
+    """'current' -> the dated variant of current.json; any dated variant -> itself."""
+    if variant == CURRENT:
+        return current_variant()
+    if variant not in VARIANTS:
+        raise ValueError(f"unknown variant {variant!r}; choose from {CHOICES}")
+    return variant
+
+
+def variant_manifest_path(variant: str) -> Path | None:
+    """The mass manifest a variant is built from (None for official)."""
+    variant = resolve_variant(variant)
+    if variant == "official":
+        return None
+    return BASE_MANIFEST if variant == "asbuilt" else MANIFEST_DIR / f"{variant}.json"
+
+
+def variant_parts(variant: str) -> list[dict]:
+    """Full signed part list for a variant ('current' or a dated one): its manifest parts plus the 90 g battery removal."""
+    variant = resolve_variant(variant)
     if variant == "official":
         return []
     path = BASE_MANIFEST if variant == "asbuilt" else MANIFEST_DIR / f"{variant}.json"
@@ -216,15 +258,20 @@ def verify_scene(out: Path, reference: mujoco.MjModel, tol_kg: float = 1e-6) -> 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--variant", choices=VARIANTS, default="asbuilt")
-    ap.add_argument("--out", type=Path, default=None, help="write the MJCF scene here (e.g. cmu/model/scenes/scene_battery.xml)")
+    ap.add_argument("--variant", choices=CHOICES, default=CURRENT,
+                    help="current (default) = the robot as it is now, via cmu/model/current.json; the dated variants are history")
+    ap.add_argument("--out", type=Path, default=None, help="write the MJCF scene here (e.g. cmu/model/scenes/scene_current.xml)")
     ap.add_argument("--scene", type=Path, default=SCENE_XML, help="official scene to start from")
     args = ap.parse_args(argv)
+    label = args.variant
+    args.variant = resolve_variant(args.variant)
+    if label == CURRENT:
+        label = f"current = {args.variant}"
 
     spec, report = build_scene(args.variant, args.scene)
     model = _compile(spec)
     total_g, com_mm = mass_and_com(model)
-    print(f"variant {args.variant}: scene {args.scene.relative_to(REPO_ROOT) if args.scene.is_relative_to(REPO_ROOT) else args.scene}")
+    print(f"variant {label}: scene {args.scene.relative_to(REPO_ROOT) if args.scene.is_relative_to(REPO_ROOT) else args.scene}")
     for body, r in report["bodies"].items():
         print(f"  {body:18s} {r['before_g']:8.2f} g -> {r['after_g']:8.2f} g  ({r['parts']} parts)")
     print(f"  total {report['total_before_g']:.2f} g -> {report['total_after_g']:.2f} g")

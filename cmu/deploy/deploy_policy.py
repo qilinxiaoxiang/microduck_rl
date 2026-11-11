@@ -13,13 +13,15 @@ candidates. Steps, each one stops the script when it fails:
 
 1. Contract: one input named obs of shape [1, 61], one output named actions of shape [1, 14] (the robot's runtime
    feeds exactly that; README "Conventions").
-2. Gate: cmu/simcheck/sim_suite.py on both backpacks, `--variant plugged` (charger pack: the robot on its charger lead)
-   and `--variant battery` (2S battery pack). The reference is walk61 run by the same code just before (cached in
+2. Gate: cmu/simcheck/sim_suite.py on the robot as it is now, `--variant current` (cmu/model/current.json; on
+   2026-11-11 battery-20261104: battery backpack, orange A7Z saddle, no charger box). `--also plugged,battery` adds
+   historical models as report-only extras (written to the run and the MANIFEST, never the gate; until 2026-11-11 the
+   gate ran on plugged and battery, both retired). The reference is walk61 run by the same code just before (cached in
    cmu/deploy/runs/_walk61-<hash>/ under a hash of the sim code, the mass manifests, the robot condition and the
    policies), never the stored rows in cmu/simcheck/: those were recorded on 2026-10-19 and walk61 itself no longer
    matches them at the current code (2026-11-01 self-test: worse on four plugged and three battery real cases, after
-   the 10-22 heading hold, the 10-26 saddle masses and the 10-29 collision refit). Both verdicts must read "matches
-   or beats the reference on every real case". Rows and logs go to cmu/deploy/runs/<name>/. A pass says the candidate
+   the 10-22 heading hold, the 10-26 saddle masses and the 10-29 collision refit). The current verdict must read
+   "matches or beats the reference on every real case". Rows and logs go to cmu/deploy/runs/<name>/. A pass says the candidate
    is at least as good as walk61 in the simulation at the robot's measured condition; it does not predict the robot
    (ft3 passed and fell on the robot, cmu/real-logs/README.md), so the first robot run is still watched by hand.
 3. Copy (deploy only): the policy set to a7z:~/policies/<name>/ with a MANIFEST.json (sha256 of every file, the gate
@@ -44,7 +46,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 BASE = os.path.join(ROOT, "cmu", "whole", "runtime-overlay", "models")
 RUNS = os.path.join(ROOT, "cmu", "deploy", "runs")
 HOST = os.environ.get("MICRODUCK_ROBOT_HOST", "a7z")
-VARIANTS = ("plugged", "battery")
+GATE_VARIANTS = ("current",)  # the robot as it is now (cmu/model/current.json); the only gate
+HISTORICAL_VARIANTS = ("plugged", "battery", "asbuilt")  # --also: report-only extras
 PASS = "verdict: candidate matches or beats the reference on every real case"
 BRAIN = "'^/home/radxa/.venvs/duck-policy/bin/python walk_wired.py'"  # duck-run.sh's own pattern, never this ssh shell
 SSH = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", HOST]
@@ -114,9 +117,10 @@ def baseline(variant):
     return out
 
 
-def gate(run, models):
+def gate(run, models, extras=()):
+    """Gate on GATE_VARIANTS; `extras` (historical variants) are run and reported but never fail the gate."""
     verdicts = {}
-    for v in VARIANTS:
+    for v in tuple(GATE_VARIANTS) + tuple(extras):
         ref = baseline(v)
         out = os.path.join(run, f"suite-{v}.jsonl")
         print(f"gate: sim_suite on the {v} model (about a minute)...", flush=True)
@@ -127,11 +131,13 @@ def gate(run, models):
         if p.returncode or line is None:
             fail(f"sim_suite on {v} gave no verdict (exit {p.returncode}); see {run}/suite-{v}.out")
         verdicts[v] = line
-        print(f"  {v}: {line}")
+        print(f"  {v}{'' if v in GATE_VARIANTS else ' (historical, report only)'}: {line}")
         print("\n".join("    " + l for l in p.stdout.splitlines() if l.startswith("  ") and "worse" in l))
-    if any(line != PASS for line in verdicts.values()):
-        fail(f"the candidate is worse than walk61 in at least one real case; rows in {run}, walk61 in {os.path.dirname(baseline(VARIANTS[0]))}")
-    return verdicts
+    if any(verdicts[v] != PASS for v in GATE_VARIANTS):
+        fail(f"the candidate is worse than walk61 in at least one real case on the current robot; rows in {run}, "
+             f"walk61 in {os.path.dirname(baseline(GATE_VARIANTS[0]))}")
+    return {"gate": {v: verdicts[v] for v in GATE_VARIANTS},
+            "historical_extras": {v: verdicts[v] for v in extras}}
 
 
 def ssh(cmd, check=True):
@@ -164,7 +170,13 @@ def main():
     ap.add_argument("onnx", nargs="?", help="the candidate walking policy (61 inputs, 14 outputs)")
     ap.add_argument("--name", help="a short name for this policy (letters, digits, - and _)")
     ap.add_argument("--restart", action="store_true", help="restart an idle brain so it loads the change now")
+    ap.add_argument("--also", default="", help=f"comma list of historical models to run as report-only extras "
+                                               f"({', '.join(HISTORICAL_VARIANTS)}); the gate is the current robot only")
     a = ap.parse_args()
+    extras = tuple(v for v in a.also.split(",") if v)
+    unknown = [v for v in extras if v not in HISTORICAL_VARIANTS]
+    if unknown:
+        fail(f"--also {','.join(unknown)}: choose from {', '.join(HISTORICAL_VARIANTS)}")
 
     if a.action == "status":
         active = ssh("cat ~/duck-policy 2>/dev/null || true")
@@ -192,13 +204,16 @@ def main():
              "guide/firmware/a7z/install_teleop.sh from the robot's MacBook first")
     check_contract(a.onnx)
     run, models = build_set(os.path.abspath(a.onnx), a.name)
-    verdicts = gate(run, models)
+    verdicts = gate(run, models, extras)
+    with open(os.path.join(ROOT, "cmu", "model", "current.json")) as f:
+        current = json.load(f)
     manifest = {"name": a.name, "source": os.path.abspath(a.onnx), "built": datetime.datetime.now().isoformat(timespec="seconds"),
-                "by": getpass.getuser(), "gate": verdicts,
+                "by": getpass.getuser(), "gate": verdicts["gate"], "historical_extras": verdicts["historical_extras"],
+                "gate_model": {"variant": current["variant"], "mass_manifest_sha256": current["mass_manifest_sha256"]},
                 "files": {f: sha256(os.path.join(models, f)) for f in sorted(os.listdir(models))}}
     with open(os.path.join(models, "MANIFEST.json"), "w") as f:
         json.dump(manifest, f, indent=1)
-    print(f"gate passed on both backpacks; policy set in {models}")
+    print(f"gate passed on the current robot ({current['variant']}); policy set in {models}")
     if a.action == "check":
         print("send that directory (or the ONNX and this name) to whoever runs `deploy` on the robot's MacBook")
         return

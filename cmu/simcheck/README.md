@@ -15,11 +15,13 @@ Run from the repository root with the synced uv environment.
   `uv run --no-sync python cmu/simcheck/sim_suite.py <models-dir> out.jsonl --compare cmu/simcheck/reference-walk61.jsonl`
 - Options: `--walk-s 10` (seconds of commanded walking), `--condition cmu/robot-condition.json`,
   `--reference cmu/simcheck/reference-walk61.jsonl` (the rows the verdict uses),
-  `--variant asbuilt|plugged|battery` (the mass model: `asbuilt` is the 2026-10-15 manifest the sim check carries,
-  `plugged` and `battery` are `cmu/model/manifests/<variant>.json`, passed to `brain_sim_check.py --manifest`; the
-  rows carry `variant` and the default reference becomes `reference-walk61-<variant>.jsonl`).
-- One case on a variant by hand: add `--manifest cmu/model/manifests/battery.json` to the `brain_sim_check.py` line.
-- One case by hand: `uv run --no-sync python cmu/mac/brain_sim_check.py --model asbuilt --volt 7.0 --drop 0.04 --vx 0.25 --walk-s 6`
+  `--variant current` (the default: the robot as it is now, `cmu/model/current.json`, passed to
+  `brain_sim_check.py --manifest current`). The dated variants `asbuilt` (the 2026-10-15 manifest), `plugged`,
+  `battery` and `battery-20261104` (`cmu/model/manifests/<variant>.json`) are history and run with
+  `--historical-model "sim_suite --variant X"`; the rows carry the dated `variant` and the default reference becomes
+  `reference-walk61-<variant>.jsonl` (none is stored for the current robot yet; `cmu/deploy/deploy_policy.py`
+  runs walk61 at the current code as its reference).
+- One case by hand: `uv run --no-sync python cmu/mac/brain_sim_check.py --model asbuilt --manifest current --volt 7.0 --drop 0.04 --vx 0.25 --walk-s 6`
   (prints one JSON row; about 2 s on a Mac CPU).
 
 The suite writes one JSON row per case to `out.jsonl` (the `brain_sim_check.py` row with `case` and `class`

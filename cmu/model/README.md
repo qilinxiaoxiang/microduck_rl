@@ -1,5 +1,12 @@
 # CMU robot model: masses and looks
 
+> **Which model to use.** `current`. [`current.json`](current.json) is the single pointer to the robot as it is now:
+> its variant (`battery-20261104` on 2026-11-11), mass manifest with sha256, and visual layer. Use the `-CMU-Current`
+> training tasks, `apply_masses.py --variant current` (the default), `sim_suite.py --variant current` (the default)
+> and `brain_sim_check.py --model asbuilt --manifest current`; `visual.current_model()` and
+> `visual.current_manifest_path()` read it from code. The dated variants (`asbuilt`, `plugged`, `battery`,
+> `battery-20261104`) are history. A newer robot gets a new dated variant and a `current.json` update in one commit.
+
 **Current handoff (2026-11-04):** [dated battery model and status](STATUS-2026-11-04.md), [standing/bending scans](scans/2026-11-04/README.md). The `battery-20261104` variant has separately versioned geometry and component estimates. The older `plugged` and `battery` variants and the historical descriptions below remain reproducible baselines; their “today” wording refers to their original dates.
 
 Pollen's MJCF describes Pollen's duck. Our robot carries a head computer, a bench power box or a battery backpack, cables, printed parts and screws that the official bodies do not. This directory turns the measured and estimated extras into signed point masses on the official bodies, so the simulation and the training variants use the robot that exists. All positions are in the official MJCF body frames (metres); all numbers are read from the files named below, never from memory.

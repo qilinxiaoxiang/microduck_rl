@@ -23,6 +23,8 @@ import make_variants  # noqa: E402
 apply_masses = load_apply_masses()
 
 EXPECTED_TASKS = (
+    "Mjlab-Velocity-Flat-MicroDuck-CMU-Current",
+    "Mjlab-Velocity-Rough-MicroDuck-CMU-Current",
     "Mjlab-Velocity-Flat-MicroDuck-CMU-Plugged",
     "Mjlab-Velocity-Rough-MicroDuck-CMU-Plugged",
     "Mjlab-Velocity-Flat-MicroDuck-CMU-Battery",
@@ -38,7 +40,7 @@ def _total_g(model: mujoco.MjModel) -> float:
 
 @pytest.fixture(scope="module")
 def measured():
-    return {v: make_variants.measure(v) for v in ("official", "asbuilt", "plugged", "battery", "battery-20261104")}
+    return {v: make_variants.measure(v) for v in ("official", "asbuilt", "plugged", "battery", "battery-20261104", "current")}
 
 
 # ── (a) registry ─────────────────────────────────────────────────────────────
@@ -75,7 +77,7 @@ def test_task_spec_compiles_with_make_variants_mass(task_id, measured):
 
 
 def test_play_cfg_uses_the_same_masses(measured):
-    for variant in ("plugged", "battery", "battery-20261104"):
+    for variant in ("current", "plugged", "battery", "battery-20261104"):
         train = make_cmu_velocity_env_cfg(variant).scene.entities["robot"].spec_fn().compile()
         play = make_cmu_velocity_env_cfg(variant, play=True).scene.entities["robot"].spec_fn().compile()
         assert np.allclose(train.body_mass, play.body_mass)

@@ -146,7 +146,7 @@ def test_kinematic_pitch_matches_static_gap():
     except (ImportError, SystemExit, OSError):
         pytest.skip("as-built model not loadable here")
     pitch_of = ss.kinematic_pitch()
-    m, d, c, names, bam = b.ev.load(b.cfg(0.09, model="asbuilt"))
+    m, d, c, names, bam = b.ev.load(ss.current_cfg(b))
     for lean in (0.0, 0.04, -0.1):
         pose = dict(STAND, left_ankle=STAND["left_ankle"] + lean, right_ankle=STAND["right_ankle"] - lean,
                     left_hip_pitch=STAND["left_hip_pitch"] - lean / 2)
