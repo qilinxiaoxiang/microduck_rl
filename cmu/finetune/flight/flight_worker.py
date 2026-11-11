@@ -53,6 +53,72 @@ UNIVERSAL_MANIFESTS = "/root/assets/manifests"
 fw.DELTAS["universal"] = dict(track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)), drop_z=(0.12, 0.15),
                               torque_margin=dict(limit=TQ_LIMIT, weight=-12.0),
                               payload=dict(nominal="flightpack-load100.json", none="flightpack-none.json"))
+# universal2: the redesigned reward that passes the incentive audit at full / batteries out / none (UNIVERSAL-PLAN.md
+# section 4, extensions/flight-20261110/train/rm_chosen.json, audit out/audit2_chosen_*.json, 2026-11-11). Approved by
+# Shawn 2026-11-11 ("两个都跑", relayed by the coordinator).
+REWARD_MODS_CHOSEN = {
+    "cmd_ranges": {"lin_vel_x": [-0.05, 0.3], "lin_vel_y": [-0.05, 0.05], "ang_vel_z": [-0.5, 0.5]},
+    "weights": {"air_time": 6.0, "track_linear_velocity": 3.0, "upright": 0.5, "head_pose_tracking": 1.0},
+    "pose_std_walking": {".*hip_yaw.*": 0.15},
+    "foot_heading_weight": -8.0,
+}
+fw.DELTAS["universal2"] = dict(fw.DELTAS["universal"], reward_mods=REWARD_MODS_CHOSEN)
+# bend (extensions/flight-20261110/train/BEND-PLAN.md): groundpick61 fine-tuned on the payload env, task
+# Mjlab-GroundPick-Flat-MicroDuck (run with --task), Pollen's ground-pick rewards plus fq2's torque hinge; same payload
+# states as universal. Launch only after cmu/finetune/flight/bend_audit.py passes at full / batteries out / none.
+fw.DELTAS["bend"] = dict(torque_margin=dict(limit=TQ_LIMIT, weight=-12.0),
+                         payload=dict(nominal="flightpack-load100.json", none="flightpack-none.json"))
+# bend2: the bend reward redesign that passes bend_audit.py at every load (BEND-PLAN.md section 5, 2026-11-11):
+# Pollen's ground-pick reward paid a robot that never bends 1.06-1.21 of groundpick61's bend; two windowed mouth costs
+# (bend_terms.py) at weight -240 each: mouth above 3 cm during the low hold (phase 0.33-0.45), mouth below 18 cm during
+# the standing rest (0.85-1.0). Every other weight unchanged.
+BEND_MODS_CHOSEN = {"bend_costs": {"hold": -240.0, "rest": -240.0}}
+fw.DELTAS["bend2"] = dict(fw.DELTAS["bend"], reward_mods=BEND_MODS_CHOSEN)
+
+
+_orig_load = fw.load_walk61_into_actor
+
+
+def load_onnx_into_actor(actor, onnx_path: str, init_std: float):
+    """fw.load_walk61_into_actor, allowing a normalizer std of exactly 0: groundpick61's never-varying command slots
+    export std + eps = eps, i.e. std 0 (the worker's assert wants > 0). The divisor std + eps is unchanged, so the
+    re-export still reproduces the ONNX (compare_onnx at init checks that)."""
+    import onnx
+    import torch
+    from onnx import numpy_helper
+    m = onnx.load(onnx_path)
+    W = {i.name: torch.tensor(numpy_helper.to_array(i)).clone() for i in m.graph.initializer}
+    eps = float(getattr(actor.obs_normalizer, "eps", 0.0))
+    std = next(v for k, v in W.items() if k.startswith("onnx::Div")) - eps
+    if float(std.min()) > 0:
+        return _orig_load(actor, onnx_path, init_std)
+    assert float(std.min()) > -1e-6, float(std.min())
+    std = std.clamp(min=0.0)
+    mean = W["obs_normalizer._mean"]
+    sd = actor.state_dict()
+    new = {}
+    for k in sd:  # the worker's key mapping, unchanged
+        if k == "obs_normalizer._mean":
+            new[k] = mean
+        elif k == "obs_normalizer._var":
+            new[k] = std ** 2
+        elif k == "obs_normalizer._std":
+            new[k] = std
+        elif k == "obs_normalizer.count":
+            new[k] = torch.tensor(10 ** 9, dtype=sd[k].dtype)
+        elif k.startswith("mlp."):
+            new[k] = W[k]
+        elif k == "distribution.std_param":
+            new[k] = torch.full_like(sd[k], init_std)
+        else:
+            raise KeyError(f"unexpected actor key {k}")
+    assert new["mlp.0.weight"].shape == sd["mlp.0.weight"].shape, (new["mlp.0.weight"].shape, sd["mlp.0.weight"].shape)
+    actor.load_state_dict({k: v.to(sd[k].device, sd[k].dtype) for k, v in new.items()}, strict=True)
+    print(f"[init] {Path(onnx_path).name}: {int((std == 0).sum())} normalizer slots with std 0 (divisor eps)", flush=True)
+    return mean, std
+
+
+fw.load_walk61_into_actor = load_onnx_into_actor
 
 
 def actuator_force_over(env, limit: float):
@@ -93,6 +159,17 @@ def apply_delta(env_cfg, delta: dict):
         rm = delta["reward_mods"]
         for term, w in rm.get("weights", {}).items():
             env_cfg.rewards[term].weight = float(w)
+            cur = env_cfg.curriculum.get(f"{term.replace('_l2', '')}_weight") if term == "action_rate_l2" else None
+            if cur is not None:  # the action-rate curriculum would set its stage weights back; its last stage is final
+                cur.params["weight_stages"][-1]["weight"] = float(w)
+        if "bend_costs" in rm:  # bend_terms.py windowed mouth costs (BEND-PLAN.md section 5)
+            import bend_terms as bt
+            from mjlab.managers.scene_entity_config import SceneEntityCfg
+            for name, (fn, w) in {"mouth_high_at_hold": (bt.mouth_high_at_hold, rm["bend_costs"].get("hold", 0.0)),
+                                  "mouth_low_at_rest": (bt.mouth_low_at_rest, rm["bend_costs"].get("rest", 0.0))}.items():
+                if w:
+                    env_cfg.rewards[name] = RewardTermCfg(func=fn, weight=float(w),
+                                                          params={"asset_cfg": SceneEntityCfg("robot", site_names=["mouth_tip"])})
         if "pose_std_walking" in rm:
             for pat, s in rm["pose_std_walking"].items():
                 env_cfg.rewards["pose"].params["std_walking"][pat] = float(s)
@@ -143,6 +220,12 @@ if __name__ == "__main__":
     # worker must not find modal: its own try/except then skips the in-worker commit
     sys.modules["modal"] = None
     _tq_weight_from_argv()
+    # --task T: train another registered task with the same worker (the bend fine-tune, BEND-PLAN.md:
+    # Mjlab-GroundPick-Flat-MicroDuck); removed before the worker parses its own flags
+    if "--task" in sys.argv:
+        i = sys.argv.index("--task")
+        fw.TASK = sys.argv[i + 1]
+        del sys.argv[i:i + 2]
     # --scratch: train from random weights (skip the ONNX init and the curricula collapse); handled here so the
     # worker's own flag list stays unchanged
     if "--scratch" in sys.argv:

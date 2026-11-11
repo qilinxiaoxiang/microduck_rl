@@ -28,7 +28,12 @@ def main():
     ap.add_argument("--envs", type=int, default=64)
     ap.add_argument("--iters", type=int, default=3)
     ap.add_argument("--out", default="")
+    ap.add_argument("--delta", default="universal", help="DELTAS key (universal2 = the audited reward redesign)")
+    ap.add_argument("--task", default=None, help="another registered task (bend: Mjlab-GroundPick-Flat-MicroDuck)")
+    ap.add_argument("--init", default=None, help="ONNX loaded into the actor before the PPO iterations (fw.load_walk61_into_actor)")
     a = ap.parse_args()
+    if a.task:
+        fw.TASK = a.task
     import mjlab.tasks  # noqa: F401
     from mjlab.envs import ManagerBasedRlEnv
     from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
@@ -38,7 +43,8 @@ def main():
     t0 = time.time()
     env_cfg = load_env_cfg(fw.TASK, play=False)
     agent_cfg = load_rl_cfg(fw.TASK)
-    fw.apply_delta(env_cfg, dict(fw.DELTAS["universal"]))
+    fw.apply_delta(env_cfg, dict(fw.DELTAS[a.delta]))
+    print(f"[smoke] task {fw.TASK}, delta {a.delta}; reward terms {sorted(k for k, t in env_cfg.rewards.items() if t is not None and t.weight)}", flush=True)
     env_cfg.scene.entities["robot"] = fw.apply_asbuilt_masses(env_cfg.scene.entities["robot"],
                                                               str(Path(md) / "flightpack-none.json"),
                                                               str(Path(__file__).resolve().parents[2] / "whole/electrical/existing-model-mass-audit.json"),
@@ -109,6 +115,10 @@ def main():
     agent_cfg.logger = "tensorboard"
     agent_cfg.run_name = "universal_smoke"
     runner = (load_runner_cls(fw.TASK) or MjlabOnPolicyRunner)(venv, dataclasses.asdict(agent_cfg), "/tmp/universal_smoke", "cpu")
+    if a.init:
+        fw.load_walk61_into_actor(runner.alg.actor, a.init, 0.25)
+        env.common_step_counter = fw.CURRICULA_DONE_STEP
+        print(f"[smoke] actor initialised from {a.init}", flush=True)
     t1 = time.time()
     runner.learn(num_learning_iterations=a.iters, init_at_random_ep_len=True)
     rep["ppo_iters"] = a.iters

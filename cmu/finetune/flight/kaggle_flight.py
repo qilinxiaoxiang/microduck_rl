@@ -28,8 +28,40 @@ kj.HERE = KDIR
 kj.DATASET_SLUG = "microduck-flight-src"
 for p in sorted((TRAIN / "manifests").glob("flightpack-*.json")):
     kj.ASSETS[f"manifests/{p.name}"] = p
+# init policies for the approved 2026-11-11 runs (UNIVERSAL-PLAN.md, BEND-PLAN.md) -> /root/assets/init/<name>
+for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
+               "groundpick61.onnx": TRAIN / "ckpt/bend_spec/groundpick61.onnx",
+               "seepick61.onnx": TRAIN / "ckpt/bend_spec/seepick61.onnx"}.items():
+    if _p.exists():
+        kj.ASSETS[f"init/{_n}"] = _p
 _flags = kj.worker_flags
-kj.worker_flags = lambda: _flags() | {"--scratch"}
+kj.worker_flags = lambda: _flags() | {"--scratch", "--task"}
+
+
+def _audit_gate(argv):
+    """finetune.py::run's require_audit for Kaggle: every --delta pushed as a run needs a PASS in train/out/audit_gate.json
+    (train/audit_gate.py), and universal2's reward mods must be the audited rm_chosen.json."""
+    import ast
+    import json
+    import subprocess
+    if "push" not in argv or "run" not in argv:
+        return
+    deltas = [argv[i + 1] for i, a in enumerate(argv) if a == "--delta" and i + 1 < len(argv)]
+    if not deltas:
+        sys.exit("audit gate: a run push needs an explicit --delta per job")
+    for d in sorted(set(deltas)):
+        if subprocess.run([sys.executable, str(TRAIN / "audit_gate.py"), "check", d]).returncode:
+            sys.exit(f"audit gate: refusing to launch delta {d!r}")
+    tree = ast.parse((HERE / "flight_worker.py").read_text())
+    for delta, var, audited in (("universal2", "REWARD_MODS_CHOSEN", "rm_chosen.json"),
+                                ("bend2", "BEND_MODS_CHOSEN", "rm_bend_chosen.json")):
+        if delta in deltas:
+            mods = next(ast.literal_eval(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)
+                        and getattr(n.targets[0], "id", "") == var)
+            if mods != json.loads((TRAIN / audited).read_text()):
+                sys.exit(f"audit gate: flight_worker.{var} differs from the audited {audited}")
+
 
 if __name__ == "__main__":
+    _audit_gate(sys.argv[1:])
     kj.main()
