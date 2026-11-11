@@ -54,7 +54,8 @@ def _audit_gate(argv):
             sys.exit(f"audit gate: refusing to launch delta {d!r}")
     tree = ast.parse((HERE / "flight_worker.py").read_text())
     for delta, var, audited in (("universal2", "REWARD_MODS_CHOSEN", "rm_chosen.json"),
-                                ("bend2", "BEND_MODS_CHOSEN", "rm_bend_chosen.json")):
+                                ("bend2", "BEND_MODS_CHOSEN", "rm_bend_chosen.json"),
+                                ("bend3", "BEND_MODS_CHOSEN", "rm_bend_chosen.json")):
         if delta in deltas:
             mods = next(ast.literal_eval(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)
                         and getattr(n.targets[0], "id", "") == var)

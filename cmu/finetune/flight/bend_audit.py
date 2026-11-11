@@ -62,6 +62,7 @@ def main():
     ap.add_argument("--manifest", default="manifests/flightpack-none.json",
                     help="robot compile manifest under --assets (default the 960 g no-pack robot of the payload env)")
     ap.add_argument("--reward-mods", default="", help="JSON merged into the delta as reward_mods (a redesign re-audit)")
+    ap.add_argument("--delta", default="bend", help="flight_worker delta audited (bend, bend2, bend3)")
     a = ap.parse_args()
     import torch
     import mjlab.tasks  # noqa: F401
@@ -79,7 +80,7 @@ def main():
     stander = "fq2" if pack else "stand61"
 
     cfg = load_env_cfg(TASK, play=False)
-    delta = dict(fw.DELTAS["bend"])
+    delta = dict(fw.DELTAS[a.delta])
     delta["payload"] = dict(delta["payload"], weights=PIN[a.load])
     if a.reward_mods:
         delta["reward_mods"] = json.loads(a.reward_mods)
@@ -152,6 +153,21 @@ def main():
                 obs = phase_obs(obs, cap)
             return policy(obs)
         return fn
+
+    if "phase_hold" in delta:  # check the held crouch runs: share of env-steps at the hold phase, longest hold
+        p, held, run, best = float(delta["phase_hold"]["phase"]), 0, torch.zeros(u.num_envs), 0.0
+        with torch.inference_mode():
+            obs = env.get_observations()
+            for _ in range(400):
+                compensate(True)
+                obs, _, _, _ = env.step(gp(obs))
+                at = (phase_cmd._gp_phase - p).abs() < 1e-6
+                held += int(at.sum())
+                run = torch.where(at.cpu(), run + 1, torch.zeros_like(run))
+                best = max(best, float(run.max()))
+            compensate(False)
+        print(f"[bend-audit] phase hold check: {held / (400 * u.num_envs):.3f} of env-steps at phase {p}, "
+              f"longest {best * u.step_dt:.2f} s", flush=True)
 
     cases = {"intended": make(gp, comp=True), "stand": make(sd, zero_cmd=True), "half_bend": make(gp, cap=0.15, comp=True),
              "stay_down": make(gp, cap=0.40, comp=True)}

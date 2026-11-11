@@ -74,6 +74,11 @@ fw.DELTAS["bend"] = dict(torque_margin=dict(limit=TQ_LIMIT, weight=-12.0),
 # the standing rest (0.85-1.0). Every other weight unchanged.
 BEND_MODS_CHOSEN = {"bend_costs": {"hold": -240.0, "rest": -240.0}}
 fw.DELTAS["bend2"] = dict(fw.DELTAS["bend"], reward_mods=BEND_MODS_CHOSEN)
+# bend3 = bend2 plus the runtime's held crouch: in half the envs the phase stops at 0.33 for 4 s once per cycle
+# (PICKUP.md: walk_brain descends to phase 0.33, holds, rises). Pollen's env holds 0.2 s at 0.375-0.425 only, so the
+# acceptance command (phase 0.33 held 4 s) would otherwise be a state the fine-tune never trains on.
+BEND_HOLD = {"phase": 0.33, "hold_s": 4.0, "frac": 0.5}
+fw.DELTAS["bend3"] = dict(fw.DELTAS["bend2"], phase_hold=BEND_HOLD)
 
 
 _orig_load = fw.load_walk61_into_actor
@@ -148,6 +153,10 @@ def apply_delta(env_cfg, delta: dict):
         env_cfg.commands["twist"].rel_standing_envs = float(delta["standing_frac"])
     if "drop_z" in delta:
         ev["reset_base"].params["pose_range"]["z"] = tuple(delta["drop_z"])
+    if "phase_hold" in delta:  # the runtime's held crouch (bend_terms.held_phase_command_class, BEND-PLAN.md section 3)
+        import bend_terms as bt
+        env_cfg.commands["twist"], hold = bt.held_phase_cfg(env_cfg.commands["twist"], delta["phase_hold"])
+        print(f"[bend] phase hold {hold} ({type(env_cfg.commands['twist']).__name__})", flush=True)
     if "torque_margin" in delta:
         from mjlab.managers import RewardTermCfg
         tm = delta["torque_margin"]
