@@ -50,3 +50,22 @@ def apply_visual_to_spec(spec: mujoco.MjSpec, variant: str = "", visual: dict | 
         body.add_geom(name=name, type=mujoco.mjtGeom.mjGEOM_MESH, meshname=name, rgba=item["rgba"],
                       contype=0, conaffinity=0, group=2, density=0, mass=0)
     return len(geoms)
+
+
+def apply_manifest_visuals(spec: mujoco.MjSpec, manifest_path: str | Path) -> int:
+    """Draw the `visual_parts` of a mass manifest (an added payload such as the flight pack) in the same visual role as
+    the robot's own parts: contype 0, conaffinity 0, group 2, density 0, mass 0. Each item: id, body, file (STL, relative
+    to a parent directory of the manifest, found by walking up), scale (file units to m), rgba. A manifest without
+    visual_parts adds nothing. Returns the number of geoms added."""
+    path = Path(manifest_path).resolve()
+    items = json.loads(path.read_text()).get("visual_parts", [])
+    for item in items:
+        rel = Path(item["file"])
+        f = rel if rel.is_absolute() else next((p / rel for p in path.parents if (p / rel).exists()), None)
+        if f is None:
+            raise FileNotFoundError(f"{path.name}: visual part {item['id']!r} mesh {rel} not found above {path.parent}")
+        name = "payload_" + item["id"]
+        spec.add_mesh(name=name, file=str(f), scale=[item.get("scale", 1.0)] * 3)
+        spec.body(item["body"]).add_geom(name=name, type=mujoco.mjtGeom.mjGEOM_MESH, meshname=name, rgba=item["rgba"],
+                                         contype=0, conaffinity=0, group=2, density=0, mass=0)
+    return len(items)

@@ -88,6 +88,9 @@ def load(config):
     sys.path.insert(0, str(MODEL_DIR.parents[3] / 'cmu/model'))
     from visual import apply_visual_to_spec
     apply_visual_to_spec(spec)
+    if config.get('mass_manifest'):  # a payload's visual_parts (the flight pack): drawn only, no mass, no contact
+        from visual import apply_manifest_visuals
+        apply_manifest_visuals(spec, config['mass_manifest'])
     if config.get('geometry_manifest'):
         manifest=json.loads(Path(config['geometry_manifest']).read_text())
         for g in list(spec.geoms):
