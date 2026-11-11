@@ -23,7 +23,16 @@ KDIR.mkdir(parents=True, exist_ok=True)
 src = (REPO / "cmu/finetune/kaggle/kernel_entry.py").read_text()
 old = 'f"{SRC}/cmu/finetune/modal/finetune_worker.py"'
 assert old in src, "kernel_entry.py no longer names the worker as expected"
-(KDIR / "kernel_entry.py").write_text(src.replace(old, 'f"{SRC}/cmu/finetune/flight/flight_worker.py"'))
+src = src.replace(old, 'f"{SRC}/cmu/finetune/flight/flight_worker.py"')
+# the shared entry copies only assets/* and assets/manifests/* into /root/assets; the start policies ship as
+# assets/init/<name> (below) and were missing on the kernel (fk-bend-a ERROR 2026-11-11: no /root/assets/init/groundpick61.onnx)
+old_m = '    record["manifests"] = sorted(os.listdir("/root/assets/manifests"))\n'
+assert old_m in src, "kernel_entry.py no longer copies the manifests as expected"
+src = src.replace(old_m, '    os.makedirs("/root/assets/init", exist_ok=True)\n'
+                         '    for f in glob.glob(os.path.join(data_dir, "assets", "init", "*")):\n'
+                         '        shutil.copy(f, "/root/assets/init/")\n'
+                         '    record["init"] = sorted(os.listdir("/root/assets/init"))\n' + old_m)
+(KDIR / "kernel_entry.py").write_text(src)
 kj.HERE = KDIR
 kj.DATASET_SLUG = "microduck-flight-src"
 for p in sorted((TRAIN / "manifests").glob("flightpack-*.json")):
@@ -46,6 +55,10 @@ def _audit_gate(argv):
     import subprocess
     if "push" not in argv or "run" not in argv:
         return
+    for i, a in enumerate(argv):  # every /root/assets path a job names must be a shipped asset the entry copies
+        if a in ("--onnx", "--manifest") and i + 1 < len(argv) and argv[i + 1].startswith("/root/assets/"):
+            if argv[i + 1][len("/root/assets/"):] not in kj.ASSETS:
+                sys.exit(f"asset check: {argv[i + 1]} is not in the shipped assets")
     deltas = [argv[i + 1] for i, a in enumerate(argv) if a == "--delta" and i + 1 < len(argv)]
     if not deltas:
         sys.exit("audit gate: a run push needs an explicit --delta per job")
