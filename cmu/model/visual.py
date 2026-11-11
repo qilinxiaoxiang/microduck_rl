@@ -52,6 +52,42 @@ def apply_visual_to_spec(spec: mujoco.MjSpec, variant: str = "", visual: dict | 
     return len(geoms)
 
 
+CURRENT_FILE = Path(__file__).resolve().parent / "current.json"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+# mass manifest file stem -> the visual layer that draws the same robot ("" = the legacy charger-pack look)
+_VISUAL_BY_STEM = {"asbuilt-mass-manifest": "", "plugged": "", "battery": "battery", "battery-20261104": "battery-20261104"}
+
+
+def current_model() -> dict:
+    """cmu/model/current.json: the variant, manifest and visual of the robot as it is now."""
+    return json.loads(CURRENT_FILE.read_text())
+
+
+def current_manifest_path() -> Path:
+    return REPO_ROOT / current_model()["mass_manifest"]
+
+
+def visual_variant_for_manifest(manifest_path: str | Path | None) -> str:
+    """The visual layer that matches a mass manifest, so a sim never draws one robot while weighing another.
+    Order: the manifest's own "visual_variant" key, then a known variant named at the start of its "build" string (the
+    flight-pack manifests say "battery-20261104 + flight pack ..."), then its file stem. None (the loader's own
+    2026-10-15 manifest) and plugged draw the legacy look; an unknown manifest raises."""
+    if manifest_path is None:
+        return ""
+    path = Path(manifest_path)
+    data = json.loads(path.read_text())
+    if "visual_variant" in data:
+        return data["visual_variant"]
+    build = str(data.get("build", ""))
+    for stem in sorted(_VISUAL_BY_STEM, key=len, reverse=True):
+        if build.startswith(stem + " ") or build.startswith(stem + ":") or build == stem:
+            return _VISUAL_BY_STEM[stem]
+    if path.stem in _VISUAL_BY_STEM:
+        return _VISUAL_BY_STEM[path.stem]
+    raise ValueError(f"{path}: no visual layer is known for this manifest; add \"visual_variant\" to it "
+                     f"(one of {sorted(set(_VISUAL_BY_STEM.values()))})")
+
+
 def apply_manifest_visuals(spec: mujoco.MjSpec, manifest_path: str | Path) -> int:
     """Draw the `visual_parts` of a mass manifest (an added payload such as the flight pack) in the same visual role as
     the robot's own parts: contype 0, conaffinity 0, group 2, density 0, mass 0. Each item: id, body, file (STL, relative
