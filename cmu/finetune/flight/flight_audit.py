@@ -39,7 +39,7 @@ def main():
                     help="the policy whose standing (zero command, no pack) is the stand job's intended behaviour")
     ap.add_argument("--policy", action="append", default=[], metavar="NAME=PATH",
                     help="extra policies (round 2: the round-1 pack walker and stander, /root/assets/init/*.onnx)")
-    ap.add_argument("--walker", default="fw1", help="packwalk_tq: the pack walker (a --policy name)")
+    ap.add_argument("--walker", default="fw1", help="packwalk_tq / universal: the pack walker (a --policy name)")
     ap.add_argument("--stander", default="fs1", help="packwalk_tq: the pack stander (a --policy name)")
     a = ap.parse_args()
     import torch
@@ -49,6 +49,8 @@ def main():
     from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
 
     A = Path(a.assets)
+    import os
+    os.environ.setdefault("FLIGHT_MANIFESTS", str(A / "manifests"))  # the universal delta's payload manifests
     man = {"nopack": str(A / "manifests/flightpack-none.json"), "pack": str(A / "manifests/flightpack-nominal.json")}
     pol = {"walk61": str(A / "walk61.onnx"), "stand61": str(A / "stand61.onnx")}
     pol.update(dict(p.split("=", 1) for p in a.policy))
@@ -66,11 +68,20 @@ def main():
         # the round-1 stander under the walk commands; shuffling is the walker fed an in-place turn; falling is walk61
         "packwalk_tq": [("intended", "pack", a.walker, None), ("stand", "pack", a.stander, None),
                         ("shuffle", "pack", a.walker, (0.0, 0.0, 0.3)), ("fall_walk", "pack", "walk61", None)],
+        # universal (UNIVERSAL-PLAN.md): the universal env (no-pack compile + payload event) pinned to one load at a
+        # time. full pack: the pack walker walking is intended; standing still is the same walker fed a zero command
+        # (it holds the pack, unlike stand61); shuffle = in-place turn; walk61 = the old policy, which falls with the
+        # pack. no pack: walk61 intended, stand61 standing, walk61 shuffle, and the pack walker on the light robot.
+        "universal": [("full:intended", "u_full", a.walker, None), ("full:stand", "u_full", a.walker, (0.0, 0.0, 0.0)),
+                      ("full:shuffle", "u_full", a.walker, (0.0, 0.0, 0.3)), ("full:old_walk61", "u_full", "walk61", None),
+                      ("none:intended", "u_none", "walk61", None), ("none:stand", "u_none", "stand61", None),
+                      ("none:shuffle", "u_none", "walk61", (0.0, 0.0, 0.3)), ("none:old_packwalker", "u_none", a.walker, None)],
     }
+    PIN = {"u_full": dict(full=1.0, nobatt=0.0, none=0.0, scaled=0.0), "u_none": dict(full=0.0, nobatt=0.0, none=1.0, scaled=0.0)}
     plan = {k: v for k, v in plan.items() if k in a.jobs.split(",")}
     for job, cases in plan.items():
         res[job] = {}
-        for model in ("nopack", "pack"):
+        for model in ("nopack", "pack", "u_full", "u_none"):
             todo = [c for c in cases if c[1] == model]
             if not todo:
                 continue
@@ -79,8 +90,11 @@ def main():
             if model == "nopack":  # the light robot keeps its original +-5 % mass DR
                 delta.pop("trunk_mass_scale", None)
                 delta.pop("trunk_inertia_d", None)
+            if model in PIN:  # universal env pinned to one load; compiled without the pack
+                delta["payload"] = dict(delta["payload"], weights=PIN[model])
             fw.apply_delta(cfg, delta)
-            cfg.scene.entities["robot"] = fw.apply_asbuilt_masses(cfg.scene.entities["robot"], man[model],
+            cfg.scene.entities["robot"] = fw.apply_asbuilt_masses(cfg.scene.entities["robot"],
+                                                                  man["nopack" if model in PIN else model],
                                                                   str(A / "existing-model-mass-audit.json"), 0.09)
             cfg.scene.num_envs = a.num_envs
             cfg.seed = 1
@@ -107,11 +121,12 @@ def main():
                 print(f"[audit] {job} {case}: reward/s {r['reward_per_s']} track_lin {r['terms_per_s'].get('track_linear_velocity')} "
                       f"falls/env-min {r['falls_per_env_minute']} speed {r['speed_along_cmd']}", flush=True)
             env.close()
-        it = res[job]["intended"]
         checks = {}
         for case, r in res[job].items():
-            if case in ("intended", "stand61_ref"):
+            grp = case.split(":")[0] + ":" if ":" in case else ""
+            if case in ("intended", "stand61_ref") or case.endswith(":intended"):
                 continue
+            it = res[job][grp + "intended"]
             checks[case] = dict(reward_ratio=round(r["reward_per_s"] / it["reward_per_s"], 3),
                                 track_lin_ratio=round(r["terms_per_s"]["track_linear_velocity"] / it["terms_per_s"]["track_linear_velocity"], 3),
                                 intended_wins=bool(r["reward_per_s"] < it["reward_per_s"] and
@@ -119,7 +134,9 @@ def main():
         ok = all(c["intended_wins"] for c in checks.values())
         if job in ("packwalk", "packwalk_tq"):
             ok = ok and checks["stand"]["reward_ratio"] <= 0.80
-        res[job]["verdict"] = dict(checks=checks, max_stand_ratio=0.80 if job in ("packwalk", "packwalk_tq") else None,
+        if job == "universal":  # the stand gate at both loads
+            ok = ok and checks["full:stand"]["reward_ratio"] <= 0.80 and checks["none:stand"]["reward_ratio"] <= 0.80
+        res[job]["verdict"] = dict(checks=checks, max_stand_ratio=0.80 if job in ("packwalk", "packwalk_tq", "universal") else None,
                                    verdict="PASS" if ok else "FAIL")
         print(f"[audit] {job} verdict {res[job]['verdict']}", flush=True)
     (out / "audit.json").write_text(json.dumps(dict(time=time.strftime("%Y-%m-%dT%H:%M:%S"), num_envs=a.num_envs, steps=a.steps,

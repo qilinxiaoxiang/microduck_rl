@@ -44,6 +44,16 @@ fw.DELTAS["packscratch"] = dict(PACK_DR)
 TQ_LIMIT = 0.45  # N m: 84 % of the 0.538 N m clamp
 fw.DELTAS["packwalk_tq"] = dict(fw.DELTAS["packwalk"], torque_margin=dict(limit=TQ_LIMIT, weight=-1.0))
 
+# universal (extensions/flight-20261110/train/UNIVERSAL-PLAN.md): one stand/walk policy for any back load 0-1.1 kg.
+# Compile with --manifest .../flightpack-none.json; the payload event (payload.py) puts the real pack's mass, COM and
+# inertia on trunk_base per env, weighted to the fitted states (full 40 %, batteries out 25 %, none 10 %, scaled 25 %).
+# fq2's torque hinge (-12 at 0.45 N m) and drop_z stay; trunk_mass_scale/trunk_inertia_d (pack-model ranges) do not.
+# The critic also sees the payload kg and the loaded trunk COM; the actor keeps its 61 inputs.
+UNIVERSAL_MANIFESTS = "/root/assets/manifests"
+fw.DELTAS["universal"] = dict(track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)), drop_z=(0.12, 0.15),
+                              torque_margin=dict(limit=TQ_LIMIT, weight=-12.0),
+                              payload=dict(nominal="flightpack-load100.json", none="flightpack-none.json"))
+
 
 def actuator_force_over(env, limit: float):
     """sum over actuators of max(0, |actuator force| - limit), N m (a cost: >= 0, used with a negative weight)"""
@@ -77,6 +87,22 @@ def apply_delta(env_cfg, delta: dict):
         tm = delta["torque_margin"]
         env_cfg.rewards["torque_margin"] = RewardTermCfg(func=actuator_force_over, weight=float(tm["weight"]),
                                                          params={"limit": float(tm["limit"])})
+    if "payload" in delta:
+        import os
+        from mjlab.managers import ObservationTermCfg
+        import payload as pl
+        d = os.environ.get("FLIGHT_MANIFESTS", UNIVERSAL_MANIFESTS)
+        pd = delta["payload"]
+        cfg = pl.payload_cfg(str(Path(d) / pd["nominal"]), str(Path(d) / pd["none"]), weights=pd.get("weights"),
+                             smax=float(pd.get("smax", 1.15)), seed=int(pd.get("seed", 0)))
+        com = ev["randomize_com"]
+        com.func = pl.trunk_payload
+        com.params = dict(asset_cfg=com.params["asset_cfg"], ranges=com.params["ranges"], payload=cfg)
+        ev.pop("randomize_mass_inertia", None)  # folded into trunk_payload (same ±5 %)
+        env_cfg.observations["critic"].terms["payload"] = ObservationTermCfg(func=pl.payload_obs)
+        print(f"[payload] pack rest {cfg['rest_kg']:.4f} kg + batteries {cfg['batt_kg']:.4f} kg from {d}; "
+              f"weights {cfg['weights']}, smax {cfg['smax']}", flush=True)
+        delta = {k: v for k, v in delta.items() if k != "payload"}
     print(f"[pack] delta applied: { {k: delta[k] for k in delta if k != 'track_lin_vel'} }", flush=True)
     return env_cfg
 
