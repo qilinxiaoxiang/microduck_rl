@@ -25,6 +25,61 @@ import flight_worker  # noqa: E402,F401  (registers the pack deltas)
 import finetune_worker as fw  # noqa: E402
 
 CMD = slice(48, 51)  # twist command slots in the 61-D actor observation (48 proprioception first)
+LEAN = 0.2  # rad: lean-and-hold hip-pitch action offset (both hips), added to the stander's output
+DIAG_W = 1e-6
+RT_THR = 0.05  # universal2 intended: largest |twist command| below which the stander runs (walk_brain's split)
+
+
+def track_from_ema(env, std: float, command_name: str):
+    import torch
+    cmd = env.command_manager.get_command(command_name)
+    f = env._track_vel_ema
+    return torch.exp(-(torch.sum(torch.square(cmd[:, :2] - f[:, :2]), dim=1) + torch.square(f[:, 2])) / std ** 2)
+
+
+def _accumulating(name, func):
+    """wrap a reward function so its raw (unweighted) per-env values are summed into env._diag_sum[name]: the
+    worker's eval rounds terms_per_s to 4 decimals, which erases a term at weight DIAG_W"""
+    import inspect
+    if inspect.isclass(func):  # class terms (variable_posture) are instantiated by the manager: subclass them
+        class Acc(func):
+            def __call__(self, env, **kw):
+                v = super().__call__(env, **kw)
+                s = getattr(env, "_diag_sum", None)
+                if s is not None:
+                    s[name] = s.get(name, 0.0) + float(v.sum())
+                return v
+        return Acc
+
+    def f(env, **kw):
+        v = func(env, **kw)
+        s = getattr(env, "_diag_sum", None)
+        if s is not None:
+            s[name] = s.get(name, 0.0) + float(v.sum())
+        return v
+    return f
+
+
+def add_diag_terms(cfg):
+    """candidate terms for the universal reward redesign, at weight DIAG_W; raw sums in env._diag_sum"""
+    import copy
+    import math
+    from mjlab.managers import RewardTermCfg
+    import style_terms as stl
+    for hy in (0.15, 0.10):
+        t = copy.deepcopy(cfg.rewards["pose"])
+        for k in ("std_walking", "std_running"):
+            t.params[k] = {p: (hy if "hip_yaw" in p else s) for p, s in t.params[k].items()}
+        t.weight = DIAG_W
+        cfg.rewards[f"diag_pose_hy{int(hy * 100):03d}"] = t
+    cn = cfg.rewards["track_linear_velocity"].params["command_name"]
+    for name, std in (("diag_track_std022", math.sqrt(0.05)), ("diag_track_std015", 0.15), ("diag_track_std010", 0.10)):
+        # reads the EMA the main term updated this step (added after it, so evaluated after it); calling the EMA
+        # term itself again would advance the shared EMA once more per step
+        cfg.rewards[name] = RewardTermCfg(func=track_from_ema, weight=DIAG_W, params=dict(std=std, command_name=cn))
+    cfg.rewards["diag_foot_heading"] = RewardTermCfg(func=stl.stance_foot_heading, weight=DIAG_W, params={})
+    for n in [k for k in cfg.rewards if k.startswith("diag_")]:
+        cfg.rewards[n].func = _accumulating(n, cfg.rewards[n].func)
 
 
 def main():
@@ -41,6 +96,11 @@ def main():
                     help="extra policies (round 2: the round-1 pack walker and stander, /root/assets/init/*.onnx)")
     ap.add_argument("--walker", default="fw1", help="packwalk_tq / universal: the pack walker (a --policy name)")
     ap.add_argument("--stander", default="fs1", help="packwalk_tq: the pack stander (a --policy name)")
+    ap.add_argument("--loads", default="", help="universal jobs: comma list of loads to run (full,nobatt,none); empty = all")
+    ap.add_argument("--reward-mods", default="", help="JSON merged into the delta as reward_mods (flight_worker.apply_delta)")
+    ap.add_argument("--diag", action="store_true",
+                    help="add candidate reward terms at weight 1e-6 (diag_*): their raw per-second values let a design be "
+                         "priced offline from the same deterministic rollouts (rewards do not change the dynamics)")
     a = ap.parse_args()
     import torch
     import mjlab.tasks  # noqa: F401
@@ -76,23 +136,48 @@ def main():
                       ("full:shuffle", "u_full", a.walker, (0.0, 0.0, 0.3)), ("full:old_walk61", "u_full", "walk61", None),
                       ("none:intended", "u_none", "walk61", None), ("none:stand", "u_none", "stand61", None),
                       ("none:shuffle", "u_none", "walk61", (0.0, 0.0, 0.3)), ("none:old_packwalker", "u_none", a.walker, None)],
+        # universal reward redesign (coordinator 2026-11-11): per load, stand still, shuffle in place and lean-and-hold
+        # (the stander at zero command with a constant hip-pitch action offset, both signs) against the intended walk.
+        # Pack loads: the pack walker fq2 is the intended walk (conservative: it carries the toe-out the style term
+        # prices) and also the stander (stand61 falls with the pack). No pack: walk61 walks, stand61 stands.
+        "universal2": [(f"{ld}:{c}", f"u_{ld}", p, o) for ld in ("full", "nobatt")
+                       for c, p, o in (("intended", a.walker, dict(compose=a.walker, thr=RT_THR)),
+                                       ("stand", a.walker, (0.0, 0.0, 0.0)),
+                                       ("shuffle", a.walker, (0.0, 0.0, 0.3)),
+                                       ("lean_fwd", a.walker, dict(cmd=(0.0, 0.0, 0.0), lean=LEAN)),
+                                       ("lean_back", a.walker, dict(cmd=(0.0, 0.0, 0.0), lean=-LEAN)))]
+        + [(f"none:{c}", "u_none", p, o) for c, p, o in (("intended", "walk61", dict(compose="stand61", thr=RT_THR)),
+                                                          ("stand", "stand61", None),
+                                                          ("shuffle", "walk61", (0.0, 0.0, 0.3)),
+                                                          ("lean_fwd", "stand61", dict(cmd=(0.0, 0.0, 0.0), lean=LEAN)),
+                                                          ("lean_back", "stand61", dict(cmd=(0.0, 0.0, 0.0), lean=-LEAN)),
+                                                          # Shawn 2026-11-11 on the toe-out and speed: the splayed pack
+                                                          # walker against the straight-footed walk61, same commands
+                                                          ("splay_fq2", a.walker, dict(compose="stand61", thr=RT_THR)))],
     }
-    PIN = {"u_full": dict(full=1.0, nobatt=0.0, none=0.0, scaled=0.0), "u_none": dict(full=0.0, nobatt=0.0, none=1.0, scaled=0.0)}
+    PIN = {"u_full": dict(full=1.0, nobatt=0.0, none=0.0, scaled=0.0), "u_none": dict(full=0.0, nobatt=0.0, none=1.0, scaled=0.0),
+           "u_nobatt": dict(full=0.0, nobatt=1.0, none=0.0, scaled=0.0)}
     plan = {k: v for k, v in plan.items() if k in a.jobs.split(",")}
+    if a.loads:  # one load per job keeps each Mac mini run under 10 minutes
+        plan = {k: [c for c in v if ":" not in c[0] or c[0].split(":")[0] in a.loads.split(",")] for k, v in plan.items()}
     for job, cases in plan.items():
         res[job] = {}
-        for model in ("nopack", "pack", "u_full", "u_none"):
+        for model in ("nopack", "pack", "u_full", "u_nobatt", "u_none"):
             todo = [c for c in cases if c[1] == model]
             if not todo:
                 continue
             cfg = load_env_cfg(fw.TASK, play=False)
-            delta = dict(fw.DELTAS[job])
+            delta = dict(fw.DELTAS["universal" if job == "universal2" else job])
+            if a.reward_mods:
+                delta["reward_mods"] = json.loads(a.reward_mods)
             if model == "nopack":  # the light robot keeps its original +-5 % mass DR
                 delta.pop("trunk_mass_scale", None)
                 delta.pop("trunk_inertia_d", None)
             if model in PIN:  # universal env pinned to one load; compiled without the pack
                 delta["payload"] = dict(delta["payload"], weights=PIN[model])
             fw.apply_delta(cfg, delta)
+            if a.diag:
+                add_diag_terms(cfg)
             cfg.scene.entities["robot"] = fw.apply_asbuilt_masses(cfg.scene.entities["robot"],
                                                                   man["nopack" if model in PIN else model],
                                                                   str(A / "existing-model-mass-audit.json"), 0.09)
@@ -105,7 +190,36 @@ def main():
                 fw.load_walk61_into_actor(runner.alg.actor, pol[p], 0.25)
                 runner.alg.eval_mode()
                 actor = runner.alg.actor
-                if override is not None:
+                if isinstance(override, dict) and "compose" in override:
+                    # the runtime's split (walk_brain): the stander at a near-zero command, the walker otherwise;
+                    # without it the intended walker is charged for drifting at zero command, which the fine-tune
+                    # learns away and the runtime never asks of it
+                    import copy
+                    fw.load_walk61_into_actor(runner.alg.actor, pol[override["compose"]], 0.25)
+                    runner.alg.eval_mode()
+                    stander = copy.deepcopy(runner.alg.actor)
+                    fw.load_walk61_into_actor(runner.alg.actor, pol[p], 0.25)
+                    runner.alg.eval_mode()
+                    walker, thr = runner.alg.actor, float(override["thr"])
+
+                    def actor_fn(obs, _w=walker, _s=stander, _thr=thr):
+                        small = obs["actor"][:, CMD].abs().amax(dim=1, keepdim=True) < _thr  # obs is a TensorDict
+                        o0 = obs.clone()
+                        o0[:, CMD] = 0.0  # the stander holds still: zero twist command
+                        return torch.where(small, _s(o0), _w(obs))
+                elif isinstance(override, dict):  # lean-and-hold: zero command + constant hip-pitch action offset
+                    val = torch.tensor(override["cmd"], device=a.device)
+                    names = env.unwrapped.action_manager.get_term("joint_pos").target_names
+                    off = torch.zeros(len(names), device=a.device)
+                    hp = [i for i, n in enumerate(names) if "hip_pitch" in n]
+                    assert len(hp) == 2, names
+                    off[hp] = float(override["lean"])
+
+                    def actor_fn(obs, _actor=actor, _val=val, _off=off):
+                        obs = obs.clone()
+                        obs[:, CMD] = _val
+                        return _actor(obs) + _off
+                elif override is not None:
                     val = torch.tensor(override, device=a.device)
 
                     def actor_fn(obs, _actor=actor, _val=val):
@@ -115,8 +229,12 @@ def main():
                 else:
                     actor_fn = actor
                 t0 = time.time()
+                env.unwrapped._diag_sum = {}
                 r = fw.eval_policy(env, actor_fn, a.steps, a.device)
-                r.update(model=model, policy=p, obs_command_override=override, wall_s=round(time.time() - t0, 1))
+                r["diag_raw_per_s"] = {k: v / (env.num_envs * a.steps) for k, v in env.unwrapped._diag_sum.items()}
+                r.update(model=model, policy=p, obs_command_override=override, wall_s=round(time.time() - t0, 1),
+                         weights={n: float(env.unwrapped.reward_manager.get_term_cfg(n).weight)
+                                  for n in env.unwrapped.reward_manager.active_terms})
                 res[job][case] = r
                 print(f"[audit] {job} {case}: reward/s {r['reward_per_s']} track_lin {r['terms_per_s'].get('track_linear_velocity')} "
                       f"falls/env-min {r['falls_per_env_minute']} speed {r['speed_along_cmd']}", flush=True)
@@ -131,12 +249,15 @@ def main():
                                 track_lin_ratio=round(r["terms_per_s"]["track_linear_velocity"] / it["terms_per_s"]["track_linear_velocity"], 3),
                                 intended_wins=bool(r["reward_per_s"] < it["reward_per_s"] and
                                                    r["terms_per_s"]["track_linear_velocity"] <= it["terms_per_s"]["track_linear_velocity"]))
-        ok = all(c["intended_wins"] for c in checks.values())
+        # splay_*: a style comparison reported beside the verdict (does the reward prefer the straight-footed walk?)
+        ok = all(c["intended_wins"] for k, c in checks.items() if ":splay" not in k)
         if job in ("packwalk", "packwalk_tq"):
             ok = ok and checks["stand"]["reward_ratio"] <= 0.80
         if job == "universal":  # the stand gate at both loads
             ok = ok and checks["full:stand"]["reward_ratio"] <= 0.80 and checks["none:stand"]["reward_ratio"] <= 0.80
-        res[job]["verdict"] = dict(checks=checks, max_stand_ratio=0.80 if job in ("packwalk", "packwalk_tq", "universal") else None,
+        if job == "universal2":  # every degenerate policy at every load
+            ok = ok and all(c["reward_ratio"] <= 0.80 for k, c in checks.items() if ":splay" not in k)
+        res[job]["verdict"] = dict(checks=checks, max_stand_ratio=0.80 if job in ("packwalk", "packwalk_tq", "universal", "universal2") else None,
                                    verdict="PASS" if ok else "FAIL")
         print(f"[audit] {job} verdict {res[job]['verdict']}", flush=True)
     (out / "audit.json").write_text(json.dumps(dict(time=time.strftime("%Y-%m-%dT%H:%M:%S"), num_envs=a.num_envs, steps=a.steps,

@@ -87,6 +87,25 @@ def apply_delta(env_cfg, delta: dict):
         tm = delta["torque_margin"]
         env_cfg.rewards["torque_margin"] = RewardTermCfg(func=actuator_force_over, weight=float(tm["weight"]),
                                                          params={"limit": float(tm["limit"])})
+    if "reward_mods" in delta:  # universal reward redesign (UNIVERSAL-PLAN.md sections 4 and 7), set from the audit
+        from mjlab.managers import RewardTermCfg
+        import style_terms as stl
+        rm = delta["reward_mods"]
+        for term, w in rm.get("weights", {}).items():
+            env_cfg.rewards[term].weight = float(w)
+        if "pose_std_walking" in rm:
+            for pat, s in rm["pose_std_walking"].items():
+                env_cfg.rewards["pose"].params["std_walking"][pat] = float(s)
+                env_cfg.rewards["pose"].params["std_running"][pat] = float(s)
+        if "track_std" in rm:
+            env_cfg.rewards["track_linear_velocity"].params["std"] = float(rm["track_std"])
+        if "cmd_ranges" in rm:  # twist command ranges matched to what the runtime sends (UNIVERSAL-PLAN.md section 4)
+            for k, (lo, hi) in rm["cmd_ranges"].items():
+                setattr(env_cfg.commands["twist"].ranges, k, (float(lo), float(hi)))
+        if "foot_heading_weight" in rm:
+            env_cfg.rewards["stance_foot_heading"] = RewardTermCfg(func=stl.stance_foot_heading,
+                                                                   weight=float(rm["foot_heading_weight"]), params={})
+        print(f"[style] reward mods {rm}", flush=True)
     if "payload" in delta:
         import os
         from mjlab.managers import ObservationTermCfg
