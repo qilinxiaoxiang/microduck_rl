@@ -1,0 +1,36 @@
+log /home/radxa/duck-logs/duck_wired_log_app1111-135248.jsonl, colour orange HSV (172, 80, 185)..(8, 255, 255), tries 2
+[1794423510.9] start -> approach: try 1: start
+  approach [1794423510.9] start -> search
+  approach [1794423518.1] search -> ready: object at x 0.57 y -0.14
+  approach [1794423518.6] ready -> approach: walk: estimate x 0.47 y -0.01
+  approach   seen x 0.44 y 0.01 -> est r 0.42 b +2 deg, vtheta +0.00, walked 0.06 m
+  approach   seen x 0.57 y -0.01 -> est r 0.49 b +1 deg, vtheta +0.00, walked 0.08 m
+  approach   seen x 0.37 y -0.02 -> est r 0.42 b -2 deg, vtheta -0.04, walked 0.10 m
+  approach   seen x 0.47 y -0.07 -> est r 0.42 b -6 deg, vtheta -0.11, walked 0.15 m
+  approach   seen x 0.62 y -0.12 -> est r 0.52 b -11 deg, vtheta -0.18, walked 0.16 m
+  approach   seen x 0.41 y -0.09 -> est r 0.46 b -11 deg, vtheta -0.19, walked 0.18 m
+  approach   seen x 0.41 y -0.10 -> est r 0.43 b -13 deg, vtheta -0.23, walked 0.19 m
+  approach   seen x 0.33 y -0.07 -> est r 0.38 b -10 deg, vtheta -0.18, walked 0.20 m
+  approach   seen x 0.45 y -0.07 -> est r 0.41 b -10 deg, vtheta -0.17, walked 0.22 m
+  approach   seen x 0.42 y -0.03 -> est r 0.41 b -7 deg, vtheta -0.11, walked 0.23 m
+  approach [1794423520.9] approach -> face: r 0.34 bearing -19 deg: stop and turn in place
+  approach [1794423522.5] face -> ready: facing it (bearing +8 deg)
+  approach [1794423523.5] ready -> approach: walk: estimate x 0.35 y 0.09
+  approach [1794423525.0] approach -> settle: not seen for 1.5 s at r 0.22: stop and look
+  approach [1794423527.1] settle -> measure
+  approach   measured x 0.293 y -0.032 (r 0.295, bearing -6 deg) from 5
+  approach [1794423527.9] measure -> ready: again
+  approach [1794423528.4] ready -> approach: walk: estimate x 0.26 y -0.03
+  approach   left the picture at the bottom (estimate r 0.24 b -8 deg)
+  approach [1794423529.7] approach -> settle: estimate x 0.14 y -0.02 (r 0.14): stop
+  approach [1794423533.0] settle -> measure
+  approach   measured x 0.172 y -0.067 (r 0.185, bearing -21 deg) from 5
+  approach [1794423534.8] measure -> done: arrived
+[1794423534.8] approach -> aim: arrived at x 0.172 y -0.067
+  object x 0.158 y -0.062 width 8 mm from 5 frames (spot 0.087 0.000)
+[1794423537.8] aim -> align
+[1794423537.8] align -> turning: bearing -21 deg
+[1794423540.1] turning -> aim: turned
+[1794423542.5] aim -> failed: walk_wired is in stand mode (a guard trip or a manual command)
+{"ok": false, "why": "walk_wired is in stand mode (a guard trip or a manual command)", "tries": 1, "attempts": []}
+trace /home/radxa/duck-logs/seepick_1111a.jsonl

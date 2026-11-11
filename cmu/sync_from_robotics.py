@@ -88,6 +88,7 @@ DIR_COPIES = [  # (source dir, dest dir): every regular file, no recursion
     (f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016"),
     (f"{MAC}/robot-runs-20261018", "real-logs/robot-runs-20261018"),
     (f"{MAC}/robot-runs-20261106-seepick", "real-logs/robot-runs-20261106-seepick"),
+    (f"{MAC}/robot-runs-20261111-seepick", "real-logs/robot-runs-20261111-seepick"),
     (f"{WHOLE}/runtime-overlay/models-ft3-it999", "whole/runtime-overlay/models-ft3-it999"),
 ]
 
