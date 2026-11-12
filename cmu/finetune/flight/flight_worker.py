@@ -111,6 +111,12 @@ BEND4_HANDBACK = {"frac": 0.25, "hold_s": 2.0, "stander": "init/uni_a.onnx"}
 fw.DELTAS["bend4"] = dict(fw.DELTAS["bend3"], reward_mods=BEND4_MODS, handback=BEND4_HANDBACK,
                           bend_guard={"window_steps": 6000, "skip_windows": 1, "knee_squat": 1.30, "pitch_min_deg": 20.0,
                                       "fall_factor": 2.0})
+# universal3h (extensions/flight-20261110/train/HISTORY-PLAN.md, design A; NOT approved, NOT launched): universal3's
+# env and reward unchanged, plus the last 25 frames (0.5 s, RMA's window) of the actor's 48 proprioceptive inputs
+# appended to its observation (history.py). Start from uni_a with zero weights on the history inputs, so iteration 0 is
+# uni_a exactly. The ONNX keeps obs [1, 61] as its first input and carries the history as hist_in / hist_out.
+HISTORY_A = {"k": 25, "p": 48}
+fw.DELTAS["universal3h"] = dict(fw.DELTAS["universal3"], history=HISTORY_A)
 
 
 _orig_load = fw.load_walk61_into_actor
@@ -155,7 +161,31 @@ def load_onnx_into_actor(actor, onnx_path: str, init_std: float):
     return mean, std
 
 
-fw.load_walk61_into_actor = load_onnx_into_actor
+def load_any_into_actor(actor, onnx_path: str, init_std: float):
+    """load_onnx_into_actor for a 61-input actor; history.load_padded for a history actor (universal3h), so the
+    worker's init, flight_audit.py and the smokes load 61-input policies into either actor"""
+    width = int(actor.state_dict()["mlp.0.weight"].shape[1])
+    if width == 61:
+        return load_onnx_into_actor(actor, onnx_path, init_std)
+    import history as hi
+    return hi.load_padded(actor, onnx_path, init_std, *_HISTORY_KP[width])
+
+
+_HISTORY_KP = {}  # actor input width -> (k, p), filled by apply_delta for each history delta built in this process
+fw.load_walk61_into_actor = load_any_into_actor
+_orig_compare = fw.compare_onnx
+
+
+def compare_any_onnx(a: str, b: str, n: int = 256, seed: int = 0) -> float:
+    """fw.compare_onnx, or history.compare_stateful when b carries a history state input"""
+    import onnxruntime as ort
+    if len(ort.InferenceSession(b).get_inputs()) > 1:
+        import history as hi
+        return hi.compare_stateful(a, b, n, seed)
+    return _orig_compare(a, b, n, seed)
+
+
+fw.compare_onnx = compare_any_onnx
 
 
 def actuator_force_over(env, limit: float):
@@ -197,6 +227,14 @@ def apply_delta(env_cfg, delta: dict):
                                           params={"stander_path": str(hb["stander"])})
     elif "handback" in delta:
         raise ValueError("handback needs phase_hold (the held phase command carries the hand-back window)")
+    if "history" in delta:  # HISTORY-PLAN.md design A: proprioceptive history on the actor, stateful ONNX export
+        from mjlab.managers import EventTermCfg
+        import history as hi
+        k, p = int(delta["history"]["k"]), int(delta["history"].get("p", hi.P_DEFAULT))
+        ev["install_history"] = EventTermCfg(func=hi.install_history, mode="startup", params={"k": k, "p": p})
+        hi.patch_export(k, p)
+        _HISTORY_KP[61 + k * p] = (k, p)
+        _patch_metadata()
     if "bend_guard" in delta:  # NEXT-PLAN.md bend4: stop on the squat or rising falls, never on total reward
         import bend_terms as bt
         from mjlab.managers import RewardTermCfg
@@ -276,6 +314,26 @@ def apply_delta(env_cfg, delta: dict):
         delta = {k: v for k, v in delta.items() if k != "payload"}
     print(f"[pack] delta applied: { {k: delta[k] for k in delta if k != 'track_lin_vel'} }", flush=True)
     return env_cfg
+
+
+def _patch_metadata():
+    """get_base_metadata adds history_frames / history_inputs / state_inputs for an env with a history actor, so the
+    runtime can tell a stateful policy from its metadata as well as from its inputs"""
+    import mjlab.rl.exporter_utils as eu
+    if getattr(eu, "_history_patched", False):
+        return
+    orig = eu.get_base_metadata
+
+    def get_base_metadata(env, *a, **k):
+        meta = orig(env, *a, **k)
+        h = getattr(getattr(env, "unwrapped", env), "_history", None)
+        if h:
+            meta.update(history_frames=str(h["k"]), history_inputs=str(h["p"]), state_inputs="hist_in",
+                        state_outputs="hist_out")
+        return meta
+
+    eu.get_base_metadata = get_base_metadata
+    eu._history_patched = True
 
 
 def _tq_weight_from_argv():

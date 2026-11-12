@@ -87,6 +87,7 @@ def _audit_gate(argv):
                                 ("bend2", "BEND_MODS_CHOSEN", "rm_bend_chosen.json"),
                                 ("bend3", "BEND_MODS_CHOSEN", "rm_bend_chosen.json"),
                                 ("universal3", "UNIVERSAL3_MODS", "rm_universal3.json"),  # NEXT-PLAN.md
+                                ("universal3h", "UNIVERSAL3_MODS", "rm_universal3.json"),  # HISTORY-PLAN.md
                                 ("bend4", "BEND4_MODS", "rm_bend4.json")):
         if delta in deltas:
             mods = next(ast.literal_eval(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)
