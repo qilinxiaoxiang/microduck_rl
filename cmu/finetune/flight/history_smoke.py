@@ -13,8 +13,10 @@ Checks, each printed as a [smoke] line and written to <outdir>/history_smoke.jso
      (history.compare_stateful) and carries the history metadata;
   4. a few PPO iterations run; the trained export, fed env 0's 61-input frames one by one with its carried state,
      reproduces the torch actor on the full training observation over a rollout that includes a reset;
-  5. optional (--probe-steps N): how much of the payload's x COM a linear readout recovers from one frame against
-     the k-frame history, uni_a driving (ridge regression, held-out envs): an identifiability measurement only.
+  5. optional (--probe-steps N, history_probe.py): how much of the whole-robot COM x offset and the payload mass a
+     linear readout recovers from the 61 current inputs against the same 61 plus the k-frame history, uni_a driving,
+     binned on each env's own time since reset, held-out envs, errors in mm and g: an identifiability measurement
+     only. --probe-only skips checks 2-4.
 """
 from __future__ import annotations
 
@@ -44,6 +46,7 @@ def main():
     ap.add_argument("--delta", default="universal3h")
     ap.add_argument("--outdir", default="/tmp/history_smoke")
     ap.add_argument("--probe-steps", type=int, default=0)
+    ap.add_argument("--probe-only", action="store_true", help="history check 1 and the probe; no runner, no PPO")
     a = ap.parse_args()
     import mjlab.tasks  # noqa: F401
     from mjlab.envs import ManagerBasedRlEnv
@@ -109,6 +112,12 @@ def main():
     print(f"[smoke] history columns = last {k} frames of the first {p} inputs: {ok_hist} (max |diff| {worst_hist:.1e} over "
           f"{int(clean.sum())} envs without an episode end); reset back-fills: {backfill}; "
           f"other envs untouched: {untouched}", flush=True)
+
+    if a.probe_only:
+        rep["probe"] = probe(env, venv, a.init, k, p, a.probe_steps)
+        (out / "history_probe.json").write_text(json.dumps(rep, indent=1))
+        print(f"[smoke] wrote {out / 'history_probe.json'}", flush=True)
+        return
 
     # 2. zero-padded uni_a reproduces uni_a on live obs
     agent_cfg.max_iterations = a.iters
@@ -184,68 +193,9 @@ def main():
 
 
 def probe(env, venv, init, k, p, steps):
-    """ridge readout of the per-env payload x COM (critic payload term, a fixed value per env) from one 61-input frame
-    against the 61 + k*p history observation, uni_a driving at its own commands; fit on 3/4 of the envs, R^2 on the rest"""
-    import onnxruntime as ort
-    sess = ort.InferenceSession(init)
-    X, H, Y, E = [], [], [], []
-    with torch.inference_mode():
-        env.reset()
-        for t in range(steps):
-            o = venv.get_observations()
-            a61 = o["actor"][:, :61].numpy()
-            act = np.concatenate([sess.run(None, {sess.get_inputs()[0].name: a61[i:i + 1]})[0] for i in range(a61.shape[0])])
-            if t >= 1:
-                X.append(a61[:, :p].copy())
-                H.append(o["actor"].numpy().copy())
-                Y.append(env._payload_obs.numpy().copy())
-                E.append(np.arange(a61.shape[0]))
-            venv.step(torch.tensor(act))
-    X, H, Y, E = map(np.concatenate, (X, H, Y, E))
-    n = env.num_envs
-    T = np.repeat(np.arange(1, steps), n)  # steps since env.reset(), one row per env per step
-    tr = E < (3 * n) // 4
-    res = {}
-    late = T >= k  # pooled fit: only frames whose history is all real (no back-fill)
-    trl, Yl = tr[late], Y[late]
-    for name, F in (("single_frame_p", X[late]), ("history", H[late])):
-        mu, sd = F[trl].mean(0), F[trl].std(0) + 1e-6
-        Z = (F - mu) / sd
-        Zb = np.concatenate([Z, np.ones((len(Z), 1))], 1)
-        for col, lab in ((1, "payload_com_x"), (0, "payload_kg")):
-            y = Yl[:, col]
-            lam = 10.0
-            A = Zb[trl]
-            wts = np.linalg.solve(A.T @ A + lam * np.eye(A.shape[1]), A.T @ y[trl])
-            pred = Zb[~trl] @ wts
-            r2 = 1 - np.sum((y[~trl] - pred) ** 2) / max(np.sum((y[~trl] - y[~trl].mean()) ** 2), 1e-12)
-            res[f"{name}:{lab}"] = round(float(r2), 3)
-    res["samples"] = int(len(Yl))
-    # spread of the target over the held-out envs, so an R^2 can be read as millimetres
-    res["payload_com_x_sd_mm"] = round(float(Y[T == 1][:, 1].std() * 1000), 2)
-    res["payload_obs_layout"] = "critic payload term columns (payload.payload_obs)"
-    # time since reset (the open timing question: run A falls ~0.9 s after a +10 mm COM start): every env starts at
-    # env.reset(), so frame t is t/50 s after the start; per step, one sample per env. Features: the current frame (48)
-    # against the current frame plus the mean and the oldest frame of the 25-frame history the actor sees (144)
-    for t_s in (0.1, 0.2, 0.3, 0.5, 0.8, 1.0, 2.0):
-        sel = T == int(round(t_s * 50))
-        if not bool(sel.any()):
-            continue
-        hist = H[sel][:, 61:].reshape(-1, k, p)
-        feats = {"single_frame_p": X[sel], "frame_mean_oldest": np.concatenate([X[sel], hist.mean(1), hist[:, 0]], 1)}
-        trs = tr[sel]
-        for name, F in feats.items():
-            mu, sd = F[trs].mean(0), F[trs].std(0) + 1e-6
-            Zb = np.concatenate([(F - mu) / sd, np.ones((len(F), 1))], 1)
-            for col, lab in ((1, "payload_com_x"), (0, "payload_kg")):
-                y = Y[sel][:, col]
-                A = Zb[trs]
-                wts = np.linalg.solve(A.T @ A + 30.0 * np.eye(A.shape[1]), A.T @ y[trs])
-                pred = Zb[~trs] @ wts
-                r2 = 1 - np.sum((y[~trs] - pred) ** 2) / max(np.sum((y[~trs] - y[~trs].mean()) ** 2), 1e-12)
-                res[f"t{t_s:.1f}s:{name}:{lab}"] = round(float(r2), 3)
-    print(f"[smoke] probe R^2 on held-out envs: {res}", flush=True)
-    return res
+    """identifiability probe, 61 current inputs against 61 + k*p (history_probe.py has the method)"""
+    import history_probe
+    return history_probe.probe(env, venv, init, k, p, steps)
 
 
 if __name__ == "__main__":
