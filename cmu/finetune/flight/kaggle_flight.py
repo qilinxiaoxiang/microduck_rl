@@ -67,6 +67,21 @@ def _audit_gate(argv):
     for d in sorted(set(deltas)):
         if subprocess.run([sys.executable, str(TRAIN / "audit_gate.py"), "check", d]).returncode:
             sys.exit(f"audit gate: refusing to launch delta {d!r}")
+    # Every job needs a stop on a task metric (2026-11-12: the from-scratch pair ran its whole 10 h cap standing still,
+    # and bend3 ran 3 h into a squat; neither had one). bend4 carries its own guard in the worker.
+    jobs, cur = [], []
+    for a in argv:
+        if a == "--":
+            jobs.append(cur)
+            cur = []
+        else:
+            cur.append(a)
+    jobs.append(cur)
+    for job in (j for j in jobs if "--delta" in j):
+        d = job[job.index("--delta") + 1]
+        tg = float(job[job.index("--track-guard") + 1]) if "--track-guard" in job else 0.0
+        if d not in ("bend4",) and tg <= 0:
+            sys.exit(f"task-metric stop: job with delta {d!r} has no --track-guard; refusing a run that cannot stop itself")
     tree = ast.parse((HERE / "flight_worker.py").read_text())
     for delta, var, audited in (("universal2", "REWARD_MODS_CHOSEN", "rm_chosen.json"),
                                 ("bend2", "BEND_MODS_CHOSEN", "rm_bend_chosen.json"),
