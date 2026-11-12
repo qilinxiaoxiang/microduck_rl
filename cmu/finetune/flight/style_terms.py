@@ -57,3 +57,34 @@ def stance_foot_heading(env, targets=WALK61_TOE_OUT_RAD, sensor_name: str = "fee
         cost = cost + contact[:, f].float() * torch.square(toe - targets[f])
     env._foot_toe_out = None  # placeholder for diagnostics
     return cost
+
+
+def progress_along_cmd(env, min_cmd: float = 0.10, command_name: str = "twist"):
+    """reward in [0, 1]: the 0.5 s EMA of the base velocity (env._track_vel_ema, kept by the main tracking term)
+    projected on the commanded planar velocity, as a fraction of the commanded speed, capped at 1, zero below min_cmd.
+    NEXT-PLAN.md universal3: the Gaussian tracking (std 0.22 m/s) pays a robot stepping in place 0.84-0.89 of the
+    walker at batteries out (out/audit3_u3c_shuffle_nobatt.json) because the walker's own error is 0.22 m/s; a capped
+    linear term pays the walker's progress and nothing for stepping in place, with no gain from overshooting."""
+    cmd = env.command_manager.get_command(command_name)[:, :2]
+    n = cmd.norm(dim=1)
+    f = getattr(env, "_track_vel_ema", None)
+    v = f[:, :2] if f is not None else env.scene["robot"].data.root_link_lin_vel_b[:, :2]
+    frac = (v * cmd).sum(dim=1) / n.clamp(min=1e-6) ** 2
+    return (n >= min_cmd).float() * torch.clamp(frac, 0.0, 1.0)
+
+
+def step_width_over(env, limit: float = 0.100):
+    """cost (>= 0, metres, use with a negative weight): lateral distance between the two foot sites, measured along
+    the trunk's horizontal left axis, above `limit`. NEXT-PLAN.md universal3: universal2 has no term on stance width
+    (run A walks 123 mm against the 105 mm acceptance, walk61 94 mm); the hip-roll pose std is already 0.05 rad."""
+    from mjlab.utils.lab_api.math import matrix_from_quat
+    robot = env.scene["robot"]
+    sid = getattr(env, "_step_width_sid", None)
+    if sid is None:
+        sid = env._step_width_sid = [robot.site_names.index(n) for n in FEET_SITES]
+    p = robot.data.site_pos_w[:, sid, :2]
+    Rt = matrix_from_quat(robot.data.root_link_quat_w)
+    left = Rt[:, :2, 1]
+    left = left / left.norm(dim=1, keepdim=True).clamp(min=1e-6)
+    w = ((p[:, 0] - p[:, 1]) * left).sum(dim=1).abs()
+    return torch.clamp(w - limit, min=0.0)

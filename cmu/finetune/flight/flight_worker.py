@@ -79,6 +79,38 @@ fw.DELTAS["bend2"] = dict(fw.DELTAS["bend"], reward_mods=BEND_MODS_CHOSEN)
 # acceptance command (phase 0.33 held 4 s) would otherwise be a state the fine-tune never trains on.
 BEND_HOLD = {"phase": 0.33, "hold_s": 4.0, "frac": 0.5}
 fw.DELTAS["bend3"] = dict(fw.DELTAS["bend2"], phase_hold=BEND_HOLD)
+# universal3 (extensions/flight-20261110/train/NEXT-PLAN.md, 2026-11-12, NOT approved, NOT launched): universal2 plus
+# a whole-robot COM x range of +-12 mm at every load (run A trained +-10 mm at full pack and +-5.5 without it, with
+# only 1.2 % of full-pack resets at +10 mm forward, the acceptance case), forward/back pushes to +-0.35 m/s (the 0.5 N s
+# acceptance shove is 0.26 m/s, 13 % of pushes instead of 7 %), a step-width cost above 100 mm and the torque hinge at
+# -20. Weights from the universal3 audit (out/audit3_u3e_*.json, one case per file).
+# Plus a capped progress term (style_terms.progress_along_cmd, weight 8): the Gaussian tracking alone paid stepping in
+# place 0.84 of the walker at batteries out. A literal, so kaggle_flight.py can compare it with the audited
+# extensions/flight-20261110/train/rm_universal3.json.
+UNIVERSAL3_MODS = {"cmd_ranges": {"lin_vel_x": [-0.05, 0.3], "lin_vel_y": [-0.05, 0.05], "ang_vel_z": [-0.5, 0.5]},
+                   "weights": {"air_time": 6.0, "track_linear_velocity": 3.0, "upright": 0.5, "head_pose_tracking": 1.0},
+                   "pose_std_walking": {".*hip_yaw.*": 0.15},
+                   "foot_heading_weight": -8.0,
+                   "push_x": [-0.35, 0.35],
+                   "com_x_whole_m": 0.012,
+                   "step_width": {"limit": 0.1, "weight": -15.0},
+                   "torque_margin_weight": -20.0,
+                   "progress": {"weight": 8.0, "min_cmd": 0.1}}
+fw.DELTAS["universal3"] = dict(fw.DELTAS["universal"], reward_mods=UNIVERSAL3_MODS)
+# bend4 (NEXT-PLAN.md, NOT approved, NOT launched): bend3 plus a trunk-pitch band cost during the low hold (25-45 deg),
+# a knee cost beyond 1.25 rad and a stand-pose cost during the rest window (the hand-back). bend3's squat earned 1.72
+# (batteries out) and 1.00 (no pack) of the bend under bend3's reward (out/bendaudit4_b4diag_*.json).
+# A literal, compared at push with the audited extensions/flight-20261110/train/rm_bend4.json (out/bendaudit4_b4h*).
+# ankle_near_limit stays off: the audit's bend proxy (groundpick61) itself drives the ankles past 1.20 rad (raw 0.23 at
+# full), so no weight on it can be audited against that proxy (NEXT-PLAN.md section 2).
+BEND4_MODS = {"bend_costs": {"hold": -240.0, "rest": -240.0},
+              "bend4": {"trunk_pitch_off_band": -150.0, "knee_near_limit": -20.0, "stance_off_at_rest": -20.0}}
+# the hand-back inside the episode (bend_terms.install_handback): in a quarter of the cycles the phase stays at 0 for
+# 2 s after the rise and the universal walker (run A final, uni_a, zero command) drives, as walk_brain hands back
+BEND4_HANDBACK = {"frac": 0.25, "hold_s": 2.0, "stander": "init/uni_a.onnx"}
+fw.DELTAS["bend4"] = dict(fw.DELTAS["bend3"], reward_mods=BEND4_MODS, handback=BEND4_HANDBACK,
+                          bend_guard={"window_steps": 6000, "skip_windows": 1, "knee_squat": 1.30, "pitch_min_deg": 20.0,
+                                      "fall_factor": 2.0})
 
 
 _orig_load = fw.load_walk61_into_actor
@@ -155,8 +187,20 @@ def apply_delta(env_cfg, delta: dict):
         ev["reset_base"].params["pose_range"]["z"] = tuple(delta["drop_z"])
     if "phase_hold" in delta:  # the runtime's held crouch (bend_terms.held_phase_command_class, BEND-PLAN.md section 3)
         import bend_terms as bt
-        env_cfg.commands["twist"], hold = bt.held_phase_cfg(env_cfg.commands["twist"], delta["phase_hold"])
+        hb = delta.get("handback")  # NEXT-PLAN.md bend4: the stand policy takes over after the rise, in the episode
+        hold_in = dict(delta["phase_hold"], **({"hb_frac": float(hb["frac"]), "hb_s": float(hb["hold_s"])} if hb else {}))
+        env_cfg.commands["twist"], hold = bt.held_phase_cfg(env_cfg.commands["twist"], hold_in)
         print(f"[bend] phase hold {hold} ({type(env_cfg.commands['twist']).__name__})", flush=True)
+        if hb:
+            from mjlab.managers import EventTermCfg
+            ev["handback"] = EventTermCfg(func=bt.install_handback, mode="startup",
+                                          params={"stander_path": str(hb["stander"])})
+    elif "handback" in delta:
+        raise ValueError("handback needs phase_hold (the held phase command carries the hand-back window)")
+    if "bend_guard" in delta:  # NEXT-PLAN.md bend4: stop on the squat or rising falls, never on total reward
+        import bend_terms as bt
+        from mjlab.managers import RewardTermCfg
+        env_cfg.rewards["bend_guard"] = RewardTermCfg(func=bt.bend_guard, weight=1e-9, params=dict(delta["bend_guard"]))
     if "torque_margin" in delta:
         from mjlab.managers import RewardTermCfg
         tm = delta["torque_margin"]
@@ -191,6 +235,27 @@ def apply_delta(env_cfg, delta: dict):
         if "foot_heading_weight" in rm:
             env_cfg.rewards["stance_foot_heading"] = RewardTermCfg(func=stl.stance_foot_heading,
                                                                    weight=float(rm["foot_heading_weight"]), params={})
+        if "step_width" in rm:  # NEXT-PLAN.md universal3: lateral foot distance above the limit
+            sw = rm["step_width"]
+            env_cfg.rewards["step_width_over"] = RewardTermCfg(func=stl.step_width_over, weight=float(sw["weight"]),
+                                                               params={"limit": float(sw["limit"])})
+        if "progress" in rm:  # NEXT-PLAN.md universal3: capped progress along the command (after the EMA term)
+            pg = rm["progress"]
+            env_cfg.rewards["progress_along_cmd"] = RewardTermCfg(func=stl.progress_along_cmd, weight=float(pg["weight"]),
+                                                                  params={"min_cmd": float(pg.get("min_cmd", 0.10))})
+        if "torque_margin_weight" in rm and "torque_margin" in env_cfg.rewards:
+            env_cfg.rewards["torque_margin"].weight = float(rm["torque_margin_weight"])
+        if "push_x" in rm and "push_robot" in ev:  # NEXT-PLAN.md universal3: forward/back push range (m/s)
+            ev["push_robot"].params["velocity_range"]["x"] = tuple(float(v) for v in rm["push_x"])
+        if "com_x_whole_m" in rm and "payload" in delta:  # whole-robot x COM range, read by the payload block below
+            delta = dict(delta, payload=dict(delta["payload"], com_x_whole_m=float(rm["com_x_whole_m"])))
+        if "bend4" in rm:  # NEXT-PLAN.md bend4: trunk pitch band at the hold, knee-limit margin, stand pose at rest
+            import bend_terms as bt
+            b4 = rm["bend4"]
+            for name, fn in (("trunk_pitch_off_band", bt.trunk_pitch_off_band), ("knee_near_limit", bt.knee_near_limit),
+                             ("stance_off_at_rest", bt.stance_off_at_rest), ("ankle_near_limit", bt.ankle_near_limit)):
+                if b4.get(name):
+                    env_cfg.rewards[name] = RewardTermCfg(func=fn, weight=float(b4[name]), params={})
         print(f"[style] reward mods {rm}", flush=True)
     if "payload" in delta:
         import os
@@ -199,7 +264,8 @@ def apply_delta(env_cfg, delta: dict):
         d = os.environ.get("FLIGHT_MANIFESTS", UNIVERSAL_MANIFESTS)
         pd = delta["payload"]
         cfg = pl.payload_cfg(str(Path(d) / pd["nominal"]), str(Path(d) / pd["none"]), weights=pd.get("weights"),
-                             smax=float(pd.get("smax", 1.15)), seed=int(pd.get("seed", 0)))
+                             smax=float(pd.get("smax", 1.15)), seed=int(pd.get("seed", 0)),
+                             com_x_whole_m=pd.get("com_x_whole_m"))
         com = ev["randomize_com"]
         com.func = pl.trunk_payload
         com.params = dict(asset_cfg=com.params["asset_cfg"], ranges=com.params["ranges"], payload=cfg)

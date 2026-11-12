@@ -78,6 +78,12 @@ def add_diag_terms(cfg):
         # term itself again would advance the shared EMA once more per step
         cfg.rewards[name] = RewardTermCfg(func=track_from_ema, weight=DIAG_W, params=dict(std=std, command_name=cn))
     cfg.rewards["diag_foot_heading"] = RewardTermCfg(func=stl.stance_foot_heading, weight=DIAG_W, params={})
+    cfg.rewards["diag_step_width100"] = RewardTermCfg(func=stl.step_width_over, weight=DIAG_W, params={"limit": 0.100})
+    cfg.rewards["diag_progress010"] = RewardTermCfg(func=stl.progress_along_cmd, weight=DIAG_W, params={"min_cmd": 0.10})
+    if "torque_margin" in cfg.rewards:  # raw hinge excess, so a new torque weight can be priced offline
+        t = copy.deepcopy(cfg.rewards["torque_margin"])
+        t.weight = DIAG_W
+        cfg.rewards["diag_torque_margin"] = t
     for n in [k for k in cfg.rewards if k.startswith("diag_")]:
         cfg.rewards[n].func = _accumulating(n, cfg.rewards[n].func)
 
@@ -97,6 +103,7 @@ def main():
     ap.add_argument("--walker", default="fw1", help="packwalk_tq / universal: the pack walker (a --policy name)")
     ap.add_argument("--stander", default="fs1", help="packwalk_tq: the pack stander (a --policy name)")
     ap.add_argument("--loads", default="", help="universal jobs: comma list of loads to run (full,nobatt,none); empty = all")
+    ap.add_argument("--cases", default="", help="comma list of case names (stand,shuffle,lean_fwd,...); empty = all")
     ap.add_argument("--reward-mods", default="", help="JSON merged into the delta as reward_mods (flight_worker.apply_delta)")
     ap.add_argument("--diag", action="store_true",
                     help="add candidate reward terms at weight 1e-6 (diag_*): their raw per-second values let a design be "
@@ -154,12 +161,22 @@ def main():
                                                           # Shawn 2026-11-11 on the toe-out and speed: the splayed pack
                                                           # walker against the straight-footed walk61, same commands
                                                           ("splay_fq2", a.walker, dict(compose="stand61", thr=RT_THR)))],
+        # universal3 (NEXT-PLAN.md): the fine-tune starts from the universal walker itself, so at every load,
+        # including no pack, that walker walking is the intended behaviour and the degenerate cases are the same walker
+        # standing (zero command), shuffling and leaning; walk61 / stand61 are not the start point any more
+        "universal3": [(f"{ld}:{c}", f"u_{ld}", a.walker, o) for ld in ("full", "nobatt", "none")
+                       for c, o in (("intended", dict(compose=a.walker, thr=RT_THR)), ("stand", (0.0, 0.0, 0.0)),
+                                    ("shuffle", (0.0, 0.0, 0.3)), ("lean_fwd", dict(cmd=(0.0, 0.0, 0.0), lean=LEAN)),
+                                    ("lean_back", dict(cmd=(0.0, 0.0, 0.0), lean=-LEAN)))],
     }
     PIN = {"u_full": dict(full=1.0, nobatt=0.0, none=0.0, scaled=0.0), "u_none": dict(full=0.0, nobatt=0.0, none=1.0, scaled=0.0),
            "u_nobatt": dict(full=0.0, nobatt=1.0, none=0.0, scaled=0.0)}
     plan = {k: v for k, v in plan.items() if k in a.jobs.split(",")}
     if a.loads:  # one load per job keeps each Mac mini run under 10 minutes
         plan = {k: [c for c in v if ":" not in c[0] or c[0].split(":")[0] in a.loads.split(",")] for k, v in plan.items()}
+    if a.cases:  # case subset (intended is always kept: every ratio needs it); keeps one Mac mini job under 10 minutes
+        keep = set(a.cases.split(",")) | {"intended"}
+        plan = {k: [c for c in v if c[0].split(":")[-1] in keep] for k, v in plan.items()}
     for job, cases in plan.items():
         res[job] = {}
         for model in ("nopack", "pack", "u_full", "u_nobatt", "u_none"):
@@ -167,7 +184,7 @@ def main():
             if not todo:
                 continue
             cfg = load_env_cfg(fw.TASK, play=False)
-            delta = dict(fw.DELTAS["universal" if job == "universal2" else job])
+            delta = dict(fw.DELTAS["universal" if job in ("universal2", "universal3") else job])
             if a.reward_mods:
                 delta["reward_mods"] = json.loads(a.reward_mods)
             if model == "nopack":  # the light robot keeps its original +-5 % mass DR
@@ -255,9 +272,9 @@ def main():
             ok = ok and checks["stand"]["reward_ratio"] <= 0.80
         if job == "universal":  # the stand gate at both loads
             ok = ok and checks["full:stand"]["reward_ratio"] <= 0.80 and checks["none:stand"]["reward_ratio"] <= 0.80
-        if job == "universal2":  # every degenerate policy at every load
+        if job in ("universal2", "universal3"):  # every degenerate policy at every load
             ok = ok and all(c["reward_ratio"] <= 0.80 for k, c in checks.items() if ":splay" not in k)
-        res[job]["verdict"] = dict(checks=checks, max_stand_ratio=0.80 if job in ("packwalk", "packwalk_tq", "universal", "universal2") else None,
+        res[job]["verdict"] = dict(checks=checks, max_stand_ratio=0.80 if job in ("packwalk", "packwalk_tq", "universal", "universal2", "universal3") else None,
                                    verdict="PASS" if ok else "FAIL")
         print(f"[audit] {job} verdict {res[job]['verdict']}", flush=True)
     (out / "audit.json").write_text(json.dumps(dict(time=time.strftime("%Y-%m-%dT%H:%M:%S"), num_envs=a.num_envs, steps=a.steps,
