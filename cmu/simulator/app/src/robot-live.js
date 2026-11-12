@@ -97,6 +97,34 @@ async function loadChecks(post = false) {
 $("#checkRun").onclick = () => loadChecks(true);
 loadChecks();
 
+// ── Sim-vs-robot gap of the latest actions: robotics guide/firmware/mac/simgap-20261111/sim_real_gap.py writes
+// runs/gap/latest.json on this Mac mini after the run ledger replays each action in the sim (every 2 min) ──
+async function loadGap() {
+  const state = $("#gapState");
+  try {
+    const r = await fetch(`/runs/gap/latest.json?t=${Date.now()}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const rec = await r.json();
+    $("#gapChecks").replaceChildren(...rec.items.map(it => {
+      const li = document.createElement("li");
+      li.className = it.ok === true ? "ok" : it.ok === false ? "bad" : "skip";
+      const a = Object.assign(document.createElement("a"), {textContent: it.label, href: `/runs/gap/${it.page}`, target: "_blank"});
+      const b = document.createElement("b");
+      b.append(a);
+      const text = document.createElement("div");
+      text.append(b, document.createElement("br"), Object.assign(document.createElement("span"), {textContent: it.detail}));
+      li.append(document.createElement("i"), text);
+      return li;
+    }));
+    state.textContent = `${rec.when} 更新，${rec.items.length ? (rec.failed ? `${rec.failed} 项比平时差` : "都在平时范围内") : "还没有对比"}`;
+    state.className = rec.failed ? "bad" : "";
+  } catch (e) {
+    state.textContent = `读不到仿真对比：${e.message}`; state.className = "bad";
+  }
+}
+loadGap();
+setInterval(loadGap, 60000);
+
 // ── Head camera: an <img> on the bridge's MJPEG stream, frame rate and errors from {camera} records. The page only
 // watches: the A7Z camera runs while the find-and-walk task (approach.py) has it on, and the picture appears by itself
 // then. The camera runs from boot (duck-camera.service); the switch (Shawn 2026-10-26) turns it off, and on again for

@@ -25,6 +25,28 @@ up on the robot. The get-up (sim 10/10, robot 0/2) and the held bend (the robot'
 cable plugs, the sim's reach 1.36-1.43) miss the same way. Details, the corrections and the robot runs planned after
 the cable tidy are in the scorecard's README.md.
 
+## Per-action gap pages, 2026-11-12: where the robot and the sim differ under the same commands
+
+`mac/simgap-20261111/sim_real_gap.py` reads each replayed action's robot and sim tick logs with the same code and
+draws one page per action (IMU traces and spectra, goal against position per leg joint, the numbers below), linked
+from the run ledger page and summarised on the phone remote's card. It runs after every ledger tick (2 min). Medians
+over the 390 replayed actions of 2026-11-02 to 11-11:
+- **Servo tracking is not the main gap.** Walking: the encoder shows 0.43 of the goal motion (sim 0.50), 5.2 ticks
+  late (sim 6.8); small goal changes left the joint still on 21 % of ticks (sim 31 %). Hip yaw and the left ankle,
+  knee and hip pitch reach about 0.75-0.85 of the sim's amplitude; the right leg's pitch joints match.
+- **The trunk moves where the joints do not.** Standing still (zero-command balance), the robot's trunk jitter is
+  0.26 rad/s against the sim's 0.004, and the tilt the IMU reads differs from the tilt the joint encoders predict
+  with both soles flat by 0.94 deg RMS against 0.05 in the rigid sim, about the same on every day (1.33, 0.91, 0.89,
+  0.96 deg on 11/02, 11/04, 11/06, 11/11). That is lost motion between encoder and floor: horn and link play, loose
+  screws, sole. Walking: trunk jitter 0.55 against 0.18 rad/s, 43 % of gyro power above 5 Hz against 22 %.
+- **What precedes a robot fall**: peak yaw rate 5.1 rad/s against 2.7 in walks that stayed up (balance 4.7 against
+  1.8, turns 5.5 against 2.4) and peak leg current about 1.0-1.5 A against 0.2-0.6 A. Tracking amplitude and dead
+  share do not separate falls from non-falls.
+- The play measure is computed only while standing still: while stepping the soles roll and the stance foot changes,
+  and the rigid prediction is off by about 5 deg in the sim alone. The repository already has `-Backlash-` task
+  variants (2 deg hinges); whether a play model of the measured size reproduces the robot's standing jitter and
+  play numbers in this replay is the next test (hypothesis 2 below).
+
 ## How sim and real are compared
 
 - The CPU check `mac/brain_sim_check.py` runs the exact Mac-side control code (`mac/walk_brain.py`: mode logic,
