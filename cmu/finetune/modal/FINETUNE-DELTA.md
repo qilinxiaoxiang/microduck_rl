@@ -369,3 +369,26 @@ Acceptance, before any robot trial: the 60 replayed robot actions of the sweep (
 --models <candidate> --tag <run>`) in the plain and play sims: fewer sim falls on the 36 robot-fell actions than
 walk61, none on the robot-up ones, and action jumps and peak tilt in the real suite cases no higher than walk61's
 (the gate tether-a and tether-b failed).
+
+Result (2026-11-12, Mac mini). Both runs reached 1000 iterations (play-a 114 min, playctl-a 82 min, $0). Final
+checkpoints, delivered as `cmu/whole/runtime-overlay/models-play-a/` and `models-playctl-a/` (walk61.onnx = the
+candidate, stand61.onnx unchanged).
+
+- **Replay sweep** (`play-locate-20261112/gap-sweep-play-a.json`, `gap-sweep-playctl-a.json`; 31 robot-fell and 24
+  robot-up actions, 3 seeds). Sim falls on the robot-fell actions, walk61 / play-a / playctl-a: plain sim 1 / 2 / 3 of
+  93; head play 8 deg 15 / 9 / 10; leg play 4 deg 14 / 12 / 11; foot play 11 / 9 / 8; all joints 4 deg 10 / 4 / 4; soft
+  sole 13 / 10 / 10. Over the five play sims 63 / 44 / 43 of 465. Robot-up actions: no falls for play-a, one for
+  playctl-a (soft sole). Trunk jitter median 0.19-0.21 walk61, 0.22-0.24 play-a, 0.21-0.23 playctl-a (robot 0.59).
+- **Real suite cases** (`cmu/simcheck/sim_suite.py`, current model, `--volt 7.6 --drop 0.036`; rows in
+  `cmu/simcheck/runs-20261112/`). Action jumps in nominal, vx0.25, vx0.2, com+5, imu_pitch4: walk61 3, 3, 0, 2, 13;
+  play-a 15, 9, 3, 5, 8; playctl-a 4, 6, 5, 11, 8. Peak tilt walk61 6.4, 5.7, 2.0, 7.0, 17.2 deg; play-a 9.6, 9.3, 9.3,
+  11.5, 7.1; playctl-a 7.9, 7.9, 7.9, 9.9, 9.1. The candidates walk 2.6 m at nominal against walk61's 1.1 m (walk61
+  does not move at 0.2 m/s), so part of the tilt comes with the speed. Stress rows: play-a falls in drop8_imu35 and
+  floor_mu_bare, playctl-a in floor_mu_bare, walk61 in none.
+
+Verdict: **fails the jitter gate** (more action jumps and peak tilt than walk61 in four of five real cases) and is not
+for the robot. The fall reduction in the play sims is the same with and without the hinges, so it comes from the
+shared EMA velocity fine-tune (ft3's recipe, which fell on the robot), not from the play; training with
+encoder-invisible play adds nothing measurable. Note for the sweep: 2-8 % of the sims abort at interpreter exit
+(onnxruntime `recursive_mutex lock failed`, exit -6) after writing their result; `gap_sweep.py` counts them when the
+result row is present.

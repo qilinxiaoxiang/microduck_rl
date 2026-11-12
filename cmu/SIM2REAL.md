@@ -67,9 +67,12 @@ numbers: `play-locate-20261112/gap_sweep.py` and README in the robotics tree; `b
 
 So no single modelled effect brings the trunk jitter near the robot's, and the play effects explain about a sixth of
 the extra falls. On 2026-11-12 Shawn found loose screws; after tightening them the robot walked noticeably steadier.
-Structural looseness larger than a few degrees at one joint is the first candidate for the rest. A training round with
-play randomised on the head and legs (the `-Backlash-` variants, at the sizes above) is the sim-side step; it waits
-for a plan review.
+Structural looseness larger than a few degrees at one joint is the first candidate for the rest.
+
+Training with that play (runs play-a and its no-play twin playctl-a, `finetune/modal/FINETUNE-DELTA.md`) cut the
+sim falls in the play sims from 63 to 44 of 465, but the twin without play cut them just as far (43), so the gain is
+the shared fine-tune, not the play. Both fail the jitter gate (more action jumps and peak tilt than walk61 in four
+of five real suite cases) and are not for the robot. walk61 stays deployed.
 
 ## How sim and real are compared
 

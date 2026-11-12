@@ -1,0 +1,13 @@
+sim_suite: models cmu/whole/runtime-overlay/models-play-a, variant current = battery-20261104, walk 10.0 s, base flags from /Users/shawnxiang/code/robotics/microduck-sim/microduck_rl/cmu/robot-condition.json: --volt 7.6 --drop 0.036
+real   nominal         dist_x=2.559  fell_at=None  fall_dir=None  max_tilt=9.6  action_jumps=15  max_action=1.3
+real   vx0.25          dist_x=2.25  fell_at=None  fall_dir=None  max_tilt=9.3  action_jumps=9  max_action=1.22
+real   vx0.2           dist_x=1.881  fell_at=None  fall_dir=None  max_tilt=9.3  action_jumps=3  max_action=1.11
+real   com+5           dist_x=2.951  fell_at=None  fall_dir=None  max_tilt=11.5  action_jumps=5  max_action=1.34
+real   imu_pitch4      dist_x=1.821  fell_at=None  fall_dir=None  max_tilt=7.1  action_jumps=8  max_action=1.24
+stress volt6.3         dist_x=2.271  fell_at=None  fall_dir=None  max_tilt=12.1  action_jumps=15  max_action=1.31
+stress drop8_imu35     dist_x=1.859  fell_at=12.88  fall_dir=left  max_tilt=52.3  action_jumps=85  max_action=4.78
+stress drop8_imu35_s1  dist_x=2.327  fell_at=None  fall_dir=None  max_tilt=19.0  action_jumps=91  max_action=2.0
+stress floor_mu_bare   dist_x=0.463  fell_at=9.2  fall_dir=forward  max_tilt=45.7  action_jumps=65  max_action=4.13
+stress floor_mu_sole   dist_x=2.301  fell_at=None  fall_dir=None  max_tilt=9.4  action_jumps=8  max_action=1.19
+
+no reference file at /Users/shawnxiang/code/robotics/microduck-sim/microduck_rl/cmu/simcheck/reference-walk61-battery-20261104.jsonl; no verdict
