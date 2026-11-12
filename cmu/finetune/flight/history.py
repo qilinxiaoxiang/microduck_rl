@@ -178,6 +178,27 @@ def load_padded(actor, onnx_path: str, init_std: float, k: int, p: int = P_DEFAU
     return mean, std
 
 
+def scale_history_step(optimizer, weight, scale: float, base: int = 61):
+    """Scale the optimizer's step on the history columns of the actor's first-layer weight (a per-column learning
+    rate). Adam moves each weight by about lr whatever its gradient's size, so scaling the gradient changes nothing;
+    the step itself is scaled after every optimizer.step(). scale 0 freezes the columns, 1 leaves them as trained.
+    Why: HISTORY-PLAN.md section 8 (from uni_a, the unscaled history update broke the walker in 3 iterations)."""
+    if getattr(optimizer, "_history_step_scale", None) is not None:
+        raise RuntimeError("history step scale already installed on this optimizer")
+    orig_step = optimizer.step
+
+    def step(*args, **kw):
+        before = weight.detach()[:, base:].clone()
+        r = orig_step(*args, **kw)
+        with torch.no_grad():
+            weight[:, base:] = before + scale * (weight[:, base:] - before)
+        return r
+
+    optimizer.step = step
+    optimizer._history_step_scale = float(scale)
+    print(f"[history] optimizer step on the {weight.shape[1] - base} history columns scaled by {scale}", flush=True)
+
+
 class StatefulPolicy:
     """onnxruntime wrapper for a history ONNX: run(obs61) -> action, carrying hist_out to the next call; reset()
     zeros the state (the graph then back-fills it with the current frame). A 61-input ONNX passes straight through."""

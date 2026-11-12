@@ -46,7 +46,7 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
     if _p.exists():
         kj.ASSETS[f"init/{_n}"] = _p
 _flags = kj.worker_flags
-kj.worker_flags = lambda: _flags() | {"--scratch", "--task"}
+kj.worker_flags = lambda: _flags() | {"--scratch", "--task", "--history-step-scale"}
 
 
 def _audit_gate(argv):
@@ -80,6 +80,8 @@ def _audit_gate(argv):
     for job in (j for j in jobs if "--delta" in j):
         d = job[job.index("--delta") + 1]
         tg = float(job[job.index("--track-guard") + 1]) if "--track-guard" in job else 0.0
+        if d.endswith("h") and d.startswith("universal") and "--history-step-scale" not in job:  # HISTORY-PLAN.md section 8
+            sys.exit(f"history job with delta {d!r} has no --history-step-scale; the unscaled update broke the walker")
         if d not in ("bend4",) and tg <= 0:
             sys.exit(f"task-metric stop: job with delta {d!r} has no --track-guard; refusing a run that cannot stop itself")
     tree = ast.parse((HERE / "flight_worker.py").read_text())

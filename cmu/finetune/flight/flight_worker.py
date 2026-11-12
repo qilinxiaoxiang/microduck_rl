@@ -336,6 +336,57 @@ def _patch_metadata():
     eu._history_patched = True
 
 
+HISTORY_STEP_SCALE = {"value": None}  # set by --history-step-scale; a history actor refuses to train without it
+
+
+def _history_step_scale_from_argv():
+    """--history-step-scale S: the optimizer step scale on the history columns (history.scale_history_step);
+    removed before the worker parses"""
+    if "--history-step-scale" in sys.argv:
+        i = sys.argv.index("--history-step-scale")
+        HISTORY_STEP_SCALE["value"] = float(sys.argv[i + 1])
+        del sys.argv[i:i + 2]
+
+
+def _patch_runner_for_history():
+    """The worker's runner class, with the history step scale installed on its optimizer when the actor is a history
+    actor, and the history weights' size printed at every save (does the branch learn at this scale?). The worker
+    imports load_runner_cls from the registry inside main(), so the registry function is wrapped before main runs."""
+    import mjlab.tasks.registry as reg
+    if getattr(reg, "_history_runner_patched", False):
+        return
+    orig = reg.load_runner_cls
+
+    def load_runner_cls(task):
+        from mjlab.rl import MjlabOnPolicyRunner
+        base = orig(task) or MjlabOnPolicyRunner
+
+        class HistoryRunner(base):
+            def __init__(self, *a, **k):
+                super().__init__(*a, **k)
+                w = self.alg.actor.mlp[0].weight
+                self._hist_w = w if int(w.shape[1]) in _HISTORY_KP else None
+                if self._hist_w is not None:
+                    s = HISTORY_STEP_SCALE["value"]
+                    if s is None:
+                        raise SystemExit("history actor: pass --history-step-scale S (HISTORY-PLAN.md section 8: the "
+                                         "unscaled history update broke the walker within 3 iterations)")
+                    import history as hi
+                    hi.scale_history_step(self.alg.optimizer, w, s)
+
+            def save(self, path, infos=None):
+                super().save(path, infos)
+                if self._hist_w is not None:
+                    w = self._hist_w.detach()
+                    print(f"[history] it {self.current_learning_iteration} first-layer |W| mean: current "
+                          f"{float(w[:, :61].abs().mean()):.5f}, history {float(w[:, 61:].abs().mean()):.6f}", flush=True)
+
+        return HistoryRunner
+
+    reg.load_runner_cls = load_runner_cls
+    reg._history_runner_patched = True
+
+
 def _tq_weight_from_argv():
     """--tq-weight W (round 2): the torque_margin weight chosen from the audit; removed before the worker parses"""
     if "--tq-weight" in sys.argv:
@@ -353,6 +404,8 @@ if __name__ == "__main__":
     # worker must not find modal: its own try/except then skips the in-worker commit
     sys.modules["modal"] = None
     _tq_weight_from_argv()
+    _history_step_scale_from_argv()
+    _patch_runner_for_history()
     # --task T: train another registered task with the same worker (the bend fine-tune, BEND-PLAN.md:
     # Mjlab-GroundPick-Flat-MicroDuck); removed before the worker parses its own flags
     if "--task" in sys.argv:

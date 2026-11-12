@@ -43,6 +43,8 @@ def main():
                     help="scale of the optimizer step on the 1200 history columns (0 = frozen, 1 = as trained)")
     ap.add_argument("--outdir", required=True)
     a = ap.parse_args()
+    flight_worker.HISTORY_STEP_SCALE["value"] = a.history_step_scale
+    flight_worker._patch_runner_for_history()
     import mjlab.tasks  # noqa: F401
     from mjlab.envs import ManagerBasedRlEnv
     from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
@@ -76,20 +78,9 @@ def main():
         mask = torch.ones_like(actor.mlp[0].weight)
         mask[:, 61:] = 0.0
         actor.mlp[0].weight.register_hook(lambda g: g * mask)
-    if a.history_step_scale != 1.0 and width > 61:
-        # Adam moves each weight by about lr whatever its gradient's size, so a gradient scale changes nothing; scale
-        # the optimizer's step on the history columns instead (a per-column learning rate)
-        opt = runner.alg.optimizer
-        w = actor.mlp[0].weight
-        orig_step = opt.step
-
-        def step(*args, **kw):
-            before = w.detach()[:, 61:].clone()
-            r = orig_step(*args, **kw)
-            with torch.no_grad():
-                w[:, 61:] = before + a.history_step_scale * (w[:, 61:] - before)
-            return r
-        opt.step = step
+    # the history step scale is installed by the worker's own runner hook (flight_worker._patch_runner_for_history),
+    # so this check exercises the code path a training run uses
+    rep["history_step_scale_installed"] = getattr(runner.alg.optimizer, "_history_step_scale", None)
 
     orig_update = runner.alg.update
 
