@@ -65,6 +65,8 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
     apply: "serve",
     configureServer(server) {
       const clients = new Set(), history = [];
+      // lastData: the last A7Z record; watchedSince: when a page last arrived after none (no session runs without one)
+      let lastData = 0, watchedSince = 0;
       let child = null, buffer = "", lastLine = 0, linger = null, retry = null, childBus = null, paused = false;
       // a python process running walk_wired.py, not any command line that mentions it (a grep, an editor, a shell)
       const macBrain = () => spawnSync("pgrep", ["-f", "^[^ ]*[Pp]ython[^ ]*( -[^ ]+)* ([^ ]*/)?walk_wired\\.py"]).status === 0;
@@ -105,7 +107,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
             const line = buffer.slice(0, i); buffer = buffer.slice(i + 1);
             let record;
             try { record = JSON.parse(line); } catch { continue; }
-            lastLine = Date.now();
+            lastLine = lastData = Date.now();
             if (shutdown && shutdown.state !== "running" && shutdown.state !== "failed") { shutdown = null; send({shutdown}); }
             if (record.temps) {
               history.push(record);
@@ -126,11 +128,16 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
         if (child && Date.now() - lastLine > SILENT_S * 1000) child.kill();
         else if (child && childBus === macBrain()) child.kill();  // a Mac brain started or stopped: restart with/without bus
         pollDriver();  // a lease another bridge's page took, or one that went idle
+        // Heartbeat: proves the page's stream is alive (a page that hears nothing for a few seconds reopens it), and
+        // carries how long this service has had no A7Z record, so a phone resumed from the background shows the real
+        // outage, not the time it was asleep. Seconds, so the two clocks never meet.
+        if (clients.size) send({alive: {lost_s: Math.max(0, (Date.now() - Math.max(lastData, watchedSince)) / 1000)}});
       }, 1000).unref();
       server.middlewares.use("/api/a7z/stream", (req, res) => {
         res.writeHead(200, {"Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive"});
         res.write(`data: ${JSON.stringify({history, host, link: child ? "open" : "connecting", camera: camState, driver: driverNow, shutdown})}\n\n`);
         if (writer?.supply) res.write(`data: ${JSON.stringify({command: {path: writer.path, supply: writer.supply}})}\n\n`);
+        if (!clients.size) watchedSince = Date.now();
         clients.add(res); clearTimeout(linger); start();
         const clientId = new URL(req.originalUrl ?? req.url, "http://x").searchParams.get("client");
         req.on("close", () => {
@@ -151,6 +158,9 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
         const w = {proc, pending: new Map(), buffer: "", stderr: "", ready: null};
         w.ready = new Promise((resolve, reject) => { w.onReady = resolve; w.onFail = reject; });
         w.ready.catch(() => {});
+        // an SSH session that dies between "ready" and a write gives EPIPE here; unhandled, it took the whole service
+        // (and every page's stream) down (Mac mini 2026-11-10 and 11-11). The exit handler answers the pending request.
+        proc.stdin.on("error", () => {});
         proc.stderr.on("data", d => { w.stderr = (w.stderr + d).slice(-400); });
         proc.stdout.on("data", d => {
           w.buffer += d;
