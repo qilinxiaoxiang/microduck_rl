@@ -96,6 +96,12 @@ def main():
     hold_t = torch.zeros(n)
     mouth = [[] for _ in range(n)]
     pitch = [[] for _ in range(n)]
+    # leg pose at the lowest mouth sample of the hold: tells a bend on groundpick61's old path (knee about 0.64 rad)
+    # from one that straightened the knee
+    LEG = [j for j in robot.joint_names if any(s in j for s in ("hip_pitch", "knee", "ankle")) and not j.startswith("passive_")]
+    leg_ids = [robot.joint_names.index(j) for j in LEG]
+    low_z = [None] * n
+    low_pose = [None] * n
     force = []
     prev_ph = ph_cmd._gp_phase.clone().cpu()
     t0 = time.time()
@@ -131,6 +137,10 @@ def main():
                 if at[i] and hold_t[i] > 0.5:
                     mouth[i].append(float(mz[i]))
                     pitch[i].append(float(np.degrees(np.arcsin(np.clip(float(gx[i]), -1, 1)))))
+                    if low_z[i] is None or float(mz[i]) < low_z[i]:
+                        low_z[i] = float(mz[i])
+                        q = robot.data.joint_pos[i, leg_ids].cpu().numpy()
+                        low_pose[i] = {j: round(float(x), 3) for j, x in zip(LEG, q)}
             force.append(torch.where(alive[:, None], f, torch.full_like(f, float("nan"))).numpy())
     F = np.stack(force)  # (steps, n, act)
     per_act = {}
@@ -143,7 +153,8 @@ def main():
         eps.append(dict(env=i, fell_at=fell_at[i], handed_back=bool(handed[i]), hold_samples=len(m),
                         mouth_median_m=round(float(np.median(m)), 4) if m else None, mouth_max_m=round(max(m), 4) if m else None,
                         pitch_median_deg=round(float(np.median(p)), 1) if p else None,
-                        pitch_range_deg=[round(min(p), 1), round(max(p), 1)] if p else None))
+                        pitch_range_deg=[round(min(p), 1), round(max(p), 1)] if p else None,
+                        mouth_low_m=round(low_z[i], 4) if low_z[i] is not None else None, leg_pose_at_low=low_pose[i]))
     falls = sum(e["fell_at"] is not None for e in eps)
     held = [e for e in eps if e["mouth_median_m"] is not None]
     leg = {k: v for k, v in per_act.items() if any(s in k for s in ("hip_pitch", "knee", "ankle"))}
@@ -157,6 +168,11 @@ def main():
                 pitch_in_25_45=sum(25 <= e["pitch_median_deg"] <= 45 for e in held),
                 leg_p99_max=round(max(v["p99"] for v in leg.values()), 3) if leg else None,
                 hip_pitch_p99_max=round(max((v["p99"] for k, v in leg.items() if "hip_pitch" in k), default=0.0), 3),
+                knee_p99_max=round(max((v["p99"] for k, v in leg.items() if "knee" in k), default=0.0), 3),
+                ankle_p99_max=round(max((v["p99"] for k, v in leg.items() if "ankle" in k), default=0.0), 3),
+                knee_abs_at_low_median=round(float(np.median([abs(x) for e in eps if e["leg_pose_at_low"]
+                                                              for j, x in e["leg_pose_at_low"].items() if "knee" in j])), 3)
+                if any(e["leg_pose_at_low"] for e in eps) else None,
                 wall_s=round(time.time() - t0, 1))
     print(f"[bend-accept] {json.dumps(summ)}", flush=True)
     (out / "accept.json").write_text(json.dumps(dict(summary=summ, per_actuator=per_act, episodes=eps), indent=1))
