@@ -156,8 +156,115 @@ DELTA_SLIP = dict(foot_friction=(0.2, 1.3), track_lin_vel=dict(tau_s=0.5, std=ma
 # because walk61 never met a yaw disturbance in training. Changes from Pollen's recipe: the lead on 80 % of the
 # envs, and ft3's EMA velocity tracking, without which a fine-tune of walk61 drifts to standing (ft1/ft2).
 DELTA_TETHER = dict(tether=dict(fraction=0.8), track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)))
+# play (2026-11-12): walk61 with slack between servo and link (horn, screws, brackets) that the encoder does not see.
+# The effect-by-effect replay sweep (cmu/SIM2REAL.md, "Effect-by-effect replay sweep") reproduced robot falls with
+# head/neck play 8 deg total, leg play 4 deg and ankle-to-foot play 6 deg, each without felling the walks the robot
+# completed; walk61 never met such slack. Each servo joint gets a passive hinge right after it on the same axis
+# (Pollen's add_backlash.py geometry, but the encoder and the firmware loop stay on the servo side, unlike the
+# -Backlash- tasks whose encoder reads through gear play). Its half-width is drawn per episode, uniform in
+# [0, PLAY_HALF_DEG], and none_fraction of the episodes have none. Obs, actions and the runtime are unchanged.
+PLAY_HALF_DEG = {r"^(neck_pitch|head_pitch|head_yaw|head_roll)$": 4.0,
+                 r"^(left|right)_ankle$": 3.0,
+                 r"^(left|right)_(hip_yaw|hip_roll|hip_pitch|knee)$": 2.0}
+DELTA_PLAY = dict(play=dict(half_deg=PLAY_HALF_DEG, none_fraction=0.2),
+                  track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)))
 DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP,
-          "tether": DELTA_TETHER}
+          "tether": DELTA_TETHER, "play": DELTA_PLAY,
+          "playctl": dict(track_lin_vel=DELTA_PLAY["track_lin_vel"])}  # play's control arm: the same run without play
+PLAY_SUFFIX = "_play"
+PLAY_EPS = 1e-4  # rad; the half-width of a "no play" hinge (a zero range is degenerate)
+
+
+def add_play_joints(robot_cfg, half_deg: dict):
+    """Return a copy of the robot EntityCfg with a passive_<servo>_play hinge after each matched servo joint, built at
+    the largest half-width; randomize_play narrows it per episode."""
+    import re
+    import mujoco
+
+    base_spec_fn = robot_cfg.spec_fn
+
+    def patched_spec_fn():
+        spec = base_spec_fn()
+        added = []
+        for j in list(spec.joints):
+            if j.name.startswith("passive_") or j.type != mujoco.mjtJoint.mjJNT_HINGE:
+                continue
+            h = next((math.radians(d) for pat, d in half_deg.items() if re.search(pat, j.name)), None)
+            if not h:
+                continue
+            pj = j.parent.add_joint(name=f"passive_{j.name}{PLAY_SUFFIX}", type=mujoco.mjtJoint.mjJNT_HINGE,
+                                    axis=list(j.axis), pos=list(j.pos), range=[-h, h], limited=True, damping=0.01)
+            pj.armature = 0.001
+            pj.solref_limit = [0.01, 1]  # stiff tooth contact, as add_backlash.py
+            pj.solimp_limit = [0.95, 0.999, 0.0001, 0.5, 2]
+            added.append(j.name)
+        print(f"[play] hinges after {added}", flush=True)
+        return spec
+
+    return dataclasses.replace(robot_cfg, spec_fn=patched_spec_fn)
+
+
+def _make_randomize_play():
+    from mjlab.managers.event_manager import requires_model_fields
+    import torch
+
+    @requires_model_fields("jnt_range")
+    def randomize_play(env, env_ids, half_deg: dict, none_fraction: float, asset_cfg):
+        """Reset event: each play hinge's half-width uniform in [0, its maximum] per episode, none_fraction of the
+        episodes without play; the hinge starts centred. Writes absolute values, so nothing accumulates."""
+        import re
+        asset = env.scene[asset_cfg.name]
+        cache = env.__dict__.setdefault("_play_cache", {})
+        if "ids" not in cache:
+            ids, names = asset.find_joints(r"^passive_.*" + PLAY_SUFFIX + "$")
+            hmax = [math.radians(next(d for pat, d in half_deg.items()
+                                      if re.search(pat, n[len("passive_"):-len(PLAY_SUFFIX)]))) for n in names]
+            cache.update(ids=torch.as_tensor(ids, device=env.device),
+                         hmax=torch.as_tensor(hmax, device=env.device, dtype=torch.float32))
+        ids, hmax = cache["ids"], cache["hmax"]
+        if env_ids is None:
+            env_ids = torch.arange(env.num_envs, device=env.device)
+        env_ids = env_ids.to(env.device, dtype=torch.long)
+        n = len(env_ids)
+        h = torch.rand(n, len(ids), device=env.device) * hmax
+        h = torch.where((torch.rand(n, 1, device=env.device) < none_fraction).expand_as(h), torch.zeros_like(h), h)
+        h = h.clamp(min=PLAY_EPS)
+        jid = asset.indexing.joint_ids[ids].to(torch.long)
+        rng = env.sim.model.jnt_range
+        eg, jg = torch.meshgrid(env_ids, jid, indexing="ij")
+        rng[eg, jg] = torch.stack([-h, h], dim=-1).to(rng.dtype)
+        qa, va = asset.indexing.joint_q_adr[ids].to(torch.long), asset.indexing.joint_v_adr[ids].to(torch.long)
+        env.sim.data.qpos[env_ids[:, None], qa[None, :]] = 0.0
+        env.sim.data.qvel[env_ids[:, None], va[None, :]] = 0.0
+
+    return randomize_play
+
+
+def apply_play(env_cfg, play: dict):
+    """Play hinges on the robot, their per-episode randomisation, and the servo-only selections the extra passive
+    joints need (the same three fixes backlash.make_backlash_variant makes)."""
+    from mjlab.managers import EventTermCfg
+    from mjlab.managers.scene_entity_config import SceneEntityCfg
+    from copy import deepcopy
+
+    servo = (r"^(?!passive_).*",)
+    env_cfg.scene.entities["robot"] = add_play_joints(env_cfg.scene.entities["robot"], play["half_deg"])
+    env_cfg.events["randomize_play"] = EventTermCfg(
+        func=_make_randomize_play(), mode="reset",
+        params=dict(half_deg=play["half_deg"], none_fraction=play["none_fraction"], asset_cfg=SceneEntityCfg("robot")))
+    for group in ("actor", "critic"):
+        for name in ("joint_pos", "joint_vel"):
+            term = env_cfg.observations[group].terms.get(name)
+            if term is not None and "asset_cfg" not in term.params:
+                term.params["asset_cfg"] = SceneEntityCfg("robot", joint_names=servo)
+    lim = env_cfg.rewards.get("dof_pos_limits")
+    if lim is not None and "asset_cfg" not in lim.params:
+        lim.params["asset_cfg"] = SceneEntityCfg("robot", joint_names=servo)
+    pose = env_cfg.rewards.get("pose")
+    if pose is not None and "asset_cfg" in pose.params:
+        ac = deepcopy(pose.params["asset_cfg"])
+        ac.joint_names = tuple(r"^(?!passive_.*" + PLAY_SUFFIX + ")" + p.lstrip("^") for p in ac.joint_names)
+        pose.params["asset_cfg"] = ac
 
 
 class tether_lead:
@@ -269,6 +376,8 @@ def apply_delta(env_cfg, delta: dict):
         env_cfg.events["tether_lead"] = EventTermCfg(func=tether_lead, mode="step",
                                                      params=dict(fraction=delta["tether"]["fraction"],
                                                                  asset_cfg=SceneEntityCfg("robot")))
+    if delta.get("play"):
+        apply_play(env_cfg, delta["play"])
     if delta.get("track_lin_vel"):
         term = env_cfg.rewards["track_linear_velocity"]  # weight 2.0 unchanged: same reward mass, filtered velocity
         term.func = track_linear_velocity_ema

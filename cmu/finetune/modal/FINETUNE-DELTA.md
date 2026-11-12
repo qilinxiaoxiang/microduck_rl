@@ -349,3 +349,23 @@ BAM friction about 1.4 and gyro vibration proportional to leg speed). Run t3 (br
 1bb0560c..675add5a, its plan in that branch's FINETUNE-DELTA.md) puts that gap and an `action_acc_l2` penalty into
 training; the lead belongs on top of t3 once t3 passes its jitter gates, not as another
 run on the current recipe.
+
+## Run play-a / playctl-a (2026-11-12): walk61 with encoder-invisible play
+
+Why: the effect-by-effect replay sweep (`cmu/SIM2REAL.md`, 2026-11-12) found that slack between servo and link
+reproduces some of the robot's falls without felling walks the robot completed, and walk61 never met such slack.
+Delta `play` (`finetune_worker.py` `DELTA_PLAY`): a `passive_<servo>_play` hinge after each of the 14 servos, its
+half-width drawn per episode uniform up to 4 deg (neck and head), 3 deg (ankles) and 2 deg (other leg joints), none
+in 20 % of the episodes; the encoder and firmware loop stay on the servo side; plus ft3's EMA velocity tracking.
+`playctl` is the same run without the hinges, so a difference between the two is the play's. Current model
+(`--cmu-config current`), 4096 envs, 1000 iterations, warm-up 100, `--max-lr 3e-4`, `--track-guard 1.3`, seed 1,
+paired on one Kaggle session.
+
+Smoke `play-smoke` and audit `play-audit` (Kaggle, 2026-11-12): hinges built, 61-D actor obs, ONNX exported. Reward
+audit in the play env: stand61 earns 0.779 of walk61's reward per second (limit 0.8), in playctl 0.791. walk61 in the
+play env falls 0.93 times per env-minute, 0.91 without play.
+
+Acceptance, before any robot trial: the 60 replayed robot actions of the sweep (`play-locate-20261112/gap_sweep.py
+--models <candidate> --tag <run>`) in the plain and play sims: fewer sim falls on the 36 robot-fell actions than
+walk61, none on the robot-up ones, and action jumps and peak tilt in the real suite cases no higher than walk61's
+(the gate tether-a and tether-b failed).
