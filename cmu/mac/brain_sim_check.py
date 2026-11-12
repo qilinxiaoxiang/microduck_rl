@@ -993,6 +993,9 @@ def run(args):
     if args.foot_play:  # sim-ID 2026-10-21: free play between ankle horn and foot (deg, centring stiffness N m/rad, damping)
         fp = args.foot_play + [0.05, 0.002][len(args.foot_play) - 1:]
         c0["foot_play"] = dict(deg=fp[0], stiffness=fp[1], damping=fp[2], axis=FOOT_PLAY_AXES[args.foot_play_axis])
+    if args.joint_play:  # play-locate study 2026-11-12: servo-to-link play on the matched joints (evaluate_delay joint_play)
+        import re
+        c0["joint_play"] = dict(joints={n: args.joint_play for n in NAMES if re.search(args.joint_play_only, n)})
     if args.manifest:  # another signed-part manifest on the same loader (the 90 g NP-F970 removal is still applied by the loader)
         c0["mass_manifest"] = os.path.abspath(args.manifest)
     if args.com_x:
@@ -1747,6 +1750,11 @@ def main():
                     help="foot-floor sliding friction (tilt test: tan of the slide angle); 1.0 = the model's own, training randomised 0.7-1.3")
     ap.add_argument("--foot-play", type=float, nargs="+", default=None, metavar="DEG [STIFF DAMP]",
                     help="free play about the ankle axis between servo horn and foot, +-DEG (sim-ID 2026-10-21)")
+    ap.add_argument("--joint-play", type=float, default=None, metavar="DEG",
+                    help="total peak-to-peak play between servo output and link (horn, screws, bracket), invisible to the "
+                         "encoder, on every joint --joint-play-only matches (play-locate study 2026-11-12)")
+    ap.add_argument("--joint-play-only", default=r"^(left|right)_", metavar="REGEX",
+                    help="servo joints that get --joint-play (default: the ten leg joints)")
     ap.add_argument("--foot-play-axis", choices=sorted(FOOT_PLAY_AXES), default="pitch",
                     help="axis of --foot-play: pitch (the ankle axis), roll (forward) or yaw (vertical), at the stand pose")
     ap.add_argument("--sole-solref", type=float, nargs=2, default=None, metavar=("TIMECONST", "DAMPRATIO"),

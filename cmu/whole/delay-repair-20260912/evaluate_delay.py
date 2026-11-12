@@ -127,6 +127,23 @@ def load(config):
                         solref=list(src.solref), solimp=list(src.solimp), priority=src.priority, group=src.group)
             spec.delete(src)
             foot.add_geom(name=f'{side}_foot_collision', mass=0, **keep)
+    if config.get('joint_play'):
+        # Play-location study 2026-11-12: free play between a servo's output and the link it drives (horn spline, horn
+        # screws, bracket), as Pollen's add_backlash.py builds it: a passive hinge on the same body and axis right
+        # after the servo joint, free within +-deg/2 (deg = total peak-to-peak play), with stiff stops. The servo joint
+        # stays the encoder; the passive hinge is invisible to it.
+        jp = config['joint_play']
+        for jname, deg in jp['joints'].items():
+            if not deg:
+                continue
+            j = spec.joint(jname)
+            body = j.parent
+            h = math.radians(deg) / 2
+            pj = body.add_joint(name=f'passive_{jname}_play', type=mujoco.mjtJoint.mjJNT_HINGE, axis=list(j.axis),
+                                pos=list(j.pos), range=[-h, h], limited=True, damping=jp.get('damping', 0.01))
+            pj.armature = jp.get('armature', 0.001)
+            pj.solref_limit = [0.01, 1]  # stiff tooth contact (add_backlash.py's setting)
+            pj.solimp_limit = [0.95, 0.999, 0.0001, 0.5, 2]
     bam = load_model(motor_name='xl330', model='m6')
     bam.actuator.kp = config.get('kp', 200)
     bam.actuator.vin = config.get('voltage', 5.0)

@@ -31,12 +31,12 @@ main{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:20px;padding
 #poseNote{color:var(--text-2);font-size:13px;margin:6px 0 0}#poseNote.bad{color:var(--bad);font-weight:600}
 .check-head{display:flex;align-items:center;gap:8px}.check-head h2{margin:0;flex:1}
 #checkRun,#shutdownRun{font:inherit;font-size:16px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
-#gapChecks,#checks{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
-#gapChecks li,#checks li{display:grid;grid-template-columns:14px minmax(0,1fr);gap:4px 8px;align-items:start;font-size:14px}
-#gapChecks li i,#checks li i{width:12px;height:12px;border-radius:50%;margin-top:4px;background:var(--muted)}
-#gapChecks li.ok i,#checks li.ok i{background:var(--good)}#gapChecks li.bad i,#checks li.bad i{background:var(--bad)}#gapChecks li.skip i,#checks li.skip i{background:var(--warn)}
-#gapChecks li span,#checks li span{overflow-wrap:anywhere;color:var(--text-2)}#gapChecks li b,#checks li b{color:var(--text)}#gapChecks li.bad span,#checks li.bad span{color:var(--bad)}
-#gapState,#checkState{color:var(--text-2);font-size:13px;margin:8px 0 0}#gapState.bad,#checkState.bad{color:var(--bad);font-weight:600}
+#checks{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+#checks li{display:grid;grid-template-columns:14px minmax(0,1fr);gap:4px 8px;align-items:start;font-size:14px}
+#checks li i{width:12px;height:12px;border-radius:50%;margin-top:4px;background:var(--muted)}
+#checks li.ok i{background:var(--good)}#checks li.bad i{background:var(--bad)}#checks li.skip i{background:var(--warn)}
+#checks li span{overflow-wrap:anywhere;color:var(--text-2)}#checks li b{color:var(--text)}#checks li.bad span{color:var(--bad)}
+#checkState{color:var(--text-2);font-size:13px;margin:8px 0 0}#checkState.bad{color:var(--bad);font-weight:600}
 #modelNote{color:var(--text-2);font-size:13px;margin:6px 0 0}#modelNote.bad{color:var(--bad);font-weight:600}#modelNote[hidden]{display:none}
 .joints{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 12px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--text-2);margin-top:8px}
 .joints b{display:block;color:var(--text);font-size:12px;margin-top:2px}
@@ -144,12 +144,6 @@ details.note summary{cursor:pointer}
       <div class="check-head"><h2>开机体检</h2><button id="checkRun" type="button">重新体检</button></div>
       <ul id="checks"></ul>
       <p id="checkState">正在读体检结果…</p>
-    </div>
-    <div class="card">
-      <div class="check-head"><h2>仿真差异（跑前看）</h2><a id="gapLink" href="/runs/gap/index.html" target="_blank">全部图表</a></div>
-      <ul id="gapChecks"></ul>
-      <p id="gapState">正在读最近一次动作的仿真对比…</p>
-      <p class="note">每个动作做完一两分钟后，Mac mini 把同一串命令在仿真里重放，比较 IMU、舵机跟随和静站旷量；红色表示比这台鸭子平时差，点开看图。</p>
     </div>
     <div class="card">
       <div class="touch-head"><h2>头顶触摸</h2><button id="touchZero" type="button">归零</button></div>

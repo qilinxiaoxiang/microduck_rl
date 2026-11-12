@@ -47,6 +47,30 @@ over the 390 replayed actions of 2026-11-02 to 11-11:
   variants (2 deg hinges); whether a play model of the measured size reproduces the robot's standing jitter and
   play numbers in this replay is the next test (hypothesis 2 below).
 
+## Effect-by-effect replay sweep, 2026-11-12: which modelled hardware effect closes the gap
+
+The same robot commands (36 actions where the robot fell and the sim stayed up, 24 the robot walked through; 3 seeds)
+replayed in the as-built sim with one effect added at a time, scored with the scorecard's own rules. Script and full
+numbers: `play-locate-20261112/gap_sweep.py` and README in the robotics tree; `brain_sim_check.py --joint-play DEG
+--joint-play-only REGEX` adds an encoder-invisible hinge after each matched servo (as `add_backlash.py`).
+- **Base**: the sim falls in 1 of 93 robot-fell runs, 0 of 72 robot-up; walking jitter 0.19 against the robot's 0.59.
+- **Play reproduces some falls, selectively**: head/neck play 8 deg 15/93, leg play 4 deg 14/93, soft sole 13/93,
+  ankle-to-foot play +-3 deg 11/93, 4 deg on every joint 10/93; none fells a robot-up run. Jitter stays 0.16-0.22.
+- **Servo deadband (BAM friction) is not the cause**: x1.5 gives 5/93 with 3/72 false falls; x2.0 raises jitter to
+  0.38 but fells 49 of the 72 runs the robot walked through.
+- **COM**: 5 mm forward 4/30, no false falls; 10 mm either way fells every run. A backward shift of 3 mm already
+  tips the sim over in its opening open-loop stand, before the replay, so the backward case is untested.
+- **Dropped reads 10 %**: 6/93. All together (friction x1.5, 4 deg play everywhere, foot play): 16/93 with 10/72
+  false falls, jitter 0.23.
+- **Supply voltage is not it**: over 442 robot actions the fall rate is 9 % at 7.2-7.5 V and 5 % above 8.1 V;
+  training samples 6.5-8.2 V with load sag.
+
+So no single modelled effect brings the trunk jitter near the robot's, and the play effects explain about a sixth of
+the extra falls. On 2026-11-12 Shawn found loose screws; after tightening them the robot walked noticeably steadier.
+Structural looseness larger than a few degrees at one joint is the first candidate for the rest. A training round with
+play randomised on the head and legs (the `-Backlash-` variants, at the sizes above) is the sim-side step; it waits
+for a plan review.
+
 ## How sim and real are compared
 
 - The CPU check `mac/brain_sim_check.py` runs the exact Mac-side control code (`mac/walk_brain.py`: mode logic,
