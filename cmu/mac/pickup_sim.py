@@ -37,6 +37,9 @@ from walk_brain import (IMU_MOUNT_QUAT, MOUNT_FIX, NAMES, SIGN, VEL_UNIT, Brain,
 from walk_brain import STAND as BRAIN_STAND  # noqa: E402
 
 MODELS = os.path.join(WHOLE, "runtime-overlay", "models")
+# the robot as it is now: the mass manifest microduck_rl/cmu/model/current.json names (until 2026-11-11 this sim ran
+# the 2026-10-15 base manifest, the bench box with the Pi Zero W head)
+CURRENT_MODEL = os.path.join(HERE, "..", "model", "current.json")
 TICK = 0.02
 GRIP_REACH = 0.035        # m, mouth tip to object centre for the faked grip to hold
 MAX_TILT_WALK = 30.0      # walk_wired guards
@@ -45,6 +48,13 @@ HARD_ACTION = 3.0
 OVER_TICKS, HARD_WINDOW = 3, 10
 GP_DONE = 0.9
 ORANGE = (1.0, 0.45, 0.0, 1.0)
+
+
+def current_manifest():
+    """Absolute path of the current robot's mass manifest (current.json's path is relative to the microduck_rl root)."""
+    with open(CURRENT_MODEL) as f:
+        cur = json.load(f)
+    return os.path.normpath(os.path.join(os.path.dirname(CURRENT_MODEL), "..", "..", cur["mass_manifest"]))
 
 
 def conj(q):
@@ -59,7 +69,9 @@ class SimDuck:
     """The robot, its runtime and its camera in the model; pickup.Pickup drives it through send/state/observe."""
 
     def __init__(self, obj_xy, obj_h=0.09, obj_r=0.02, volt=7.4, pitch_offset=0.0, sensor_delay=1, action_delay=1):
-        m, d, c, names, bam = ev.load(cfg(0.09, model="asbuilt", kp=200, voltage=volt))
+        c0 = cfg(0.09, model="asbuilt", kp=200, voltage=volt)
+        c0["mass_manifest"] = current_manifest()
+        m, d, c, names, bam = ev.load(c0)
         self.m, self.d, self.c, self.names, self.bam = m, d, c, names, bam
         self.idx = {n: names.index(n) for n in NAMES}
         p0 = np.array([BRAIN_STAND[n] for n in names])

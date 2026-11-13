@@ -86,8 +86,12 @@ def load(config):
         spec = mujoco.MjSpec.from_file(str(Path(config['scene']).resolve()))
     # Draw the CMU robot as built (microduck_rl/cmu/model/visual.py): visual geoms only, physics unchanged.
     sys.path.insert(0, str(MODEL_DIR.parents[3] / 'cmu/model'))
-    from visual import apply_visual_to_spec
-    apply_visual_to_spec(spec)
+    from visual import apply_visual_to_spec, visual_variant_for_manifest
+    # the look follows the mass model: one robot weighed and drawn (cmu/model/current.json is the robot now)
+    apply_visual_to_spec(spec, config.get('visual_variant', visual_variant_for_manifest(config.get('mass_manifest'))))
+    if config.get('mass_manifest'):  # a payload's visual_parts (the flight pack): drawn only, no mass, no contact
+        from visual import apply_manifest_visuals
+        apply_manifest_visuals(spec, config['mass_manifest'])
     if config.get('geometry_manifest'):
         manifest=json.loads(Path(config['geometry_manifest']).read_text())
         for g in list(spec.geoms):
@@ -123,6 +127,23 @@ def load(config):
                         solref=list(src.solref), solimp=list(src.solimp), priority=src.priority, group=src.group)
             spec.delete(src)
             foot.add_geom(name=f'{side}_foot_collision', mass=0, **keep)
+    if config.get('joint_play'):
+        # Play-location study 2026-11-12: free play between a servo's output and the link it drives (horn spline, horn
+        # screws, bracket), as Pollen's add_backlash.py builds it: a passive hinge on the same body and axis right
+        # after the servo joint, free within +-deg/2 (deg = total peak-to-peak play), with stiff stops. The servo joint
+        # stays the encoder; the passive hinge is invisible to it.
+        jp = config['joint_play']
+        for jname, deg in jp['joints'].items():
+            if not deg:
+                continue
+            j = spec.joint(jname)
+            body = j.parent
+            h = math.radians(deg) / 2
+            pj = body.add_joint(name=f'passive_{jname}_play', type=mujoco.mjtJoint.mjJNT_HINGE, axis=list(j.axis),
+                                pos=list(j.pos), range=[-h, h], limited=True, damping=jp.get('damping', 0.01))
+            pj.armature = jp.get('armature', 0.001)
+            pj.solref_limit = [0.01, 1]  # stiff tooth contact (add_backlash.py's setting)
+            pj.solimp_limit = [0.95, 0.999, 0.0001, 0.5, 2]
     bam = load_model(motor_name='xl330', model='m6')
     bam.actuator.kp = config.get('kp', 200)
     bam.actuator.vin = config.get('voltage', 5.0)

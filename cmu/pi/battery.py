@@ -27,6 +27,10 @@ ALERT_BIT = 0x80           # status packet error field: Hardware Error Status is
 BATTERY_WINDOW_DV = (64, 84)   # check_voltage_limit.py --rail battery: 6.4-8.4 V
 WARN_BELOW_DV = 70             # 3.5 V per cell under load: warn
 STOP_AT_DV = 66                # 3.3 V per cell: stop walking, hold a standing pose, signal shutdown
+FLOOR_AT_DV = 62               # 3.1 V per cell, after the stop (no walking load, so no sag): sit down, then torque off
+FLOOR_CONFIRM = 3              # consecutive samples at the floor
+FLOOR_SIT_S = 6.0              # sit prep 0.8 s + glide 2 s + margin; torque goes off by then even without a seat
+ALARM_S = {"warn": 10.0, "stop": 3.0, "floor": 1.5}  # s between duck calls, sound only: Shawn wants it heard (2026-11-02)
 ARM_ABOVE_DV = 72              # --supply auto: no bench supply reads this high (the 7 V rail is set to 6.80 V)
 FRESH_PACK_DV = 76             # 3.8 V per cell (storage charge or more): a new pack clears the stop marker
 WARN_CONFIRM, STOP_CONFIRM = 2, 3   # consecutive low samples, so one sag at a foot strike does not count
@@ -60,6 +64,33 @@ def stop_command(torque_on: bool, mode: str) -> dict:
     if mode == "walk":
         return {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
     return {"mode": "stand"}
+
+
+def floor_command(torque_on: bool, seated: bool, since_floor: float) -> dict:
+    """The command at the battery floor. Holding a pose there drained the pack to 4.6 V and took one servo's settings
+    with it (2026-11-02), so the robot sits down and torque goes off, Hold-until-told does not apply below the floor.
+    """
+    if not torque_on:
+        return {"mode": "monitor"}
+    if seated or since_floor >= FLOOR_SIT_S:
+        return {"mode": "off"}
+    return {"mode": "sit"}
+
+
+def apply_supply_switch(guard, value):
+    """The phone's backpack switch (~/duck-supply) on a running brain, so it also reaches one that is driving.
+
+    Returns (guard, message or None). 2026-11-02: a pack changed mid-run left the guard off for the 9 minutes to 4.6 V.
+    """
+    if value == "bench" and guard is not None:
+        return None, "backpack switch: charger pack, battery guard off"
+    if value == "battery":
+        if guard is None:
+            return BatteryGuard("battery"), "backpack switch: 2S pack, battery guard on"
+        if not guard.armed:
+            guard.armed = True
+            return guard, "backpack switch: 2S pack, battery guard armed"
+    return guard, None
 
 
 def stop_settled(torque_on: bool, mode: str, holding_stand: bool, since_stop: float, settle_s: float = SETTLE_S) -> bool:
@@ -102,7 +133,8 @@ class BatteryGuard:
         self.armed = supply == "battery"
         self.state, self.dv, self.stop_t, self.signalled = "ok", None, None, False
         self.next_t, self.samples, self.misses = 0.0, 0, 0
-        self._low = self._empty = 0
+        self._low = self._empty = self._floor = 0
+        self.floor_t = None
 
     def due(self, now: float) -> bool:
         return now >= self.next_t
@@ -120,7 +152,13 @@ class BatteryGuard:
                 self.armed = True
                 return "armed"
             return "unarmed" if self.samples == 1 else None
+        if self.state == "floor":
+            return None
         if self.state == "stop":
+            self._floor = self._floor + 1 if self.dv <= FLOOR_AT_DV else 0
+            if self._floor >= FLOOR_CONFIRM:
+                self.state, self.floor_t = "floor", now
+                return "floor"
             return None
         self._low = self._low + 1 if self.dv < WARN_BELOW_DV else 0
         self._empty = self._empty + 1 if self.dv <= STOP_AT_DV else 0

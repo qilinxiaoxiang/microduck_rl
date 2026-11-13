@@ -241,6 +241,55 @@ class WiredBattery(unittest.TestCase):
         self.assertIn("Holding: policy at zero command, torque on", stop_text)
         self.assertEqual((last_log["battery"], last_log["battery_dv"], last_log["mode"]), ("stop", 65, "walk"))
 
+    def test_the_floor_turns_torque_off_and_it_stays_off(self):
+        # the 2026-11-02 trace: 7.2 V, then under the stop, then under the floor; no seat in the fake world, so by timeout
+        w = World(shutdown=52, hw_err=0x01, volts_dv=76)
+        text, marker, wants, reads, last_log = self.run_wired(
+            w, lambda t: 76 if t < 5 else (65 if t < 12 else 55), {"mode": "walk"}, end=30.0)
+        self.assertIn("BATTERY STOP", text)
+        self.assertIn("BATTERY FLOOR: 5.5 V", text)
+        self.assertEqual([v for a, i, v in w.log if a == ww.ADDR_TORQUE and i == IDS[0]], [1, 0])
+        floor_t = self.first("battery", "floor")
+        self.assertTrue(any(want.get("mode") == "sit" for t, want in wants if t >= floor_t))
+        off_t = next(ln["t"] - 1e9 for ln in self.log_lines if ln["t"] - 1e9 > floor_t and not ln["torque"])
+        self.assertLess(off_t - floor_t, 6.5)
+        self.assertEqual((last_log["battery"], last_log["torque"]), ("floor", False))
+        self.assertEqual(marker["stop_at_v"], 6.6)
+
+    def test_a_low_pack_calls_out_faster_as_it_empties(self):
+        w = World(shutdown=52, hw_err=0x01, volts_dv=76)
+        with mock.patch.object(ww, "Voice") as voice:
+            self.run_wired(w, lambda t: 76 if t < 5 else (65 if t < 25 else 55), {"mode": "walk"}, end=40.0)
+        self.assertGreater(voice.return_value.quack.call_count, 10)
+        quiet = World(shutdown=52, hw_err=0x01, volts_dv=76)
+        with mock.patch.object(ww, "Voice") as voice:
+            self.run_wired(quiet, lambda t: 76, {"mode": "walk"}, end=10.0)
+        voice.return_value.quack.assert_not_called()
+
+    def test_above_the_floor_torque_stays_on_after_a_stop(self):
+        w = World(shutdown=52, hw_err=0x01, volts_dv=76)
+        text, *_ = self.run_wired(w, lambda t: 76 if t < 5 else 63, {"mode": "walk"}, end=20.0)
+        self.assertIn("BATTERY STOP", text)
+        self.assertNotIn("BATTERY FLOOR", text)
+        self.assertEqual({v for a, i, v in w.log if a == ww.ADDR_TORQUE}, {1})
+
+    def test_the_switch_reaches_a_driving_brain(self):
+        # the 2026-11-02 run: started on the charger pack with the guard off, pack changed while walking
+        w = World(shutdown=52, hw_err=0x01, volts_dv=72)
+        with tempfile.TemporaryDirectory() as sd:
+            sw = os.path.join(sd, "supply")
+
+            def press():
+                with open(sw, "w") as fh:
+                    fh.write("battery\n")
+            text, marker, *_ = self.run_wired(
+                w, lambda t: 72 if t < 5 else 65, {"mode": "walk"}, end=14.0, supply="bench",
+                hooks=lambda d, cmd_path: [(3.0, press)],
+                extra_args=("--max-action", "1e9", "--max-walk-action", "1e9", "--hard-max-action", "1e9", "--supply-file", sw))
+        self.assertIn("backpack switch: 2S pack, battery guard on", text)
+        self.assertIn("BATTERY STOP: 6.5 V", text)
+        self.assertIsNotNone(marker)
+
     def test_standing_stop_returns_to_plain_stand(self):
         w = World(shutdown=52, hw_err=0x01, volts_dv=76)
         text, marker, wants, reads, _ = self.run_wired(

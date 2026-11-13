@@ -190,8 +190,11 @@ polarity.
 
 ## 7. Charging and battery care
 
-- Charge only with a balance charger on the JST-XH balance lead, in a LiPo bag, never on the robot and never
-  unattended. 1C (0.65 A for a 650 mAh pack) is the conservative rate. The cart charger is fixed at 0.8 A, about 1.2C;
+- Charge only with a balance charger on the JST-XH balance lead and never unattended. Charging on the robot is allowed
+  with the XT30 switch OFF, on a non-flammable surface; off the robot, use the LiPo bag. With the switch ON the pack
+  feeds the robot while the charger runs: 15 XL330s alone take 255 mA at standby (17 mA each, ROBOTIS e-manual), plus
+  the OpenRB, the DFR1202 and a shut-down A7Z, and on 2026-11-02 the pack gained no visible charge that way. Shutting
+  down the A7Z does not disconnect it. 1C (0.65 A for a 650 mAh pack) is the conservative rate. The cart charger is fixed at 0.8 A, about 1.2C;
   Tattu publishes no charge rate for this pack (ReadyMadeRC and genstattu pages read 2026-10-15), and 1-2C is the usual
   allowance for FPV packs (inference). With an adjustable charger, set 0.6 A.
 - New packs arrive at storage charge (about 3.8 V per cell). Charge fully before the first test; return unused packs

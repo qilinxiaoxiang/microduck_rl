@@ -1,3 +1,4 @@
+import { batteryPercent } from "./battery-percent.js";
 // Live MicroDuck view: A7Z health charts plus the robot's pose on the simulator model.
 // Data arrives as Server-Sent Events from the dev-server bridge (a7z-bridge.mjs), which runs
 // desktop/duck-telemetry.py on the A7Z over SSH.
@@ -16,6 +17,10 @@ const fmt = (v, d = 1) => v == null || Number.isNaN(v) ? "–" : v.toFixed(d);
 const health = [];            // 2 Hz records with temps, clock, voltages
 let latest = null, latestAt = 0, lastBrain = null, lastArrival = 0, lastT = 0, online = false, lostSince = null, bootId = null;
 let windowS = 600, hoverT = null, cpuStart = null;
+// lastMessage: anything on the event stream (the bridge sends a heartbeat every second); alive: the bridge's own count
+// of seconds without an A7Z record, and when it arrived. The outage shown comes from the bridge, which never sleeps.
+let lastMessage = Date.now(), alive = null;
+const STREAM_SILENT_MS = 5000;
 
 const ZONES = [["cpub", "大核"], ["cpul", "小核"], ["gpu", "GPU"], ["ddr", "内存"]];
 const JOINTS = {
@@ -187,7 +192,15 @@ function event(text, t = Date.now() / 1000) {
   $("#events").prepend(li);
 }
 
+// Seconds since the last A7Z record: the bridge's count when its heartbeat is fresh, else this page's own.
+function lostSeconds() {
+  if (alive && Date.now() - alive.at < 3000) return alive.lost_s + (Date.now() - alive.at) / 1000;
+  return lostSince ? Date.now() / 1000 - lostSince : null;
+}
+
 function ingest(record) {
+  lastMessage = Date.now();
+  if (record.alive) { alive = {lost_s: record.alive.lost_s, at: Date.now()}; return; }
   if ("driver" in record) { remote.showDriver(record.driver); if (!record.history) return; }
   if ("shutdown" in record) { showShutdown(record.shutdown); if (!record.history) return; }
   if (record.camera) { showCamera(record.camera); if (!record.history) return; }
@@ -202,12 +215,13 @@ function ingest(record) {
     if (record.link === "closed" && record.error && !online) $("#link").title = record.error;
     return;
   }
-  lastArrival = Date.now(); lastT = record.t;
   if (!online) {
+    const gone = lostSeconds();
     online = true;
-    event(lostSince ? `重新连上（失联 ${Math.round(lastArrival / 1000 - lostSince)} 秒）` : "已连上 A7Z", record.t);
+    event(gone != null && gone > LOST_S ? `重新连上（失联 ${Math.round(gone)} 秒）` : "已连上 A7Z", record.t);
     lostSince = null; cpuStart = null;
   }
+  lastArrival = Date.now(); lastT = record.t;
   if (record.brain) lastBrain = record.brain;
   if (record.touch) showTouch(record.touch);
   if (record.temps) {
@@ -222,7 +236,17 @@ function ingest(record) {
   setPoseTarget(record.brain);
 }
 
+let lastWatch = Date.now();
 function watch() {
+  if (document.hidden) return;  // a background page's timers stall; resume() picks up from the bridge's figures
+  // watch runs every 250 ms: a longer gap means this page was asleep (iOS suspends a home-screen app without always
+  // sending visibilitychange), so the silence is the page's own, not the robot's
+  const slept = Date.now() - lastWatch > 2000;
+  lastWatch = Date.now();
+  if (slept) return resume();
+  // A stream that hears nothing, not even the heartbeat, is dead (a phone woken from sleep, a half-open TCP link):
+  // EventSource does not notice that by itself, so reopen it.
+  if (Date.now() - lastMessage > STREAM_SILENT_MS || source?.readyState === EventSource.CLOSED) connect();
   const silent = (Date.now() - lastArrival) / 1000;
   if (online && silent > LOST_S) {
     online = false; lostSince = lastArrival / 1000;
@@ -236,10 +260,12 @@ function watch() {
   } else if (online) {
     const up = latest?.up ?? 0;
     link.className = "online"; document.title = "MicroDuck 真机";
-    link.textContent = `A7Z 在线 · 开机 ${Math.floor(up / 3600) ? Math.floor(up / 3600) + " 小时 " : ""}${Math.floor(up / 60) % 60} 分`;
-  } else if (lostSince) {
+    link.textContent = `A7Z 在线 · 开机 ${Math.floor(up / 3600) ? Math.floor(up / 3600) + " 小时 " : ""}${Math.floor(up / 60) % 60} 分`
+      + (lastBrain?.running && lastBrain.battery_dv != null ? ` · 电池 ${(lastBrain.battery_dv / 10).toFixed(1)} V，约 ${batteryPercent(lastBrain.battery_dv)}%` : "");
+  } else if (lostSeconds() > LOST_S) {
+    const gone = lostSeconds();
     link.className = "lost";
-    link.textContent = `A7Z 失联 ${Math.round(Date.now() / 1000 - lostSince)} 秒（${clock(lostSince)} 起），正在重连`;
+    link.textContent = `A7Z 失联 ${Math.round(gone)} 秒（${clock(Date.now() / 1000 - gone)} 起），正在重连`;
   } else {
     link.className = "wait"; link.textContent = "正在连接 A7Z…";
   }
@@ -247,13 +273,27 @@ function watch() {
   drawCharts();
 }
 
+let source = null, streamOpened = false;
 function connect() {
-  const source = new EventSource(`/api/a7z/stream?client=${clientId()}`);
-  source.onmessage = e => ingest(JSON.parse(e.data));
-  let opened = false;  // a reopened event stream means the local service may have restarted and ended the camera stream
-  source.onopen = () => { if (opened) $("#camImg").src = camUrl(); opened = true; };
-  source.onerror = () => { $("#link").title = "本机服务连接断开，浏览器会自动重连"; };
+  source?.close();
+  lastMessage = Date.now();  // the new stream gets STREAM_SILENT_MS to say something
+  const s = source = new EventSource(`/api/a7z/stream?client=${clientId()}`);
+  s.onmessage = e => { if (s === source) ingest(JSON.parse(e.data)); };
+  // a reopened event stream means the local service may have restarted and ended the camera stream
+  s.onopen = () => { if (streamOpened) $("#camImg").src = camUrl(); streamOpened = true; };
+  s.onerror = () => { $("#link").title = "本机服务连接断开，正在重连"; };
 }
+// Back from the background (phone home-screen app, a hidden tab): the old stream is usually dead and this page's own
+// clock counted the sleep, so drop its view of the link and reopen at once; the bridge's figures say what happened.
+function resume() {
+  if (document.hidden) return;
+  if (online) { online = false; lostSince = null; }
+  alive = null; lastWatch = Date.now();
+  connect();
+}
+document.addEventListener("visibilitychange", resume);
+window.addEventListener("pageshow", e => { if (e.persisted) resume(); });
+window.addEventListener("online", resume);
 
 // ── Charts ──────────────────────────────────────────────────────────────
 // One canvas per measure (one y axis each), shared time axis and shared hover crosshair.
@@ -418,6 +458,7 @@ function showNow() {
   if (b.running || b.standby) {
     items.push(["IMU 延迟", fmt(b.imu_age_ms, 0) + " ms"]);
     if (b.running) items.push(["舵机故障", b.hw_faults?.length ? b.hw_faults.join(", ") : "无"]);
+    if (b.running && b.battery_dv != null) items.push(["电池", `${fmt(b.battery_dv / 10, 1)} V，约 ${batteryPercent(b.battery_dv)}%`]);
     items.push([b.running ? "本 tick 缺读" : "没回话的舵机", b.missing?.length ? b.missing.join(", ") : "无"]);
   }
   if (cpuStart && r.t - cpuStart.t >= 10) items.push(["本监视的 A7Z 开销", `一个核的 ${fmt((r.cpu_s - cpuStart.cpu_s) / (r.t - cpuStart.t) * 100, 1)}%（${Math.round(r.t - cpuStart.t)} 秒平均）`]);

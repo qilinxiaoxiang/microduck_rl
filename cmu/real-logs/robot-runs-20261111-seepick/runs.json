@@ -1,0 +1,36 @@
+[
+ {
+  "run": 1,
+  "tag": "seepick-post-turn-yaw-fall",
+  "brain_log": "duck_wired_log_app1111-135248.jsonl",
+  "t0": 1794423510.0,
+  "window": [
+   1794423505.0,
+   1794423557.5
+  ],
+  "window_rel_t0": [
+   -5.0,
+   47.5
+  ],
+  "rows": 2479,
+  "file": "run1-seepick-post-turn-yaw-fall.jsonl.gz",
+  "outcome": "approach walked ~0.3 m to x 0.17 y -0.07; aim turned in place to bearing -21 deg; body yaw/roll oscillation grew after the turn, fell at +32.5 s; seepick then failed with 'walk_wired is in stand mode'"
+ },
+ {
+  "run": 2,
+  "tag": "namecall-headyaw-oscillation-fall",
+  "brain_log": "duck_wired_log_app1111-135248.jsonl",
+  "t0": 1794423510.0,
+  "window": [
+   1794423810.0,
+   1794423870.0
+  ],
+  "window_rel_t0": [
+   300.0,
+   360.0
+  ],
+  "rows": 2844,
+  "file": "run2-namecall-headyaw-oscillation-fall.jsonl.gz",
+  "outcome": "standing still at zero command (gyro 0.00); namecall turned the head yaw to -0.355 rad to look at the owner (+337.5 to +338.1 s); at +339.0 s the head-yaw action began a growing oscillation (+-3 rad), body yaw rate to 8 rad/s, leg currents to 6 A, guard to stand at +339.76 s, fell"
+ }
+]

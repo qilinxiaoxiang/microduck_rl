@@ -31,6 +31,13 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
                                             in time.time() seconds, given here as age), the jaw's holding bit and 0.
                                             The jaw follows the trained mouth timeline (SP_JAW below); walk_wired.py
                                             drives it, feeds the holding bit and returns to stand61 after the rise.
+  {"mode": "seepick", "object": {"u": 330.5, "v": 250.0, "w": 28.0, "t": 1793000000.0, "seen": true}}
+                                            T2, the pick that watches the picture (seepickpix61.onnx, task
+                                            Mjlab-SeeingPickPix-FromPick-MicroDuck-CMU-Plugged): the same mode, jaw
+                                            and guards; an object given as the tracker's box (track_iface.py: centre
+                                            u, v and width w in px of the 640 x 360 picture, capture time t of that
+                                            detection, seen = the newest processed frame had it) selects it at the
+                                            switch. Body slots 55..60 [u, v, width, age, holding, visible].
   {"mode": "kick", "foot": "left", "id": 7} Pollen's ball kick (kick_left61 / kick_right61.onnx), one shot per new id
                                             and only from stand or walk mode: KICK_TICKS policy ticks (0.5 s) with an
                                             all-zero command, then walk mode at zero command (stand61). The action
@@ -97,6 +104,14 @@ GP_REST_PHASE = 0.80
 # 0.34-0.40); here the same timeline in jaw_ctl degrees, "grip" once closed (current-limited squeeze).
 SP_PERIOD = 4.0
 SP_AGE_MAX = 2.0
+# T2 with the holding bit keeps the neck bowed (-1.14 rad on the robot, stand61's default +0.35) and stand61 threw it back and
+# fell, 2026-11-01. From this phase, once holding, seepick61 finishes the rise (t2-chain-20261101/README.md).
+SP_RISE_OLD_PHASE = 0.50
+# T2 on the robot closes at one spot whatever the ball: tip x 0.118-0.122, y 0.003-0.006 at phase 0.35 in all four picks of 2026-11-01
+# (beak_at_close.py). Head yaw moves the tip 0.060 m/rad there (beak_jacobian.py), so a pick can carry "yaw_off" (rad), added to T2's
+# head yaw goal over these phases. Head and neck pitch cannot do the same for x: they move the tip along nearly the same line, x and z together.
+SP_YAW_OFF_MAX = 0.3
+SP_YAW_OFF_PHASES = (0.05, 0.25, 0.44, 0.55)
 SP_JAW_OPEN_DEG = 22.0
 SP_JAW_REST_DEG = 2.0
 SP_JAW = dict(open_start=0.02, open_end=0.10, close_start=0.34, close_end=0.40)
@@ -190,7 +205,9 @@ TURN_MAX = 2.0
 # approach run (2026-10-24) turned left the same way. walk61 starts stepping in place only above a turn command of about
 # 1 (clip 1.0: 14 deg in 6 s); with clip 2.0 and no drift vtheta +-0.5 turns +-170 deg in 6 s. The robot's drift while
 # turning in place is not measured yet (turn_test.py --vx 0).
-SPIN_TURN_MAX = 2.0
+# Robot 2026-11-01, 51 spins binned by input (spins_compact.jsonl): 18-27 deg/s at 1.0-1.5, -4 and +5 deg/s from 1.5 up, with the tilt highest there,
+# and both spin falls (runs 8, 10) at the 1.55 the heading term reached. Wind-up from a stall may feed that bin, so the clamp is a test. Partial: no retrain.
+SPIN_TURN_MAX = 1.25
 ARC_LEAD = 0.35
 # Gains 2026-10-23: with KP 2, KI 1 and the integral capped at 0.5 rad s the integral could not cover a steady drift, so
 # the heading settled left of the start (robot: +40 deg in 3 s, then +10 deg in 8 s). As-built sim, yaw torque 0.020 N m,
@@ -406,7 +423,8 @@ class Brain:
         self.fall_for = 0.0  # s the fall prediction has held (debounce)
         self.lying_for = 0.0  # s the trunk has read lying (FALLEN_Z)
         self.fall_t = None  # time of the last detector tick
-        names = ["walk", "stand"] + [k for k in ("groundpick", "seepick", "sitstand", "kick_left", "kick_right")
+        names = ["walk", "stand"] + [k for k in ("groundpick", "seepick", "seepickpix", "sitstand", "kick_left",
+                                                 "kick_right")
                                      if os.path.exists(os.path.join(models, k + "61.onnx"))]
         self.sessions = {k: ort.InferenceSession(os.path.join(models, k + "61.onnx"), session_options()) for k in names}
         for k, sess in self.sessions.items():
@@ -430,6 +448,13 @@ class Brain:
         self.gp_phase = 0.0  # ground-pick phase phi handed to the policy; follows want["phase"] at 1/GP_PERIOD per s
         self.sp_phase = 0.0  # seeing-pick phase, 0 -> 1 at 1/SP_PERIOD per s up to want["phase"] (default 1)
         self.sp_body = np.zeros(6, dtype=np.float32)  # seeing-pick body slots last handed to the policy
+        self.sp_bit_off_phase = None  # trial (t2-chain-20261101): from this phase T2 reads holding 0, so its neck comes back
+        self.sp_blend_s = None        # trial: goals blend from the pick's last goals to stand61's over this long
+        self.sp_rise_old_phase = SP_RISE_OLD_PHASE
+        self.sp_old_rise = False
+        self.hand_blend = None
+        self.sp_yaw_off = 0.0
+        self.sp_policy = "seepick"  # "seepickpix" when the pick started with a picture object (u, v, w), fixed per pick
         self.head_cmd = np.zeros(4, dtype=np.float32)  # smoothed head pose deltas handed to walk61/stand61
         self.base_want = {"mode": "monitor"}  # the command in force outside a kick (the last one accepted)
         self.kick = None  # running kick: {"foot", "id", "ticks", "t0"}
@@ -693,12 +718,13 @@ class Brain:
                 return None, 0, info
             self.waiting = False
             was_policy = self.mode in self.POLICY_MODES
+            prev_mode = self.mode
             self.mode = want.get("mode", "monitor")
             if self.getup is not None:
                 print(f"getup: {self.getup['phase']} ended by the switch to {self.mode}", flush=True)
             self.getup, self.fall_for, self.lying_for = None, 0.0, 0.0
             start = self.goal or q
-            if self.mode in ("groundpick", "seepick") and self.mode not in self.sessions:
+            if self.mode == "groundpick" and self.mode not in self.sessions:
                 raise RuntimeError(f"no {self.mode}61.onnx in the models directory")
             if self.mode != "sit":
                 self.sit = None
@@ -717,6 +743,13 @@ class Brain:
                 # as groundpick: the trained start is standing on stand61, phase 0
                 self.ramp, self.goal = None, dict(start)
                 self.sp_phase, self.sp_body[:] = 0.0, 0.0
+                # T2 (seepickpix61.onnx): the object comes as the tracker's picture box; the form at the switch picks
+                # the policy for the whole pick
+                self.sp_policy = "seepickpix" if is_pix_object(want.get("object")) else "seepick"
+                self.sp_old_rise = False
+                self.sp_yaw_off = float(np.clip(float((want.get("object") or {}).get("yaw_off", 0.0)), -SP_YAW_OFF_MAX, SP_YAW_OFF_MAX))
+                if self.sp_policy not in self.sessions:
+                    raise RuntimeError(f"no {self.sp_policy}61.onnx in the models directory")
                 self.head_cmd[:] = 0
                 if not was_policy:
                     self.last_action[:] = 0
@@ -738,6 +771,8 @@ class Brain:
             elif self.mode == "walk":
                 if not was_policy:
                     self.last_action[:] = 0
+                if prev_mode == "seepick" and self.sp_blend_s:
+                    self.hand_blend = (now, self.sp_blend_s, dict(self.goal))
                 self.head_cmd[:] = 0
                 if self.walk_ramp > 0:
                     # legacy open-loop ramp to the policy pose: tips the real robot forward before the policy
@@ -810,8 +845,19 @@ class Brain:
                 if target > self.sp_phase:
                     self.sp_phase = min(target, self.sp_phase + 0.02 / SP_PERIOD)
                 a = 2 * math.pi * self.sp_phase
-                command, head, policy = [math.cos(a), math.sin(a), 0.0], np.zeros(4, dtype=np.float32), "seepick"
-                self.sp_body[:] = seepick_body(self.sp_body, want.get("object"), want.get("_holding"), now)
+                command, head, policy = [math.cos(a), math.sin(a), 0.0], np.zeros(4, dtype=np.float32), self.sp_policy
+                holding_in = want.get("_holding")
+                if self.sp_bit_off_phase is not None and self.sp_phase >= self.sp_bit_off_phase:
+                    holding_in = False
+                if (self.sp_rise_old_phase is not None and policy == "seepickpix" and holding_in
+                        and self.sp_phase >= self.sp_rise_old_phase and "seepick" in self.sessions):
+                    # the bite is done and the picture has nothing more to say: the floor-object policy, on the same
+                    # phase clock, brings the neck back with the holding bit on (T2 keeps it bowed, robot 2026-11-01)
+                    self.sp_policy, policy, self.sp_old_rise = "seepick", "seepick", True
+                    self.sp_body[:] = [0.087, 0.0, 0.013, SP_AGE_MAX, 1.0, 0.0]
+                    print(f"seepick61 takes the rise at phase {self.sp_phase:.3f}", flush=True)
+                body_fn = seepickpix_body if policy == "seepickpix" else seepick_body
+                self.sp_body[:] = body_fn(self.sp_body, None if self.sp_old_rise else want.get("object"), holding_in, now)
                 info["sp_phase"], info["sp_body"] = round(self.sp_phase, 4), [round(float(v), 4) for v in self.sp_body]
                 info["sp_jaw"] = seepick_jaw(self.sp_phase)
             elif self.mode == "kick":
@@ -889,6 +935,12 @@ class Brain:
                 if np.any(head != 0):
                     info["head_cmd"] = np.round(head, 3).tolist()
             body = self.sp_body if self.mode == "seepick" else np.zeros(6)
+            yaw_off = 0.0
+            if self.mode == "seepick" and self.sp_yaw_off:
+                yaw_off = self.sp_yaw_off * float(np.interp(self.sp_phase, SP_YAW_OFF_PHASES, (0.0, 1.0, 1.0, 0.0)))
+                # T2 hides it from itself: seeing the joint off its goal it took back two thirds of the offset (sim, dy -2 cm)
+                state = state.copy()
+                state[6 + OBSERVATION_DOF_ORDER.index("head_yaw")] -= yaw_off
             obs = np.concatenate([state, self.last_action, command, head, body]).astype(np.float32)
             sess = self.sessions[policy]
             info["policy"] = policy
@@ -902,6 +954,15 @@ class Brain:
             self.last_action = action.astype(np.float32)
             self.goal = clamp_goal({n: self.default[n] + float(action[k]) if n in self.default else self.goal[n]
                                     for k, n in enumerate(OBSERVATION_DOF_ORDER)})
+            if yaw_off:
+                self.goal = clamp_goal(dict(self.goal, head_yaw=self.goal["head_yaw"] + yaw_off))
+                info["sp_yaw_off"] = round(yaw_off, 3)
+            if self.hand_blend is not None:
+                w = (now - self.hand_blend[0]) / self.hand_blend[1]
+                if self.mode != "walk" or w >= 1.0:
+                    self.hand_blend = None
+                else:
+                    self.goal = {n: self.hand_blend[2][n] + w * (self.goal[n] - self.hand_blend[2][n]) for n in self.goal}
             info["action"] = action.round(4).tolist()
             if self.mode == "kick":
                 self.kick["ticks"] += 1
@@ -923,6 +984,37 @@ def seepick_body(prev, obj, holding, now):
     else:
         out[3] = SP_AGE_MAX if not np.any(out[:3]) else min(SP_AGE_MAX, float(out[3]) + 0.02)
     out[4], out[5] = 1.0 if holding else 0.0, 0.0
+    return out
+
+
+def is_pix_object(obj):
+    """True for a picture object {"u", "v", "w", "t", "seen"} (T2), False for a floor object {"x", "y", "size", "t"}."""
+    return isinstance(obj, dict) and all(k in obj for k in ("u", "v", "w", "t"))
+
+
+# T2 picture slots (microduck_rl cmu_seeing_pix_env_cfg.pix_object_command, cmu/grasp/T2-PIXEL.md): the track's box
+# centre in continuous pixels of the 640 x 360 upright picture (tracker/track_iface.py), normalised to -1..1, its width
+# over the picture width, the capture age of that detection, the holding bit and whether the newest processed frame
+# contained the object.
+PIX_W, PIX_H = 640, 360
+
+
+def seepickpix_body(prev, obj, holding, now):
+    """Body slots [u, v, width, age, holding, visible] from the newest track line's object
+    {"u", "v", "w" (px, of the last detection), "t" (its capture time, time.time() s), "seen" (the newest processed
+    frame had a detection of it), optional "img_w", "img_h"}, or the previous slots aging when there is none. As in
+    training, u, v, width hold the last detection while the age grows to SP_AGE_MAX and visible reads 0."""
+    out = np.array(prev, dtype=np.float32)
+    if obj is not None:
+        iw, ih = float(obj.get("img_w", PIX_W)), float(obj.get("img_h", PIX_H))
+        out[0] = (float(obj["u"]) - iw / 2) / (iw / 2)
+        out[1] = (float(obj["v"]) - ih / 2) / (ih / 2)
+        out[2] = float(obj["w"]) / iw
+        out[3] = float(np.clip(now - float(obj["t"]), 0.0, SP_AGE_MAX))
+        out[5] = 1.0 if obj.get("seen", True) else 0.0
+    else:
+        out[3] = min(SP_AGE_MAX, float(out[3]) + 0.02)
+    out[4] = 1.0 if holding else 0.0
     return out
 
 

@@ -27,11 +27,14 @@ def counts(pressed=(), rise=2000.0):
     return [c + (rise if p in pressed else 0.0) for p, c in zip(hold.PADS, REST)]
 
 
-def run(est, seconds, pressed=(), legs_ma=None, load=None, age=0.01):
+IN_HAND_W, STILL_W = 0.6, 0.04  # rad/s body gyro: swaying in a hand, resting on the floor (robot 2026-10-30)
+
+
+def run(est, seconds, pressed=(), legs_ma=None, load=None, age=0.01, gyro=None):
     """Feed one constant input for `seconds`; returns the per-tick (s, gains) history."""
     out = []
     for _ in range(int(round(seconds / DT))):
-        est.update(DT, counts(pressed), age, legs_ma, load)
+        est.update(DT, counts(pressed), age, legs_ma, load, gyro)
         out.append((est.s, est.gains()))
     return out
 
@@ -82,15 +85,81 @@ class Estimator(unittest.TestCase):
         run(self.est, 1.0, pressed=GRIP, legs_ma=200)
         down = run(self.est, 0.5, pressed=GRIP, legs_ma=1000)  # set down, hand still on
         knee = [h[1]["left_knee"] for h in down]
-        self.assertGreater(knee[1], 120)        # no slow ramp back: the gain follows the (smoothed) load
-        self.assertGreaterEqual(knee[3], 170)   # LOAD_TAU 0.06 s: most of the gain within 0.08 s
-        self.assertEqual(knee[12], 200)         # and exactly the full gain within 0.25 s
+        land = next(k for k, h in enumerate(down) if h[0] > 0.0)  # the first tick the authority comes back
+        self.assertTrue(all(v == hold.KP_LEG_MIN for v in knee[:land]))  # soft until the load has stood LAND_S
+        self.assertLessEqual(land * DT, hold.LAND_S + 0.1)  # load smoothing (LOAD_TAU) plus LAND_S
+        self.assertGreaterEqual(knee[land], 190)  # then most of the gain at once, no slow ramp back
+        self.assertEqual(knee[land + 3], 200)     # and exactly the full gain 0.06 s later
         self.assertEqual(down[-1][0], 1.0)              # landed: the hand term is off until the hand leaves
         letgo = run(self.est, 0.4, legs_ma=1000)
         s = [h[0] for h in letgo]
         self.assertEqual(s[-1], 1.0)
         reach = next(k for k, v in enumerate(s) if v >= 0.99) * DT
         self.assertLess(reach, 0.2)
+
+    def test_a_hand_shifting_on_the_head_in_the_air_keeps_the_hold(self):
+        """2026-10-30 01:33 (pickup-struggle-20261030): in the air, the grip coverage fell 0.46 -> 0.17 for 0.15 s
+        while the hand shifted; the gate shrank, the authority came back, the policy's leg motion drew 320-330 mA,
+        read as load 0.80, and the hold latched 'landed' and gave walk61 full authority in the hand."""
+        run(self.est, 1.0, pressed=GRIP, legs_ma=1000)
+        run(self.est, 1.0, pressed=GRIP, legs_ma=200)  # lifted
+        self.assertTrue(self.est.airborne and not self.est.landed)
+        shift = run(self.est, 0.16, pressed=("R2",), legs_ma=200)  # only a small pad still covered: e above GATE_LO
+        self.assertGreater(self.est.e, hold.GATE_LO)
+        spike = run(self.est, 0.06, pressed=GRIP, legs_ma=1000)  # 3 ticks of servo effort, shorter than LAND_S
+        after = run(self.est, 0.5, pressed=GRIP, legs_ma=200)
+        for hist in (shift, spike, after):
+            self.assertTrue(all(s == 0.0 for s, _ in hist))
+            self.assertTrue(all(g["left_knee"] == hold.KP_LEG_MIN for _, g in hist))
+        self.assertFalse(self.est.landed)
+        run(self.est, hold.REGRIP_S + 0.25, legs_ma=200, gyro=IN_HAND_W)  # really let go in the air: after REGRIP_S
+        self.assertFalse(self.est.airborne)                                 # the lift ends, a fall gets the policy
+        self.assertEqual(self.est.s, 1.0)
+
+    def test_a_regrip_that_empties_the_pads_in_the_air_keeps_the_hold(self):
+        """2026-10-30 02:15:45: the hand moved R1 -> L2, coverage under GATE_LO for 0.17 s while the body swung at
+        0.5-1 rad/s; the lift ended and walk61 flailed in the hand for 3 s."""
+        run(self.est, 1.0, pressed=GRIP, legs_ma=1000)
+        run(self.est, 1.0, pressed=GRIP, legs_ma=200, gyro=IN_HAND_W)
+        self.assertTrue(self.est.airborne and not self.est.landed)
+        gap = run(self.est, 0.2, legs_ma=200, gyro=IN_HAND_W)
+        back = run(self.est, 0.6, pressed=("L2",), legs_ma=200, gyro=IN_HAND_W)  # a smaller pad first, e still low
+        gap2 = run(self.est, 0.3, legs_ma=200, gyro=1.5)
+        regrip = run(self.est, 1.0, pressed=GRIP, legs_ma=200, gyro=IN_HAND_W)
+        for hist in (gap, back, gap2, regrip):
+            self.assertTrue(all(s == 0.0 for s, _ in hist))
+            self.assertTrue(all(g["left_knee"] == hold.KP_LEG_MIN for _, g in hist))
+        self.assertTrue(self.est.airborne)
+
+    def test_set_down_still_and_let_go_hands_back_at_once_despite_the_regrip_allowance(self):
+        """02:15:50: set down with the hand on, |gyro| 0.02-0.05, leg current at kp 80 as in the air (110 mA); the
+        hand leaves and the policy has the robot back as fast as before the regrip allowance: e falls under GATE_LO
+        with LETGO_TAU, then UP_RATE (0.25 s from the pads starting to empty to s 1.0 that run)."""
+        run(self.est, 1.0, pressed=GRIP, legs_ma=1000)
+        run(self.est, 1.0, pressed=GRIP, legs_ma=200, gyro=IN_HAND_W)
+        run(self.est, 0.4, pressed=GRIP, legs_ma=200, gyro=STILL_W)  # on the floor, hand on, current says nothing
+        self.assertEqual(self.est.s, 0.0)
+        letgo = run(self.est, 0.3, legs_ma=200, gyro=STILL_W)
+        reach = next(k for k, h in enumerate(letgo) if h[0] == 1.0)
+        self.assertLessEqual(reach * DT, 0.2)
+        self.assertEqual(letgo[-1][1]["left_knee"], 200)
+
+    def test_held_still_in_the_air_and_regripped_keeps_the_hold_once_the_body_moves(self):
+        """Stillness only counts when it has lasted STILL_S at the moment the pads empty: a regrip that starts from a
+        still hold moves the body within a tick or two, so the lift stands; a hold this still that stays still with
+        no hand on the pads is resting on something."""
+        run(self.est, 1.0, pressed=GRIP, legs_ma=1000)
+        run(self.est, 1.0, pressed=GRIP, legs_ma=200, gyro=IN_HAND_W)
+        run(self.est, 0.1, pressed=GRIP, legs_ma=200, gyro=STILL_W)  # shorter than STILL_S
+        gap = run(self.est, 0.2, legs_ma=200, gyro=IN_HAND_W)
+        self.assertTrue(all(s == 0.0 for s, _ in gap))
+
+    def test_without_a_gyro_letting_go_ends_the_lift_after_the_regrip_allowance(self):
+        run(self.est, 1.0, pressed=GRIP, legs_ma=1000)
+        run(self.est, 1.0, pressed=GRIP, legs_ma=200)
+        letgo = run(self.est, hold.REGRIP_S + 0.2, legs_ma=200)
+        self.assertTrue(all(s == 0.0 for s, _ in letgo[:int(hold.REGRIP_S / DT) - 1]))
+        self.assertEqual(letgo[-1][0], 1.0)
 
     def test_feet_unloaded_without_a_hand_is_a_fall_and_changes_nothing(self):
         hist = run(self.est, 1.0, legs_ma=200)
@@ -147,6 +216,36 @@ class Estimator(unittest.TestCase):
         run(est, 5.0, pressed=GRIP)
         self.assertEqual([round(b) for b in est.base[:2]], [round(b) for b in base[:2]])  # covered pads keep it
         self.assertGreater(est.e, 0.9)
+
+    def test_a_bad_low_block_does_not_latch_a_pad_on(self):
+        """2026-10-30 02:09:32: R2 read 1400 under its rest value a few times (misaligned blocks), the baseline sank
+        with it, and from then on the untouched pad read as fully covered (lv 1.0, e 0.142 for good)."""
+        est = hold.HoldEstimator({}, kp_rl=200)
+        run(est, 1.0)
+        for _ in range(25):  # half a second of bad blocks on R2
+            bad = counts()
+            bad[3] -= 1400.0
+            est.update(DT, bad, 0.01)
+        run(est, 1.0)
+        self.assertEqual(est.levels, [0.0] * 5)
+        self.assertLess(est.e, hold.GATE_LO)
+
+    def test_set_down_and_letting_go_after_bad_blocks_hands_back_at_once(self):
+        """The 02:10 robot run: a bad low block on R2, a lift, set down with the hand on (floor current too low to
+        count as landed), then the hand leaves; the authority must come back within 0.3 s, not stay at kp 80."""
+        for _ in range(25):
+            bad = counts()
+            bad[3] -= 1400.0
+            self.est.update(DT, bad, 0.01, 1000)
+        run(self.est, 1.0, pressed=GRIP, legs_ma=1000)
+        run(self.est, 2.0, pressed=GRIP, legs_ma=200, gyro=IN_HAND_W)  # lifted, hands shifted
+        run(self.est, 2.0, pressed=GRIP, legs_ma=300, gyro=STILL_W)    # set down, hand on, load 0.125: not landed
+        self.assertEqual(self.est.s, 0.0)
+        letgo = run(self.est, 0.5, legs_ma=300, gyro=STILL_W)
+        reach = next((k for k, h in enumerate(letgo) if h[0] >= 0.95), None)
+        self.assertIsNotNone(reach)
+        self.assertLess(reach * DT, 0.3)
+        self.assertEqual(letgo[-1][1]["left_knee"], 200)
 
     def test_hold_file_round_trip_and_missing_file(self):
         with tempfile.TemporaryDirectory() as d:

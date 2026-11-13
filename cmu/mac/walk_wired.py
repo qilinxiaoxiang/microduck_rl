@@ -19,7 +19,8 @@ the simulation), stand mode returns to plain STAND, torque stays on, and once th
 not switched on until the servos read 7.6 V or more (a charged or swapped pack), which deletes it. --supply battery
 applies the guard from the start; --supply bench switches it off (the bench rail sags under 6.6 V while walking,
 which the guard reads as an empty pack) but keeps the Alert-bit packets and the hardware-error watch. A failed voltage read is a skipped sample and never
-releases torque. Armed, the loop also reads Hardware Error Status once a second; a fault other than the battery's
+releases torque. After the stop, 6.2 V on three samples (no walking load left to sag) sits the robot down and turns torque
+off, by 6 s at the latest. --supply-file (the phone's backpack switch) changes the guard while running, also while driving. Armed, the loop also reads Hardware Error Status once a second; a fault other than the battery's
 input-voltage flag freezes the policy on its last goals, as a dropped status packet does on the bench.
 
 Pickup additions (2026-10-16, walk_brain.py and jaw_ctl.py have the details):
@@ -37,6 +38,8 @@ Pickup additions (2026-10-16, walk_brain.py and jaw_ctl.py have the details):
                                           jaw's holding bit (jaw_ctl.holding) and, once the rise is complete, writes
                                           walk mode at zero command (stand61) with the jaw still gripping. Guarded as
                                           groundpick (--max-tilt-gp, a trip holds the last goals in monitor mode).
+                                          An object {"u", "v", "w", "t", "seen"} (the tracker's box) runs T2,
+                                          seepickpix61.onnx (walk_brain.seepickpix_body); refused without that file.
 
 Remote-control additions (2026-10-20, walk_brain.py has the details):
   {"mode": "kick", "foot": "left" | "right", "id": 7}   one kick per new id, from stand or walk mode: 25 ticks of
@@ -108,14 +111,16 @@ from duck_sound import Voice  # noqa: E402
 from hold import DOWN_RATE, HOLD_FILE, KP_STEP, UP_RATE, HoldEstimator, legs_current_ma, read_hold_file  # noqa: E402
 from jaw_ctl import GOAL_CURRENT_MA, JAW_ID, POSE_JOINTS, JawCtl  # noqa: E402
 from dxl_fast import _packet, crc16  # noqa: E402
-from battery import (ADDR_HW_ERROR, ADDR_PRESENT_VOLTAGE, ADDR_SHUTDOWN, INPUT_VOLTAGE_BIT, STOP_MARKER,  # noqa: E402
-                     BatteryGuard, status_ok, stop_command, stop_settled, voltage_alert_only)
+from battery import (ADDR_HW_ERROR, ADDR_PRESENT_VOLTAGE, ADDR_SHUTDOWN, ALARM_S, INPUT_VOLTAGE_BIT, STOP_MARKER,  # noqa: E402
+                     BatteryGuard, apply_supply_switch, floor_command, status_ok, stop_command, stop_settled,
+                     voltage_alert_only)
 
 ADDR_TORQUE, ADDR_P_GAIN, ADDR_GOAL, ADDR_VEL = 64, 84, 116, 128
 # The per-tick state read: Present Current (126, 2 B signed, 1 mA; the XL330 measures it at its supply input), Present
 # Velocity (128, 4 B) and Present Position (132, 4 B) as one 10-byte block. The current adds 2 bytes to each of the 15
 # status packets: 0.3 ms on the 1 Mbaud servo bus, 0.6 ms on the A7Z's 500 kbaud J12 link, no extra transaction.
 ADDR_CUR = 126
+ADDR_TEMP = 146
 STATE_FMT = "<hii"
 STATE_SIZE = struct.calcsize(STATE_FMT)
 MAX_STATUS_LEN = 64  # status packet LEN field (instruction + error + params + CRC); the largest read here is 4 + 10
@@ -554,14 +559,20 @@ GP_DONE_PHASE = 0.9  # inside the policy's standing rest segment: the rise is co
 SP_DONE_PHASE = 0.9  # seeing pick: trained stand-up ends at 0.66 (TIMELINE return_end), then standing still
 
 
-def seepick_block(want, jaw_calibrated):
+def seepick_block(want, jaw_calibrated, brain_sessions=()):
     """Why a switch to the seeing pick must not start, or None. Without an object the policy reads (0, 0, 0) at age 2,
     an object at its feet; without the jaw marks the mouth stays limp (seepick rehearsal 2026-10-27)."""
     if not jaw_calibrated:
         return "the jaw is not calibrated (mark closed and open first)"
     obj = want.get("object")
-    if not isinstance(obj, dict) or any(k not in obj for k in ("x", "y", "size", "t")):
-        return 'no "object" with x, y, size and t in the command'
+    if not isinstance(obj, dict):
+        return 'no "object" in the command'
+    if all(k in obj for k in ("u", "v", "w", "t")):     # T2: the tracker's box, seepickpix61.onnx
+        if "seepickpix" not in brain_sessions:
+            return "no seepickpix61.onnx in the models directory"
+        return None
+    if any(k not in obj for k in ("x", "y", "size", "t")):
+        return 'no "object" with x, y, size and t (floor) or u, v, w and t (picture) in the command'
     return None
 CMD_ALPHA = 0.2  # velocity command EMA per 20 ms tick, Pollen's robotd default
 # No IMU sample this long: the Brain holds its last goals (blind, so no policy step). 2026-10-15 the Pi Zero lost power
@@ -679,6 +690,89 @@ def write_cmd(path, want, why):
     print(f"STOP -> {what}: {why}", flush=True)
 
 
+# 2026-11-02 00:55 (A7Z log app1102-005438, stand-leash-20261102/fall_slice.json): the duck fell on its side, the tilt
+# stop ramped it to STAND on the floor, the right hip and knee pressed against each other 930 and 760 ticks from their
+# goals at 1.8-2.0 A, and after about a second the hip servo latched a hardware error. Measured in that log at KP 400:
+# 60 ticks of error 60 mA, 100 ticks 130 mA, 220 ticks 440 mA, 500 ticks 1550 mA. The power-up stand on the side peaked
+# at 220 ticks (head pitch) and 118 (knees), so 250 leaves that ramp as it was.
+LEASH_LYING_Z = -0.5  # body gravity z over this is lying: the Brain's own "not upright" (walk_brain.py)
+LEASH_TICKS = 250
+LEASH_BLOCKED_TICKS = 60  # lying and pinned this long: no reason to keep pushing, and 450 mA for minutes heats the servo
+LEASH_BLOCKED_S = 1.0
+LEASH_BLOCKED_MOVE_TICKS = 8  # a joint that moved this far is not blocked
+
+
+HW_ERROR_BITS = {0x01: "input voltage", 0x04: "overheating", 0x08: "encoder", 0x10: "electrical shock", 0x20: "overload"}
+
+
+def hw_error_text(bits):
+    return "+".join(n for b, n in HW_ERROR_BITS.items() if bits & b) or f"0x{bits:02x}"
+
+
+class StandLeash:
+    """Open-loop stand, lying down: a joint's goal stays within LEASH_TICKS of where the joint is, so a leg pressed
+    against the floor or the other leg gets a bounded current instead of the whole ramp's error. The ramp itself runs
+    on, so a free joint follows it. A joint engaged while lying keeps its leash after the robot is righted until it has
+    caught up (no snap of the remaining error at KP 400). Standing upright, a joint is never engaged."""
+
+    def __init__(self):
+        self.on, self.ref = set(), {}
+
+    def engaged(self):
+        return sorted(self.on)
+
+    def apply(self, goal, pos, lying, active, now):
+        """goal {id: tick}, pos present ticks in wb.IDS order -> the goal to write."""
+        if not active:
+            self.on, self.ref = set(), {}
+            return goal
+        out = dict(goal)
+        for i, p in zip(IDS, pos):
+            err = goal[i] - p
+            if abs(err) <= LEASH_TICKS:
+                self.on.discard(i)
+                self.ref.pop(i, None)
+                continue
+            if lying:
+                self.on.add(i)
+            if i not in self.on:
+                continue
+            ref_p, ref_t = self.ref.get(i, (p, now))
+            if abs(p - ref_p) > LEASH_BLOCKED_MOVE_TICKS:
+                ref_p, ref_t = p, now
+            self.ref[i] = (ref_p, ref_t)
+            limit = LEASH_BLOCKED_TICKS if lying and now - ref_t >= LEASH_BLOCKED_S else LEASH_TICKS
+            out[i] = p + max(-limit, min(limit, err))
+        return out
+
+
+def write_run_meta(args):
+    """One JSON line per brain start in <log>.meta.jsonl beside the tick log: code and policy file hashes, the
+    arguments and the gains, so run_ledger.py can say which version produced each action. The tick rows are
+    unchanged. Never stops the brain: any failure is printed and skipped."""
+    import hashlib
+    try:
+        def sha(path):
+            with open(path, "rb") as f:
+                return hashlib.sha256(f.read()).hexdigest()[:16]
+        import walk_brain as _wb
+        code = {os.path.basename(p): sha(p) for p in
+                [os.path.abspath(__file__), _wb.__file__] + [os.path.join(HERE, n) for n in ("hold.py", "jaw_ctl.py")]
+                if p and os.path.exists(p)}
+        models = {n: sha(os.path.join(args.models, n)) for n in sorted(os.listdir(args.models)) if n.endswith(".onnx")}
+        meta = dict(t=round(time.time(), 3), when=time.strftime("%Y-%m-%d %H:%M:%S"), host=os.uname().nodename,
+                    log=os.path.abspath(args.log), argv=sys.argv[1:], models_dir=os.path.abspath(args.models),
+                    code_sha=code, model_sha=models, kp_rl=_wb.KP_RL, kp_stand=_wb.KP_DEFAULT,
+                    max_action=args.max_action, max_walk_action=args.max_walk_action, max_tilt=args.max_tilt,
+                    supply=args.supply)
+        path = (args.log[:-6] if args.log.endswith(".jsonl") else args.log) + ".meta.jsonl"
+        with open(path, "a") as f:
+            f.write(json.dumps(meta) + "\n")
+        print(f"run meta -> {path}", flush=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"run meta not written: {e!r}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", default=None, help="default: the only /dev/cu.usbmodem* (Mac) or /dev/ttyACM* (A7Z)")
@@ -696,6 +790,7 @@ def main():
     ap.add_argument("--supply", choices=("auto", "bench", "battery"), default="auto",
                     help="battery guard: auto arms at 7.2 V (2S pack), battery from the start, bench off")
     ap.add_argument("--battery-marker", default=STOP_MARKER)
+    ap.add_argument("--supply-file", help="backpack switch file (bench or battery), read once a second; it overrides --supply")
     ap.add_argument("--max-action", type=float, default=MAX_ACTION, help="walk stops into stand above this |action|, rad")
     ap.add_argument("--max-walk-action", type=float, default=MAX_WALK_ACTION,
                     help="the same limit while a walking speed is commanded, rad")
@@ -737,6 +832,7 @@ def main():
     brain = Brain(args.models, compensation=args.compensation, yaw_trim_file=args.yaw_trim_file)
     print(f"yaw trim {brain.yaw_trim:+.3f} rad/s from {args.yaw_trim_file}", flush=True)
     guard = None if args.supply == "bench" else BatteryGuard(args.supply)
+    next_supply = next_alarm = 0.0
     hw_lock = take_hw_lock()  # noqa: F841  (held until exit)
     link = Link(port, args.baud, args.imu_bus)
     # The bench rail (7.1-7.3 V) is above the servos' 7.0 V Max Voltage Limit, and with Shutdown 52 (D-014) every status
@@ -745,6 +841,7 @@ def main():
     link.alert_ok = guard is None or guard.armed
     print(lock_memory(), flush=True)
     log = LogWriter(open(args.log, "a"))
+    write_run_meta(args)
 
     def _sync_log():  # a brownout loses only what is not on the card: fsync every 50 ms, off the control thread
         pause = threading.Event()  # a wall-clock wait, never the loop's (simulated) clock
@@ -811,6 +908,8 @@ def main():
     cmd_s = [0.0, 0.0, 0.0]  # EMA-smoothed (vx, vy, vtheta) handed to the Brain
     next_t = time.perf_counter()
     hw_faults, next_hw, last_block = [], time.perf_counter() + 0.5, float("-inf")
+    hw_bits = {}  # joint -> Hardware Error Status of a latched fault, for the log
+    leash = StandLeash()
     while True:
         t0 = time.perf_counter()
         got = link.sync_read(ADDR_CUR, STATE_SIZE, IDS + [JAW_ID], timeout=0.018)  # USB adds a few ms; median 6-11 ms measured
@@ -968,6 +1067,13 @@ def main():
         if guard and guard.state == "stop":
             # a kick or a sit ends through the walk policy at zero command (the Brain stands a sit up first)
             want = stop_command(torque_on, "walk" if brain.mode in ("kick", "sit") else brain.mode)
+        elif guard and guard.state == "floor":
+            seated = brain.mode == "sit" and brain.sit is not None and brain.sit["phase"] == "seated"
+            want = floor_command(torque_on, seated, now - guard.floor_t)
+            if want["mode"] == "off":
+                # through the control file: the torque-off path at the top of the loop releases the jaw and clears latches
+                write_cmd(args.cmd, want, "battery floor")
+                want = {"mode": "monitor"}
         if imu is None:
             quat, gyro, imu_valid, imu_age = (1.0, 0.0, 0.0, 0.0), (0.0, 0.0, 0.0), False, 1.0
             acc, imu_seq = None, None
@@ -1000,7 +1106,7 @@ def main():
             if faults:
                 if now - last_print > 1.0:
                     print(f"torque refused: {faults} report a hardware error (address 70) or did not answer; "
-                          "power-cycle the robot", flush=True)
+                          "the remote's torque-off key clears a hardware error", flush=True)
                 continue
             goal_written = dict(zip(IDS, pos))
             link.sync_write(ADDR_GOAL, 4, goal_written)  # hold where they are, then enable
@@ -1011,7 +1117,7 @@ def main():
         # (pollen-robotics/microduck deploy/robotd.toml [control], read 2026-10-16): "a stick snap becomes a ramp the
         # gait can follow". A for_s stop is then a ramp to zero, not a step.
         if want.get("mode") == "seepick" and brain.mode != "seepick":
-            block = seepick_block(want, jaw.calibrated)
+            block = seepick_block(want, jaw.calibrated, brain.sessions)
             if block:
                 want = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0} if brain.mode == "walk" else {"mode": brain.mode}
                 write_cmd(args.cmd, want, f"seeing pick refused: {block}")
@@ -1057,7 +1163,8 @@ def main():
         # after the tick, so the stop command has reached the Brain and any ramp to STAND has started
         holding_stand = brain.ramp is None and brain.goal is not None and \
             all(abs(brain.goal[nm] - STAND[nm]) < 1e-6 for nm in NAMES)
-        if guard and guard.state == "stop" and stop_settled(torque_on, brain.mode, holding_stand, now - guard.stop_t):
+        if guard and (guard.state == "floor" or (
+                guard.state == "stop" and stop_settled(torque_on, brain.mode, holding_stand, now - guard.stop_t))):
             holding = {"walk": "policy at zero command, torque on", "stand": "STAND, torque on"}.get(
                 brain.mode, f"{brain.mode}, torque on") if torque_on else "nothing, torque off"
             msg = guard.signal(args.battery_marker, holding)
@@ -1143,6 +1250,12 @@ def main():
             # unchanged) left the walking-phase action jumps at 57-70 per 4 s, the same as unfiltered, and fell
             # once at the stop in three walks (unfiltered: 6 of 6 stood). Pollen trains the policies unfiltered.
             goal_written = {i: to_tick(nm, goal_out[nm]) for i, nm in zip(IDS, NAMES)}
+            was_leashed = leash.engaged()
+            goal_written = leash.apply(goal_written, pos, imu_valid and info["gb"][2] > LEASH_LYING_Z,
+                                       brain.mode == "stand", now)
+            if leash.engaged() != was_leashed:
+                print("stand leash " + (f"on {[NAMES[IDS.index(i)] for i in leash.engaged()]}: lying, goal kept within "
+                                        f"{LEASH_TICKS} ticks of the joint" if leash.engaged() else "off"), flush=True)
             link.sync_write(ADDR_GOAL, 4, goal_written)
             write_delay = 0.8 * write_delay + 0.2 * (time.perf_counter() - t_mid)
         # the jaw: its own servo, its own torque; the body may be off (calibration, grip tests) or on
@@ -1163,6 +1276,19 @@ def main():
         if jaw.on and jaw.goal_deg is not None:
             measured_head = {nm: to_model(nm, t) for nm, t in zip(NAMES, pos) if nm in POSE_JOINTS}
             jaw.write(link, brain.goal or measured_head, measured_head)
+        if guard and guard.state in ALARM_S and now >= next_alarm:
+            next_alarm = now + ALARM_S[guard.state]
+            voice.quack()  # sound only: no jaw or head move on an empty pack
+        if args.supply_file and now >= next_supply:
+            next_supply = now + 1.0
+            try:
+                with open(args.supply_file) as f:
+                    guard, msg = apply_supply_switch(guard, f.read().strip())
+            except OSError:
+                msg = None  # no switch setting: the start's --supply stands
+            if msg:
+                print(msg, flush=True)
+                link.alert_ok = guard is None or guard.armed
         if guard and guard.due(now):
             volts = link.sync_read(ADDR_PRESENT_VOLTAGE, 2, IDS, timeout=0.015, allow_alert=True)
             event = guard.update(now, {i: int.from_bytes(b, "little") for i, b in volts.items()})
@@ -1177,13 +1303,21 @@ def main():
                       flush=True)
             elif event == "stop":
                 print(f"BATTERY STOP: {guard.dv / 10:.1f} V; walking stops and the robot keeps standing", flush=True)
+            elif event == "floor":
+                print(f"BATTERY FLOOR: {guard.dv / 10:.1f} V; sitting down, then torque off", flush=True)
         elif (guard is None or guard.armed) and now >= next_hw:  # half a second away from the voltage read
             next_hw = now + 1.0
             hw = link.sync_read(ADDR_HW_ERROR, 1, IDS, timeout=0.015, allow_alert=True)
             faults = [nm for i, nm in zip(IDS, NAMES) if i in hw and hw[i][0] & ~INPUT_VOLTAGE_BIT]
+            hw_bits = {nm: hw[i][0] for i, nm in zip(IDS, NAMES) if nm in faults}
             if faults != hw_faults:
-                print(f"HARDWARE ERROR (address 70) on {faults}: the policy holds its last goals; hold the robot and "
-                      "power-cycle" if faults else "hardware errors cleared", flush=True)
+                temps = link.sync_read(ADDR_TEMP, 1, [i for i, nm in zip(IDS, NAMES) if nm in faults], timeout=0.015,
+                                       allow_alert=True) if faults else {}
+                detail = ", ".join(f"{nm} {hw_error_text(hw_bits[nm])}" + (f" {temps[i][0]} C" if i in temps else "")
+                                   for i, nm in zip(IDS, NAMES) if nm in faults)
+                print(f"HARDWARE ERROR (address 70) on {faults} ({detail}): the policy holds its last goals; hold the "
+                      "robot and press the remote's torque-off key, which clears it" if faults
+                      else "hardware errors cleared", flush=True)
                 hw_faults = faults
         if (imu_age > IMU_LOST_S) != imu_lost:
             imu_lost = imu_age > IMU_LOST_S
@@ -1200,6 +1334,7 @@ def main():
                                   torque=torque_on, kp=kp_for_log(kp_now), battery_dv=guard.dv if guard else None,
                                   battery=guard.state if guard else None,
                                   battery_signalled=guard.signalled if guard else None, hw_faults=hw_faults,
+                                  hw_bits=hw_bits if hw_faults else {}, leashed=[NAMES[IDS.index(i)] for i in leash.engaged()],
                                   missing=missing, read_ms=read_ms, late=link.late,
                                   # raw record for later replay and system ID: accel (m/s2, IMU frame), IMU sample
                                   # seq, servo present ticks and the goal ticks last written, the command in force
@@ -1216,9 +1351,12 @@ def main():
             with link.lock:
                 imu_hz, link.imu_count = link.imu_count / (now - t_stat), 0
             gb = info["gb"]
+            # before the first IMU sample the quaternion is the identity placeholder, which the mount rotation turns
+            # into body g [0, -1, 0] (a robot on its side): never print it as a pose (2026-10-30, read as "side-lying")
+            g_txt = f"[{gb[0]:+.2f} {gb[1]:+.2f} {gb[2]:+.2f}]" if imu_valid else "[no IMU sample yet]"
             print(f"{brain.mode:<7} {n / (now - t_stat):4.1f} Hz loop {loop_ms:4.1f} ms misses {misses} imu "
                   f"{imu_hz:4.0f}/s age {imu_age * 1000:4.1f} ms joint age {joint_age * 1000:4.1f} ms | body g "
-                  f"[{gb[0]:+.2f} {gb[1]:+.2f} {gb[2]:+.2f}] torque {torque_on}"
+                  f"{g_txt} goals sent {torque_on}"
                   + (f" | gp phase {info['gp_phase']:.2f}" if info.get("gp_phase") is not None else "")
                   + (f" | jaw {jaw.opening_deg():.1f} deg -> {jaw.goal_deg}{' HOLDING' if jaw.holding() else ''}"
                      f"{' clamp ' + ','.join(jaw.clamps) if jaw.clamps else ''}" if jaw.on and jaw.opening_deg() is not None else "")

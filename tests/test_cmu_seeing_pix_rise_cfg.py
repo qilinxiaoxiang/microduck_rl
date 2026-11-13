@@ -19,8 +19,8 @@ def test_tasks_registered_with_distinct_experiments():
 
 
 def test_only_the_main_term_differs():
-    base = rise.make_seeing_pix_handoff_env_cfg(rise=False)
-    r = rise.make_seeing_pix_handoff_env_cfg(rise=True)
+    base = rise.make_seeing_pix_handoff_env_cfg("plugged", rise=False)
+    r = rise.make_seeing_pix_handoff_env_cfg("plugged", rise=True)
     assert set(base.rewards) == set(r.rewards)
     for k in base.rewards:
         assert r.rewards[k].weight == base.rewards[k].weight, k
@@ -50,6 +50,6 @@ def test_admission_scores_todays_exit_visibly():
 
 def test_handoff_logging_on_both_tasks():
     for flag in (False, True):
-        cfg = rise.make_seeing_pix_handoff_env_cfg(rise=flag)
+        cfg = rise.make_seeing_pix_handoff_env_cfg("plugged", rise=flag)
         assert cfg.events["track_handoff"].func is rise.track_handoff
         assert cfg.curriculum["handoff_metrics"].func is rise.handoff_metrics

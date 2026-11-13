@@ -79,3 +79,62 @@ To refit saved captures without the robot (after a new lens file, for example):
 error; the script keeps it only when every component is known to within 3 mm.
 
 After both pass, check with `approach.py --observe 8` (APPROACH.md, robot test step 4).
+
+### Tile-grid variant (2026-10-30)
+
+A floor of 1 ft (30.48 cm) tiles replaces the tape: stand the robot with the midpoint of its toes on a seam crossing,
+facing along a seam, and put the object on crossings and tile centres (left/right judged by eye, about 5 mm). The
+foot-frame origin sits `toe_x` behind the toes (printed by the script, 1.7 to 2.7 cm depending on the stance), so a
+crossing one tile ahead is `--points "<toe_x + 0.3048>,0;..."`. A 12 mm ball at 0.6 m is a 6 px blob: pass
+`--hsv-lo 0,100,100 --min-area 15 --open-px 3`, since the default 5 x 5 opening erases it. Captures from several
+runs at the same head pose merge by concatenating their `obs` lists and refitting with `--mount --from`. The 10 mm
+held-out line was set for points at 0.17 to 0.35 m; at 0.6 m the same angular error is 17 mm.
+
+### Near-range caveat and the first pick (2026-10-30 03:22)
+
+The tile-grid mount fit (rotation only, points 0.32-0.64 m) over-reads range at the pick pose: ball at x 0.098
+y -0.015 (tape), six bend-time sightings read x 0.126-0.156 (+2.8 to +5.8 cm, mean +3.6 cm), y within 1.3 cm
+(`camera-calib-20261030/seepick_1030-032226.jsonl`). The residuals of the fit itself already grow toward near range
+(+21.8 mm at 0.32 m, -6.9 mm at 0.64 m), the signature of a lens position (shift) absorbed into the angles. Standing
+with the head fully down the picture's bottom edge meets the floor at about x 0.14 (model), so the pick spot
+(0.087) is only seen during the bend. `seepick.py --pick-here 0.098 -0.015 --track-gate 0` (camera recorded, not
+used) picked the ball on the first try: the policy and the 150 mA jaw on bare PLA work when the position is right.
+Next: captures at the pick pose and 0.08-0.20 m, `--mount --fit-shift`; gated trace rows now carry bbox, q and gb
+for that refit.
+
+### Home light and the standing blind zone (2026-10-30 04:40)
+
+In the warm indoor light at home the orange ball reads pink: OpenCV hue 172-178 (S 67-91, V 161-189) close up and
+0-10 at half a metre, so the repo's orange range (hue 5-22, S >= 120) never saw it. `orange_target.detect` now takes
+a range whose low hue is above its high hue and wraps it through red; the run used `--hsv-lo 170,50,150 --hsv-hi
+18,255,255` (zero false blobs on 70 home floor frames without the ruler; the red DigiKey ruler does trip it).
+2026-11-06, CMU library table under white ceiling light: that range takes skin. Shawn's hand (hue 173, S 77-88, V
+155-170) was a larger blob (167 px) than the ball at 0.49 m (134 px; hue 176-4, S 84-118, V 200-240), and the
+walk-up steered between them until the duck fell (`seepick-fall-20261106/`). `--hsv-lo 172,80,185 --hsv-hi
+8,255,255` keeps only the ball in both saved frames (with hand, fruit, red chair; without the ball: zero blobs).
+Standing, the picture of the lowest look (head command 1.4, servo 1.28-1.30) starts 0.10-0.12 m in front of the
+foot-frame origin (centre pixel column), so the trained pick spot (0.087 m) is never in a standing picture: seepick's
+aim treats "not seen" nearer than `BLIND_R` 0.12 m as "pick at the last known position".
+
+## C. Eyes on the target every frame (gaze.py, 2026-10-30)
+
+`gaze.py` is the standing form of PLAN-continuous-vision.md layers A1 and B: every camera frame the orange-ball track
+(the shared track interface: name, u, v, w, h, id, conf) turns into head yaw and pitch commands that keep the ball at
+one spot in the picture, under the walking policy at zero velocity (never `{"mode": "stand"}`). No floor projection
+is in that loop, so the mount fit and the head servo's gain change its speed, not its goal. The landmark filter runs
+beside it and logs the ball's floor position with a camera pitch bias; with head motion alone the range and the bias
+are weakly separable (the body's own motion separates them: test_gaze.py). First robot run and numbers:
+`camera-calib-20261030/gaze-20261030/README.md`.
+
+    ~/.venvs/duck-policy/bin/python gaze.py --observe 10     track and filter only
+    ~/.venvs/duck-policy/bin/python gaze.py --max-s 60       head following
+
+### Bow height correction (2026-10-30 07:40)
+
+In the bow (neck about -1.3) the real camera sits 13 mm lower than the rigid chain says: a ruler on the floor shows
+13-20 px per mm where the chain predicts 9-12. Which link or servo is responsible cannot be told from the two neck
+angles the policies reach (standing +0.3, bow -1.3), so the mount carries the measured height as
+`bow_height_correction` (full at neck <= -1.2, zero at >= 0, linear between, unmeasured there) and `DuckKin.camera_pose`
+applies it. With it every ruler tick of the four bend sweeps projects to the floor within 5 mm (was up to 21 mm);
+`test_bow_correction.py` holds that. Fit: `camera-calib-20261030/bend-20261030/empirical_pose.py --dz-only`; the chain
+analysis that led there: `bend-20261030/README.md`.

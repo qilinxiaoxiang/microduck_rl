@@ -6,6 +6,74 @@ what was tried and failed, and the hypotheses that are still open, each with a t
 the current robot condition is in [robot-condition.json](robot-condition.json). Fine-tune run details and the
 literature behind each change are in [finetune/modal/FINETUNE-DELTA.md](finetune/modal/FINETUNE-DELTA.md).
 
+## Scorecard, 2026-11-09: a sim pass does not predict that the robot stays up
+
+`mac/scorecard-20261109/` replays recorded robot runs in the as-built sim with the robot's own commands
+(`brain_sim_check.py --cmd-replay`) and compares the outcome (corrected 2026-11-10).
+- **Falls**: the sim reproduces 1 of the robot's 17 falls by itself. The 12-run card (2026-10-18 walks, 2026-11-06
+  seeing-pick attempts) matches 5, all runs where nothing happened. Over 206 logged actions of 2026-11-02 to 11-06:
+  both up 190, both fell 1, only the robot fell 12, only the sim fell 3.
+- **A replay trap**: the robot's controllers write a stand when they see it tipping, 0-1 s before it passes 45 deg.
+  Replayed into the sim, that stand reaches an upright robot (3-7 deg against the robot's 15-49) and the switch from
+  walk to stand tips it over within a second. With the stand replaced by walk at zero command (`control_nostand.py`)
+  the sim stays up in 12 of 13 of those falls and in all 4 card falls. Score such a fall as the switch's, never as a
+  prediction.
+- **Jitter**: trunk jitter in the sim is 0.10-0.44 of the robot's.
+
+So for walking, bending, picking and getting up, a policy that stays up in this sim is not yet evidence that it stays
+up on the robot. The get-up (sim 10/10, robot 0/2) and the held bend (the robot's ankles stop at 1.25 rad on their
+cable plugs, the sim's reach 1.36-1.43) miss the same way. Details, the corrections and the robot runs planned after
+the cable tidy are in the scorecard's README.md.
+
+## Per-action gap pages, 2026-11-12: where the robot and the sim differ under the same commands
+
+`mac/simgap-20261111/sim_real_gap.py` reads each replayed action's robot and sim tick logs with the same code and
+draws one page per action (IMU traces and spectra, goal against position per leg joint, the numbers below), linked
+from the run ledger page and summarised on the phone remote's card. It runs after every ledger tick (2 min). Medians
+over the 390 replayed actions of 2026-11-02 to 11-11:
+- **Servo tracking is not the main gap.** Walking: the encoder shows 0.43 of the goal motion (sim 0.50), 5.2 ticks
+  late (sim 6.8); small goal changes left the joint still on 21 % of ticks (sim 31 %). Hip yaw and the left ankle,
+  knee and hip pitch reach about 0.75-0.85 of the sim's amplitude; the right leg's pitch joints match.
+- **The trunk moves where the joints do not.** Standing still (zero-command balance), the robot's trunk jitter is
+  0.26 rad/s against the sim's 0.004, and the tilt the IMU reads differs from the tilt the joint encoders predict
+  with both soles flat by 0.94 deg RMS against 0.05 in the rigid sim, about the same on every day (1.33, 0.91, 0.89,
+  0.96 deg on 11/02, 11/04, 11/06, 11/11). That is lost motion between encoder and floor: horn and link play, loose
+  screws, sole. Walking: trunk jitter 0.55 against 0.18 rad/s, 43 % of gyro power above 5 Hz against 22 %.
+- **What precedes a robot fall**: peak yaw rate 5.1 rad/s against 2.7 in walks that stayed up (balance 4.7 against
+  1.8, turns 5.5 against 2.4) and peak leg current about 1.0-1.5 A against 0.2-0.6 A. Tracking amplitude and dead
+  share do not separate falls from non-falls.
+- The play measure is computed only while standing still: while stepping the soles roll and the stance foot changes,
+  and the rigid prediction is off by about 5 deg in the sim alone. The repository already has `-Backlash-` task
+  variants (2 deg hinges); whether a play model of the measured size reproduces the robot's standing jitter and
+  play numbers in this replay is the next test (hypothesis 2 below).
+
+## Effect-by-effect replay sweep, 2026-11-12: which modelled hardware effect closes the gap
+
+The same robot commands (36 actions where the robot fell and the sim stayed up, 24 the robot walked through; 3 seeds)
+replayed in the as-built sim with one effect added at a time, scored with the scorecard's own rules. Script and full
+numbers: `play-locate-20261112/gap_sweep.py` and README in the robotics tree; `brain_sim_check.py --joint-play DEG
+--joint-play-only REGEX` adds an encoder-invisible hinge after each matched servo (as `add_backlash.py`).
+- **Base**: the sim falls in 1 of 93 robot-fell runs, 0 of 72 robot-up; walking jitter 0.19 against the robot's 0.59.
+- **Play reproduces some falls, selectively**: head/neck play 8 deg 15/93, leg play 4 deg 14/93, soft sole 13/93,
+  ankle-to-foot play +-3 deg 11/93, 4 deg on every joint 10/93; none fells a robot-up run. Jitter stays 0.16-0.22.
+- **Servo deadband (BAM friction) is not the cause**: x1.5 gives 5/93 with 3/72 false falls; x2.0 raises jitter to
+  0.38 but fells 49 of the 72 runs the robot walked through.
+- **COM**: 5 mm forward 4/30, no false falls; 10 mm either way fells every run. A backward shift of 3 mm already
+  tips the sim over in its opening open-loop stand, before the replay, so the backward case is untested.
+- **Dropped reads 10 %**: 6/93. All together (friction x1.5, 4 deg play everywhere, foot play): 16/93 with 10/72
+  false falls, jitter 0.23.
+- **Supply voltage is not it**: over 442 robot actions the fall rate is 9 % at 7.2-7.5 V and 5 % above 8.1 V;
+  training samples 6.5-8.2 V with load sag.
+
+So no single modelled effect brings the trunk jitter near the robot's, and the play effects explain about a sixth of
+the extra falls. On 2026-11-12 Shawn found loose screws; after tightening them the robot walked noticeably steadier.
+Structural looseness larger than a few degrees at one joint is the first candidate for the rest.
+
+Training with that play (runs play-a and its no-play twin playctl-a, `finetune/modal/FINETUNE-DELTA.md`) cut the
+sim falls in the play sims from 63 to 44 of 465, but the twin without play cut them just as far (43), so the gain is
+the shared fine-tune, not the play. Both fail the jitter gate (more action jumps and peak tilt than walk61 in four
+of five real suite cases) and are not for the robot. walk61 stays deployed.
+
 ## How sim and real are compared
 
 - The CPU check `mac/brain_sim_check.py` runs the exact Mac-side control code (`mac/walk_brain.py`: mode logic,

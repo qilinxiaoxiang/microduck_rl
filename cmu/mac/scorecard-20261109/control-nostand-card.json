@@ -1,0 +1,69 @@
+{
+ "rows": [
+  {
+   "id": "1106-run2-table-steer-flip",
+   "when": "1106-run2-table-steer-flip",
+   "kind": "replay",
+   "robot_fell_at": 8.17,
+   "with_stand": {
+    "fell": 3
+   },
+   "with_stand_sim_fell_at": null,
+   "stand_at": 7.898,
+   "without_stand": {
+    "up": 3
+   },
+   "without_stand_sim_fell_at": [],
+   "stand_before_robot_fall_s": 0.27
+  },
+  {
+   "id": "1106-run3-table-lookdown",
+   "when": "1106-run3-table-lookdown",
+   "kind": "replay",
+   "robot_fell_at": 84.92,
+   "with_stand": {
+    "fell": 3
+   },
+   "with_stand_sim_fell_at": null,
+   "stand_at": 84.905,
+   "without_stand": {
+    "up": 3
+   },
+   "without_stand_sim_fell_at": [],
+   "stand_before_robot_fall_s": 0.02
+  },
+  {
+   "id": "1106-run4-table-aim-lookdown",
+   "when": "1106-run4-table-aim-lookdown",
+   "kind": "replay",
+   "robot_fell_at": 84.54,
+   "with_stand": {
+    "up": 3
+   },
+   "with_stand_sim_fell_at": null,
+   "stand_at": 84.526,
+   "without_stand": {
+    "up": 3
+   },
+   "without_stand_sim_fell_at": [],
+   "stand_before_robot_fall_s": 0.01
+  },
+  {
+   "id": "1106-run6-carpet-turns-05",
+   "when": "1106-run6-carpet-turns-05",
+   "kind": "replay",
+   "robot_fell_at": 27.45,
+   "with_stand": {
+    "fell": 3
+   },
+   "with_stand_sim_fell_at": null,
+   "stand_at": 27.408,
+   "without_stand": {
+    "up": 3
+   },
+   "without_stand_sim_fell_at": [],
+   "stand_before_robot_fall_s": 0.04
+  }
+ ],
+ "note": "For every action of scorecard-auto.json that the robot fell in, and whose replay holds a stand or monitor command in\nthe 1.5 s before the robot's fall (up to 0.5 s after it), this reruns the same replay with that command and every\nlater one replaced by walk at zero command (the walk policy keeps balancing), same seeds, same supply, model and\ndropped reads. Writes <data>/control-nostand.json: per action the sim outcome with the stand (from the auto run) and\nwithout it, and the sim's fall time against the robot's."
+}

@@ -28,7 +28,7 @@ MODELS = {  # mass model -> run config; 'v19' stays the default
 def cfg(battery=0.09, model='v19', **kw):
     c = json.loads(MODELS[model].read_text())
     c.update(remove_old_battery_kg=battery, **kw)
-    if c.get('mass_manifest') and not Path(c['mass_manifest']).is_absolute():  # cmu/ copy: paths relative to the config
+    if c.get('mass_manifest') and not Path(c['mass_manifest']).is_absolute():  # paths relative to the config file
         c['mass_manifest'] = str(MODELS[model].parent / c['mass_manifest'])
     return c
 

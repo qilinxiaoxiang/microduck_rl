@@ -45,7 +45,7 @@ BALL_OBJECT_CFG = EntityCfg(
 )
 
 
-def make_cmu_grasp_env_cfg(base_factory, variant: str = "plugged", ball: bool = True, **kwargs):
+def make_cmu_grasp_env_cfg(base_factory, variant: str, ball: bool = True, **kwargs):
     cfg = base_factory(**kwargs)
     apply_masses = load_apply_masses()
     parts = apply_masses.variant_parts(variant)

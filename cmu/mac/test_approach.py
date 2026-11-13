@@ -25,7 +25,8 @@ class FakeDuck:
     def __init__(self, obj, mode="walk", turn_gain=1.0):
         self.t, self.X, self.Y, self.th = 0.0, 0.0, 0.0, 0.0
         self.turn_gain, self.ok = turn_gain, True
-        self.head_pitch_max = 9.0   # the robot's head lagged its command while walking (2026-10-24)
+        self.head_pitch_max = 1.32  # the head servo reaches 1.28-1.30 for a 1.4 command (robot 2026-10-30); a test
+        #                             lowers it for the head that lagged its command while walking (2026-10-24)
         self.cut_px = 0   # > 0: the object stays in the picture, cut at the bottom, this many px after its base leaves
         self.obj, self.mode, self.cmd, self.sent = obj, mode, {}, []
         self.q = dict(STAND)
@@ -40,11 +41,17 @@ class FakeDuck:
         c = self.cmd
         if c.get("mode") == "walk":
             self.th += self.turn_gain * float(c.get("vtheta", 0)) * dt
-            v = apc.V_REAL if c.get("vx") else 0.0
+            if c.get("vx"):
+                self.walk_t0 = getattr(self, "walk_t0", None) or self.t
+                # the gait gets going over about a second (robot 2026-10-30: 0-5 cm in the first 0.6-0.9 s of a
+                # standing start); the controller's dead reckoning assumes the same (apc.V_ONSET_S)
+                v = apc.V_REAL * (0.5 if self.t - self.walk_t0 < apc.V_ONSET_S else 1.0)
+            else:
+                self.walk_t0, v = None, 0.0
             self.X += v * math.cos(self.th) * dt
             self.Y += v * math.sin(self.th) * dt
             head = c.get("head") or {}
-            for k in ("neck_pitch", "head_pitch", "head_yaw"):
+            for k in ("head_pitch", "head_yaw"):   # the walking policy ignores neck_pitch commands (robot: neck 0.2-0.4)
                 self.q[k] = float(head.get(k, STAND[k]))
             self.q["head_pitch"] = min(self.q["head_pitch"], self.head_pitch_max)
         self.t += dt
@@ -131,8 +138,8 @@ def test_object_moved_beside_when_close_turns_in_place():
         duck.advance()
         ctl.step()
         x, y = duck.obj_robot()
-        if not moved and math.hypot(x, y) < 0.3:
-            ax, ay = apc.rotate(0.0, 0.15, -duck.th)   # 15 cm to the robot's left
+        if not moved and math.hypot(x, y) < 0.4:   # still in the picture after the move (closer it would walk past
+            ax, ay = apc.rotate(0.0, 0.15, -duck.th)   # 15 cm to the robot's left; it into the blind zone beside a foot)
             duck.obj = (duck.obj[0] + ax, duck.obj[1] + ay)
             moved = True
     assert moved and ctl.result["ok"], ctl.result
@@ -149,7 +156,23 @@ def test_a_turn_the_wrong_way_stops_the_run():
     duck = FakeDuck((0.8, -0.3), turn_gain=-1.0)   # commanded right, turns left (the first robot run)
     ctl = drive(duck)
     assert not ctl.result["ok"] and ("wrong way" in ctl.result["why"] or "not following" in ctl.result["why"])
-    assert duck.th < math.radians(40)              # stopped before it turned far (in place: 29 deg/s for ~1 s)
+    assert duck.th < math.radians(60)              # stopped before it turned far (in place: 29 deg/s for ~1.5-2 s)
+
+
+def test_a_turn_in_place_carries_the_object_past_straight_ahead():
+    """The robot springs back about 10 deg when a spin stops, so a turn that stops at straight ahead ends short."""
+    duck = FakeDuck((0.4, -0.4))
+    ctl = apc.Approach(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                       now=lambda: duck.t, log=lambda s: None)
+    was_face, ended = False, None
+    while ended is None and duck.t < 30.0:
+        duck.advance()
+        ctl.step()
+        was_face = was_face or ctl.phase == "face"
+        if was_face and ctl.phase != "face":
+            ended = math.atan2(ctl.est[1], ctl.est[0])
+    assert ended is not None and ended > 0   # started to the right, ends a little to the left
+    assert ended < math.radians(25)
 
 
 def test_a_blob_cut_at_the_bottom_does_not_walk_it_over():
@@ -192,9 +215,12 @@ def test_guard_trip_ends_the_run():
         duck.advance()
         ctl.step()
     duck.mode = "stand"
+    n_sent = len(duck.sent)
     duck.advance()
     ctl.step()
     assert ctl.phase == "failed" and "stand" in ctl.result["why"]
+    # the guard's stand stays: no walk command after the trip (2026-11-06, a walk written back made the duck fall)
+    assert not [c for _, c in duck.sent[n_sent:] if c.get("mode") == "walk"], duck.sent[n_sent:]
 
 
 def test_old_frames_are_not_used():
@@ -219,3 +245,84 @@ def test_log_rows_parse_in_walk_brain_order():
     import walk_brain
     row = dict(t=1.0, mode="walk", torque=True, gb=[0.0, 0.0, -1.0], q=[STAND[n] for n in walk_brain.NAMES])
     assert apc.parse_state(row)["q"] == STAND
+
+
+def test_a_spin_never_changes_the_head_command():
+    """All three spin falls of 2026-11-01 had the head moving during the spin."""
+    sent = []
+    a = apc.Approach.__new__(apc.Approach)
+    a.now, a.walk_t0, a.exit, a.turn, a.turn_t0 = (lambda: 5.0), 1.0, None, 1, 4.0
+    a.yaws, a.est, a.head = apc.collections.deque(), (0.2, 0.1), {"head_pitch": 0.72, "head_yaw": 0.0}
+    a.send = sent.append
+    a.aim_head = lambda *x, **k: {"head_pitch": 1.1, "head_yaw": 0.0}
+    a.spin_head = {"head_pitch": 0.72, "head_yaw": 0.0}
+    a.walk(0.0, 0.5, {})
+    assert sent[-1]["head"]["head_pitch"] == 0.72
+    a.spin_head = None
+    a.walk(0.0, 0.5, {})
+    assert "head" not in sent[-1]
+
+
+def test_head_does_not_look_down_while_the_body_rocks():
+    """Robot 2026-11-06: the 'already at' path lowered the head 1 s after a turn in place while the trunk still rocked
+    (gyro median 0.97 rad/s) and the duck fell forward. The settle now waits for STILL_S of a calm gyro."""
+    duck = FakeDuck((0.35, 0.0))
+    rock = {"on": False, "done": False}   # the body rocks from the first step until the test calms it
+    base_state = duck.state
+
+    def state():
+        if not rock["done"] and (duck.cmd.get("vx") or duck.cmd.get("vtheta")):
+            rock["on"] = True
+        return dict(base_state(), gyro=(0.0, 1.0 if rock["on"] else 0.05, 0.0))
+    duck.state = state
+    ctl = apc.Approach(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                       now=lambda: duck.t, log=lambda s: None)
+    t_settle = None
+    while duck.t < 30 and (t_settle is None or duck.t < t_settle + 3.0):
+        duck.advance()
+        ctl.step()
+        if ctl.phase == "settle" and t_settle is None:
+            t_settle = duck.t
+        assert ctl.phase != "measure", "measured while the body rocked"
+        if t_settle is not None:
+            assert duck.cmd.get("head", {}).get("head_pitch", 0) <= apc.DEFAULT_HEAD["head_pitch"] + 1e-6, duck.cmd
+    assert t_settle is not None, ctl.phase
+    rock["on"], rock["done"] = False, True
+    t_calm = duck.t
+    while ctl.phase == "settle" and duck.t < t_calm + 6:
+        duck.advance()
+        ctl.step()
+    assert ctl.phase != "settle" and duck.t - t_calm >= apc.STILL_S - 0.06, (ctl.phase, duck.t - t_calm)
+
+
+def test_an_overshooting_turn_in_place_does_not_ping_pong():
+    """Robot 2026-11-06 (table and carpet): every in-place turn stopped 13-22 deg past straight ahead; with a 15 deg
+    re-turn limit the duck turned back and forth 6 times and fell on the 7th. After the first turn the arcs take the
+    residual: at most FACE_MAX_N turns, no back-and-forth."""
+    duck = FakeDuck((0.30, -0.12))
+    over = math.radians(18)
+    base_advance = duck.advance
+    spin = {"dir": 0}
+
+    def advance(dt=0.05):
+        c = duck.cmd
+        d = 0 if c.get("vx") else int(math.copysign(1, c.get("vtheta", 0))) if c.get("vtheta") else 0
+        if spin["dir"] and d == 0:
+            duck.th += spin["dir"] * over      # the turn coasts on after the stop
+        spin["dir"] = d
+        base_advance(dt)
+    duck.advance = advance
+    ctl = apc.Approach(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                       now=lambda: duck.t, log=lambda s: None)
+    faces = 0
+    prev = None
+    while ctl.phase not in ("done", "failed") and duck.t < 60:
+        duck.advance()
+        ctl.step()
+        if ctl.phase == "face" and prev != "face":
+            faces += 1
+        prev = ctl.phase
+    spins = [c for _, c in duck.sent if c.get("mode") == "walk" and not c.get("vx") and c.get("vtheta")]
+    assert faces <= 2, faces
+    assert all(abs(c["vtheta"]) <= 0.3 + 1e-9 for c in spins), {c["vtheta"] for c in spins}
+    assert ctl.result["ok"], ctl.result

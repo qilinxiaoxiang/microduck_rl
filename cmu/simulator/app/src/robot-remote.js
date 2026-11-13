@@ -1,3 +1,4 @@
+import { batteryPercent } from "./battery-percent.js";
 // Remote control for the real robot on robot-live.html: buttons and keys that write walk_wired.py's control file on
 // the A7Z through the dev-server bridge (POST /api/a7z/cmd, a7z-bridge.mjs -> desktop/duck-command.py).
 //
@@ -203,7 +204,7 @@ export function createRemote({root, state, log}) {
       if (!a.ok) { last.textContent = `切换「${label}」失败：${a.error}`; return; }
       showSupply(a.supply);
       last.textContent = `背包设为「${label}」` + (a.restarted ? "，大脑已重启并用上（扭矩不变）"
-        : state().brain?.running ? "；大脑正在执行命令，先按「停」再点一次才生效" : "；下次启动大脑时用上");
+        : state().brain?.running ? "；大脑一秒内用上" : "；下次启动大脑时用上");
       log(`遥控：背包设为${label}`);
     } catch (e) { last.textContent = `切换「${label}」失败：${e.message}`; }
   });
@@ -275,7 +276,7 @@ export function createRemote({root, state, log}) {
     let notes = [];
     try { notes = (await (await fetch("/api/a7z/cmd", {method: "POST", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({op: "read"})})).json()).notes ?? []; } catch { /* the link reports itself */ }
-    const why = notes.filter(n => /torque refused|HARDWARE ERROR|IMU LOST/.test(n)).pop();
+    const why = notes.filter(n => /torque refused|HARDWARE ERROR|IMU LOST|BATTERY/.test(n)).pop();
     last.textContent = `「${label}」已写入，但扭矩没开：` + (why ?? (state().brain?.running ? "大脑没给原因" : "大脑没在运行"))
       + (/HARDWARE ERROR|hardware error/.test(why ?? "") ? "。先扶住，按「停扭矩」清锁死，再按一次" : "")
       + (/wrap edge/.test(why ?? "") ? `。${wrapJoints(why)}转到了读数边界（0/4095 附近），把它往站姿方向扳回一点，`
@@ -482,11 +483,16 @@ export function createRemote({root, state, log}) {
       if (!(running && brain.mode === "sit")) rising = false;
       if (head && !headMode(running && brain)) headForget();
       if (gate.blocked !== was) log(gate.blocked ? `过热保护：${gate.reasons.join("；")}` : "过热保护解除");
-      heatEl.hidden = !gate.blocked;
-      heatEl.textContent = gate.blocked ? `过热保护：${gate.reasons.join("；")}。前进、转向、转头、闭环站立、踢、坐、弯腰暂停；`
-        + "停、开环站立、停扭矩、叫一声照常可用。" : "";
+      const pack = running && ["warn", "stop", "floor"].includes(brain.battery) ? brain.battery : null;
+      const packText = pack && `电池 ${(brain.battery_dv / 10).toFixed(1)} V：` + {warn: "快没电了，尽快停下充电", stop: "已停步并保持站立，扶住并关机",
+        floor: "电量见底，鸭子自己坐下并关扭矩，请关机充电"}[pack];
+      heatEl.hidden = !gate.blocked && !pack;
+      heatEl.textContent = (packText ? packText + "。" : "")
+        + (gate.blocked ? `过热保护：${gate.reasons.join("；")}。前进、转向、转头、闭环站立、踢、坐、弯腰暂停；`
+        + "停、开环站立、停扭矩、叫一声照常可用。" : "");
       modeEl.textContent = !online ? "大脑：A7Z 不在线" : !brain?.running ? "大脑：没在运行（按站立等按钮会先启动 walk_wired.py）"
-        : `大脑：${MODE_NAMES[brain.mode] ?? brain.mode} · 扭矩${brain.torque ? "开" : "关"}`;
+        : `大脑：${MODE_NAMES[brain.mode] ?? brain.mode} · 扭矩${brain.torque ? "开" : "关"}`
+          + (brain.battery_dv != null ? ` · 电池 ${(brain.battery_dv / 10).toFixed(1)} V，约 ${batteryPercent(brain.battery_dv)}%` : "");
       root.classList.toggle("off", !running);
       stickEl.classList.toggle("disabled", !online || (gate.blocked && gated("walk")));
       for (const [id, b] of buttons) {

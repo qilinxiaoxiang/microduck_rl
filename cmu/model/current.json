@@ -1,0 +1,14 @@
+{
+ "about": "The one pointer to the model of the robot as it is now. Every simulator, rehearsal, video and new training task loads this variant unless it states a historical model on purpose. Change it in the same commit that adds a newer dated variant, and update the robotics checkout's CURRENT-STATE.json fact battery_sim_model_20261104 (or its successor) to the same manifest hash.",
+ "variant": "battery-20261104",
+ "mass_manifest": "cmu/model/manifests/battery-20261104.json",
+ "mass_manifest_sha256": "232708646e618ee45eaf6d14311856573e8969d4d397277dad8b7e6e23c7cb79",
+ "visual": "cmu/model/visual-20261104/visual.json",
+ "since": "2026-11-04",
+ "describes": "battery backpack (V1.40 frame, V1.41 cap and hatch, battery on the cap), A7Z on the orange V1.35 roof saddle without lid, U20CAM head with microphones and touch board; charger box removed",
+ "historical": {
+  "asbuilt": "2026-10-15 bench box, Pi Zero W head",
+  "plugged": "charger pack on the bench supply (A7Z saddle drawn white, rear converter box); retired 2026-11-03",
+  "battery": "2026-10-15 battery backpack plan, superseded by battery-20261104"
+ }
+}

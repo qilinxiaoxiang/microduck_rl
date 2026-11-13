@@ -442,7 +442,7 @@ def true_object_pixels(env: ManagerBasedRlEnv) -> torch.Tensor:
 
 
 # ── Env cfg ─────────────────────────────────────────────────────────────────────
-def make_seeing_pix_env_cfg(variant: str = "plugged", play: bool = False):
+def make_seeing_pix_env_cfg(variant: str, play: bool = False):
     cfg = sp.make_seeing_pick_env_cfg(variant, play=play)
     cfg.events["reset_object"] = EventTermCfg(
         func=reset_pix_object, mode="reset",

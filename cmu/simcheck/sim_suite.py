@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Ten-case simulation suite for a candidate MicroDuck policy directory, at the robot's current condition.
 
-  uv run --no-sync python cmu/simcheck/sim_suite.py <models-dir> <out.jsonl> [--walk-s 10] [--variant asbuilt|plugged|battery]
+  uv run --no-sync python cmu/simcheck/sim_suite.py <models-dir> <out.jsonl> [--walk-s 10] [--variant current]
         [--condition cmu/robot-condition.json] [--reference cmu/simcheck/reference-walk61.jsonl] [--compare other.jsonl]
 
---variant picks the mass model: asbuilt (the 2026-10-15 manifest the sim check carries, default), plugged or battery
-(cmu/model/manifests/<variant>.json, passed to brain_sim_check.py as --manifest). Rows carry "variant"; the default
-reference file is reference-walk61.jsonl for asbuilt and reference-walk61-<variant>.jsonl otherwise.
+--variant picks the mass model. current (default) is the robot as it is now, cmu/model/current.json, passed to
+brain_sim_check.py as --manifest current. The dated variants are history: asbuilt (the 2026-10-15 manifest the sim
+check carries), plugged, battery and battery-20261104 (cmu/model/manifests/<variant>.json); a dated variant other than
+the one current.json names runs with --historical-model "sim_suite --variant X". Rows carry "variant" (the dated name,
+"current" resolved); the default reference file is reference-walk61.jsonl for asbuilt and
+reference-walk61-<variant>.jsonl otherwise (none is stored for the current robot: cmu/deploy/deploy_policy.py runs
+walk61 at the current code as its reference).
 
 Replaces the private sim_suite.sh. Every case runs cmu/mac/brain_sim_check.py (the Mac-side Brain in the as-built
 MuJoCo model) with the base flags derived from robot-condition.json, then the case's own flags, which override:
@@ -37,11 +41,20 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CMU = os.path.dirname(HERE)
 CHECK = os.path.join(CMU, "mac", "brain_sim_check.py")
 DEFAULT_CONDITION = os.path.join(CMU, "robot-condition.json")
-VARIANTS = ("asbuilt", "plugged", "battery")  # asbuilt = the model's own 2026-10-15 manifest; others from cmu/model/manifests/
+# current = cmu/model/current.json (the robot as it is now). The rest are history: asbuilt = the model's own
+# 2026-10-15 manifest; the others are cmu/model/manifests/<variant>.json.
+VARIANTS = ("current", "battery-20261104", "asbuilt", "plugged", "battery")
 MANIFESTS = os.path.join(CMU, "model", "manifests")
+CURRENT_FILE = os.path.join(CMU, "model", "current.json")
+
+
+def resolve_variant(variant):
+    """'current' -> the dated variant cmu/model/current.json names; a dated variant -> itself."""
+    return json.load(open(CURRENT_FILE))["variant"] if variant == "current" else variant
 
 
 def default_reference(variant):
+    variant = resolve_variant(variant)
     return os.path.join(HERE, "reference-walk61.jsonl" if variant == "asbuilt" else f"reference-walk61-{variant}.jsonl")
 
 CASES = [  # (class, name, extra flags)
@@ -92,15 +105,20 @@ def floor_mu_cases(condition_path):
 
 
 def variant_flags(variant):
+    """brain_sim_check.py flags for a variant: --manifest current for the robot as it is now; a historical variant
+    names its manifest and says why it runs (brain_sim_check refuses an old model without --historical-model)."""
+    if variant == "current" or variant == resolve_variant("current"):
+        return ["--manifest", "current"]
+    historical = ["--historical-model", f"sim_suite --variant {variant}"]
     if variant == "asbuilt":
-        return []
+        return historical
     path = os.path.join(MANIFESTS, f"{variant}.json")
     if not os.path.exists(path):
         sys.exit(f"sim_suite: {path} is missing; run `uv run --no-sync python cmu/model/make_variants.py` first")
-    return ["--manifest", path]
+    return ["--manifest", path] + historical
 
 
-def run_case(models, walk_s, base, cls, name, extra, err, variant="asbuilt"):
+def run_case(models, walk_s, base, cls, name, extra, err, variant="current"):
     cmd = [sys.executable, CHECK, "--model", "asbuilt", "--walk-s", str(walk_s), "--models", models] + variant_flags(variant) + base + extra
     err.write(f"== {name} ({cls}): {' '.join(cmd)}\n")
     err.flush()
@@ -110,7 +128,7 @@ def run_case(models, walk_s, base, cls, name, extra, err, variant="asbuilt"):
     if p.returncode != 0 or not last.startswith("{"):
         sys.exit(f"sim_suite: case {name} produced no result row (exit {p.returncode}); see {err.name}")
     row = json.loads(last)
-    return {"case": name, "class": cls, "variant": variant, **row}
+    return {"case": name, "class": cls, "variant": resolve_variant(variant), **row}
 
 
 def fmt(row):
@@ -146,8 +164,9 @@ def main():
     ap.add_argument("out", help="output JSONL, one row per case (stderr of the cases in <out>.err)")
     ap.add_argument("--walk-s", type=float, default=10.0)
     ap.add_argument("--condition", default=DEFAULT_CONDITION, help="robot-condition.json (default cmu/robot-condition.json)")
-    ap.add_argument("--variant", choices=VARIANTS, default="asbuilt",
-                    help="mass model: asbuilt (the 2026-10-15 manifest, default), plugged or battery (cmu/model/manifests/<variant>.json)")
+    ap.add_argument("--variant", choices=VARIANTS, default="current",
+                    help="mass model: current (default, cmu/model/current.json, the robot as it is now); the dated "
+                         "variants are history (asbuilt = the 2026-10-15 manifest, others cmu/model/manifests/<variant>.json)")
     ap.add_argument("--reference", default=None,
                     help="reference rows the real cases are judged against (default reference-walk61[-<variant>].jsonl)")
     ap.add_argument("--compare", default=None, help="print this JSONL side by side with the new rows, per case")
@@ -157,7 +176,8 @@ def main():
     if a.reference is None:
         a.reference = default_reference(a.variant)
     base = base_flags(a.condition)
-    print(f"sim_suite: models {a.models}, variant {a.variant}, walk {a.walk_s} s, base flags from {a.condition}: {' '.join(base)}")
+    shown = f"current = {resolve_variant('current')}" if a.variant == "current" else f"{a.variant} (historical)"
+    print(f"sim_suite: models {a.models}, variant {shown}, walk {a.walk_s} s, base flags from {a.condition}: {' '.join(base)}")
     rows = []
     with open(a.out, "w") as out, open(a.out + ".err", "w") as err:
         for cls, name, extra in CASES + floor_mu_cases(a.condition):

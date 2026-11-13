@@ -24,7 +24,7 @@ def test_task_registered():
 
 
 def test_events_in_order():
-    names = list(sp.make_seeing_pick_env_cfg().events)
+    names = list(sp.make_seeing_pick_env_cfg("plugged").events)
     assert names.index("reset_base") < names.index("object_size") < names.index("reset_object")
     assert names.index("record_grasp_start") > names.index("reset_base")
 
@@ -33,7 +33,7 @@ def test_pollen_rewards_kept():
     from mjlab_microduck.tasks.cmu_grasp_env_cfg import make_cmu_grasp_env_cfg
     from mjlab_microduck.tasks.microduck_static_grasp_env_cfg import make_microduck_static_grasp_env_cfg
     base = make_cmu_grasp_env_cfg(make_microduck_static_grasp_env_cfg, "plugged", ball=False, hover=True).rewards
-    r = sp.make_seeing_pick_env_cfg().rewards
+    r = sp.make_seeing_pick_env_cfg("plugged").rewards
     assert set(r) == set(base)
     for k in r:
         assert r[k].weight == base[k].weight, k
@@ -43,7 +43,7 @@ def test_pollen_rewards_kept():
 
 
 def test_play_uses_operating_window():
-    cfg = sp.make_seeing_pick_env_cfg(play=True)
+    cfg = sp.make_seeing_pick_env_cfg("plugged", play=True)
     assert cfg.events["reset_object"].params["window_xy"] == sp.WINDOW_OPERATING
     assert "seeing_window" not in cfg.curriculum
 

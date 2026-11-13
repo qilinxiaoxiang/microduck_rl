@@ -70,10 +70,20 @@ def test_floor_mu_sets_the_foot_floor_contact(monkeypatch):
     monkeypatch.setattr(b.ev, "load", load)
     # --foot-play moves the foot geoms to child bodies; the friction must follow them there
     for flags, mu in (([], 1.0), (["--floor-mu", "0.35"], 0.35), (["--floor-mu", "0.35", "--foot-play", "8"], 0.35)):
-        monkeypatch.setattr(sys, "argv", ["brain_sim_check.py", "--model", "asbuilt", "--volt", "7.0"] + flags)
+        monkeypatch.setattr(sys, "argv", ["brain_sim_check.py", "--model", "asbuilt", "--manifest", "current", "--volt", "7.0"] + flags)
         with pytest.raises(Loaded):
             b.main()
         assert seen["mu"] == pytest.approx([mu] * 3) and len(seen["priority"]) == 1
+
+
+def test_current_is_the_default_and_old_variants_say_why():
+    assert sim_suite.variant_flags("current") == ["--manifest", "current"]
+    assert sim_suite.variant_flags(sim_suite.resolve_variant("current")) == ["--manifest", "current"]
+    plugged = sim_suite.variant_flags("plugged")
+    assert plugged[plugged.index("--historical-model") + 1] == "sim_suite --variant plugged"
+    assert sim_suite.variant_flags("asbuilt") == ["--historical-model", "sim_suite --variant asbuilt"]
+    src = open(sim_suite.__file__).read()
+    assert 'choices=VARIANTS, default="current"' in src
 
 
 def test_fall_dir_follows_the_trunk_lean():

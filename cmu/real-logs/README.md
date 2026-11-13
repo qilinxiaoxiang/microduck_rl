@@ -105,3 +105,11 @@ dominant rates are lower. After the stop the real robot keeps 2.5 to 3.3 times t
 gap as the earlier study (trunk gyro 4 to 6 times the sim, `cmu/SIM2REAL.md`), now reproducible from the files in
 this repository. The second walk of `1018d` (`walk_t0_1018f`) gives the same picture for 0 to 3 s: leg_dq 1.023,
 head_dq 1.557, leg_amax 1.57, q/a 0.26, gyro_rms [1.184, 0.977, 1.275].
+
+## robot-runs-20261106-seepick: the seeing pick on the robot
+
+Eight attempts of the full find-walk-pick flow (`cmu/mac/seepick.py` + `approach.py`, learned pick `seepick61`) on
+the A7Z brain, 2026-11-06, a table then carpet: four falls, each traced to the coordinator scripts and fixed, and the
+first ball held in the beak (attempt 8). One gzipped tick log per attempt in the format above (the brain ran on the
+A7Z, battery power), seepick's phase trace, and `summary.json` (tilt, falls, guard switches, in-place turns, jaw
+holding time). `robot-runs-20261106-seepick/README.md` gives each attempt's cause and the code change.

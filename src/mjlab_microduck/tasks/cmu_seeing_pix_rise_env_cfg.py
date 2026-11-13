@@ -109,7 +109,7 @@ def handoff_metrics(env: ManagerBasedRlEnv, env_ids: torch.Tensor) -> dict:
     return out
 
 
-def make_seeing_pix_handoff_env_cfg(variant: str = "plugged", play: bool = False, rise: bool = False):
+def make_seeing_pix_handoff_env_cfg(variant: str, play: bool = False, rise: bool = False):
     """The pixel seeing pick with hand-over logging; rise=True also swaps in the admitted main term."""
     cfg = make_seeing_pix_env_cfg(variant, play=play)
     cfg.events["track_handoff"] = EventTermCfg(func=track_handoff, mode="interval", interval_range_s=(0.0, 0.0))

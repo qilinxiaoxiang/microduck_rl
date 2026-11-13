@@ -16,8 +16,8 @@ installed). Reads requests on stdin and answers each on stdout:
                                                         written to ~/duck-supply, which ~/duck-run.sh passes to
                                                         walk_wired.py as --supply. A brain whose command is monitor or
                                                         off is restarted at once (torque stays as it is, the command
-                                                        stays monitor); one that is driving keeps the old setting until
-                                                        it is stopped and the switch is pressed again ("restarted": false)
+                                                        stays monitor); one that is driving reads the file within a
+                                                        second through --supply-file ("restarted": false)
   {"n": 5, "op": "take", "client": {...}}               take the driver lease over; writes no command
   {"n": 6, "op": "driver"}                              who holds the lease and which backpack is set (every bridge
                                                         asks once a second)

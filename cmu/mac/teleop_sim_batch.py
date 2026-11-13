@@ -1,8 +1,8 @@
 """Remote-control behaviours (kick, sit/stand-up, ground-pick bend) with the real Brain in today's as-built model;
 writes teleop-sim-check.json next to this file.
 
-Model: brain_sim_check.py --model asbuilt with the plugged manifest (microduck_rl/cmu/model/manifests/plugged.json:
-the robot on the bench supply with the A7Z head). Real condition from microduck-sim/CURRENT-STATE.json through
+Model: brain_sim_check.py --model asbuilt --manifest current, the robot as it is now (microduck_rl/cmu/model/current.json;
+until 2026-11-11 this ran the retired charger-pack manifest plugged.json). Real condition from microduck-sim/CURRENT-STATE.json through
 robot_state_check.py --print-sim-args (servo rail volts, dropped servo reads), three drop seeds per case.
 
   ~/.venvs/microduck-dyn/bin/python teleop_sim_batch.py
@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MANIFEST = os.path.normpath(os.path.join(HERE, "..", "..", "..", "microduck_rl", "cmu", "model", "manifests", "plugged.json"))
+MANIFEST = "current"  # brain_sim_check resolves it through microduck_rl/cmu/model/current.json
 SEEDS = (0, 1, 2)
 CASES = {
     "kick_left_from_stand61": ["--walk-s", "0", "--kick-at", "4", "--kick-foot", "left"],
@@ -31,7 +31,7 @@ def main():
     real = subprocess.run([sys.executable, os.path.join(HERE, "robot_state_check.py"), "--print-sim-args"],
                           capture_output=True, text=True, check=True).stdout.split()
     base = ["--model", "asbuilt", "--manifest", MANIFEST] + real
-    out = {}
+    out, model = {}, None
     for name, extra in CASES.items():
         runs = []
         for seed in SEEDS:
@@ -41,13 +41,17 @@ def main():
             if not line:
                 raise SystemExit(f"{name} seed {seed}: no result\n{r.stderr[-2000:]}")
             res = json.loads(line[-1])
+            model = model or {"model": res.get("model"), "manifest": res.get("manifest")}
             runs.append({k: res[k] for k in ("fell_at", "max_tilt", "max_action", "action_jumps", "end_mode", "kick", "sit",
                                               "groundpick") if res.get(k) is not None} | {"seed": seed})
         out[name] = {"args": extra, "runs": runs}
         brief = [(r["seed"], r.get("fell_at"), r["max_tilt"], (r.get("kick") or r.get("sit") or r.get("groundpick") or {}).get("stable_after_s"))
                  for r in runs]
         print(name, "(seed, fell_at, max_tilt, stable_after_s):", brief, flush=True)
-    json.dump({"model": "asbuilt + " + os.path.relpath(MANIFEST, os.path.join(HERE, "..", "..", "..")),
+    root = os.path.join(HERE, "..", "..", "..")
+    manifest = (model or {}).get("manifest")
+    json.dump({"model": "asbuilt + " + (os.path.relpath(manifest, root) if manifest else MANIFEST),
+               "model_info": (model or {}).get("model"),
                "real_condition_args": real, "seeds": list(SEEDS),
                "stable": "tilt within 2 deg of the stance before the behaviour and |gyro| < 0.3 rad/s for 1 s, timed from the hand-back",
                "cases": out}, open(os.path.join(HERE, "teleop-sim-check.json"), "w"), indent=1)

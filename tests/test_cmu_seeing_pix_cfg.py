@@ -26,7 +26,7 @@ def test_tasks_registered_and_old_task_unchanged():
 
 
 def test_body_slots_are_pixels_and_rewards_match_seeing_pick():
-    cfg, base = spx.make_seeing_pix_env_cfg(), sp.make_seeing_pick_env_cfg()
+    cfg, base = spx.make_seeing_pix_env_cfg("plugged"), sp.make_seeing_pick_env_cfg("plugged")
     for group in ("actor", "critic"):
         assert cfg.observations[group].terms["body_command"].func is spx.pix_object_command
     assert "object_pixels" in cfg.observations["critic"].terms

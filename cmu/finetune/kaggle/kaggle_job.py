@@ -8,7 +8,7 @@ Same worker, same flags as cmu/finetune/modal/finetune.py; only the launcher dif
   python3 cmu/finetune/kaggle/kaggle_job.py push smoke            # 64 envs, 6 iterations: build + train + ONNX export
   python3 cmu/finetune/kaggle/kaggle_job.py push bench            # 4096 envs, 40 iterations: it/s for comparison with Modal
   python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name ft4 -- --max-iters 1000 --max-hours 10 --delta default
-  python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name b1 -- --max-iters 1000 --max-hours 10 --delta lowcmd --cmu-config battery
+  python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name b1 -- --max-iters 1000 --max-hours 10 --delta lowcmd --cmu-config current
   python3 cmu/finetune/kaggle/kaggle_job.py push smoke --run-name a --pair-run-name b -- --seed 1 -- --seed 2
                                                                   # two jobs in one session, one per T4 (2nd group = job b)
   python3 cmu/finetune/kaggle/kaggle_job.py status <run-name>     # QUEUED / RUNNING / COMPLETE / ERROR

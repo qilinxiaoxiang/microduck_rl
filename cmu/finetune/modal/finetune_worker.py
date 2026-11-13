@@ -30,11 +30,14 @@ import torch
 
 TASK = "Mjlab-Velocity-Flat-MicroDuck"
 CURRICULA_DONE_STEP = 2000 * 24 + 24  # every velocity curriculum reaches its final stage by iter 2000
-# --cmu-config: which mass manifest describes the robot. "asbuilt" is --manifest (the 2026-10-15 base manifest);
-# "plugged" and "battery" are the full part lists cmu/model/manifests/<variant>.json, shipped by finetune.py and the
-# Kaggle pack as /root/assets/manifests/<variant>.json when they exist in the repo.
-CMU_CONFIGS = ("asbuilt", "plugged", "battery")
+# --cmu-config: which mass manifest describes the robot. Use "current": the robot as it is now, the variant named in
+# cmu/model/current.json (read from the repository copy the job runs from; its manifest sha256 is checked).
+# "asbuilt" is --manifest (the 2026-10-15 base manifest by default, or any manifest passed, e.g. the flight pack's);
+# "plugged", "battery" and "battery-20261104" are the full part lists cmu/model/manifests/<variant>.json, shipped by
+# finetune.py and the Kaggle pack as /root/assets/manifests/<variant>.json. plugged and battery are historical.
+CMU_CONFIGS = ("asbuilt", "plugged", "battery", "battery-20261104", "current")
 MANIFESTS_DIR = "/root/assets/manifests"
+CURRENT_FILE = Path(__file__).resolve().parents[3] / "cmu" / "model" / "current.json"  # repo root/cmu/model/current.json
 
 
 class StopTraining(Exception):
@@ -205,10 +208,6 @@ DELTA_T3B = dict(DELTA_T3A, anchor=dict(DELTA_T3A["anchor"], beta_legs=1.0))
 # audit-only diagnostics (no AUDIT_KEY, never trained): t2b plus one t3 DR change each, to attribute walk61's fall rate
 DELTA_T3_FRIC = dict(DELTA_T2B, joint_friction=(1.0, 1.5))
 DELTA_T3_VIB = dict(DELTA_T2B, gyro_vibration=dict(k_range=(0.15, 0.35)))
-DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP, "t1": DELTA_T1,
-          "t2a": DELTA_T2A, "t2b": DELTA_T2B, "t3a": DELTA_T3A, "t3b": DELTA_T3B,
-          "t3fric": DELTA_T3_FRIC, "t3vib": DELTA_T3_VIB, "tether": DELTA_TETHER}
-
 # columns of the 61-input actor vector: 48 proprioception, then twist(3), head_pose(4), body_pose(6)
 ACTOR_TWIST, ACTOR_HEAD = slice(48, 51), slice(51, 55)
 # the 14 action outputs: 0-4 left leg, 5-8 neck/head, 9-13 right leg (ctrl index = joint index on the walk model)
@@ -259,6 +258,118 @@ def anchor_targets(actor, x: torch.Tensor, anchor: dict):
 def anchor_loss_w(actor, x: torch.Tensor, mu0: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
     """Mean over states of sum_j w_j (mu_j(s) - mu0_j)^2; with w = beta on every output it is anchor_loss."""
     return (w * torch.square(actor_mean(actor, x) - mu0)).sum(dim=1).mean()
+
+
+# play (2026-11-12): walk61 with slack between servo and link (horn, screws, brackets) that the encoder does not see.
+# The effect-by-effect replay sweep (cmu/SIM2REAL.md, "Effect-by-effect replay sweep") reproduced robot falls with
+# head/neck play 8 deg total, leg play 4 deg and ankle-to-foot play 6 deg, each without felling the walks the robot
+# completed; walk61 never met such slack. Each servo joint gets a passive hinge right after it on the same axis
+# (Pollen's add_backlash.py geometry, but the encoder and the firmware loop stay on the servo side, unlike the
+# -Backlash- tasks whose encoder reads through gear play). Its half-width is drawn per episode, uniform in
+# [0, PLAY_HALF_DEG], and none_fraction of the episodes have none. Obs, actions and the runtime are unchanged.
+PLAY_HALF_DEG = {r"^(neck_pitch|head_pitch|head_yaw|head_roll)$": 4.0,
+                 r"^(left|right)_ankle$": 3.0,
+                 r"^(left|right)_(hip_yaw|hip_roll|hip_pitch|knee)$": 2.0}
+DELTA_PLAY = dict(play=dict(half_deg=PLAY_HALF_DEG, none_fraction=0.2),
+                  track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)))
+DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP, "t1": DELTA_T1,
+          "t2a": DELTA_T2A, "t2b": DELTA_T2B, "t3a": DELTA_T3A, "t3b": DELTA_T3B,
+          "t3fric": DELTA_T3_FRIC, "t3vib": DELTA_T3_VIB, "tether": DELTA_TETHER, "play": DELTA_PLAY,
+          "playctl": dict(track_lin_vel=DELTA_PLAY["track_lin_vel"])}  # play's control arm: the same run without play
+PLAY_SUFFIX = "_play"
+PLAY_EPS = 1e-4  # rad; the half-width of a "no play" hinge (a zero range is degenerate)
+
+
+def add_play_joints(robot_cfg, half_deg: dict):
+    """Return a copy of the robot EntityCfg with a passive_<servo>_play hinge after each matched servo joint, built at
+    the largest half-width; randomize_play narrows it per episode."""
+    import re
+    import mujoco
+
+    base_spec_fn = robot_cfg.spec_fn
+
+    def patched_spec_fn():
+        spec = base_spec_fn()
+        added = []
+        for j in list(spec.joints):
+            if j.name.startswith("passive_") or j.type != mujoco.mjtJoint.mjJNT_HINGE:
+                continue
+            h = next((math.radians(d) for pat, d in half_deg.items() if re.search(pat, j.name)), None)
+            if not h:
+                continue
+            pj = j.parent.add_joint(name=f"passive_{j.name}{PLAY_SUFFIX}", type=mujoco.mjtJoint.mjJNT_HINGE,
+                                    axis=list(j.axis), pos=list(j.pos), range=[-h, h], limited=True, damping=0.01)
+            pj.armature = 0.001
+            pj.solref_limit = [0.01, 1]  # stiff tooth contact, as add_backlash.py
+            pj.solimp_limit = [0.95, 0.999, 0.0001, 0.5, 2]
+            added.append(j.name)
+        print(f"[play] hinges after {added}", flush=True)
+        return spec
+
+    return dataclasses.replace(robot_cfg, spec_fn=patched_spec_fn)
+
+
+def _make_randomize_play():
+    from mjlab.managers.event_manager import requires_model_fields
+    import torch
+
+    @requires_model_fields("jnt_range")
+    def randomize_play(env, env_ids, half_deg: dict, none_fraction: float, asset_cfg):
+        """Reset event: each play hinge's half-width uniform in [0, its maximum] per episode, none_fraction of the
+        episodes without play; the hinge starts centred. Writes absolute values, so nothing accumulates."""
+        import re
+        asset = env.scene[asset_cfg.name]
+        cache = env.__dict__.setdefault("_play_cache", {})
+        if "ids" not in cache:
+            ids, names = asset.find_joints(r"^passive_.*" + PLAY_SUFFIX + "$")
+            hmax = [math.radians(next(d for pat, d in half_deg.items()
+                                      if re.search(pat, n[len("passive_"):-len(PLAY_SUFFIX)]))) for n in names]
+            cache.update(ids=torch.as_tensor(ids, device=env.device),
+                         hmax=torch.as_tensor(hmax, device=env.device, dtype=torch.float32))
+        ids, hmax = cache["ids"], cache["hmax"]
+        if env_ids is None:
+            env_ids = torch.arange(env.num_envs, device=env.device)
+        env_ids = env_ids.to(env.device, dtype=torch.long)
+        n = len(env_ids)
+        h = torch.rand(n, len(ids), device=env.device) * hmax
+        h = torch.where((torch.rand(n, 1, device=env.device) < none_fraction).expand_as(h), torch.zeros_like(h), h)
+        h = h.clamp(min=PLAY_EPS)
+        jid = asset.indexing.joint_ids[ids].to(torch.long)
+        rng = env.sim.model.jnt_range
+        eg, jg = torch.meshgrid(env_ids, jid, indexing="ij")
+        rng[eg, jg] = torch.stack([-h, h], dim=-1).to(rng.dtype)
+        qa, va = asset.indexing.joint_q_adr[ids].to(torch.long), asset.indexing.joint_v_adr[ids].to(torch.long)
+        env.sim.data.qpos[env_ids[:, None], qa[None, :]] = 0.0
+        env.sim.data.qvel[env_ids[:, None], va[None, :]] = 0.0
+
+    return randomize_play
+
+
+def apply_play(env_cfg, play: dict):
+    """Play hinges on the robot, their per-episode randomisation, and the servo-only selections the extra passive
+    joints need (the same three fixes backlash.make_backlash_variant makes)."""
+    from mjlab.managers import EventTermCfg
+    from mjlab.managers.scene_entity_config import SceneEntityCfg
+    from copy import deepcopy
+
+    servo = (r"^(?!passive_).*",)
+    env_cfg.scene.entities["robot"] = add_play_joints(env_cfg.scene.entities["robot"], play["half_deg"])
+    env_cfg.events["randomize_play"] = EventTermCfg(
+        func=_make_randomize_play(), mode="reset",
+        params=dict(half_deg=play["half_deg"], none_fraction=play["none_fraction"], asset_cfg=SceneEntityCfg("robot")))
+    for group in ("actor", "critic"):
+        for name in ("joint_pos", "joint_vel"):
+            term = env_cfg.observations[group].terms.get(name)
+            if term is not None and "asset_cfg" not in term.params:
+                term.params["asset_cfg"] = SceneEntityCfg("robot", joint_names=servo)
+    lim = env_cfg.rewards.get("dof_pos_limits")
+    if lim is not None and "asset_cfg" not in lim.params:
+        lim.params["asset_cfg"] = SceneEntityCfg("robot", joint_names=servo)
+    pose = env_cfg.rewards.get("pose")
+    if pose is not None and "asset_cfg" in pose.params:
+        ac = deepcopy(pose.params["asset_cfg"])
+        ac.joint_names = tuple(r"^(?!passive_.*" + PLAY_SUFFIX + ")" + p.lstrip("^") for p in ac.joint_names)
+        pose.params["asset_cfg"] = ac
 
 
 class tether_lead:
@@ -370,6 +481,8 @@ def apply_delta(env_cfg, delta: dict):
         env_cfg.events["tether_lead"] = EventTermCfg(func=tether_lead, mode="step",
                                                      params=dict(fraction=delta["tether"]["fraction"],
                                                                  asset_cfg=SceneEntityCfg("robot")))
+    if delta.get("play"):
+        apply_play(env_cfg, delta["play"])
     if delta.get("track_lin_vel"):
         term = env_cfg.rewards["track_linear_velocity"]  # weight 2.0 unchanged: same reward mass, filtered velocity
         term.func = track_linear_velocity_ema
@@ -412,15 +525,29 @@ def apply_delta(env_cfg, delta: dict):
     return env_cfg
 
 
-def resolve_manifest(cmu_config: str, manifest: str, manifests_dir: str = MANIFESTS_DIR) -> str:
-    """Path of the mass manifest for --cmu-config; exits with the repo file to add when a variant is not shipped."""
+def resolve_manifest(cmu_config: str, manifest: str, manifests_dir: str = MANIFESTS_DIR,
+                     current_file: Path = CURRENT_FILE) -> str:
+    """Path of the mass manifest for --cmu-config; exits with the repo file to add when a variant is not shipped.
+    "current" resolves through cmu/model/current.json and checks the shipped manifest against its sha256."""
     if cmu_config == "asbuilt":
         return manifest
+    expect_sha = None
+    if cmu_config == "current":
+        if not Path(current_file).exists():
+            raise SystemExit(f"--cmu-config current: {current_file} is missing from the job's repository copy")
+        cur = json.loads(Path(current_file).read_text())
+        cmu_config, expect_sha = cur["variant"], cur["mass_manifest_sha256"]
+        print(f"[asbuilt] cmu-config current = {cmu_config} ({current_file})", flush=True)
     path = Path(manifests_dir) / f"{cmu_config}.json"
     if not path.exists():
         raise SystemExit(f"--cmu-config {cmu_config}: {path} is missing. The repo file cmu/model/manifests/{cmu_config}.json must exist "
                          f"(finetune.py and the Kaggle pack copy cmu/model/manifests/*.json to {manifests_dir}/); "
                          f"it is the full part list for the {cmu_config} robot in the base manifest's schema.")
+    if expect_sha is not None:
+        import hashlib
+        got = hashlib.sha256(path.read_bytes()).hexdigest()
+        if got != expect_sha:
+            raise SystemExit(f"--cmu-config current: {path} has sha256 {got}, cmu/model/current.json records {expect_sha}")
     return str(path)
 
 
@@ -533,7 +660,9 @@ def main():
     ap.add_argument("--onnx", default="/root/assets/walk61.onnx", help="init policy; for --eval-variants a comma list of policies to roll out")
     ap.add_argument("--manifest", default="/root/assets/asbuilt-mass-manifest.json", help="mass manifest for --cmu-config asbuilt")
     ap.add_argument("--cmu-config", choices=CMU_CONFIGS, default="asbuilt",
-                    help=f"robot mass configuration: asbuilt = --manifest; plugged/battery = {MANIFESTS_DIR}/<variant>.json (from cmu/model/manifests/)")
+                    help=f"robot mass configuration: current = the robot as it is now (cmu/model/current.json; use this); "
+                         f"asbuilt = --manifest; plugged/battery/battery-20261104 = {MANIFESTS_DIR}/<variant>.json "
+                         f"(from cmu/model/manifests/; plugged and battery are historical)")
     ap.add_argument("--audit", default="/root/assets/existing-model-mass-audit.json")
     ap.add_argument("--remove-battery-kg", type=float, default=0.09)
     ap.add_argument("--num-envs", type=int, default=4096)

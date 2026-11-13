@@ -450,7 +450,7 @@ def seeing_window_curriculum(
 
 
 # ── Env cfg ───────────────────────────────────────────────────────────────────
-def make_seeing_pick_env_cfg(variant: str = "plugged", play: bool = False):
+def make_seeing_pick_env_cfg(variant: str, play: bool = False):
     cfg = make_cmu_grasp_env_cfg(make_microduck_static_grasp_env_cfg, variant, ball=False, play=play, hover=True)
     cfg.scene.entities = {**cfg.scene.entities, "object": SEEING_OBJECT_CFG, "distractor": DISTRACTOR_CFG}
     cfg.sim.nconmax = max(cfg.sim.nconmax or 0, 80)

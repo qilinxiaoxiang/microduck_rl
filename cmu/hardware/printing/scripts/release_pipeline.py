@@ -14,7 +14,7 @@ Q='{'+NS+'}'
 ET.register_namespace('',NS)
 COLORS=('Yellow','White','Orange','Black')
 MACHINES={
- 'Bambu':dict(label='Bambu X1 Carbon',slug='Bambu-X1C',model='Bambu Lab X1 Carbon',bed='Cool Plate',material='GFA00',exe='/Applications/BambuStudio.app/Contents/MacOS/BambuStudio'),
+ 'Bambu':dict(label='Bambu X1 Carbon',slug='Bambu-X1C',model='Bambu Lab X1 Carbon',bed='Textured PEI Plate',material='GFA00',exe='/Applications/BambuStudio.app/Contents/MacOS/BambuStudio'),
  'Elegoo':dict(label='Elegoo Centauri Carbon',slug='Elegoo-Centauri-Carbon',model='Elegoo Centauri Carbon',bed='Textured PEI Plate',material='EPLAB00',exe='/Volumes/OrcaSlicer/OrcaSlicer.app/Contents/MacOS/OrcaSlicer')}
 
 def sha(p):

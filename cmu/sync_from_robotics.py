@@ -46,11 +46,16 @@ add(MAC, "mac", [
     "tether.py", "test_tether.py",  # charger-lead wrench: brain_sim_check.py --tether and the fine-tune tether event import it
     "approach.py", "approach_sim.py", "duck_kin.py", "duck_kin.json", "duck_kin_export.py", "turn_test.py",
     "test_approach.py", "test_duck_kin.py", "APPROACH.md", "a7z_cam.py",  # walk to the object while turning (step 2)
+    "u20cam_intrinsics.json", "u20cam_mount.json",  # duck_kin.py loads both (head camera lens and mount)
+    "seepick.py", "test_seepick.py",  # find, walk, learned pick, retry (steps 1-4; robot runs 2026-11-06)
     "shoot.py", "shoot.sh", "SHOOT.md", "dance.json", "sitlook.json", "test_shoot_sitfind.py",  # the five filmed homepage takes (2026-10-24)
 ])
 add(f"{MAC}/jitter-20261018", "mac/jitter-20261018", ["jitter_sim.py", "compare.py", "osc_metrics.py", "band.py", "summ.sh"])
 add(f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016", [])  # filled below from the directory listing
 add(f"{MAC}/robot-runs-20261018", "real-logs/robot-runs-20261018", [])
+# sim-vs-robot scorecard (2026-11-09): replays the robot runs in real-logs/ through brain_sim_check.py --cmd-replay
+add(f"{MAC}/scorecard-20261109", "mac/scorecard-20261109", ["README.md", "scorecard.py", "cases.json", "scorecard.json", "scorecard.md",
+    "control_nostand.py", "control-nostand-card.json"])  # scorecard-auto.json and control-nostand.json carry ledger ids of private logs
 add(PI, "pi", [
     "stand_pose.py", "battery.py", "dxl_fast.py", "jaw_limits.py", "jaw_limits.json", "jaw_pose_caps.json",
     "jaw_calibration.json", "test_battery.py", "test_jaw_limits.py", "pi_imu_uart.py", "pi_bridge.py", "stand.py",
@@ -82,6 +87,8 @@ add("build-pack-20260913/procurement/feet-sole-20261018/sweep", "model/sole/swee
 DIR_COPIES = [  # (source dir, dest dir): every regular file, no recursion
     (f"{MAC}/pickup-sim-20261016", "mac/pickup-sim-20261016"),
     (f"{MAC}/robot-runs-20261018", "real-logs/robot-runs-20261018"),
+    (f"{MAC}/robot-runs-20261106-seepick", "real-logs/robot-runs-20261106-seepick"),
+    (f"{MAC}/robot-runs-20261111-seepick", "real-logs/robot-runs-20261111-seepick"),
     (f"{WHOLE}/runtime-overlay/models-ft3-it999", "whole/runtime-overlay/models-ft3-it999"),
 ]
 
@@ -105,16 +112,10 @@ FILES += [
     (f"{ELEGOO}/filament.json", f"{HWP}/profiles/elegoo-filament.json"),
     (f"{ELEGOO}/process.json", f"{HWP}/profiles/elegoo-process.json"),
     (f"{ELEGOO}/machine.json", f"{HWP}/profiles/elegoo-machine.json"),
-    (f"{REL}/manifest-V1.20.json", f"{HWP}/ready/V1.20/manifest-V1.20.json"),
-    (f"{REL}/PARTS-SHEET-V1.20.html", f"{HWP}/ready/V1.20/PARTS-SHEET-V1.20.html"),
-    (f"{REL}/run/Orange_Bambu_editable.3mf", f"{HWP}/ready/V1.20/Orange_Bambu_editable.3mf"),
-    (f"{REL}/run/Orange_Elegoo_editable.3mf", f"{HWP}/ready/V1.20/Orange_Elegoo_editable.3mf"),
-    (f"{REL}/run/delivery-folder/zhengxia_MicroDuck_V1.20/Orange-plate.png", f"{HWP}/ready/V1.20/Orange-plate.png"),
-    (f"{REL}/run/delivery-folder/zhengxia_MicroDuck_V1.20/X1C/zhengxia_V1.20_Orange_Bambu-X1C_2h20m.gcode.3mf",
-     f"{HWP}/ready/V1.20/X1C/zhengxia_V1.20_Orange_Bambu-X1C_2h20m.gcode.3mf"),
-    (f"{REL}/run/delivery-folder/zhengxia_MicroDuck_V1.20/Elegoo/zhengxia_V1.20_Orange_Elegoo-Centauri-Carbon_2h22m.gcode",
-     f"{HWP}/ready/V1.20/Elegoo/zhengxia_V1.20_Orange_Elegoo-Centauri-Carbon_2h22m.gcode"),
 ]
+# hardware/printing/ready/V1.20 is owned here as an archive since 2026-11-10: the V1.20 backpack delta package was
+# replaced by the battery-on-the-cap redesign (D-037, hardware/battery-redesign) and its generated print files are no
+# longer kept in the robotics tree, so the sync no longer copies it.
 # hardware/battery-backpack/stl is owned here since the battery-on-the-cap redesign replaced the V1.20 parts
 # (hardware/battery-redesign/build_cap_cradle.py writes them; the V1.20 world STLs it starts from are in its v120-source/).
 add(f"{BP}/build", f"{HWB}/envelopes", ["battery-world.stl", "dfr1202-world.stl", "dfr_pads-world.stl", "switch_swann-world.stl",
@@ -173,6 +174,9 @@ EXEC_BLOCK = re.compile(
     r'if os\.path\.realpath\(sys\.prefix\) != os\.path\.realpath\(os\.path\.dirname\(os\.path\.dirname\(SIM_PYTHON\)\)\):\n'
     r'    os\.execv\(SIM_PYTHON, \[SIM_PYTHON, os\.path\.abspath\(__file__\)\] \+ sys\.argv\[1:\]\)\n')
 EXEC_NOTE = "# cmu/ copy: runs in the repository's uv environment (uv run <script>); no private venv re-exec.\n"
+# cmu/model/current.json (the robot as it is now): beside microduck_rl in the robotics tree, cmu/model in the fork
+CURRENT_HOP = '"..", "..", "..", "microduck_rl", "cmu", "model", "current.json"'
+CURRENT_HOP_FORK = '"..", "model", "current.json"'
 ABS_SIM = os.path.expanduser("~/code/robotics/") + SIM_REL + "/"  # the private tree's absolute path, stripped from copied JSON
 DUCK_IP = re.compile(r"\b100\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")  # the robot's private Tailscale address (100.64/10); the copies carry the placeholder DUCK_IP
 
@@ -185,11 +189,24 @@ RULES = {
     "whole/runtime-overlay/source-lock.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
     "whole/electrical/existing-model-mass-audit.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
     "mac/brain_sim_check.py": [("str", WHOLE_HOP, '"..", "whole"', 1), ("re", EXEC_BLOCK, EXEC_NOTE, 1),
+        ("str", CURRENT_HOP, CURRENT_HOP_FORK, 1),
         ("str", "# The as-built model needs the patched bam in ~/.venvs/microduck-dyn (the pip release lacks vin_drop_resistance);\n",
          "# The as-built model uses bam at the commit locked in uv.lock (the one Pollen trains with).\n", 1)],
-    "mac/pickup_sim.py": [("str", WHOLE_HOP, '"..", "whole"', 1), ("re", EXEC_BLOCK, EXEC_NOTE, 1)],
+    "mac/pickup_sim.py": [("str", WHOLE_HOP, '"..", "whole"', 1), ("re", EXEC_BLOCK, EXEC_NOTE, 1),
+        ("str", CURRENT_HOP, CURRENT_HOP_FORK, 1)],
     "mac/target_ground.py": [("str", WHOLE_HOP, '"..", "whole"', 1)],
     "mac/jitter-20261018/jitter_sim.py": [("re", EXEC_BLOCK, EXEC_NOTE, 1)],
+    # the scorecard finds the runtime overlay and the mass manifests under cmu/, the robot logs under real-logs/, and
+    # runs the sims in the repository's uv environment
+    "mac/scorecard-20261109/scorecard.py": [
+        ("str", 'SIM_ROOT = os.path.normpath(os.path.join(MAC, "..", "..", ".."))',
+         'SIM_ROOT = os.path.normpath(os.path.join(MAC, ".."))  # cmu/ copy: the cmu directory', 1),
+        ("str", 'os.path.join(SIM_ROOT, "hardware-design-20260912", "whole-robot-20260912", "runtime-overlay")',
+         'os.path.join(SIM_ROOT, "whole", "runtime-overlay")', 1),
+        ("str", 'os.path.join(SIM_ROOT, "microduck_rl", "cmu", "model", "manifests")', 'os.path.join(SIM_ROOT, "model", "manifests")', 1),
+        ("str", 'SIM_PY = os.path.expanduser("~/.venvs/microduck-dyn/bin/python")',
+         'SIM_PY = sys.executable  # cmu/ copy: run with uv run, the sims use the same environment', 1)],
+    "mac/scorecard-20261109/cases.json": [("str", '"../robot-runs-', '"../../real-logs/robot-runs-', 18)],
     "whole/delay-repair-20260912/evaluate_delay.py": [
         ("str", "SIM / 'microduck_rl/src/mjlab_microduck/robot/microduck'", "SIM / 'src/mjlab_microduck/robot/microduck'", 1),
         ("str", "SIM / 'microduck-simulator/app/public/policies'", "SIM / 'cmu/whole/runtime-overlay/models'", 1),
@@ -198,17 +215,7 @@ RULES = {
         ("str", "vin_drop_resistance=config.get('wire_resistance',0.0),",
          "vin_drop_gain=config.get('vin_drop_gain',0.0),  # cmu/ copy: bam 62bd8ce API, see sync_from_robotics.py", 1),
     ],
-    "whole/dynamics/realgap-20261014/static_gap.py": [
-        ("str", "    c.update(remove_old_battery_kg=battery, **kw)\n    return c\n",
-         "    c.update(remove_old_battery_kg=battery, **kw)\n"
-         "    if c.get('mass_manifest') and not Path(c['mass_manifest']).is_absolute():  # cmu/ copy: paths relative to the config\n"
-         "        c['mass_manifest'] = str(MODELS[model].parent / c['mass_manifest'])\n"
-         "    return c\n", 1),
-    ],
-    "whole/dynamics/asbuilt-20261015/asbuilt.config.json": [
-        ("str", f'"{ABS_SIM}{WHOLE}/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json"', '"asbuilt-mass-manifest.json"', 1)],
-    "whole/dynamics/v19-20261014/runs/const-bat90-sensor0-nocomp-seed0.config.json": [
-        ("str", f'"{ABS_SIM}{WHOLE}/dynamics/v19-20261014/v19-mass-manifest.json"', '"../v19-mass-manifest.json"', 1)],
+    # static_gap.cfg and the two run configs carry config-relative manifest paths in the source since 2026-11-09
     "whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
     "whole/dynamics/v19-20261014/v19-mass-manifest.json": [("str", ABS_SIM, f"{SIM_REL}/", 0)],
     "whole/dynamics/asbuilt-20261015/build_asbuilt_manifest.py": [("str", "/private/tmp/claude-501/", "/private/tmp/", 0)],
@@ -219,7 +226,6 @@ RULES = {
         ("re", re.compile(r"Path\('/private/tmp/[^']*rev_1\.stl'\)"),
          "Path('parts/rev_1.stl')  # cmu/ copy: the REV-31-1387 STEP export lived in a scratch directory; parts/rev_31_1387_switch-local.stl is its cached copy", 1)],
     "hardware/printing/PRINT-ORIENTATION-PRACTICE.md": [("str", ABS_SIM, f"{SIM_REL}/", 2)],
-    "hardware/printing/ready/V1.20/manifest-V1.20.json": [("str", ABS_SIM, f"{SIM_REL}/", 34)],
     "hardware/printing/scripts/release_pipeline_v2.py": [
         ("str", "fp=REDESIGN/'printing-elegoo-20260929/filament.json'",
          "fp=HERE.parent/'profiles/elegoo-filament.json'  # cmu/ copy: the Elegoo filament profile ships beside the script", 1)],

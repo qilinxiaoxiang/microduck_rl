@@ -190,6 +190,8 @@ final class Launcher: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUIDel
     func openLive(_ url: URL) {
         if liveWindow == nil {
             let view = WKWebView(frame: NSRect(x: 0, y: 0, width: 1280, height: 860), configuration: WKWebViewConfiguration())
+            // the page's 关机 button asks through confirm(); without a UI delegate WebKit answers "cancel" silently
+            view.uiDelegate = self
             let live = NSWindow(contentRect: view.frame, styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
             live.title = "MicroDuck 真机监视"; live.isReleasedWhenClosed = false; live.contentView = view; live.delegate = self
             live.contentMinSize = NSSize(width: 420, height: 500); live.center(); live.setFrameAutosaveName("MicroduckRobotLive")

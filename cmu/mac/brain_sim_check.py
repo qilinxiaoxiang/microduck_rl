@@ -63,6 +63,7 @@ from walk_wired import QUACK_HEAD_S, quack_head_block, quack_head_pose  # noqa: 
 from walk_wired import CMD_ALPHA, GripStop, hold_allowed  # noqa: E402
 from walk_wired import SP_DONE_PHASE  # noqa: E402
 import walk_brain  # noqa: E402
+import duck_kin  # noqa: E402
 import jaw_ctl  # noqa: E402
 import jaw_limits as jl  # noqa: E402
 import tether  # noqa: E402
@@ -205,6 +206,14 @@ def sp_add_mouth(spec, beak_mu, beak_priority=False):
     j.frictionloss = 0.0
     j.solref_friction = [-5e4, -2e2]
     j.solimp_friction = [.99, .9999, .001, .5, 2]
+    # the drawn jaw (visual.json piece "jaw", e.g. cmu_jaw_soft__jaw_yellow) moves with the hinge: drawn on the head
+    # body it stayed shut while the beak boxes opened, and the held ball sat inside a closed beak (2026-11-11 demo video)
+    for g in list(head.geoms):
+        if "__jaw_" in g.name and g.contype == 0 and g.conaffinity == 0:
+            kw = dict(name=g.name, type=g.type, meshname=g.meshname, rgba=list(g.rgba), pos=list(np.asarray(g.pos) - SP_MOUTH_PIVOT),
+                      quat=list(g.quat), contype=0, conaffinity=0, group=g.group, density=0, mass=0)
+            spec.delete(g)
+            jaw.add_geom(**kw)
     removed = []
     for g in list(head.geoms):
         if g.meshname in SP_UNDERSIDE_HULLS and not (g.contype == 0 and g.conaffinity == 0):
@@ -316,6 +325,123 @@ class SimCamera:
         return self.last
 
 
+# T2 picture camera (--sp-pix), a numpy port of microduck_rl-grasp cmu_seeing_pix_env_cfg: the U20CAM on the head with one
+# mount draw per run, 8.3-10 fps, 0.1-0.3 s delay, drops, stalls, box bias and noise, no detection under the beak.
+PIX_W, PIX_H = 640, 360
+PIX_MOUNT_P = np.array([0.0154994, -0.00009, -0.0779])  # lens centre in the jaw_soft frame
+PIX_MOUNT_R = np.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]])  # columns: optical axis, image left, up
+PIX_OFFSETS_DEG = (11.975, 1.879, -0.686)  # pitch, yaw, roll
+PIX_DR = dict(pitch_deg=2.0, shift_m=0.01, head_gain=(0.90, 1.00), pivot_m=0.01, bow_dz=(-0.015, -0.008))
+PIX_BOW_NECK_FULL, PIX_BOW_NECK_NONE, PIX_NECK_FIT = -1.2, 0.0, 0.349
+PIX_PERIOD_TICKS, PIX_NOISE_PX, PIX_BIAS_PX, PIX_WIDTH_NOISE = (5, 6), 2.0, 3.0, 0.1
+PIX_MIN_DEPTH, PIX_HIDE_M = 0.015, (0.02, 0.03)
+PIX_INIT_AGE_HIDDEN_S = (0.3, 1.0)
+
+
+def _axis_rot(axis, a):
+    return duck_kin.axis_angle(np.asarray(axis, dtype=float), a)
+
+
+class PixCamera:
+    """What the tracker would hand the runtime for one run: {"u", "v", "w", "t", "seen"} in picture pixels."""
+
+    def __init__(self, m, d, rng, delay_s, drop, stalls=True):
+        self.m, self.d, self.rng, self.drop, self.stalls = m, d, rng, drop, stalls
+        self.intr = duck_kin.load_intrinsics()
+        self.body = m.body("jaw_soft").id
+        self.jh, self.jn = m.joint("head_pitch").id, m.joint("neck_pitch").id
+        self.qh, self.qn = m.jnt_qposadr[self.jh], m.jnt_qposadr[self.jn]
+        self.neck_parent = m.body_parentid[m.jnt_bodyid[self.jn]]
+        u = lambda lo_hi: float(rng.uniform(*lo_hi))  # noqa: E731
+        self.draw = dict(dpitch=u((-PIX_DR["pitch_deg"], PIX_DR["pitch_deg"])), gain=u(PIX_DR["head_gain"]),
+                         bow=u(PIX_DR["bow_dz"]), hide=u(PIX_HIDE_M), delay_s=round(delay_s, 3), drop=round(drop, 3),
+                         shift=[u((-PIX_DR["shift_m"], PIX_DR["shift_m"])) for _ in range(3)],
+                         pivot=[u((-PIX_DR["pivot_m"], PIX_DR["pivot_m"])) for _ in range(3)],
+                         bias=[u((-PIX_BIAS_PX, PIX_BIAS_PX)) for _ in range(2)])
+        self.period = int(rng.integers(PIX_PERIOD_TICKS[0], PIX_PERIOD_TICKS[1] + 1))
+        self.delay = int(min(15, max(1, round(delay_s / 0.02))))
+        self.offset = int(rng.integers(0, 6))
+        self.off = duck_kin.offset_rotation(PIX_OFFSETS_DEG[0] + self.draw["dpitch"], PIX_OFFSETS_DEG[1], PIX_OFFSETS_DEG[2])
+        self.frames = collections.deque(maxlen=32)
+        self.last, self.seen, self.stall_until = None, 0.0, -1
+        self.n = dict(frames=0, visible=0, detected=0, delivered=0, stall_frames=0)
+        self.last_delivery_t, self.last_visible_t = None, None
+
+    def pose(self):
+        d, a = self.d, self.draw
+        Rb = d.xmat[self.body].reshape(3, 3)
+        Rc = Rb @ PIX_MOUNT_R
+        p = d.xpos[self.body] + Rb @ PIX_MOUNT_P + Rc @ np.array(a["shift"])
+        R = Rc @ self.off
+        Rg = _axis_rot(d.xaxis[self.jh], (a["gain"] - 1.0) * float(d.qpos[self.qh]))
+        anchor = d.xanchor[self.jh]
+        p, R = anchor + Rg @ (p - anchor), Rg @ R
+        neck = float(d.qpos[self.qn])
+        dw = d.xmat[self.neck_parent].reshape(3, 3) @ np.array(a["pivot"])
+        p = p + dw - _axis_rot(d.xaxis[self.jn], neck - PIX_NECK_FIT) @ dw
+        w = min(1.0, max(0.0, (PIX_BOW_NECK_NONE - neck) / (PIX_BOW_NECK_NONE - PIX_BOW_NECK_FULL)))
+        return p + np.array([0.0, 0.0, w * a["bow"]]), R
+
+    def pixels(self, p_obj, half):
+        """u, v, width, inside; u, v may lie off the picture. None if behind the lens or past the fisheye fold."""
+        cp, R = self.pose()
+        pc = R.T @ (p_obj - cp)
+        c = self.intr.project(pc)
+        if c is None:
+            return None
+        left = R[:, 1]
+        a = self.intr.project(R.T @ (p_obj + half * left - cp))
+        b = self.intr.project(R.T @ (p_obj - half * left - cp))
+        width = abs(a[0] - b[0]) if a is not None and b is not None else 2 * self.intr.fx * half / max(pc[0], 1e-3)
+        inside = bool(pc[0] > PIX_MIN_DEPTH and 0 <= c[0] < PIX_W and 0 <= c[1] < PIX_H)
+        return float(c[0]), float(c[1]), float(width), inside
+
+    def measure(self, u, v, w, t):
+        b = self.draw["bias"]
+        return {"u": round(u + b[0] + float(self.rng.normal(0, PIX_NOISE_PX)), 3),
+                "v": round(v + b[1] + float(self.rng.normal(0, PIX_NOISE_PX)), 3),
+                "w": round(w * max(0.2, 1 + float(self.rng.normal(0, PIX_WIDTH_NOISE))), 3), "t": round(float(t), 4)}
+
+    def start(self, t, p_obj, half, tip):
+        """The hand-over frame: what the camera saw at the start pose, or the last position at the picture's edge."""
+        px = self.pixels(p_obj, half)
+        if px is None:
+            raise RuntimeError("the object is behind the lens at the hand-over")
+        u, v, w, inside = px
+        seen = bool(inside and np.linalg.norm(tip - p_obj) >= self.draw["hide"])
+        age = float(self.rng.uniform(*(SP_INIT_AGE_S if seen else PIX_INIT_AGE_HIDDEN_S)))
+        self.last = self.measure(u, v, w, t - age) if seen else {
+            "u": round(min(PIX_W - 1.0, max(0.0, u)), 3), "v": round(min(PIX_H - 1.0, max(0.0, v)), 3),
+            "w": round(w, 3), "t": round(float(t - age), 4)}
+        self.seen = 1.0 if seen else 0.0
+        return dict(seen=seen, u=round(u, 1), v=round(v, 1), w=round(w, 1), age_s=round(age, 3))
+
+    def step(self, k, t, p_obj, half, tip):
+        px = self.pixels(p_obj, half)
+        seen_now = bool(px is not None and px[3] and np.linalg.norm(tip - p_obj) >= self.draw["hide"])
+        if (k + self.offset) % self.period == 0:
+            if self.stalls and k >= self.stall_until and self.rng.random() < SP_CAM_STALL_PROB:
+                self.stall_until = k + int(round(self.rng.uniform(*SP_CAM_STALL_S) / 0.02))
+            if k >= self.stall_until:
+                self.n["frames"] += 1
+                self.n["visible"] += seen_now
+                if seen_now:
+                    self.last_visible_t = t
+                ok = bool(seen_now and self.rng.random() >= self.drop)
+                self.n["detected"] += ok
+                self.frames.append((k, self.measure(px[0], px[1], px[2], t) if ok else None))
+            else:
+                self.n["stall_frames"] += 1
+        for fk, meas in self.frames:
+            if fk == k - self.delay:
+                self.seen = 1.0 if meas is not None else 0.0
+                if meas is not None:
+                    self.last = meas
+                    self.n["delivered"] += 1
+                    self.last_delivery_t = t
+        return dict(self.last, seen=bool(self.seen))
+
+
 def sp_contacts(m, d, obj_geom, named):
     """{name: summed normal force (N)} of the object's contacts with each named geom set, plus 'floor'."""
     f6, out = np.zeros(6), {k: 0.0 for k in named}
@@ -411,6 +537,10 @@ class SeePick:
         self.cam_cfg = dict(delay_s=round(delay, 3), delay_ticks=self.cam.delay, drop=round(drop, 3),
                             bias_m=[round(float(b), 4) for b in bias], noise_m=args.sp_camera_noise, stalls=not args.sp_no_stalls,
                             half_fov_deg=[round(math.degrees(x), 1) for x in SP_CAM_HALF_FOV], min_depth_m=SP_CAM_MIN_DEPTH)
+        self.pix = PixCamera(m, d, rng, delay, drop, stalls=not args.sp_no_stalls) if args.sp_pix else None
+        if self.pix is not None:
+            self.cam_cfg = dict(self.pix.draw, period_ticks=self.pix.period, stalls=not args.sp_no_stalls, picture=True)
+            self.cam = self.pix
         self.model_report = model_report
         self.switched, self.done_t, self.spawn, self.k = None, None, None, 0
         self.rows = []
@@ -495,10 +625,23 @@ class SeePick:
         if self.switched is None:
             self.place()
             self.switched = t
-            init_age = float(self.rng.uniform(*SP_INIT_AGE_S))
-            self.cam.last = self.cam.measure(self.foot_xy(self.d.xpos[self.body]), self.obj["size"], t - init_age)
-            self.cam_cfg["init_age_s"] = round(init_age, 3)
+            if self.pix is not None:
+                self.cam_cfg["handover"] = self.pix.start(t, self.d.xpos[self.body], max(self.obj["half"][:2]),
+                                                          self.d.site_xpos[self.site["lip_up"]])
+            else:
+                init_age = float(self.rng.uniform(*SP_INIT_AGE_S))
+                self.cam.last = self.cam.measure(self.foot_xy(self.d.xpos[self.body]), self.obj["size"], t - init_age)
+                self.cam_cfg["init_age_s"] = round(init_age, 3)
         self.k = int(round((t - self.switched) / 0.02))
+        if self.pix is not None:
+            last = self.pix.step(self.k, t, self.d.xpos[self.body], max(self.obj["half"][:2]),
+                                 self.d.site_xpos[self.site["lip_up"]])
+            if not self.pix.seen and self.ev["first_lost_view_t"] is None:
+                self.ev["first_lost_view_t"] = round(t - self.switched, 2)
+            self.holding_now = self.holding()
+            if self.a.sp_aim_yaw:
+                last = dict(last, yaw_off=self.a.sp_offset[1] / 0.060)
+            return {"mode": "seepick", "object": last, "_holding": self.holding_now}
         vis = self.visible()
         if not vis and self.ev["first_lost_view_t"] is None:
             self.ev["first_lost_view_t"] = round(t - self.switched, 2)
@@ -708,16 +851,26 @@ class SeePick:
         return out
 
 
+def sp_post(sp, window, stable_after, args):
+    """From the hand-back to the end: peak tilt and gyro, and the time to a stable stand."""
+    if sp.done_t is None:
+        return None
+    seg = window(sp.done_t, 1e9)
+    return dict(peak_tilt=round(max(h[1] for h in seg), 1), peak_gyro=round(max(h[2] for h in seg), 2),
+                peak_tilt_1s=round(max(h[1] for h in seg if h[0] < sp.done_t + 1.0), 1),
+                stable_after_s=stable_after(sp.done_t, args.sp_at)[0])
+
+
 class SpTrace:
     """--sp-trace FILE: per seepick tick the 61 obs and 14 actions the policy saw and gave (captured at the ONNX call),
     the goals written, the true joint positions after the tick's physics (Brain order), trunk height and tilt, lip and
     pad heights, pad and object in the foot frame, beak-floor force and object contacts. Same fields as
     microduck_rl-grasp cmu/grasp/gap_trace.py writes from the training env (gap study, 2026-10-27)."""
 
-    def __init__(self, brain, path):
+    def __init__(self, brain, path, key="seepick"):
         self.f = open(path, "w")
         self.last = None
-        sess = brain.sessions["seepick"]
+        sess = brain.sessions[key]
         tracer = self
 
         class Wrapped:
@@ -732,7 +885,7 @@ class SpTrace:
                 tracer.last = (np.asarray(list(feed.values())[0])[0].tolist(), np.asarray(res[0])[0].tolist())
                 return res
 
-        brain.sessions["seepick"] = Wrapped()
+        brain.sessions[key] = Wrapped()
 
     @staticmethod
     def box_min_z(m, d, name):
@@ -801,6 +954,36 @@ def foot_load(m, d, floor, foot_geoms):
     return tot
 
 
+CURRENT_MODEL = os.path.join(HERE, "..", "model", "current.json")
+
+
+def resolve_model(args):
+    """Refuse a stale robot unless asked for on purpose. The current robot is microduck_rl/cmu/model/current.json
+    (`--model asbuilt --manifest current`, or a manifest built on it such as a flight-pack manifest). 2026-11-11: the
+    office-hours demo ran the retired charger-pack model for a day because scripts copied a dated study's
+    `--manifest plugged.json`; Pollen's v19 masses and the 2026-10-15 base manifest are older still."""
+    cur = json.load(open(CURRENT_MODEL))
+    cur_path = os.path.normpath(os.path.join(os.path.dirname(CURRENT_MODEL), "..", "..", cur["mass_manifest"]))
+    if args.manifest == "current":
+        args.manifest = cur_path
+    variant = None
+    if args.model == "asbuilt" and args.manifest:
+        sys.path.insert(0, os.path.dirname(CURRENT_MODEL))
+        from visual import visual_variant_for_manifest
+        variant = visual_variant_for_manifest(args.manifest)
+    is_current = variant == cur["variant"]
+    info = dict(variant=variant if args.model == "asbuilt" else args.model, current=is_current,
+                current_variant=cur["variant"], historical_reason=args.historical_model)
+    if not is_current:
+        if not args.historical_model:
+            raise SystemExit(f"brain_sim_check: --model {args.model} --manifest {args.manifest} is not the robot as it is now "
+                             f"({cur['variant']}: {cur['describes']}). Use --model asbuilt --manifest current, or pass "
+                             f"--historical-model REASON to run an old model on purpose.")
+        print(f"[model] HISTORICAL model on purpose ({info['variant']}, not {cur['variant']}): {args.historical_model}",
+              file=sys.stderr, flush=True)
+    return info
+
+
 def run(args):
     zero = {k: float(v) for k, v in args.zero}
     c0 = cfg(0.09, model=args.model, kp=200, voltage=args.volt)
@@ -810,6 +993,9 @@ def run(args):
     if args.foot_play:  # sim-ID 2026-10-21: free play between ankle horn and foot (deg, centring stiffness N m/rad, damping)
         fp = args.foot_play + [0.05, 0.002][len(args.foot_play) - 1:]
         c0["foot_play"] = dict(deg=fp[0], stiffness=fp[1], damping=fp[2], axis=FOOT_PLAY_AXES[args.foot_play_axis])
+    if args.joint_play:  # play-locate study 2026-11-12: servo-to-link play on the matched joints (evaluate_delay joint_play)
+        import re
+        c0["joint_play"] = dict(joints={n: args.joint_play for n in NAMES if re.search(args.joint_play_only, n)})
     if args.manifest:  # another signed-part manifest on the same loader (the 90 g NP-F970 removal is still applied by the loader)
         c0["mass_manifest"] = os.path.abspath(args.manifest)
     if args.com_x:
@@ -860,6 +1046,9 @@ def run(args):
     gyro_adr = m.sensor("imu_ang_vel").adr[0]
     c.q_target = p0 + z0
     brain = Brain(args.models, compensation=args.compensation, walk_ramp=args.walk_ramp, yaw_trim_file=args.yaw_trim_file)
+    brain.sp_bit_off_phase, brain.sp_blend_s = args.sp_bit_off, args.sp_blend
+    if args.sp_rise_old is not None:
+        brain.sp_rise_old_phase = args.sp_rise_old
     comp = Breakaway(first=args.ba_first, ramp=args.ba_ramp, cap=args.ba_cap, min_err_ticks=args.ba_min_err, stuck_ticks=args.ba_stuck, cap_ticks=args.ba_cap_ticks)
     Rimu = rot_y(args.imu_pitch)
     Mq = qmul(IMU_MOUNT_QUAT, (1, 0, 0, 0))
@@ -910,7 +1099,7 @@ def run(args):
         sp = SeePick(m, d, args, sp_obj, sp_rng, sp_model)
         args.vx = 0.0
         T = max(T, args.sp_at + walk_brain.SP_PERIOD * SP_DONE_PHASE / (1.0 - args.drop) + 0.3 + args.sp_after)
-    sp_trace = SpTrace(brain, args.sp_trace) if args.sp_trace and sp is not None else None
+    sp_trace = SpTrace(brain, args.sp_trace, "seepickpix" if args.sp_pix else "seepick") if args.sp_trace and sp is not None else None
     mouth = m.site("mouth_tip").id
     feet = [m.geom(g).id for g in ("left_foot_collision", "right_foot_collision")]
     gp = dict(mouth_min_z=None, mouth_at_min=None, pose_at_min=None, tilt_at_min=None, max_tilt=0.0, phase_at_min=None)
@@ -946,7 +1135,12 @@ def run(args):
                  tilt_skipped=0)
     load_now, tau_legs = 1.0, 0.0
     grip_stop, cmd_s, hold_s, wz_t, grip_stop_at = GripStop(), [0.0, 0.0, 0.0], 1.0, None, None  # --wired-hold
+    replay = None
+    if args.cmd_replay:  # [[s after --walk-at, control-file command], ...] in time order (scorecard.py writes it)
+        replay = [(float(rt), dict(rc)) for rt, rc in json.load(open(args.cmd_replay))]
     settled_at = None
+    if STORY is not None:  # fullflow_sim.py: a scripted scene drives the commands and records the video
+        STORY.setup(m, d, sp, args, trunk)
     for tick in range(int(T / 0.02)):
         t = tick * 0.02
         # what the sensors report, in commanded (encoder) frame and the BNO's own frame
@@ -998,6 +1192,14 @@ def run(args):
                     dance_vth[0] = dv
                     want = dict(want, vx=0.0, vtheta=dv if walking else 0.0,
                                 head={n: brain.default[n] + d for n, d in step.get("head", {}).items()})
+            if replay is not None and t >= args.walk_at:  # a robot log's control-file commands, at their own times
+                rcmd = None
+                for rt, rc in replay:  # the last command written at or before this time wins
+                    if t - args.walk_at >= rt:
+                        rcmd = rc
+                if rcmd is not None:
+                    want = {k: v for k, v in rcmd.items() if k != "for_s"}  # walk_wired logs the for_s expiry itself
+                    walking = want.get("mode") == "walk" and any(float(want.get(k, 0)) for k in ("vx", "vy", "vtheta"))
             if args.kick_at is not None and t >= args.kick_at and kick_done_t is None:
                 want = {"mode": "kick", "foot": args.kick_foot, "id": 1}
             if args.sit_at is not None and t >= args.sit_at and (args.unsit_at is None or t < args.unsit_at):
@@ -1027,6 +1229,8 @@ def run(args):
                     if quack_ok[qt]:
                         want["head"] = quack_head_pose({"head_roll": args.quack_roll, "head_yaw": args.quack_yaw,
                                                         "head_pitch": args.quack_pitch}, t - qt, brain)
+        if STORY is not None:
+            want = STORY.want(t, want, brain)
         if sp is not None and sp.active(t) and guard["stop"] is None:
             want = sp.want(t)
         if stop_at is not None and t >= stop_at:
@@ -1044,6 +1248,14 @@ def run(args):
                    gyro=float(np.linalg.norm(w_body)))
         if guard["stop"] is not None:  # walk_wired wrote stand (monitor out of a sit or crouch) to the control file
             want = {"mode": guard["stop_to"]}
+        if replay is not None and not args.wired_hold:  # walk_wired.py smooths every file command (CMD_ALPHA)
+            if want.get("mode") == "walk":
+                for k, key in enumerate(("vx", "vy", "vtheta")):
+                    cmd_s[k] += CMD_ALPHA * (float(want.get(key, 0)) - cmd_s[k])
+                    cmd_s[k] = 0.0 if abs(cmd_s[k]) < 1e-4 else cmd_s[k]
+                want = dict(want, vx=cmd_s[0], vy=cmd_s[1], vtheta=cmd_s[2])
+            else:
+                cmd_s = [0.0, 0.0, 0.0]
         if args.wired_hold:  # walk_wired.py's order: grip stop on the file command, then the smoothing, then the gate
             if grip_stop.update(want, args.hold and not args.hold_uncal, est.e) == "stop" and grip_stop_at is None:
                 grip_stop_at = round(t, 2)
@@ -1200,6 +1412,10 @@ def run(args):
             sp.observe(t, brain, info, tilt, tz)
         if sp_trace is not None:
             sp_trace.row(t, brain, info, goal, m, d, sp, qa, z0, names, tilt, tz)
+        if STORY is not None:
+            STORY.after(t, brain, info, tilt)
+            if STORY.done:
+                break
         if args.kick_at is not None:
             fz = float(d.geom_xpos[kick_geom, 2])
             if kick_start_t is None:
@@ -1319,7 +1535,7 @@ def run(args):
                 kick=kick, sit=sitr, hold=holdr, quack_head_ran={str(k): v for k, v in quack_ok.items()},
                 quack_head_reached={str(k): {n: round(v, 3) for n, v in r.items()} for k, r in quack_reach.items()},
                 quack_peak_tilt={str(k): round(max(h[1] for h in window(k, k + QUACK_HEAD_S + 1.0)), 1) for k in quack_ok},
-                seepick=None if sp is None else dict(sp.summary(brain), guard=dict(
+                seepick=None if sp is None else dict(sp.summary(brain), post_handback=sp_post(sp, window, stable_after, args), guard=dict(
                     wired=bool(args.wired_guards), stop_at=guard["stop"], why=guard["why"], clipped_ticks=guard["clipped"],
                     hard_max_action=HARD_MAX_ACTION, max_tilt_deg=MAX_TILT_GP_DEG)),
                 groundpick=None if gp_at is None else dict(gp, at=gp_at, phase=args.gp_phase, hold_s=args.gp_hold_s,
@@ -1417,6 +1633,7 @@ def hold_summary(args, rows, hand, guard, stable_after, leg_names):
 
 
 tick_log = None
+STORY = None  # fullflow_sim.Story: setup(m, d, sp, args, trunk), want(t, want, brain) -> want, after(t, brain, info, tilt), done
 
 
 def head_keys(keys, t):
@@ -1461,7 +1678,11 @@ def main():
     ap.add_argument("--model", choices=("v19", "asbuilt"), default="v19",
                     help="mass model: v19 (default) or asbuilt (2026-10-15, D-007 bench backpack)")
     ap.add_argument("--manifest", default=None,
-                    help="signed-part mass manifest to use instead of the model's own (same schema; e.g. a plugged/battery variant)")
+                    help="signed-part mass manifest instead of the model's own; 'current' = microduck_rl/cmu/model/current.json, "
+                         "the robot as it is now (any other model needs --historical-model)")
+    ap.add_argument("--historical-model", default=None, metavar="REASON",
+                    help="run a model other than the current robot on purpose (a dated study's reproduction); the reason is "
+                         "printed and written to the result")
     ap.add_argument("--walk-ramp", type=float, default=0.0, help="Brain walk_ramp; 1.5 reproduces the old behaviour")
     ap.add_argument("--com-x", type=float, default=0.0, help="whole-robot COM shift forward, mm")
     ap.add_argument("--zero", nargs=2, action="append", default=[], metavar=("JOINT", "DEG"))
@@ -1498,6 +1719,10 @@ def main():
     ap.add_argument("--gp-at", type=float, default=None, help="s; switch stand61 to groundpick (Pollen alpha_ground_pick) here")
     ap.add_argument("--gp-phase", type=float, default=0.4, help="phase to descend to and hold (0.375..0.425 is the lowest)")
     ap.add_argument("--gp-hold-s", type=float, default=2.0, help="s to hold the low pose before the rise")
+    ap.add_argument("--cmd-replay", default=None,
+                    help="JSON [[s, cmd], ...]: from --walk-at on, the commands a robot run wrote to the control file "
+                         "(walk/stand modes, velocities, head), smoothed by CMD_ALPHA as walk_wired.py does; "
+                         "replaces --vx/--vtheta schedules (scorecard-20261109/scorecard.py)")
     ap.add_argument("--dance", default=None, help="dance.json: head and in-place turn steps from --walk-at on (shoot.py sing)")
     ap.add_argument("--head-yaw", type=float, default=0.0, help="rad; head pose command in walk mode from --walk-at on")
     ap.add_argument("--head-pitch", type=float, default=None, help="rad; absolute head_pitch target with --head-yaw")
@@ -1525,6 +1750,11 @@ def main():
                     help="foot-floor sliding friction (tilt test: tan of the slide angle); 1.0 = the model's own, training randomised 0.7-1.3")
     ap.add_argument("--foot-play", type=float, nargs="+", default=None, metavar="DEG [STIFF DAMP]",
                     help="free play about the ankle axis between servo horn and foot, +-DEG (sim-ID 2026-10-21)")
+    ap.add_argument("--joint-play", type=float, default=None, metavar="DEG",
+                    help="total peak-to-peak play between servo output and link (horn, screws, bracket), invisible to the "
+                         "encoder, on every joint --joint-play-only matches (play-locate study 2026-11-12)")
+    ap.add_argument("--joint-play-only", default=r"^(left|right)_", metavar="REGEX",
+                    help="servo joints that get --joint-play (default: the ten leg joints)")
     ap.add_argument("--foot-play-axis", choices=sorted(FOOT_PLAY_AXES), default="pitch",
                     help="axis of --foot-play: pitch (the ankle axis), roll (forward) or yaw (vertical), at the stand pose")
     ap.add_argument("--sole-solref", type=float, nargs=2, default=None, metavar=("TIMECONST", "DAMPRATIO"),
@@ -1590,6 +1820,11 @@ def main():
     sp.add_argument("--sp-impratio", type=float, default=None,
                     help="MuJoCo impratio (the as-built MJCF compiles 1; the training env runs 10, its sticky friction: "
                          "microduck_ground_grasp_env_cfg, a pinched block creeps out of the wedge at pyramidal / 1)")
+    sp.add_argument("--sp-pix", action="store_true", help="T2: the object as the tracker's picture box (seepickpix61.onnx in --models)")
+    sp.add_argument("--sp-bit-off", type=float, default=None, help="phase from which the policy reads holding 0 (trial)")
+    sp.add_argument("--sp-aim-yaw", action="store_true", help="T2: send yaw_off = dy / 0.060 rad, as seepick.py does")
+    sp.add_argument("--sp-rise-old", type=float, default=None, help="phase from which seepick61 finishes T2's rise once holding (default walk_brain.SP_RISE_OLD_PHASE; 2 = never)")
+    sp.add_argument("--sp-blend", type=float, default=None, help="s; blend the pick's last goals into stand61's after the hand-back (trial)")
     sp.add_argument("--sp-after", type=float, default=3.0, help="s simulated after the hand-back to stand61")
     sp.add_argument("--sp-log", default=None, help="JSONL: per tick jaw goal/written/measured, cap, head pose, body slots")
     args = ap.parse_args()
@@ -1606,8 +1841,10 @@ def main():
     for name, val in args.hold_set:
         assert hasattr(_hold, name) and name.isupper(), name
         setattr(_hold, name, type(getattr(_hold, name))(float(val)))
+    model_info = resolve_model(args)
     out = run(args)
-    out["manifest"] = args.manifest  # as given on the command line (None = the model's own manifest)
+    out["manifest"] = args.manifest  # as resolved (None = the model's own manifest)
+    out["model"] = model_info
     if not args.trace:
         out.pop("trace")
     print(json.dumps(out))

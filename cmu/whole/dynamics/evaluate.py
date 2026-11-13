@@ -48,8 +48,9 @@ def load(config):
         spec = mujoco.MjSpec.from_file(str(Path(config['scene']).resolve()))
     # Draw the CMU robot as built (microduck_rl/cmu/model/visual.py): visual geoms only, physics unchanged.
     sys.path.insert(0, str(MODEL_DIR.parents[3] / 'cmu/model'))
-    from visual import apply_visual_to_spec
-    apply_visual_to_spec(spec)
+    from visual import apply_visual_to_spec, visual_variant_for_manifest
+    # the look follows the mass model: one robot weighed and drawn (cmu/model/current.json is the robot now)
+    apply_visual_to_spec(spec, config.get('visual_variant', visual_variant_for_manifest(config.get('mass_manifest'))))
     if config.get('geometry_manifest'):
         manifest=json.loads(Path(config['geometry_manifest']).read_text())
         for g in list(spec.geoms):

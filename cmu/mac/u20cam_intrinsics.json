@@ -1,0 +1,37 @@
+{
+ "camera": "Innomaker U20CAM-720P (D-023), as a7z_cam.py publishes it: 1280 x 720 MJPEG shrunk to 640 x 360 and turned 180 deg to upright",
+ "source": "calibration",
+ "model": "fisheye",
+ "width": 640,
+ "height": 360,
+ "fx": 534.1751,
+ "fy": 534.502,
+ "cx": 311.0997,
+ "cy": 168.3507,
+ "dist": [
+  -0.1413307,
+  -0.24242853,
+  0.70203388,
+  -0.67228765
+ ],
+ "rms_px": 0.4027,
+ "frames": 22,
+ "date": "2026-10-30T01:38:23",
+ "pattern_inner_corners": [
+  9,
+  6
+ ],
+ "coverage_4x4": 0.938,
+ "compared": {
+  "radtan": {
+   "rms_px": 0.3524,
+   "folds_in_picture": true
+  },
+  "fisheye": {
+   "rms_px": 0.4027,
+   "folds_in_picture": false
+  }
+ },
+ "frames_from": "/home/radxa/duck-logs/u20cam-calib-1030-013445",
+ "pixel_convention": "continuous: the centre of pixel column j, row i is (j + 0.5, i + 0.5); OpenCV's cx, cy plus 0.5"
+}

@@ -7,7 +7,8 @@ set -e
 OUT=$1; shift
 ROOT=$PWD
 PY=(uv run --no-sync python)
-MAN=(--manifest cmu/model/manifests/plugged.json)
+# historical on purpose: the charger lead exists only on the charger pack (plugged, retired 2026-11-03)
+MAN=(--manifest cmu/model/manifests/plugged.json --historical-model "tether_accept: charger-lead acceptance on the retired charger pack")
 B=(--model asbuilt --volt 7.0 --drop 0.04 --walk-at 3)
 for spec in "walk61=cmu/whole/runtime-overlay/models/walk61.onnx" "$@"; do
   name=${spec%%=*}; onnx=${spec#*=}

@@ -69,21 +69,26 @@ def u20_kin(K, pitch=0.0, yaw=0.0, roll=0.0, shift=(0.0, 0.0, 0.0)):
     m = copy.deepcopy(duck_kin.load_mount())
     m["offsets_deg"] = {"pitch": pitch, "yaw": yaw, "roll": roll}
     m["shift_m"] = list(shift)
+    m["head_pitch_gain"] = 1.0   # an ideal head: the fitted gain in the repo file is a property of the real robot
     return duck_kin.DuckKin(K, mount=m)
 
 
-def test_u20cam_default_loads_datasheet_and_cad_mount():
+def test_u20cam_default_loads_the_calibration():
+    """The repo files hold the 2026-10-30 calibration (chessboard lens, tile-grid + ruler mount with a head-pitch gain)."""
     kin = duck_kin.DuckKin()
-    assert kin.K.source == "datasheet" and kin.K.model == "fisheye" and (kin.K.width, kin.K.height) == (640, 360)
-    assert abs(kin.K.fx - 320 / math.radians(51)) < 0.01
-    assert kin.mount["source"] == "cad" and kin.mount["fit"] is None
-    # the camera centre at qpos0 is the CAD point in the guide frame (trunk_base frame at qpos0), axes level
-    Rs, ps = kin.qpos0_pose()
-    s = kin.cam_site
+    assert kin.K.source == "calibration" and kin.K.model == "fisheye" and (kin.K.width, kin.K.height) == (640, 360)
+    assert kin.mount["source"] == "fit" and kin.mount["fit"] is not None
+    assert 0.85 <= kin.head_gain <= 1.0 and kin.head_gain == kin.mount["head_pitch_gain"]
+    # the CAD site survives under the fit: the camera centre at qpos0 with zero offsets is the guide-frame point
+    m = copy.deepcopy(kin.mount); m["offsets_deg"] = {}; m["shift_m"] = None; m["head_pitch_gain"] = 1.0
+    k0 = duck_kin.DuckKin(kin.K, mount=m)
+    Rs, ps = k0.qpos0_pose()
+    s = k0.cam_site
     assert np.allclose((ps[s["body"]] + Rs[s["body"]] @ s["p"]) * 1000, [86.0, -0.09, 131.114], atol=1e-6)
     assert np.allclose(Rs[s["body"]] @ s["R"], np.eye(3), atol=1e-9)
-    why = approach.camera_ready(kin, 640, 360)
-    assert why and "--intrinsics" in why
+    assert approach.camera_ready(kin, 640, 360) is None
+    # the datasheet lens is still what a missing calibration falls back to
+    assert abs(duck_kin.U20CAM_DATASHEET.fx - 320 / math.radians(51)) < 0.01 and duck_kin.U20CAM_DATASHEET.source == "datasheet"
     # the old camera still projects exactly as before at the model's head_camera site
     assert np.allclose(duck_kin.DuckKin(duck_kin.RADXA_13M_UPRIGHT).cam_site["p"], KIN.sites["head_camera"]["p"])
 
@@ -200,7 +205,8 @@ def test_mount_refit_from_captures_writes_only_on_pass(tmp_path, monkeypatch):
     intr.write_text(json.dumps(dict(source="calibration", model="fisheye", width=640, height=360, fx=FISHEYE.fx,
                                     fy=FISHEYE.fy, cx=FISHEYE.cx, cy=FISHEYE.cy, dist=list(FISHEYE.dist), date="test")))
     mount_src = tmp_path / "mount.json"
-    mount_src.write_text(json.dumps(duck_kin.load_mount()))
+    mount_src.write_text(json.dumps(dict(duck_kin.load_mount(), head_pitch_gain=1.0)))   # the ideal head of u20_kin: a
+    # refit keeps the gain of the mount it starts from, and the repo file carries the real robot's 0.92
     monkeypatch.setattr(duck_kin, "U20CAM_INTRINSICS", str(intr))
     monkeypatch.setattr(duck_kin, "U20CAM_MOUNT", str(mount_src))
     monkeypatch.setattr(duck_kin.load_intrinsics, "__defaults__", (str(intr),))
