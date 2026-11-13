@@ -3,7 +3,7 @@
 // the page runs in headless Chrome behind a TCP proxy that can freeze its open connections without closing them.
 //  1. frozen link (a phone woken from sleep, a half-open TCP link): the page opens a new stream and is online again
 //     (before 2026-11-11 it waited forever until the app was quit and reopened)
-//  2. A7Z down for about 6 s: the page shows the outage and logs "重新连上（失联 ~6 秒）"
+//  2. A7Z down for about 6 s: the page shows the outage and logs "Reconnected (lost for ~6 s)"
 //  3. the page itself asleep for 15 s while the A7Z stays up (Page.setWebLifecycleState frozen, what iOS does to a
 //     background home-screen app): no outage of 15 s is reported
 import assert from "node:assert/strict";
@@ -110,12 +110,12 @@ try {
   const t0 = Date.now();
   await sleep(5000);
   const shown = await page('document.querySelector("#link").textContent');
-  const n = Number(shown.match(/失联 (\d+) 秒/)?.[1]);
+  const n = Number(shown.match(/lost for (\d+) s/)?.[1]);
   assert.ok(n >= 4 && n <= 8, `outage shown as ${n} s after about 6 s: ${shown}`);
   writeFileSync(up, "");
   await until(() => page("window.robotLive.online === true"), "back after the outage", 15000);
-  const back = (await events()).find(e => e.includes("重新连上"));
-  const m = Number(back?.match(/失联 (\d+) 秒/)?.[1]), real = (Date.now() - t0) / 1000;
+  const back = (await events()).find(e => e.includes("Reconnected"));
+  const m = Number(back?.match(/lost for (\d+) s/)?.[1]), real = (Date.now() - t0) / 1000;
   assert.ok(m >= 4 && m <= real + 2, `reconnect logged as ${back} after ${real.toFixed(1)} s`);
   console.log(`A7Z outage: shown ${n} s at 5 s, logged "${back.trim()}" (real about ${real.toFixed(1)} s)`);
 
@@ -127,7 +127,7 @@ try {
   await until(() => page("window.robotLive.online === true"), "online after the page slept", 15000);
   await sleep(1500);
   const after = await events();
-  const long = after.filter(e => /失联 (\d+) 秒/.test(e) && Number(e.match(/失联 (\d+) 秒/)[1]) > 3);
+  const long = after.filter(e => /lost for (\d+) s/.test(e) && Number(e.match(/lost for (\d+) s/)[1]) > 3);
   assert.equal(long.length, 0, `page sleep reported as an outage: ${after.join(" | ")}`);
   console.log(`page asleep 15 s: events after waking: ${after.join(" | ") || "(none)"}`);
 } catch (e) { failed = e; }

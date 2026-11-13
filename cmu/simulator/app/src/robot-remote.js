@@ -3,9 +3,9 @@ import { batteryPercent } from "./battery-percent.js";
 // the A7Z through the dev-server bridge (POST /api/a7z/cmd, a7z-bridge.mjs -> desktop/duck-command.py).
 //
 // The commands are the ones walk_wired.py documents (guide/firmware/mac/walk_wired.py, "Remote-control additions"):
-// walk at 0.25 m/s (walk61 steps only from 0.25; no backwards), turns in place left and right, Pollen's kick, sit and
+// walk at 0.25 m/s (walk61 steps only from 0.25), walk backward at BACK_VX, turns in place left and right, Pollen's kick, sit and
 // ground-pick policies, and a quack. Walking is hold-to-walk: while a walk key or button is held the page rewrites the
-// command every 0.3 s with for_s 0.6, so the robot stops by itself 0.6 s after the page, the Mac or the link goes quiet.
+// command every 0.15 s with for_s 1.5, so the robot stops by itself 1.5 s after the page, the Mac or the link goes quiet.
 // Forward and the turn keys are independent: a turn key alone turns in place, together with forward it walks an arc.
 // The stick (Shawn 2026-10-26: "推得猛就走得快") sets the speed by how far it is pushed: see stickCommand.
 // Every other button works whenever the A7Z is online: with no brain running (nothing restarts walk_wired.py after an
@@ -19,17 +19,22 @@ import { batteryPercent } from "./battery-percent.js";
 // as-built sim 2026-10-24, every HEAD_RANGE extreme and all three at once while seated: no fall, seated tilt <= 2.6 deg,
 // mouth >= 107 mm above the floor, stood up after). The open-loop stand takes top-level joint overrides only.
 // One driver at a time (held on the A7Z, desktop/duck-command.py): every command carries this page's client id and name;
-// a moving command from a page that does not hold the lease comes back refused (409) with the holder's name, and 「接管」
-// takes it over after a confirm. 停 and 停扭矩 always go through and hand the lease to whoever pressed them, so the old
-// driver's held-walk repeats cannot overwrite the stop. Only the 停 button marks its zero-velocity walk "stop": the same
-// command from 闭环站立 or a head button moves the robot, and walkStop's belongs to a page that may have lost the lease.
-// Backpack switch: 充电背包 / 电池背包 tells the brain which pack is on ({"op": "supply"}): the charger pack runs without the
+// a moving command from a page that does not hold the lease comes back refused (409) with the holder's name, and "Take over"
+// takes it over after a confirm. Stop and Torque off always go through and hand the lease to whoever pressed them, so the old
+// driver's held-walk repeats cannot overwrite the stop. Only the Stop button marks its zero-velocity walk "stop": the same
+// command from Balance stand or a head button moves the robot, and walkStop's belongs to a page that may have lost the lease.
+// Backpack switch: Charger pack / Battery pack tells the brain which pack is on ({"op": "supply"}): the charger pack runs without the
 // low-battery guard, the 2S pack with it from the first sample. Switching restarts an idle brain; a driving one keeps the
-// old setting until 停. Unset (auto) the brain guesses from the voltage, which can take the charger for a battery.
+// old setting until Stop. Unset (auto) the brain guesses from the voltage, which can take the charger for a battery.
 
 import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
 
-const WALK_VX = 0.25, WALK_REPEAT_MS = 300, WALK_FOR_S = 0.6;
+// Repeat and lifetime, 2026-11-12: with 0.3 s / 0.6 s one late repeat stopped the walk, and from the phone the repeats
+// arrived 0.7 to 2.4 s apart for a minute (brain log app1112-145302: 30 "walk for_s 0.6 elapsed" stops, loop at 48 Hz),
+// so the duck walked in 1 s bursts. 0.15 s / 1.5 s rides through a 1.3 s stall; a dead link stops the duck 1.5 s later
+// (0.37 m at 0.25 m/s). Releasing the button still sends the stop at once. Each repeat carries its send time and the
+// bridge logs late ones (a7z-bridge.mjs, ~/Library/Logs/microduck-remote-cmd.jsonl), so the slow hop is named.
+const WALK_VX = 0.25, WALK_REPEAT_MS = 150, WALK_FOR_S = 1.5;
 // Arc yaw rate, rad/s, positive = left: the rate walk_brain holds with the IMU (the held heading turns at vtheta and its
 // trim + PI loop follows, turn command within +-TURN_MAX 2.0). 0.3 is the fastest rate both ways under the robot's
 // 2026-10-23 left drift: as-built sim with the 0.020 N m yaw torque that reproduces it, +-0.3 gave +15 / -19 deg/s, while
@@ -38,7 +43,11 @@ const ARC_VTHETA = 0.3;
 // Turn-in-place yaw rate, rad/s, positive = left (vx 0). Robot-measured 2026-10-24 on the floor: vtheta -0.5 -> -19.6
 // deg/s, +0.5 -> +23.8 deg/s, no guard trip; walk_brain turns in place without the straight-walk trim (SPIN_TURN_MAX 2.0).
 const SPIN_VTHETA = 0.5;
-const WALK_IDS = {walk: 0, left: 1, right: -1}; // held id -> sign of the turn
+// Backward: walk61 is trained on lin_vel_x -0.4..0.4. Robot 2026-11-12 (seepick BACK_VX, standing start): -0.25 for 2.5 s
+// leaned back 5 deg and never stepped; -0.4 stepped from 0.4 s and 1.5-2 s runs stayed up (max tilt 11.4 deg). Backing with a
+// turn has not run on the robot, so backward is straight: a turn key held with it is ignored, forward with it cancels.
+const BACK_VX = -0.4;
+const WALK_IDS = {walk: 0, back: 0, left: 1, right: -1}; // held id -> sign of the turn
 // Head pose: walk_brain.py HEAD_RANGE (trained +- deltas from the policy default), absolute targets in model rad on the
 // wire. Signs from the model (scene_plugged.xml): head_pitch + looks down, head_yaw + turns left, head_roll + tilts the
 // top of the head left. A held button steps HEAD_STEP every HEAD_REPEAT_MS (0.5 rad/s, 0.25 for roll); walk_brain
@@ -68,7 +77,7 @@ export function clientId() {
     Math.random().toString(36).slice(2, 10));
   return tabId;
 }
-const driverName = () => store("localStorage", NAME_KEY) || `访客-${clientId().slice(0, 4)}`;
+const driverName = () => store("localStorage", NAME_KEY) || `guest-${clientId().slice(0, 4)}`;
 const TORQUE_WAIT_MS = 3000;
 const TORQUE_ACTS = new Set(["stand", "stand61", "bend"]); // walk_brain.Brain.TORQUE_MODES: stand, walk, groundpick
 
@@ -93,57 +102,63 @@ export const withHead = (cmd, delta) => { const head = headTargets(delta); retur
 export function walkCommand(held, head = null) {
   const ids = [...held];
   const turn = Math.sign(ids.reduce((t, id) => t + (WALK_IDS[id] ?? 0), 0));
-  const w = ids.includes("walk")
+  const back = ids.includes("back") && !ids.includes("walk");
+  const w = back ? {cmd: {...WALK_ZERO, vx: BACK_VX, for_s: WALK_FOR_S}, label: "Back"}
+    : ids.includes("walk") && ids.includes("back") ? {cmd: {...WALK_ZERO, for_s: WALK_FOR_S}, label: "In place"}
+    : ids.includes("walk")
     ? {cmd: {...WALK_ZERO, vx: WALK_VX, vtheta: turn * ARC_VTHETA, for_s: WALK_FOR_S},
-      label: turn > 0 ? "左转" : turn < 0 ? "右转" : "前进"}
-    : turn ? {cmd: {...WALK_ZERO, vtheta: turn * SPIN_VTHETA, for_s: WALK_FOR_S}, label: turn > 0 ? "原地左转" : "原地右转"}
-    : {cmd: {...WALK_ZERO, for_s: WALK_FOR_S}, label: "原地"};
+      label: turn > 0 ? "Arc left" : turn < 0 ? "Arc right" : "Forward"}
+    : turn ? {cmd: {...WALK_ZERO, vtheta: turn * SPIN_VTHETA, for_s: WALK_FOR_S}, label: turn > 0 ? "Turn left" : "Turn right"}
+    : {cmd: {...WALK_ZERO, for_s: WALK_FOR_S}, label: "In place"};
   return {...w, cmd: withHead(w.cmd, head)};
 }
 
 // Stick: up past STICK_WALK starts walking at WALK_VX and a full push reaches STICK_VX_MAX, the top of walk61's trained
 // forward range (Pollen microduck_velocity_env_cfg lin_vel_x (-0.4, 0.4)); speeds above 0.25 have not been walked on
-// the robot yet. Sideways turns the arc at up to ARC_VTHETA, or in place at SPIN_VTHETA with no forward push. Pulling
-// back does nothing (walk61 steps only from 0.25 forward).
+// the robot yet. Sideways turns the arc at up to ARC_VTHETA, or in place at SPIN_VTHETA with no forward push. Pulled
+// back past STICK_WALK (and more back than sideways) it walks straight backward at BACK_VX, the one robot-tested speed.
 const STICK_WALK = 0.3, STICK_TURN = 0.15, STICK_VX_MAX = 0.4;
 export function stickCommand(x, y, head = null) {
   const r = Math.hypot(x, y), k = r > 1 ? 1 / r : 1, fwd = Math.max(0, -y * k), side = -x * k;  // + side = left
+  const rev = Math.max(0, y * k);
   const round = v => Math.round(v * 1000) / 1000;
   const turn = Math.abs(side) > STICK_TURN ? side : 0;
-  const w = fwd > STICK_WALK
+  const w = rev > STICK_WALK && rev >= Math.abs(side) ? {cmd: {...WALK_ZERO, vx: BACK_VX, for_s: WALK_FOR_S}, label: "Back"}
+    : fwd > STICK_WALK
     ? {cmd: {...WALK_ZERO, vx: round(WALK_VX + (STICK_VX_MAX - WALK_VX) * (fwd - STICK_WALK) / (1 - STICK_WALK)),
-      vtheta: round(turn * ARC_VTHETA), for_s: WALK_FOR_S}, label: turn > 0 ? "左转" : turn < 0 ? "右转" : "前进"}
+      vtheta: round(turn * ARC_VTHETA), for_s: WALK_FOR_S}, label: turn > 0 ? "Arc left" : turn < 0 ? "Arc right" : "Forward"}
     : Math.abs(side) > STICK_WALK ? {cmd: {...WALK_ZERO, vtheta: Math.sign(side) * SPIN_VTHETA, for_s: WALK_FOR_S},
-      label: side > 0 ? "原地左转" : "原地右转"}
-    : {cmd: {...WALK_ZERO, for_s: WALK_FOR_S}, label: "原地"};
+      label: side > 0 ? "Turn left" : "Turn right"}
+    : {cmd: {...WALK_ZERO, for_s: WALK_FOR_S}, label: "In place"};
   return {...w, cmd: withHead(w.cmd, head)};
 }
 
 // Rows of four on robot-live.html: walking, standing and safety, the other moves.
 const ACTIONS = [
-  {id: "left", key: "A", label: "左转", hint: "按住原地左转；和前进一起按边走边左转", hold: true},
-  {id: "walk", key: "W", label: "前进", hint: "按住走，松开停", hold: true},
-  {id: "right", key: "D", label: "右转", hint: "按住原地右转；和前进一起按边走边右转", hold: true},
-  {id: "stop", key: "Space", label: "停", hint: "走路时停步，其余原地保持"},
-  {id: "stand", key: "T", label: "开环站立", hint: "扭矩开，固定站姿，不会自己平衡"},
-  {id: "stand61", key: "Y", label: "闭环站立", hint: "站姿 policy，自己保持平衡"},
-  {id: "off", key: "X", label: "停扭矩", hint: "全部舵机松掉，先扶住；也清过载锁死"},
-  {id: "quack", key: "B", label: "叫一声", hint: "放声音，张嘴"},
-  {id: "kickL", key: "Q", label: "左踢", hint: "一次 0.5 秒"},
-  {id: "kickR", key: "E", label: "右踢", hint: "一次 0.5 秒"},
-  {id: "sit", key: "R", label: "坐下 / 站起", hint: "再按站起"},
-  {id: "bend", key: "G", label: "弯腰 / 起身", hint: "再按起身"},
+  {id: "left", key: "A", label: "Left", hint: "Hold to turn left in place; with Forward, walk an arc left", hold: true},
+  {id: "walk", key: "W", label: "Forward", hint: "Hold to walk, release to stop", hold: true},
+  {id: "right", key: "D", label: "Right", hint: "Hold to turn right in place; with Forward, walk an arc right", hold: true},
+  {id: "back", key: "S", label: "Back", hint: "Hold to walk straight back (0.4 m/s), release to stop; no turning", hold: true},
+  {id: "stop", key: "Space", label: "Stop", hint: "Stops walking; otherwise holds the pose"},
+  {id: "stand", key: "T", label: "Fixed stand", hint: "Torque on, fixed stance, does not balance itself"},
+  {id: "stand61", key: "Y", label: "Balance stand", hint: "Stand policy, keeps its own balance"},
+  {id: "off", key: "X", label: "Torque off", hint: "All servos go limp, hold the duck first; also clears an overload lock"},
+  {id: "quack", key: "B", label: "Quack", hint: "Plays a quack and opens the beak"},
+  {id: "kickL", key: "Q", label: "Kick left", hint: "One 0.5 s kick"},
+  {id: "kickR", key: "E", label: "Kick right", hint: "One 0.5 s kick"},
+  {id: "sit", key: "R", label: "Sit / Stand up", hint: "Press again to stand up"},
+  {id: "bend", key: "G", label: "Bend / Rise", hint: "Press again to rise"},
 ];
 // Head row: closed-loop stand or walking only.
-const HEAD_HINT = "闭环站立、走路或坐着时有效，按住连续动";
+const HEAD_HINT = "Works in Balance stand, walking or sitting; hold to keep moving";
 const HEAD_ACTIONS = [
-  {id: "headUp", key: "I", label: "抬头", hint: HEAD_HINT},
-  {id: "headDown", key: "K", label: "低头", hint: HEAD_HINT},
-  {id: "headLeft", key: "J", label: "左转头", hint: HEAD_HINT},
-  {id: "headRight", key: "L", label: "右转头", hint: HEAD_HINT},
-  {id: "tiltLeft", key: "U", label: "左歪", hint: HEAD_HINT},
-  {id: "tiltRight", key: "O", label: "右歪", hint: HEAD_HINT},
-  {id: "headReset", key: "H", label: "回正", hint: "头回到默认姿势"},
+  {id: "headUp", key: "I", label: "Head up", hint: HEAD_HINT},
+  {id: "headDown", key: "K", label: "Head down", hint: HEAD_HINT},
+  {id: "headLeft", key: "J", label: "Look left", hint: HEAD_HINT},
+  {id: "headRight", key: "L", label: "Look right", hint: HEAD_HINT},
+  {id: "tiltLeft", key: "U", label: "Tilt left", hint: HEAD_HINT},
+  {id: "tiltRight", key: "O", label: "Tilt right", hint: HEAD_HINT},
+  {id: "headReset", key: "H", label: "Center", hint: "Head back to its default pose"},
 ];
 const ALL_ACTIONS = [...ACTIONS, ...HEAD_ACTIONS];
 const btn = a => `
@@ -151,24 +166,24 @@ const btn = a => `
 
 export function createRemote({root, state, log}) {
   root.innerHTML = `
-    <div class="remote-stick-row"><div class="remote-stick" data-stick title="按住拖：往前推得越多走得越快，左右是转弯">
+    <div class="remote-stick-row"><div class="remote-stick" data-stick title="Press and drag: the further forward, the faster; sideways turns">
       <div class="remote-knob" data-knob></div></div>
-      <p class="remote-status">摇杆：往前推过三成开始走（0.25 m/s），推到底 0.4 m/s；左右推边走边转，不往前推时原地转；松手就停。
-        0.25 以上是 walk61 训练范围内、真机还没走过的速度，先小推试。<span data-speed></span></p></div>
+      <p class="remote-status">Stick: push forward past 30 % to walk (0.25 m/s), all the way for 0.4 m/s. Sideways turns while walking, or in place with no forward push. Pull back past 30 % to walk straight back (0.4 m/s). Let go to stop.
+        Speeds above 0.25 are inside walk61's training range but untested on the robot, so push gently first.<span data-speed></span></p></div>
     <div class="remote-grid">${ACTIONS.map(btn).join("")}
     </div>
-    <p class="remote-status">头（闭环站立、走路或坐着时有效；开环站立不认头部命令）：<span data-head></span>。走路时头侧转会减弱身体转弯
-      （真机 + 仿真 2026-10-24：vtheta -0.3 时头向转弯方向转 0.15，6 秒转角从 -65° 减到 -47°），转向前先按「回正」。</p>
+    <p class="remote-status">Head (works in Balance stand, walking or sitting; Fixed stand ignores head commands): <span data-head></span>. Turning the head sideways while walking weakens the body's turn
+      (robot + sim 2026-10-24: head turned 0.15 toward a vtheta -0.3 turn cut the 6 s turn from -65° to -47°), so press "Center" before turning.</p>
     <div class="remote-grid">${HEAD_ACTIONS.map(btn).join("")}
     </div>
     <p class="remote-heat" data-heat hidden></p>
-    <p class="remote-status remote-driver" aria-live="polite"><span data-driver>驾驶：–</span>
-      <label>我的名字 <input data-name maxlength="24" autocomplete="nickname"></label>
-      <button type="button" data-take hidden>接管</button></p>
-    <p class="remote-status remote-driver">背包：<button type="button" data-supply="bench">充电背包</button>
-      <button type="button" data-supply="battery">电池背包</button><span data-supply-state>还没读到（A7Z 在线后显示）</span></p>
-    <p class="remote-status" aria-live="polite"><span data-mode>大脑：–</span> · <span data-file>控制文件：–</span></p>
-    <p class="remote-last" data-last>还没有发过命令。</p>`;
+    <p class="remote-status remote-driver" aria-live="polite"><span data-driver>Driver: –</span>
+      <label>My name <input data-name maxlength="24" autocomplete="nickname"></label>
+      <button type="button" data-take hidden>Take over</button></p>
+    <p class="remote-status remote-driver">Backpack: <button type="button" data-supply="bench">Charger pack</button>
+      <button type="button" data-supply="battery">Battery pack</button><span data-supply-state>Not read yet (shown once the A7Z is online)</span></p>
+    <p class="remote-status" aria-live="polite"><span data-mode>Brain: –</span> · <span data-file>Control file: –</span></p>
+    <p class="remote-last" data-last>No command sent yet.</p>`;
   const buttons = new Map([...root.querySelectorAll("button[data-act]")].map(b => [b.dataset.act, b]));
   const driverEl = root.querySelector("[data-driver]"), nameEl = root.querySelector("[data-name]");
   const takeEl = root.querySelector("[data-take]");
@@ -180,14 +195,14 @@ export function createRemote({root, state, log}) {
   const showDriver = d => {
     driver = d ?? null;
     const mine = driver?.id === clientId();
-    driverEl.textContent = !driver ? "驾驶：没人（第一个发运动命令的页面拿到驾驶权，20 秒不发命令自动放开）"
-      : mine ? "驾驶：你" : `驾驶：${driver.name}（你现在只能看；按停或停扭矩会立刻生效，并把驾驶权交给你）`;
+    driverEl.textContent = !driver ? "Driver: nobody (the first page to send a motion command becomes the driver; released after 20 s without commands)"
+      : mine ? "Driver: you" : `Driver: ${driver.name} (you can only watch; Stop or Torque off works at once and makes you the driver)`;
     takeEl.hidden = !driver || mine;
   };
   const supplyEl = root.querySelector("[data-supply-state]");
   const supplyButtons = [...root.querySelectorAll("button[data-supply]")];
-  const SUPPLY_NAMES = {bench: "充电背包（低电保护关）", battery: "电池背包（低电保护开）",
-    auto: "没选：大脑按电压猜，充电背包可能被当成电池，先点一个"};
+  const SUPPLY_NAMES = {bench: "Charger pack (low-battery guard off)", battery: "Battery pack (low-battery guard on)",
+    auto: "Not set: the brain guesses from the voltage and may take the charger for a battery, so pick one"};
   const showSupply = value => {
     if (!value) return;
     supplyEl.textContent = SUPPLY_NAMES[value] ?? value;
@@ -195,37 +210,37 @@ export function createRemote({root, state, log}) {
   };
   for (const b of supplyButtons) b.addEventListener("click", async () => {
     const value = b.dataset.supply, label = b.textContent;
-    if (!state().online) { last.textContent = `没切换「${label}」：A7Z 不在线`; return; }
-    last.textContent = `正在切换到「${label}」…`;
+    if (!state().online) { last.textContent = `Did not switch to "${label}": A7Z is offline`; return; }
+    last.textContent = `Switching to "${label}"…`;
     try {
       const a = await (await fetch("/api/a7z/cmd", {method: "POST", headers: {"Content-Type": "application/json"},
         body: JSON.stringify({op: "supply", supply: value, client: me()})})).json();
-      if (a.busy) { showDriver(a.driver); last.textContent = `没切换「${label}」：${a.error}`; return; }
-      if (!a.ok) { last.textContent = `切换「${label}」失败：${a.error}`; return; }
+      if (a.busy) { showDriver(a.driver); last.textContent = `Did not switch to "${label}": ${a.error}`; return; }
+      if (!a.ok) { last.textContent = `Switching to "${label}" failed: ${a.error}`; return; }
       showSupply(a.supply);
-      last.textContent = `背包设为「${label}」` + (a.restarted ? "，大脑已重启并用上（扭矩不变）"
-        : state().brain?.running ? "；大脑一秒内用上" : "；下次启动大脑时用上");
-      log(`遥控：背包设为${label}`);
-    } catch (e) { last.textContent = `切换「${label}」失败：${e.message}`; }
+      last.textContent = `Backpack set to "${label}"` + (a.restarted ? "; the brain restarted with it (torque unchanged)"
+        : state().brain?.running ? "; the brain uses it within a second" : "; used the next time the brain starts");
+      log(`Remote: backpack set to ${label}`);
+    } catch (e) { last.textContent = `Switching to "${label}" failed: ${e.message}`; }
   });
   takeEl.addEventListener("click", async () => {
-    if (!driver || !confirm(`接管 ${driver.name} 的控制？对方的按键之后会被拒绝。`)) return;
+    if (!driver || !confirm(`Take over from ${driver.name}? Their key presses will be refused after this.`)) return;
     try {
       const a = await (await fetch("/api/a7z/cmd", {method: "POST", headers: {"Content-Type": "application/json"},
         body: JSON.stringify({op: "take", client: me()})})).json();
-      if (a.ok) { showDriver(a.driver); last.textContent = "已接管，现在由你控制"; log("遥控：接管驾驶权"); }
-      else last.textContent = `接管失败：${a.error}`;
-    } catch (e) { last.textContent = `接管失败：${e.message}`; }
+      if (a.ok) { showDriver(a.driver); last.textContent = "Taken over, you are driving now"; log("Remote: took over as driver"); }
+      else last.textContent = `Take-over failed: ${a.error}`;
+    } catch (e) { last.textContent = `Take-over failed: ${e.message}`; }
   });
   const last = root.querySelector("[data-last]");
   const heatEl = root.querySelector("[data-heat]");
   let walkTimer = null, busy = false, gate = {blocked: false, reasons: []};
-  // 站起 was sent and the brain still reports sit: a head write now ({"mode": "sit"}) would sit it down again
+  // Stand up was sent and the brain still reports sit: a head write now ({"mode": "sit"}) would sit it down again
   let rising = false;
   const gated = id => POLICY_ACTS.has(id) || id in HEAD_IDS || id === "headReset"; // head moves run on stand61/walk61
   const refused = id => {
     if (!gated(id) || !gate.blocked) return false;
-    last.textContent = `过热保护，没发出：${gate.reasons.join("；")}`;
+    last.textContent = `Overheat guard, not sent: ${gate.reasons.join("; ")}`;
     return true;
   };
   const held = new Set(); // walk ids held now
@@ -233,33 +248,33 @@ export function createRemote({root, state, log}) {
   const headEl = root.querySelector("[data-head]");
   const showHead = () => {
     const d = head ?? {}, f = (v, pos, neg) => !v ? "" : `${v > 0 ? pos : neg} ${Math.abs(v).toFixed(2)}`;
-    headEl.textContent = [f(-(d.head_pitch ?? 0), "抬", "低"), f(d.head_yaw ?? 0, "左转", "右转"), f(d.head_roll ?? 0, "左歪", "右歪")]
-      .filter(Boolean).join(" · ") || "默认姿势";
+    headEl.textContent = [f(-(d.head_pitch ?? 0), "up", "down"), f(d.head_yaw ?? 0, "left", "right"), f(d.head_roll ?? 0, "tilt left", "tilt right")]
+      .filter(Boolean).join(" · ") || "default pose";
   };
 
   async function post(body, label, start = true) {
     const {online, brain} = state();
-    if (!online) { last.textContent = `没发出「${label}」：A7Z 不在线`; return null; }
+    if (!online) { last.textContent = `Did not send "${label}": A7Z is offline`; return null; }
     start = start && !brain?.running;
-    if (start) last.textContent = `正在 A7Z 上启动大脑，约 5 秒后执行「${label}」，不用再点…`;
+    if (start) last.textContent = `Starting the brain on the A7Z, "${label}" runs in about 5 s, no need to tap again…`;
     try {
       const r = await fetch("/api/a7z/cmd", {method: "POST", headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({...(start ? {...body, start} : body), client: me()})});
+        body: JSON.stringify({...(start ? {...body, start} : body), client: me(), sent_ms: Date.now()})});
       const a = await r.json();
       if (a.busy) {
         if (held.size || walkTimer) walkStop(false);  // refused: the robot is the driver's, send it no stop
         showDriver(a.driver);
-        last.textContent = `没发出「${label}」：${a.error}`;
+        last.textContent = `Did not send "${label}": ${a.error}`;
         return null;
       }
-      if (!a.ok) { last.textContent = `「${label}」失败：${a.error}`; log(`遥控失败：${label}（${a.error}）`); return null; }
+      if (!a.ok) { last.textContent = `"${label}" failed: ${a.error}`; log(`Remote failed: ${label} (${a.error})`); return null; }
       if (!walkTimer || !WALK_LABELS.has(label)) {
-        last.textContent = (a.started ? `已启动大脑（日志 ${a.started}），` : "") + `已写入「${label}」：${JSON.stringify(a.wrote)}`;
-        log(`遥控：${label}` + (a.started ? "（先启动了大脑）" : ""));
+        last.textContent = (a.started ? `Started the brain (log ${a.started}), ` : "") + `wrote "${label}": ${JSON.stringify(a.wrote)}`;
+        log(`Remote: ${label}` + (a.started ? " (started the brain first)" : ""));
       }
       return a;
     } catch (e) {
-      last.textContent = `「${label}」失败：${e.message}`;
+      last.textContent = `"${label}" failed: ${e.message}`;
       return null;
     }
   }
@@ -277,33 +292,33 @@ export function createRemote({root, state, log}) {
     try { notes = (await (await fetch("/api/a7z/cmd", {method: "POST", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({op: "read"})})).json()).notes ?? []; } catch { /* the link reports itself */ }
     const why = notes.filter(n => /torque refused|HARDWARE ERROR|IMU LOST|BATTERY/.test(n)).pop();
-    last.textContent = `「${label}」已写入，但扭矩没开：` + (why ?? (state().brain?.running ? "大脑没给原因" : "大脑没在运行"))
-      + (/HARDWARE ERROR|hardware error/.test(why ?? "") ? "。先扶住，按「停扭矩」清锁死，再按一次" : "")
-      + (/wrap edge/.test(why ?? "") ? `。${wrapJoints(why)}转到了读数边界（0/4095 附近），把它往站姿方向扳回一点，`
-        + "大脑会自己开扭矩，不用再按" : "");
-    log(`遥控：${label} 没开扭矩（${why ?? "无原因"}）`);
+    last.textContent = `"${label}" was written, but torque did not come on: ` + (why ?? (state().brain?.running ? "the brain gave no reason" : "the brain is not running"))
+      + (/HARDWARE ERROR|hardware error/.test(why ?? "") ? ". Hold the duck, press \"Torque off\" to clear the lock, then press it again" : "")
+      + (/wrap edge/.test(why ?? "") ? `. ${wrapJoints(why)} reached the reading edge (near 0/4095). Move it back a little toward the stance; `
+        + "the brain turns torque on by itself, no need to press again" : "");
+    log(`Remote: ${label} torque stayed off (${why ?? "no reason"})`);
   }
 
-  // "torque refused: ['left_ankle', ...] not in position mode or near the wrap edge" -> "左踝、..."
+  // "torque refused: ['left_ankle', ...] not in position mode or near the wrap edge" -> "left ankle, ..."
   function wrapJoints(why) {
-    const part = {hip_yaw: "髋 yaw", hip_roll: "髋 roll", hip_pitch: "髋 pitch", knee: "膝", ankle: "踝"};
+    const part = {hip_yaw: "hip yaw", hip_roll: "hip roll", hip_pitch: "hip pitch", knee: "knee", ankle: "ankle"};
     const names = [...why.matchAll(/'(\w+)'/g)].map(([, n]) => {
       const m = n.match(/^(left|right)_(\w+)$/);
-      return m ? (m[1] === "left" ? "左" : "右") + (part[m[2]] ?? m[2]) : n;
+      return m ? (m[1] === "left" ? "left " : "right ") + (part[m[2]] ?? m[2]) : n;
     });
-    return names.length ? names.join("、") : "有关节";
+    return names.length ? names.join(", ") : "A joint";
   }
 
-  const WALK_LABELS = new Set(["前进", "左转", "右转", "原地左转", "原地右转", "原地", "转头", "头回正"]);
+  const WALK_LABELS = new Set(["Forward", "Back", "Arc left", "Arc right", "Turn left", "Turn right", "In place", "Head", "Head reset"]);
   let stick = null; // {x, y} in the unit circle while the stick is held
   const walkCmd = () => stick ? stickCommand(stick.x, stick.y, head) : walkCommand(held, head);
   function walkStart(id) {
     if (held.has(id) || refused(id)) return;
-    if (!state().brain?.running) { last.textContent = "大脑没在运行：先按「开环站立」或「闭环站立」（会先启动大脑），站稳再走"; return; }
+    if (!state().brain?.running) { last.textContent = "The brain is not running: press \"Fixed stand\" or \"Balance stand\" first (it starts the brain), then walk once it stands steady"; return; }
     held.add(id);
     buttons.get(id).classList.add("held");
     const {label} = walkCmd();
-    last.textContent = `${label}中（按住）…`; log(`遥控：${label}（按住）`);
+    last.textContent = `${label} (held)…`; log(`Remote: ${label} (held)`);
     const go = () => { const w = walkCmd(); set(w.cmd, w.label, false); };
     go();
     if (!walkTimer) walkTimer = setInterval(go, WALK_REPEAT_MS);
@@ -319,7 +334,7 @@ export function createRemote({root, state, log}) {
     stickReset();
     if (!walkTimer) return;
     clearInterval(walkTimer); walkTimer = null;
-    if (send) set(withHead(WALK_ZERO, head), "停步", false);
+    if (send) set(withHead(WALK_ZERO, head), "Stop walking", false);
   }
 
   // Stick: held like a walk button, the command follows the knob on every repeat.
@@ -333,7 +348,7 @@ export function createRemote({root, state, log}) {
     stick = {x, y};
     knob.style.transform = `translate(${x * rad * 0.7}px, ${y * rad * 0.7}px)`;
     const w = walkCmd();
-    speedEl.textContent = ` 现在：${w.label}${w.cmd.vx ? ` ${w.cmd.vx.toFixed(2)} m/s` : ""}`;
+    speedEl.textContent = ` Now: ${w.label}${w.cmd.vx ? ` ${w.cmd.vx.toFixed(2)} m/s` : ""}`;
   }
   function stickReset() {
     if (!stick) return;
@@ -342,11 +357,11 @@ export function createRemote({root, state, log}) {
   stickEl.addEventListener("pointerdown", e => {
     e.preventDefault();
     if (refused("walk")) return;
-    if (!state().brain?.running) { last.textContent = "大脑没在运行：先按「开环站立」或「闭环站立」（会先启动大脑），站稳再走"; return; }
+    if (!state().brain?.running) { last.textContent = "The brain is not running: press \"Fixed stand\" or \"Balance stand\" first (it starts the brain), then walk once it stands steady"; return; }
     stickEl.setPointerCapture(e.pointerId);
     stickEl.classList.add("held");
     stickMove(e);
-    log("遥控：摇杆（按住）");
+    log("Remote: stick (held)");
     const go = () => { const w = walkCmd(); set(w.cmd, w.label, false); };
     go();
     if (!walkTimer) walkTimer = setInterval(go, WALK_REPEAT_MS);
@@ -364,7 +379,7 @@ export function createRemote({root, state, log}) {
   const headMode = brain => brain?.running && (brain.mode === "walk" || (brain.mode === "sit" && !rising));
   const headUsable = () => {
     if (headMode(state().brain)) return true;
-    last.textContent = rising ? "正在站起，站稳后再转头" : "转头只在闭环站立、走路或坐着时有效：先按「闭环站立」";
+    last.textContent = rising ? "Standing up; move the head once it stands steady" : "Head moves work only in Balance stand, walking or sitting: press \"Balance stand\" first";
     return false;
   };
   function headStart(id) {
@@ -372,7 +387,7 @@ export function createRemote({root, state, log}) {
     headStop();
     headHeld = id;
     buttons.get(id).classList.add("held");
-    const go = () => { head = headStep(head, ...HEAD_IDS[id]); showHead(); headSend("转头"); };
+    const go = () => { head = headStep(head, ...HEAD_IDS[id]); showHead(); headSend("Head"); };
     go();
     headTimer = setInterval(go, HEAD_REPEAT_MS);
   }
@@ -384,17 +399,17 @@ export function createRemote({root, state, log}) {
   function headReset() {
     headStop();
     if (!head) return;
-    if (!refused("headReset") && headUsable()) { head = null; showHead(); headSend("头回正"); }
+    if (!refused("headReset") && headUsable()) { head = null; showHead(); headSend("Head reset"); }
   }
   // The robot left walk mode (open-loop stand, sit, kick, off, a restarted brain): its head is no longer ours.
   const headForget = () => { headStop(); head = null; showHead(); };
 
   async function act(id) {
-    if (busy) { last.textContent = "上一条命令还在执行，等它完成再点"; return; }
+    if (busy) { last.textContent = "The last command is still running, tap again once it finishes"; return; }
     if (refused(id)) return;
     if ((id === "kickL" || id === "kickR") && walkTimer) {
       // In the as-built sim a kick sent mid-stride lifts the foot only about 1 cm (teleop-sim-check.json): kick from standing.
-      last.textContent = "先松开前进再踢：走动中踢腿脚只抬 1 厘米左右";
+      last.textContent = "Release Forward before kicking: a kick while walking lifts the foot only about 1 cm";
       return;
     }
     busy = true;
@@ -403,24 +418,24 @@ export function createRemote({root, state, log}) {
     let sent = null;
     if (!["stop", "quack", "stand61"].includes(id)) headForget(); // these leave walk mode; stand61 keeps the target
     try {
-      if (id === "stand") sent = await set({mode: "stand"}, "开环站立");
-      else if (id === "stand61") sent = await set(withHead(WALK_ZERO, head), "闭环站立");
-      else if (id === "kickL") await set({mode: "kick", foot: "left", id: "new"}, "左踢");
-      else if (id === "kickR") await set({mode: "kick", foot: "right", id: "new"}, "右踢");
+      if (id === "stand") sent = await set({mode: "stand"}, "Fixed stand");
+      else if (id === "stand61") sent = await set(withHead(WALK_ZERO, head), "Balance stand");
+      else if (id === "kickL") await set({mode: "kick", foot: "left", id: "new"}, "Kick left");
+      else if (id === "kickR") await set({mode: "kick", foot: "right", id: "new"}, "Kick right");
       else if (id === "sit" && mode !== "sit" && mode !== "stand" && mode !== "walk")
-        last.textContent = "坐下要从站着开始：先按「闭环站立」，站稳后再按坐下"; // walk_brain.Brain.sit_blocked
-      else if (id === "sit" && mode === "sit") { rising = true; await set(WALK_ZERO, "站起"); }
-      else if (id === "sit") await set({mode: "sit"}, "坐下");
-      else if (id === "bend") sent = await (mode === "groundpick" ? set({mode: "groundpick", phase: GP_UP}, "起身")
-        : set({mode: "groundpick", phase: GP_LOW}, "弯腰"));
-      else if (id === "quack") await post({op: "merge", patch: {quack: "new"}}, "叫一声");
-      else if (id === "off") { walkStop(); await set({mode: "off"}, "停扭矩"); }
+        last.textContent = "Sitting starts from standing: press \"Balance stand\", then Sit once it stands steady"; // walk_brain.Brain.sit_blocked
+      else if (id === "sit" && mode === "sit") { rising = true; await set(WALK_ZERO, "Stand up"); }
+      else if (id === "sit") await set({mode: "sit"}, "Sit");
+      else if (id === "bend") sent = await (mode === "groundpick" ? set({mode: "groundpick", phase: GP_UP}, "Rise")
+        : set({mode: "groundpick", phase: GP_LOW}, "Bend"));
+      else if (id === "quack") await post({op: "merge", patch: {quack: "new"}}, "Quack");
+      else if (id === "off") { walkStop(); await set({mode: "off"}, "Torque off"); }
       else if (id === "stop") {
         walkStop();
         // Walking or kicking: zero velocity, walk61 brings its stride to rest. Anywhere else (sit, ground pick,
         // stand): monitor holds the present goals with torque on, the stop walk_wired.py documents.
         if (mode !== "walk") headForget();
-        await (mode === "walk" || mode === "kick" ? setStop(withHead(WALK_ZERO, head), "停") : set({mode: "monitor"}, "停（原地保持）"));
+        await (mode === "walk" || mode === "kick" ? setStop(withHead(WALK_ZERO, head), "Stop") : set({mode: "monitor"}, "Stop (hold pose)"));
       }
       if (sent && TORQUE_ACTS.has(id)) await checkTorque(buttons.get(id).querySelector("span").textContent);
     } finally {
@@ -442,7 +457,7 @@ export function createRemote({root, state, log}) {
       b.addEventListener("click", () => act(id));
     }
   }
-  const KEYS = {KeyT: "stand", KeyY: "stand61", KeyW: "walk", ArrowUp: "walk", KeyA: "left", ArrowLeft: "left",
+  const KEYS = {KeyT: "stand", KeyY: "stand61", KeyW: "walk", ArrowUp: "walk", KeyS: "back", ArrowDown: "back", KeyA: "left", ArrowLeft: "left",
     KeyD: "right", ArrowRight: "right", KeyQ: "kickL", KeyE: "kickR", KeyR: "sit", KeyG: "bend",
     KeyB: "quack", Space: "stop", KeyX: "off", KeyI: "headUp", KeyK: "headDown", KeyJ: "headLeft", KeyL: "headRight",
     KeyU: "tiltLeft", KeyO: "tiltRight", KeyH: "headReset"};
@@ -464,41 +479,41 @@ export function createRemote({root, state, log}) {
   showHead();
 
   const modeEl = root.querySelector("[data-mode]"), fileEl = root.querySelector("[data-file]");
-  const MODE_NAMES = {monitor: "监视（不发命令）", stand: "开环站立", walk: "走/闭环站立", kick: "踢腿", sit: "坐", groundpick: "弯腰捡"};
+  const MODE_NAMES = {monitor: "monitor (no commands)", stand: "fixed stand", walk: "walk / balance stand", kick: "kick", sit: "sit", groundpick: "bend to pick"};
   return {
     me,
     showDriver,
     showFile({path, current, supply}) {
       showSupply(supply);
       if (current === undefined) return;
-      fileEl.textContent = `控制文件 ${path ?? "?"}：${current ? JSON.stringify(current) : "（空）"}`;
+      fileEl.textContent = `Control file ${path ?? "?"}: ${current ? JSON.stringify(current) : "(empty)"}`;
     },
     refresh() {
       const {online, brain, health, healthAge} = state();
       const running = online && brain?.running;
       const was = gate.blocked;
       gate = online ? thermalGate({health, healthAge, brain, wasBlocked: was}) : {blocked: false, reasons: []};
-      if (gate.blocked && held.size) { walkStop(); last.textContent = `过热保护，已停步：${gate.reasons.join("；")}`; }
+      if (gate.blocked && held.size) { walkStop(); last.textContent = `Overheat guard, stopped walking: ${gate.reasons.join("; ")}`; }
       if (gate.blocked) headStop();
       if (!(running && brain.mode === "sit")) rising = false;
       if (head && !headMode(running && brain)) headForget();
-      if (gate.blocked !== was) log(gate.blocked ? `过热保护：${gate.reasons.join("；")}` : "过热保护解除");
+      if (gate.blocked !== was) log(gate.blocked ? `Overheat guard: ${gate.reasons.join("; ")}` : "Overheat guard cleared");
       const pack = running && ["warn", "stop", "floor"].includes(brain.battery) ? brain.battery : null;
-      const packText = pack && `电池 ${(brain.battery_dv / 10).toFixed(1)} V：` + {warn: "快没电了，尽快停下充电", stop: "已停步并保持站立，扶住并关机",
-        floor: "电量见底，鸭子自己坐下并关扭矩，请关机充电"}[pack];
+      const packText = pack && `Battery ${(brain.battery_dv / 10).toFixed(1)} V: ` + {warn: "almost empty, stop and charge soon", stop: "stopped and holding its stand, hold the duck and shut down",
+        floor: "empty, the duck sat down and turned torque off; shut down and charge"}[pack];
       heatEl.hidden = !gate.blocked && !pack;
-      heatEl.textContent = (packText ? packText + "。" : "")
-        + (gate.blocked ? `过热保护：${gate.reasons.join("；")}。前进、转向、转头、闭环站立、踢、坐、弯腰暂停；`
-        + "停、开环站立、停扭矩、叫一声照常可用。" : "");
-      modeEl.textContent = !online ? "大脑：A7Z 不在线" : !brain?.running ? "大脑：没在运行（按站立等按钮会先启动 walk_wired.py）"
-        : `大脑：${MODE_NAMES[brain.mode] ?? brain.mode} · 扭矩${brain.torque ? "开" : "关"}`
-          + (brain.battery_dv != null ? ` · 电池 ${(brain.battery_dv / 10).toFixed(1)} V，约 ${batteryPercent(brain.battery_dv)}%` : "");
+      heatEl.textContent = (packText ? packText + ". " : "")
+        + (gate.blocked ? `Overheat guard: ${gate.reasons.join("; ")}. Walking, turning, head moves, Balance stand, kick, sit and bend are paused; `
+        + "Stop, Fixed stand, Torque off and Quack still work." : "");
+      modeEl.textContent = !online ? "Brain: A7Z offline" : !brain?.running ? "Brain: not running (a stand button starts walk_wired.py first)"
+        : `Brain: ${MODE_NAMES[brain.mode] ?? brain.mode} · torque ${brain.torque ? "on" : "off"}`
+          + (brain.battery_dv != null ? ` · battery ${(brain.battery_dv / 10).toFixed(1)} V, about ${batteryPercent(brain.battery_dv)}%` : "");
       root.classList.toggle("off", !running);
       stickEl.classList.toggle("disabled", !online || (gate.blocked && gated("walk")));
       for (const [id, b] of buttons) {
         const hot = gate.blocked && gated(id);
         b.disabled = !online || hot;
-        b.title = hot ? `过热保护：${gate.reasons.join("；")}` : ALL_ACTIONS.find(a => a.id === id).hint;
+        b.title = hot ? `Overheat guard: ${gate.reasons.join("; ")}` : ALL_ACTIONS.find(a => a.id === id).hint;
       }
       if (!online) walkStop();
     },

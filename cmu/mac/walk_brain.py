@@ -267,8 +267,25 @@ MOUNT_FIX = (0.7071068, 0.7071068, 0.0, 0.0)
 # x +0.070 against the model's +0.001; with a 4 deg sensor pitch the model reads +0.058 and the ankles match within
 # 0.6 deg. IMU_PITCH_TRIM rotates the body frame back by that much (brain_sim_check.py --imu-pitch is the same angle).
 IMU_PITCH_TRIM_DEG = 4.0
-_h = math.radians(IMU_PITCH_TRIM_DEG) / 2
-IMU_PITCH_TRIM = (math.cos(_h), 0.0, math.sin(_h), 0.0)
+# Roll was never trimmed. 2026-11-12 (play-locate-20261112/README.md): at quiet stand the robot reads +2 to +3 deg of
+# roll in every log since 11-02 (the sim 0), and a sim sensor rolled by brain_sim_check.py --imu-roll -3 reproduces the
+# robot's stand reading, its walking roll and its left-leg-heavy gait. IMU_ROLL_TRIM_DEG uses the sim's sign (-3 undoes
+# that sensor). It ran at -3 on the robot for one session, 2026-11-12 14:53-15:06, and is back at 0: the walk stayed
+# left-heavy, and in the 11-04 powered-stand scan the feet lie as the logged joint angles put them only with the pelvis
+# 3 to 4.5 deg left side down (left sole outer edge down 2.2 deg, right sole flat and 3.4 mm higher), where the
+# untrimmed IMU read 3.1 deg: the sensor is right within about 1 deg and the robot really leans to its left.
+# MICRODUCK_IMU_ROLL_TRIM sets it for sim checks; brain_sim_check.py --imu-roll defaults to the same angle.
+IMU_ROLL_TRIM_DEG = float(os.environ.get("MICRODUCK_IMU_ROLL_TRIM", "0"))
+# Walk-mode goal offsets outside the policy, {"joint": deg} in ~/duck-goal-offset.json; no file = none. Model sign:
+# left_hip_roll + = counter-clockwise seen from the front = left foot outward. A trial, recorded in CURRENT-STATE.json.
+try:
+    GOAL_OFFSET = {k: math.radians(float(v)) for k, v in json.load(open(os.path.expanduser("~/duck-goal-offset.json"))).items()}
+except (OSError, ValueError):
+    GOAL_OFFSET = {}
+GOAL_OFFSET_AFTER_S = 0.8  # s of commanded motion before the offset fades in (a normal start is stepping by 0.6 s)
+_h, _r = math.radians(IMU_PITCH_TRIM_DEG) / 2, math.radians(IMU_ROLL_TRIM_DEG) / 2
+# the whole sensor trim, qy(pitch) * qx(roll); the name is kept for the scripts that import it
+IMU_PITCH_TRIM = (math.cos(_h) * math.cos(_r), math.cos(_h) * math.sin(_r), math.sin(_h) * math.cos(_r), -math.sin(_h) * math.sin(_r))
 TICK = 2 * math.pi / 4096
 VEL_UNIT = 0.229 * 2 * math.pi / 60  # rad/s per velocity LSB
 
@@ -729,6 +746,13 @@ class Brain:
             if self.mode != "sit":
                 self.sit = None
             if self.mode == "stand":
+                if was_policy and self.goal is not None:
+                    # Torque-continuous entry from a policy mode: the policy holds loaded joints at KP_RL with goals
+                    # far ahead of the positions (robot 2026-11-12 22:02: knees 186 and 244 ticks = 16 and 21 deg).
+                    # Keeping those goals while the gain steps to KP_DEFAULT doubled the knee torque on one tick
+                    # (currents 94/-128 -> 224/-351 mA) and threw the robot over in 0.6 s (FAULTS.json
+                    # fall-on-switch-policy-stand-to-open-loop-stand). Scale the lead by the gain ratio instead.
+                    start = {n: q[n] + (self.goal[n] - q[n]) * KP_RL / KP_DEFAULT for n in NAMES}
                 self.ramp = (now, dict(start), dict(STAND), 2.0)
             elif self.mode == "groundpick":
                 # from stand61/walk61 (the trained start is the standing default pose): hold the present pose until
@@ -954,6 +978,22 @@ class Brain:
             self.last_action = action.astype(np.float32)
             self.goal = clamp_goal({n: self.default[n] + float(action[k]) if n in self.default else self.goal[n]
                                     for k, n in enumerate(OBSERVATION_DOF_ORDER)})
+            if GOAL_OFFSET and self.mode == "walk":
+                # trial 2026-11-12 (Shawn: "把这个偏差放到模型外面 不要送进模型", "左髋从前面看 逆时针转几度"): added to
+                # the servo goal after the policy; the policy's readings and its last action are untouched
+                # 20:39 robot run: with the offset on from standstill walk61 never started stepping (actions <= 0.24 rad).
+                # So it fades in only once the robot has been commanded to move for GOAL_OFFSET_AFTER_S, and fades out
+                # after the command returns to zero; every start from standstill is the policy's own.
+                mv = math.hypot(float(want.get("vx", 0) or 0), float(want.get("vy", 0) or 0)) > 1e-3
+                self._off_move_t = (getattr(self, "_off_move_t", None) or now) if mv else None
+                s = getattr(self, "_off_s", 0.0)
+                if mv and now - self._off_move_t >= GOAL_OFFSET_AFTER_S:
+                    s = min(1.0, s + 0.05)   # 0.4 s up
+                elif not mv:
+                    s = max(0.0, s - 0.02)   # 1 s down
+                self._off_s = s
+                self.goal = clamp_goal({n: v + s * GOAL_OFFSET.get(n, 0.0) for n, v in self.goal.items()})
+                info["goal_offset_deg"] = {n: round(s * math.degrees(v), 2) for n, v in GOAL_OFFSET.items()}
             if yaw_off:
                 self.goal = clamp_goal(dict(self.goal, head_yaw=self.goal["head_yaw"] + yaw_off))
                 info["sp_yaw_off"] = round(yaw_off, 3)

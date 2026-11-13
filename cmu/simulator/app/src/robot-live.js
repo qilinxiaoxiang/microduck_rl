@@ -10,7 +10,7 @@ import {buildRig, loadKinematics, applyPose, groundFullBody, setJawOpen, JAW_MAX
 const LOST_S = 1.5;
 const $ = s => document.querySelector(s);
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-const clock = t => new Date(t * 1000).toLocaleTimeString("zh-CN", {hour12: false});
+const clock = t => new Date(t * 1000).toLocaleTimeString("en-GB", {hour12: false});
 const fmt = (v, d = 1) => v == null || Number.isNaN(v) ? "–" : v.toFixed(d);
 
 // ── Data ────────────────────────────────────────────────────────────────
@@ -22,11 +22,11 @@ let windowS = 600, hoverT = null, cpuStart = null;
 let lastMessage = Date.now(), alive = null;
 const STREAM_SILENT_MS = 5000;
 
-const ZONES = [["cpub", "大核"], ["cpul", "小核"], ["gpu", "GPU"], ["ddr", "内存"]];
+const ZONES = [["cpub", "Big cores"], ["cpul", "Little cores"], ["gpu", "GPU"], ["ddr", "Memory"]];
 const JOINTS = {
-  左腿: [["left_hip_yaw", "髋 yaw"], ["left_hip_roll", "髋 roll"], ["left_hip_pitch", "髋 pitch"], ["left_knee", "膝"], ["left_ankle", "踝"]],
-  右腿: [["right_hip_yaw", "髋 yaw"], ["right_hip_roll", "髋 roll"], ["right_hip_pitch", "髋 pitch"], ["right_knee", "膝"], ["right_ankle", "踝"]],
-  头颈: [["neck_pitch", "颈 pitch"], ["head_pitch", "头 pitch"], ["head_yaw", "头 yaw"], ["head_roll", "头 roll"]],
+  "Left leg": [["left_hip_yaw", "Hip yaw"], ["left_hip_roll", "Hip roll"], ["left_hip_pitch", "Hip pitch"], ["left_knee", "Knee"], ["left_ankle", "Ankle"]],
+  "Right leg": [["right_hip_yaw", "Hip yaw"], ["right_hip_roll", "Hip roll"], ["right_hip_pitch", "Hip pitch"], ["right_knee", "Knee"], ["right_ankle", "Ankle"]],
+  "Head and neck": [["neck_pitch", "Neck pitch"], ["head_pitch", "Head pitch"], ["head_yaw", "Head yaw"], ["head_roll", "Head roll"]],
 };
 
 // ── Touch pads: the XIAO block on every record (duck-telemetry.py `touch`) ──
@@ -44,20 +44,20 @@ $("#touchZero").onclick = () => { touchZero = null; };
 function showTouch(t) {
   const state = $("#touchState");
   state.className = "";
-  if (t.paused) { state.textContent = "大脑在 A7Z 上运行，触摸暂停读取（程序拨针脚读太费 CPU；装上 TWI0 配置后不用暂停）"; return; }
-  if (!t.v) { state.textContent = `读不到触摸板：${t.error}`; state.className = "bad"; return; }
+  if (t.paused) { state.textContent = "The brain is running on the A7Z, so touch reading is paused (bit-banged GPIO reads cost too much CPU; with the TWI0 overlay installed no pause is needed)"; return; }
+  if (!t.v) { state.textContent = `Cannot read the touch board: ${t.error}`; state.className = "bad"; return; }
   if (!touchZero || touchZero.length !== t.v.length) touchZero = t.v.slice();
   t.v.forEach((v, i) => {
     const r = touchRows[i], full = v >= SATURATED, d = v - touchZero[i];
-    r.v.textContent = full ? "顶满" : v;
+    r.v.textContent = full ? "Maxed" : v;
     r.d.textContent = full ? "" : (d >= 0 ? "+" : "") + d;
     r.bar.classList.toggle("full", full);
     r.bar.firstChild.style.width = full ? "100%" : `${Math.max(0, Math.min(100, 100 * d / TOUCH_FULL))}%`;
   });
   const full = PADS.filter((_, i) => t.v[i] >= SATURATED);
-  if (t.stuck) { state.textContent = `${full.join("、")} 读数顶满，扫描卡住了，其他铜箔都不更新：查它的铜箔和引线有没有碰到金属（比如 XIAO 的金属壳）`; state.className = "bad"; }
-  else if (full.length) { state.textContent = `${full.join("、")} 读数顶满：铜箔或引线碰到了金属`; state.className = "bad"; }
-  else state.textContent = `读到 ${t.ok} 次，丢 ${t.bad} 次（${t.bus === "gpio" ? "程序拨针脚读" : "内核 I2C " + t.bus}）`;
+  if (t.stuck) { state.textContent = `${full.join(", ")} maxed out and the scan is stuck, so no other pad updates: check whether that pad's copper foil or lead touches metal (such as the XIAO's metal shield)`; state.className = "bad"; }
+  else if (full.length) { state.textContent = `${full.join(", ")} maxed out: the copper foil or lead is touching metal`; state.className = "bad"; }
+  else state.textContent = `${t.ok} reads, ${t.bad} dropped (${t.bus === "gpio" ? "bit-banged GPIO" : "kernel I2C " + t.bus})`;
 }
 
 // ── Boot self-check: duck_selfcheck.py's latest.json on the A7Z (duck-selfcheck.service runs it once per boot),
@@ -76,22 +76,22 @@ function showChecks(rec) {
     li.append(document.createElement("i"), text);
     return li;
   }));
-  const how = rec.trigger === "boot" ? `开机后 ${rec.uptime_s} 秒自动测的` : "手动重测的";
-  const stale = bootId && rec.boot_id !== bootId ? "（这是上次开机的结果，这次开机还没测完）" : "";
-  state.textContent = `${clock(rec.t)} ${how}，${rec.failed ? `${rec.failed} 项有问题` : "全部正常"}${stale}`;
+  const how = rec.trigger === "boot" ? `automatic check ${rec.uptime_s} s after boot` : "manual recheck";
+  const stale = bootId && rec.boot_id !== bootId ? " (this is from the previous boot; this boot's check is not finished yet)" : "";
+  state.textContent = `${clock(rec.t)} ${how}: ${rec.failed ? `${rec.failed} ${rec.failed === 1 ? "problem" : "problems"}` : "all OK"}${stale}`;
   state.className = rec.failed || stale ? "bad" : "";
 }
 async function loadChecks(post = false) {
   const btn = $("#checkRun");
-  if (post) { btn.disabled = true; btn.textContent = "体检中…"; $("#checkState").textContent = "正在体检，大约 15 秒（会响一声“嘀”）"; }
+  if (post) { btn.disabled = true; btn.textContent = "Checking…"; $("#checkState").textContent = "Running the self-check, about 15 s (it plays one beep)"; }
   try {
     const r = await (await fetch("/api/a7z/selfcheck", {method: post ? "POST" : "GET"})).json();
     if (r.ok) showChecks(r.record);
-    else { $("#checkState").textContent = `读不到体检结果：${r.error}`; $("#checkState").className = "bad"; }
+    else { $("#checkState").textContent = `Cannot read the self-check result: ${r.error}`; $("#checkState").className = "bad"; }
   } catch (e) {
-    $("#checkState").textContent = `读不到体检结果：${e.message}`; $("#checkState").className = "bad";
+    $("#checkState").textContent = `Cannot read the self-check result: ${e.message}`; $("#checkState").className = "bad";
   } finally {
-    btn.disabled = false; btn.textContent = "重新体检";
+    btn.disabled = false; btn.textContent = "Run check again";
   }
 }
 $("#checkRun").onclick = () => loadChecks(true);
@@ -107,7 +107,7 @@ const STAB_KEY = "microduck.camera.stab";
 let stabOn = false;
 try { stabOn = localStorage.getItem(STAB_KEY) === "1"; } catch {}
 const camUrl = () => `/api/a7z/camera?${stabOn ? "stab=1&" : ""}t=${Date.now()}`;
-const CAM_IDLE = "摄像头关着：点右上角「摄像头：关」打开（A7Z 开机时会自动打开）";
+const CAM_IDLE = "Camera is off: tap \"Camera: off\" at the top right to turn it on (it turns on by itself when the A7Z boots)";
 let camOn = false;
 $("#camPower").onclick = async () => {
   const want = !camOn;
@@ -118,16 +118,16 @@ $("#camPower").onclick = async () => {
     const a = await r.json();
     if (!a.ok) throw new Error(a.error);
     camOn = a.on;
-  } catch (e) { $("#camState").textContent = `开关没生效：${e.message}`; $("#camState").className = "bad"; }
+  } catch (e) { $("#camState").textContent = `The switch did not take effect: ${e.message}`; $("#camState").className = "bad"; }
   $("#camPower").disabled = false;
   showPower();
 };
 function showPower() {
-  $("#camPower").textContent = camOn ? "摄像头：开" : "摄像头：关";
+  $("#camPower").textContent = camOn ? "Camera: on" : "Camera: off";
   $("#camPower").setAttribute("aria-pressed", String(camOn));
 }
 function openCamera() {
-  $("#stabToggle").textContent = stabOn ? "防抖：开" : "防抖：关";
+  $("#stabToggle").textContent = stabOn ? "Stabilizer: on" : "Stabilizer: off";
   $("#camImg").src = camUrl();
   showCamera({state: "starting"});
 }
@@ -146,18 +146,18 @@ function showCamera(c) {
   msg.hidden = c.state === "streaming";
   if (c.state === "streaming") {
     // frame-to-frame motion: what the camera did and what the stabilized picture still shows
-    const st = stabOn && c.stab, stabText = !st ? "" : st.error ? ` · 防抖出错：${st.error}`
-      : ` · 帧间晃动 ${fmt(st.raw_deg, 1)}° ${fmt(st.raw_px, 0)} px → ${fmt(st.out_deg, 1)}° ${fmt(st.out_px, 0)} px`;
-    state.textContent = `${fmt(c.fps, 1)} 帧/秒 · 640x360${stabText}`;
+    const st = stabOn && c.stab, stabText = !st ? "" : st.error ? ` · Stabilizer error: ${st.error}`
+      : ` · Shake per frame ${fmt(st.raw_deg, 1)}° ${fmt(st.raw_px, 0)} px → ${fmt(st.out_deg, 1)}° ${fmt(st.out_px, 0)} px`;
+    state.textContent = `${fmt(c.fps, 1)} fps · 640x360${stabText}`;
     if (st?.error) state.className = "bad";
   } else if (c.state === "idle" && camOn) {
-    state.textContent = "正在打开摄像头…"; msg.textContent = "正在打开摄像头…";
+    state.textContent = "Turning the camera on…"; msg.textContent = "Turning the camera on…";
   } else if (c.state === "idle") {
-    state.textContent = "没开，不占 A7Z 的 CPU"; msg.textContent = CAM_IDLE;
+    state.textContent = "Off, using no A7Z CPU"; msg.textContent = CAM_IDLE;
   } else if (c.state === "closed") {
-    state.textContent = `连接断了，3 秒后重连：${c.error || "原因不明"}`; state.className = "bad";
-    msg.textContent = "没有画面";
-  } else { state.textContent = "正在连接…"; msg.textContent = "正在连接…"; }
+    state.textContent = `Connection lost, reconnecting in 3 s: ${c.error || "unknown cause"}`; state.className = "bad";
+    msg.textContent = "No picture";
+  } else { state.textContent = "Connecting…"; msg.textContent = "Connecting…"; }
 }
 openCamera();
 
@@ -173,7 +173,7 @@ function showShutdown(s) {
   $("#shutdownRun").disabled = s?.state === "running";
 }
 $("#shutdownRun").onclick = async () => {
-  if (!confirm("关掉 A7Z？大脑一停鸭子就不再平衡，舵机只保持最后的目标位置，先扶好或放倒。关机后要重新上电才能再开机。")) return;
+  if (!confirm("Shut down the A7Z? Once the brain stops, the duck no longer balances and the servos only hold their last target positions, so hold it or lay it down first. After shutdown it needs a power cycle to start again.")) return;
   $("#shutdownRun").disabled = true;
   try {
     const a = await (await fetch("/api/a7z/shutdown", {method: "POST", headers: {"Content-Type": "application/json"},
@@ -181,7 +181,7 @@ $("#shutdownRun").onclick = async () => {
     if (!a.ok) throw new Error(a.error);
     showShutdown(a.shutdown);
   } catch (e) {
-    $("#shutdownState").textContent = `没有关机：${e.message}`; $("#shutdownState").className = "bad";
+    $("#shutdownState").textContent = `Did not shut down: ${e.message}`; $("#shutdownState").className = "bad";
     $("#shutdownRun").disabled = false;
   }
 };
@@ -218,14 +218,14 @@ function ingest(record) {
   if (!online) {
     const gone = lostSeconds();
     online = true;
-    event(gone != null && gone > LOST_S ? `重新连上（失联 ${Math.round(gone)} 秒）` : "已连上 A7Z", record.t);
+    event(gone != null && gone > LOST_S ? `Reconnected (lost for ${Math.round(gone)} s)` : "Connected to the A7Z", record.t);
     lostSince = null; cpuStart = null;
   }
   lastArrival = Date.now(); lastT = record.t;
   if (record.brain) lastBrain = record.brain;
   if (record.touch) showTouch(record.touch);
   if (record.temps) {
-    if (bootId && record.boot && record.boot !== bootId) event("A7Z 重启过（boot id 变了）", record.t);
+    if (bootId && record.boot && record.boot !== bootId) event("A7Z restarted (boot id changed)", record.t);
     if (record.boot) bootId = record.boot;
     if (lastCheck && lastCheck.boot_id !== bootId && !lastCheck.reloading) { lastCheck.reloading = true; setTimeout(loadChecks, 5000); }
     if (!cpuStart) cpuStart = record;
@@ -250,24 +250,24 @@ function watch() {
   const silent = (Date.now() - lastArrival) / 1000;
   if (online && silent > LOST_S) {
     online = false; lostSince = lastArrival / 1000;
-    event("失联：超过 1.5 秒没有新数据", lostSince);
-    document.title = "失联 · MicroDuck 真机";
+    event("Lost: no new data for over 1.5 s", lostSince);
+    document.title = "Lost · MicroDuck robot";
   }
   const link = $("#link");
   if (shutdownNow?.state === "running" || (shutdownNow?.state === "off" && !online)) {
-    link.className = "wait"; document.title = "关机 · MicroDuck 真机";
-    link.textContent = shutdownNow.state === "off" ? "A7Z 已关机，可以断电。重新上电后自动连上" : "A7Z 正在关机…";
+    link.className = "wait"; document.title = "Shut down · MicroDuck robot";
+    link.textContent = shutdownNow.state === "off" ? "A7Z is off, safe to cut power. It reconnects by itself after power-up" : "A7Z shutting down…";
   } else if (online) {
     const up = latest?.up ?? 0;
-    link.className = "online"; document.title = "MicroDuck 真机";
-    link.textContent = `A7Z 在线 · 开机 ${Math.floor(up / 3600) ? Math.floor(up / 3600) + " 小时 " : ""}${Math.floor(up / 60) % 60} 分`
-      + (lastBrain?.running && lastBrain.battery_dv != null ? ` · 电池 ${(lastBrain.battery_dv / 10).toFixed(1)} V，约 ${batteryPercent(lastBrain.battery_dv)}%` : "");
+    link.className = "online"; document.title = "MicroDuck robot";
+    link.textContent = `A7Z online · up ${Math.floor(up / 3600) ? Math.floor(up / 3600) + " h " : ""}${Math.floor(up / 60) % 60} min`
+      + (lastBrain?.running && lastBrain.battery_dv != null ? ` · battery ${(lastBrain.battery_dv / 10).toFixed(1)} V, about ${batteryPercent(lastBrain.battery_dv)}%` : "");
   } else if (lostSeconds() > LOST_S) {
     const gone = lostSeconds();
     link.className = "lost";
-    link.textContent = `A7Z 失联 ${Math.round(gone)} 秒（${clock(Date.now() / 1000 - gone)} 起），正在重连`;
+    link.textContent = `A7Z lost for ${Math.round(gone)} s (since ${clock(Date.now() / 1000 - gone)}), reconnecting`;
   } else {
-    link.className = "wait"; link.textContent = "正在连接 A7Z…";
+    link.className = "wait"; link.textContent = "Connecting to the A7Z…";
   }
   $("#view").classList.toggle("stale", !online || !poseLive);
   drawCharts();
@@ -281,7 +281,7 @@ function connect() {
   s.onmessage = e => { if (s === source) ingest(JSON.parse(e.data)); };
   // a reopened event stream means the local service may have restarted and ended the camera stream
   s.onopen = () => { if (streamOpened) $("#camImg").src = camUrl(); streamOpened = true; };
-  s.onerror = () => { $("#link").title = "本机服务连接断开，正在重连"; };
+  s.onerror = () => { $("#link").title = "Lost the connection to the local service, reconnecting"; };
 }
 // Back from the background (phone home-screen app, a hidden tab): the old stream is usually dead and this page's own
 // clock counted the sleep, so drop its view of the link and reopen at once; the bridge's figures say what happened.
@@ -301,21 +301,21 @@ window.addEventListener("online", resume);
 const servoBand = r => [r.brain?.servo_v_min, r.brain?.servo_v_max];
 const charts = [
   {id: "c-temp", series: ZONES.map(([k, label], i) => ({label, color: `--s${i + 1}`, get: r => r.temps?.[k]})), digits: 1, unit: " °C"},
-  {id: "c-volt", band: {label: "舵机电源（近 2 秒最低–最高）", color: "--s1", get: servoBand},
-    series: [{label: "舵机电源最低", color: "--s1", get: r => r.brain?.servo_v_min},
-      {label: "A7Z 输入（PMIC）", color: "--s2", get: r => firstValue(r.vin), optional: true}], digits: 2, unit: " V", minSpan: 0.6},
+  {id: "c-volt", band: {label: "Servo supply (min–max over the last 2 s)", color: "--s1", get: servoBand},
+    series: [{label: "Servo supply min", color: "--s1", get: r => r.brain?.servo_v_min},
+      {label: "A7Z input (PMIC)", color: "--s2", get: r => firstValue(r.vin), optional: true}], digits: 2, unit: " V", minSpan: 0.6},
   // per cluster: the average clock over each 0.5 s and the thermal cap (one instantaneous sample zigzagged between
   // the lowest and highest step); the big cores' cap sits at the lowest step while the board is hot
   {id: "c-mhz", series: [
-    {label: "小核 0–5 平均", color: "--s1", get: r => r.clusters?.little?.avg_mhz},
-    {label: "小核上限", color: "--s1", dash: true, get: r => r.clusters?.little?.cap_mhz},
-    {label: "大核 6–7 平均", color: "--s2", get: r => r.clusters?.big?.avg_mhz},
-    {label: "大核上限", color: "--s2", dash: true, get: r => r.clusters?.big?.cap_mhz}], digits: 0, unit: " MHz", floor: 0},
+    {label: "Little cores 0–5 average", color: "--s1", get: r => r.clusters?.little?.avg_mhz},
+    {label: "Little cores cap", color: "--s1", dash: true, get: r => r.clusters?.little?.cap_mhz},
+    {label: "Big cores 6–7 average", color: "--s2", get: r => r.clusters?.big?.avg_mhz},
+    {label: "Big cores cap", color: "--s2", dash: true, get: r => r.clusters?.big?.cap_mhz}], digits: 0, unit: " MHz", floor: 0},
   {id: "c-busy", series: [
-    {label: "小核 0–5", color: "--s1", get: r => r.clusters?.little?.busy},
-    {label: "大核 6–7", color: "--s2", get: r => r.clusters?.big?.busy}], digits: 0, unit: " %", floor: 0, minSpan: 20},
-  {id: "c-loop", series: [{label: "大脑每 tick 用时", color: "--s1", get: r => r.brain?.running ? r.brain.loop_ms : null}],
-    refs: [{y: 20, label: "50 Hz 预算 20 ms"}], digits: 1, unit: " ms", floor: 0},
+    {label: "Little cores 0–5", color: "--s1", get: r => r.clusters?.little?.busy},
+    {label: "Big cores 6–7", color: "--s2", get: r => r.clusters?.big?.busy}], digits: 0, unit: " %", floor: 0, minSpan: 20},
+  {id: "c-loop", series: [{label: "Brain time per tick", color: "--s1", get: r => r.brain?.running ? r.brain.loop_ms : null}],
+    refs: [{y: 20, label: "50 Hz budget 20 ms"}], digits: 1, unit: " ms", floor: 0},
 ];
 const firstValue = o => o && Object.keys(o).length ? Object.values(o)[0] : null;
 
@@ -399,7 +399,7 @@ function drawChart(chart, rows, t0, t1) {
   }
   const lines = chart.series.map(s => [s, s.get(near)]).filter(([, v]) => v != null)
     .map(([s, v]) => `<div><span style="color:var(${s.color})">■</span> ${s.label} <b>${fmt(v, chart.digits)}${chart.unit}</b></div>`);
-  if (chart.band) { const [a, b] = chart.band.get(near); if (a != null) lines.push(`<div>舵机电源范围 <b>${fmt(a, 2)}–${fmt(b, 2)} V</b></div>`); }
+  if (chart.band) { const [a, b] = chart.band.get(near); if (a != null) lines.push(`<div>Servo supply range <b>${fmt(a, 2)}–${fmt(b, 2)} V</b></div>`); }
   tip.innerHTML = `<div>${clock(near.t)}</div>` + lines.join("");
   tip.style.display = "block";
   const left = canvas.offsetLeft + x(near.t) + 12;
@@ -443,25 +443,25 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawCharts
 function showNow() {
   const r = latest, b = r.brain ?? {}, items = [];
   const temps = Object.entries(r.temps ?? {}).filter(([k]) => !k.includes("idle"));
-  items.push(["SoC 最高温度", temps.length ? fmt(Math.max(...temps.map(([, v]) => v))) + " °C（内核 110 °C 关机）" : "内核没有给出"]);
-  items.push(["各区温度", temps.map(([k, v]) => `${k} ${fmt(v)}`).join(" · ")]);
-  for (const [key, label] of [["little", "小核 0–5"], ["big", "大核 6–7"]]) {
+  items.push(["SoC max temperature", temps.length ? fmt(Math.max(...temps.map(([, v]) => v))) + " °C (kernel shuts down at 110 °C)" : "not reported by the kernel"]);
+  items.push(["Zone temperatures", temps.map(([k, v]) => `${k} ${fmt(v)}`).join(" · ")]);
+  for (const [key, label] of [["little", "Little cores 0–5"], ["big", "Big cores 6–7"]]) {
     const c = r.clusters?.[key];
     if (!c) continue;
-    items.push([label, `${c.avg_mhz == null ? "–" : `平均 ${c.avg_mhz} MHz`} · 占用 ${c.busy == null ? "–" : fmt(c.busy, 0) + " %"}`
-      + (c.cap_mhz < c.hw_mhz ? `（过热降频：上限 ${c.cap_mhz}/${c.hw_mhz}）` : "")]);
+    items.push([label, `${c.avg_mhz == null ? "–" : `average ${c.avg_mhz} MHz`} · busy ${c.busy == null ? "–" : fmt(c.busy, 0) + " %"}`
+      + (c.cap_mhz < c.hw_mhz ? ` (thermal throttling: cap ${c.cap_mhz}/${c.hw_mhz})` : "")]);
   }
-  items.push(["负载 / 可用内存", `${fmt(r.load, 2)} / ${r.mem_mb ?? "–"} MB`]);
-  items.push(["舵机电源", b.servo_v_min != null ? `${fmt(b.servo_v_min)}–${fmt(b.servo_v_max)} V（${b.running ? `近 2 秒 ${b.servo_v_count} 次` : `待机读取，${b.servo_v_count} 个舵机`}）` : "没有读数"]);
-  items.push(["A7Z 输入电压", Object.keys(r.vin ?? {}).length ? Object.entries(r.vin).map(([k, v]) => `${k} ${fmt(v, 2)} V`).join(" · ") : "内核没有读数"]);
-  items.push(["大脑", b.running ? `${b.mode} · 扭矩${b.torque ? "开" : "关"}` : b.log ? `没在运行（${b.log}，${b.age < 120 ? Math.round(b.age) + " 秒" : Math.round(b.age / 60) + " 分钟"}前停）` : "没在运行"]);
+  items.push(["Load / free memory", `${fmt(r.load, 2)} / ${r.mem_mb ?? "–"} MB`]);
+  items.push(["Servo supply", b.servo_v_min != null ? `${fmt(b.servo_v_min)}–${fmt(b.servo_v_max)} V (${b.running ? `${b.servo_v_count} reads in the last 2 s` : `standby read, ${b.servo_v_count} servos`})` : "no reading"]);
+  items.push(["A7Z input voltage", Object.keys(r.vin ?? {}).length ? Object.entries(r.vin).map(([k, v]) => `${k} ${fmt(v, 2)} V`).join(" · ") : "no kernel reading"]);
+  items.push(["Brain", b.running ? `${b.mode} · torque ${b.torque ? "on" : "off"}` : b.log ? `not running (${b.log}, stopped ${b.age < 120 ? Math.round(b.age) + " s" : Math.round(b.age / 60) + " min"} ago)` : "not running"]);
   if (b.running || b.standby) {
-    items.push(["IMU 延迟", fmt(b.imu_age_ms, 0) + " ms"]);
-    if (b.running) items.push(["舵机故障", b.hw_faults?.length ? b.hw_faults.join(", ") : "无"]);
-    if (b.running && b.battery_dv != null) items.push(["电池", `${fmt(b.battery_dv / 10, 1)} V，约 ${batteryPercent(b.battery_dv)}%`]);
-    items.push([b.running ? "本 tick 缺读" : "没回话的舵机", b.missing?.length ? b.missing.join(", ") : "无"]);
+    items.push(["IMU latency", fmt(b.imu_age_ms, 0) + " ms"]);
+    if (b.running) items.push(["Servo faults", b.hw_faults?.length ? b.hw_faults.join(", ") : "none"]);
+    if (b.running && b.battery_dv != null) items.push(["Battery", `${fmt(b.battery_dv / 10, 1)} V, about ${batteryPercent(b.battery_dv)}%`]);
+    items.push([b.running ? "Missed reads this tick" : "Servos not answering", b.missing?.length ? b.missing.join(", ") : "none"]);
   }
-  if (cpuStart && r.t - cpuStart.t >= 10) items.push(["本监视的 A7Z 开销", `一个核的 ${fmt((r.cpu_s - cpuStart.cpu_s) / (r.t - cpuStart.t) * 100, 1)}%（${Math.round(r.t - cpuStart.t)} 秒平均）`]);
+  if (cpuStart && r.t - cpuStart.t >= 10) items.push(["A7Z cost of this monitor", `${fmt((r.cpu_s - cpuStart.cpu_s) / (r.t - cpuStart.t) * 100, 1)}% of one core (${Math.round(r.t - cpuStart.t)} s average)`]);
   $("#now").innerHTML = items.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("");
 }
 
@@ -490,19 +490,19 @@ function showNoPose(reason) {
   if (rig) rig.placer.visible = false;
   const note = $("#poseNote");
   note.className = "bad";
-  note.textContent = `没有姿态数据：${reason}`;
+  note.textContent = `No pose data: ${reason}`;
   $("#joints").innerHTML = "";
 }
 function standbyReason(err) {
-  if (/another monitor session/.test(err)) return "待机读取被另一个监视页面占着（本机 app 或另一台设备上的真机页面），关掉那边，或用那边看姿态";
-  return `待机读取没起来：${err}`;
+  if (/another monitor session/.test(err)) return "the standby reader is held by another monitor page (the local app, or the robot page on another device); close that one, or watch the pose there";
+  return `the standby reader did not start: ${err}`;
 }
 
 function setPoseTarget(brain) {
   if (!brain?.joints) {
-    showNoPose(brain?.running ? "大脑在运行，还没有关节读数"
+    showNoPose(brain?.running ? "the brain is running, no joint readings yet"
       : brain?.standby_error ? standbyReason(brain.standby_error)
-      : "大脑没在运行，待机读取正在启动（Mac 上的大脑在跑时不读，免得抢总线）");
+      : "the brain is not running, the standby reader is starting (it does not read while a brain on the Mac is running, to keep off the bus)");
     return;
   }
   const note = $("#poseNote");
@@ -519,8 +519,8 @@ function setPoseTarget(brain) {
   if (brain.gb) target.quat.setFromUnitVectors(gb.set(...brain.gb).normalize(), down);
   target.jaw = brain.jaw_deg == null ? 0 : Math.min(1, Math.max(0, brain.jaw_deg * Math.PI / 180 / JAW_MAX_OPEN));
   const tilt = brain.gb ? Math.acos(Math.min(1, -brain.gb[2] / Math.hypot(...brain.gb))) * 180 / Math.PI : null;
-  note.textContent = `${brain.running ? `${brain.mode} · 扭矩${brain.torque ? "开" : "关"}` : "大脑没在运行 · 待机只读"} · 躯干倾斜 ${fmt(tilt)}° · 嘴 ${fmt(brain.jaw_deg)}°`
-    + (brain.missing?.length ? ` · 没回话的舵机 ${brain.missing.join(", ")}` : "");
+  note.textContent = `${brain.running ? `${brain.mode} · torque ${brain.torque ? "on" : "off"}` : "brain not running · standby, read only"} · trunk tilt ${fmt(tilt)}° · beak ${fmt(brain.jaw_deg)}°`
+    + (brain.missing?.length ? ` · servos not answering ${brain.missing.join(", ")}` : "");
   $("#joints").innerHTML = Object.entries(JOINTS).map(([group, list]) =>
     `<div><b>${group}</b>${list.map(([k, l]) => `${l} ${fmt(brain.joints[k] * 180 / Math.PI)}°`).join("<br>")}</div>`).join("");
 }
@@ -552,8 +552,8 @@ async function loadModel(attempt = 1) {
     console.error(e);
     const wait = Math.min(30, 2 * attempt);
     note.className = "bad"; note.hidden = false;
-    note.textContent = `模型加载失败（第 ${attempt} 次）：${e.message}，${wait} 秒后重试`;
-    setTimeout(() => { note.className = ""; note.textContent = "模型加载中…"; loadModel(attempt + 1); }, wait * 1000);
+    note.textContent = `Model failed to load (attempt ${attempt}): ${e.message}, retrying in ${wait} s`;
+    setTimeout(() => { note.className = ""; note.textContent = "Loading model…"; loadModel(attempt + 1); }, wait * 1000);
   }
 }
 

@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>MicroDuck 真机监视</title>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>MicroDuck Live</title>
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="鸭子遥控"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Duck Remote"><meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="/robot-touch-icon.png">
 <style>
 :root{color-scheme:light;--surface:#fcfcfb;--panel:#ffffff;--border:#e2e1dc;--text:#0b0b0b;--text-2:#52514e;--muted:#8a8984;--grid:#ecebe7;
@@ -11,7 +11,7 @@
 :root[data-theme="dark"]{color-scheme:dark;--surface:#1a1a19;--panel:#222221;--border:#3a3a38;--text:#f0efec;--text-2:#c3c2b7;--muted:#8f8e88;--grid:#2e2e2c;
   --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--good:#4cc26b;--bad:#ef5350;--warn:#e0a030;--floor:#2a2f33}
 *{box-sizing:border-box}
-body{margin:0;background:var(--surface);color:var(--text);font:15px/1.5 system-ui,-apple-system,"PingFang SC",sans-serif}
+body{margin:0;background:var(--surface);color:var(--text);font:15px/1.5 system-ui,-apple-system,sans-serif}
 header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:14px 20px;border-bottom:1px solid var(--border)}
 h1{font-size:20px;margin:0}
 #link{font-weight:600;display:flex;align-items:center;gap:8px}
@@ -114,61 +114,61 @@ details.note summary{cursor:pointer}
 </head>
 <body>
 <header>
-  <h1>MicroDuck 真机</h1>
-  <div id="link" class="wait">正在连接 A7Z…</div>
-  <a id="debugLink" href="/debug.html" style="font-weight:600;color:var(--s1)">排查工具 →</a>
-  <div class="range" role="group" aria-label="时间范围">
-    <button data-s="120">2 分钟</button><button data-s="600" aria-pressed="true">10 分钟</button><button data-s="1800">30 分钟</button>
+  <h1>MicroDuck Live</h1>
+  <div id="link" class="wait">Connecting to A7Z…</div>
+  <a id="debugLink" href="/debug.html" style="font-weight:600;color:var(--s1)">Debug tools →</a>
+  <div class="range" role="group" aria-label="Time range">
+    <button data-s="120">2 min</button><button data-s="600" aria-pressed="true">10 min</button><button data-s="1800">30 min</button>
   </div>
 </header>
 <main>
   <section class="pose">
     <div class="drive">
     <div class="card cam-card">
-      <div class="cam-head"><h2>鸭子视野</h2><button id="camPower" type="button" aria-pressed="false">摄像头：关</button><button id="stabToggle" type="button">防抖：关</button></div>
-      <div id="camBox"><img id="camImg" alt="头部摄像头画面"><div id="camMsg">正在连接…</div></div>
-      <p id="camState">关着，不占 A7Z 的 CPU</p>
+      <div class="cam-head"><h2>Duck view</h2><button id="camPower" type="button" aria-pressed="false">Camera: off</button><button id="stabToggle" type="button">Stabilizer: off</button></div>
+      <div id="camBox"><img id="camImg" alt="Head camera view"><div id="camMsg">Connecting…</div></div>
+      <p id="camState">Off, uses no A7Z CPU</p>
     </div>
     <div class="card remote-card">
-      <h2>遥控</h2>
+      <h2>Remote</h2>
       <div id="remote"></div>
-      <details class="note"><summary>摄像头说明</summary>头部 USB 摄像头（Innomaker U20CAM，1280x720 MJPEG），A7Z 每 3 帧留 1 帧缩小成 640x360 压 JPEG 传过来，约 8 帧/秒。A7Z 开机就自动打开；点「摄像头：开」会关掉它，再点打开，这样打开的在关掉所有看画面的页面后会自己停。画面在 A7Z 上转了 180°（摄像头装反）。防抖在这台 Mac 上做：跟踪画面里的特征点算出每帧的转动和平移，按平滑后的路径把画面转回去，再放大 1.15 倍藏住边缘；慢慢转头会跟过去，快的抖动被抵消。曝光里的拖影去不掉。</details>
-      <p class="note">命令写进 A7Z 上 walk_wired.py 的控制文件。前进是按住才走：每 0.3 秒续一次，松手、切走窗口或断线 0.6 秒内自己停。踢腿、坐、弯腰用 Pollen 官方策略，只从站或走开始。</p>
+      <details class="note"><summary>About the camera</summary>Head USB camera (Innomaker U20CAM, 1280x720 MJPEG). The A7Z keeps 1 frame in 3, scales it to 640x360 and sends it as JPEG, about 8 fps. The camera starts when the A7Z boots. Tapping "Camera: on" turns it off; tap again to turn it on, and a camera started this way stops by itself once every page watching it is closed. The A7Z rotates the picture 180° (the camera is mounted upside down). Stabilization runs on this Mac: it tracks feature points to get each frame's rotation and shift, turns the frame back along a smoothed path and zooms 1.15x to hide the edges. Slow head turns are followed, fast shake is cancelled. Motion blur within a frame cannot be removed.</details>
+      <p class="note">Commands go into the control file of walk_wired.py on the A7Z. Walking is hold-to-walk: the page renews the command every 0.15 s, and the duck stops by itself within 1.5 s after you let go, switch away or lose the link. Kick, sit and bend use Pollen's official policies and start only from standing or walking.</p>
     </div>
     </div>
     <div class="card">
-      <div class="check-head"><h2>电源</h2><button id="shutdownRun" type="button">优雅关机</button></div>
-      <p id="shutdownState" aria-live="polite">先停 A7Z 上的程序、刷盘，再关系统；等它不再响应后才说可以断电。</p>
+      <div class="check-head"><h2>Power</h2><button id="shutdownRun" type="button">Shut down safely</button></div>
+      <p id="shutdownState" aria-live="polite">Stops the programs on the A7Z, flushes the disk, then shuts the system down. It says the power can be cut only after the A7Z stops responding.</p>
     </div>
     <div class="card">
-      <div class="check-head"><h2>开机体检</h2><button id="checkRun" type="button">重新体检</button></div>
+      <div class="check-head"><h2>Boot check</h2><button id="checkRun" type="button">Run check again</button></div>
       <ul id="checks"></ul>
-      <p id="checkState">正在读体检结果…</p>
+      <p id="checkState">Reading the check results…</p>
     </div>
     <div class="card">
-      <div class="touch-head"><h2>头顶触摸</h2><button id="touchZero" type="button">归零</button></div>
+      <div class="touch-head"><h2>Head touch</h2><button id="touchZero" type="button">Zero</button></div>
       <div id="touch" class="touch"></div>
-      <p id="touchState">等待触摸板…</p>
-      <p class="note">按头顶的铜箔，对应的条会涨。数字是 XIAO 的原始读数，旁边是比归零时多了多少。没有 TWI0 配置时由程序拨针脚读，大脑在 A7Z 上运行时暂停。</p>
+      <p id="touchState">Waiting for the touch board…</p>
+      <p class="note">Press a copper pad on top of the head and its bar rises. The number is the raw XIAO reading, next to it the rise since the last zero. Without the TWI0 overlay the program reads the pins in software, and it pauses while the brain runs on the A7Z.</p>
     </div>
     <div class="card">
-      <h2>姿态（仿真模型）</h2>
+      <h2>Pose (sim model)</h2>
       <div id="view"></div>
-      <p id="modelNote">模型加载中…</p>
-      <p id="poseNote">等待大脑日志…</p>
+      <p id="modelNote">Loading the model…</p>
+      <p id="poseNote">Waiting for the brain log…</p>
       <div id="joints" class="joints"></div>
-      <p class="note">关节角取自大脑每 tick 的舵机读数，躯干倾斜取自 IMU 重力方向（朝向不显示）。拖动可旋转视角。</p>
+      <p class="note">Joint angles come from the servo readings the brain logs each tick; body tilt comes from the IMU gravity direction (heading is not shown). Drag to rotate the view.</p>
     </div>
   </section>
   <section class="charts">
-    <figure class="card" id="c-temp"><figcaption><strong>SoC 温度 °C</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
-    <figure class="card" id="c-volt"><figcaption><strong>电压 V</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
-    <figure class="card" id="c-mhz"><figcaption><strong>CPU 频率 MHz（每 0.5 秒平均）</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
-    <figure class="card" id="c-busy"><figcaption><strong>CPU 占用 %</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
-    <figure class="card" id="c-loop"><figcaption><strong>大脑循环时间 ms</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
-    <div class="card wide"><h2>最新读数</h2><dl id="now" class="now-grid"></dl></div>
-    <div class="card wide"><h2>连接与重启记录</h2><ol id="events"></ol>
-      <p class="note">每 0.5 秒一个健康读数，超过 1.5 秒没有新数据即判为失联。A7Z 端只读 sysfs 和大脑日志；大脑没在运行时由待机读取（duck_sense.py）只读舵机位置、电压和 IMU，大脑一启动它就让出总线，Mac 上跑大脑时不读；曲线保留在本机服务里最近 30 分钟。</p></div>
+    <figure class="card" id="c-temp"><figcaption><strong>SoC temperature °C</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
+    <figure class="card" id="c-volt"><figcaption><strong>Voltage V</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
+    <figure class="card" id="c-mhz"><figcaption><strong>CPU clock MHz (0.5 s average)</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
+    <figure class="card" id="c-busy"><figcaption><strong>CPU load %</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
+    <figure class="card" id="c-loop"><figcaption><strong>Brain loop time ms</strong><span class="now"></span></figcaption><div class="legend"></div><canvas class="chart"></canvas><div class="tip"></div></figure>
+    <div class="card wide"><h2>Latest readings</h2><dl id="now" class="now-grid"></dl></div>
+    <div class="card wide"><h2>Connection and restart log</h2><ol id="events"></ol>
+      <p class="note">One health reading every 0.5 s; no new data for 1.5 s counts as a lost link. On the A7Z only sysfs and the brain log are read. While the brain is not running, the idle reader (duck_sense.py) reads only servo positions, voltage and the IMU; it gives up the bus as soon as the brain starts, and does not read while the brain runs on a Mac. This server keeps the last 30 minutes of curves.</p></div>
   </section>
 </main>
 <script type="module" src="/src/robot-live.js"></script>

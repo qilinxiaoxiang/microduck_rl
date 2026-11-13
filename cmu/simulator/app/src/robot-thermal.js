@@ -12,7 +12,7 @@
 export const TRIP_C = 83, CLEAR_C = 78, MIN_HZ = 45, LOWEST_MHZ = 416, HEALTH_STALE_S = 3;
 // Buttons that start or keep a policy running (walk61, stand61, kick, sitstand, ground pick). Stop, the open-loop
 // stand, torque off and quack need no policy and stay available.
-export const POLICY_ACTS = new Set(["walk", "left", "right", "stand61", "kickL", "kickR", "sit", "bend"]);
+export const POLICY_ACTS = new Set(["walk", "back", "left", "right", "stand61", "kickL", "kickR", "sit", "bend"]);
 
 const fmt = (v, d = 0) => v.toFixed(d);
 
@@ -22,17 +22,17 @@ const fmt = (v, d = 0) => v.toFixed(d);
 export function thermalGate({health, healthAge, brain, wasBlocked = false}) {
   const reasons = [];
   if (!health || !(healthAge <= HEALTH_STALE_S)) {
-    return {blocked: true, reasons: [`${HEALTH_STALE_S} 秒没收到 A7Z 温度`], hot: null};
+    return {blocked: true, reasons: [`No A7Z temperature for ${HEALTH_STALE_S} s`], hot: null};
   }
   const temps = Object.entries(health.temps ?? {}).filter(([k]) => !k.includes("idle")).map(([, v]) => v);
   const hot = temps.length ? Math.max(...temps) : null;
   if (hot != null && hot >= (wasBlocked ? CLEAR_C : TRIP_C)) {
-    reasons.push(wasBlocked && hot < TRIP_C ? `SoC ${fmt(hot, 1)} °C，降到 ${CLEAR_C} °C 才恢复` : `SoC ${fmt(hot, 1)} °C（≥ ${TRIP_C} °C）`);
+    reasons.push(wasBlocked && hot < TRIP_C ? `SoC ${fmt(hot, 1)} °C, reopens at ${CLEAR_C} °C` : `SoC ${fmt(hot, 1)} °C (≥ ${TRIP_C} °C)`);
   }
   const caps = ["little", "big"].map(k => health.clusters?.[k]?.cap_mhz).filter(v => v != null);
-  if (caps.length === 2 && caps.every(v => v <= LOWEST_MHZ)) reasons.push(`两组 CPU 都被限到 ${LOWEST_MHZ} MHz`);
+  if (caps.length === 2 && caps.every(v => v <= LOWEST_MHZ)) reasons.push(`Both CPU clusters capped at ${LOWEST_MHZ} MHz`);
   if (brain?.running && brain.tick_hz != null && brain.tick_hz < MIN_HZ) {
-    reasons.push(`大脑只跑 ${fmt(brain.tick_hz, 1)} Hz（要 ≥ ${MIN_HZ}，策略按 50 Hz 训练）`);
+    reasons.push(`Brain runs at only ${fmt(brain.tick_hz, 1)} Hz (needs ≥ ${MIN_HZ}; the policy was trained at 50 Hz)`);
   }
   return {blocked: reasons.length > 0, reasons, hot};
 }

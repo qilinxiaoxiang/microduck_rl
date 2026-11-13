@@ -1,7 +1,7 @@
 // The page's graceful power-off (POST /api/a7z/shutdown): a real bridge in a Vite server, a stand-in `ssh` that runs
 // duck-command.py on this machine and logs every session, and stand-in shutdown scripts. Checks the lease refusal, that
 // no SSH session starts while the script runs (the script stops every Python program there; a session started meanwhile
-// is the "有程序停不下来" failure), the states every page sees, and which A7Z programs the real script counts as busy.
+// is the "A program would not stop" failure), the states every page sees, and which A7Z programs the real script counts as busy.
 import assert from "node:assert/strict";
 import {mkdtempSync, writeFileSync, readFileSync, appendFileSync, chmodSync} from "node:fs";
 import {execFileSync} from "node:child_process";
@@ -29,9 +29,9 @@ const script = (name, body) => {
   writeFileSync(path, `#!/bin/sh\n${body}\n`);
   return path;
 };
-const slow = script("off.sh", `echo script-start >> ${log}; echo "host=$1"; sleep 6; echo "已关机，可以断电。"; echo script-end >> ${log}; exit 0`);
-const gone = script("gone.sh", `echo "A7Z 没有响应，没有发送关机命令。"; exit 2`);
-const stuck = script("stuck.sh", `echo "有程序停不下来，没有关机"; exit 4`);
+const slow = script("off.sh", `echo script-start >> ${log}; echo "host=$1"; sleep 6; echo "Off, you can cut the power."; echo script-end >> ${log}; exit 0`);
+const gone = script("gone.sh", `echo "A7Z does not respond, no shutdown sent."; exit 2`);
+const stuck = script("stuck.sh", `echo "A program would not stop, not shut down"; exit 4`);
 process.env.PATH = `${dir}:${process.env.PATH}`;
 process.env.MICRODUCK_CMD_PATH = cmdFile;
 process.env.MICRODUCK_ROBOT_HOST = "fake-a7z";
@@ -88,10 +88,10 @@ assert.equal(a.shutdown.state, "running");
 await until(() => b.seen.some(s => s?.line === "host=fake-a7z"), "the script's lines reach the page, with the bridge's host");
 const during = await b.post("/api/a7z/cmd", {op: "set", cmd: walk, client: B});
 assert.equal(during.ok, false);
-assert.match(during.error, /正在关机/);
+assert.match(during.error, /shutting down/);
 assert.equal((await b.post("/api/a7z/shutdown", {client: B})).ok, true, "a second press joins the run");
 await until(() => b.seen.at(-1)?.state === "off", "state off after exit 0");
-assert.equal(b.seen.at(-1).line, "已关机，可以断电。");
+assert.equal(b.seen.at(-1).line, "Off, you can cut the power.");
 const lines = readFileSync(log, "utf8").split("\n");
 assert.equal(lines.filter(l => l === "script-start").length, 1, "a second press started the script again");
 assert.deepEqual(lines.slice(lines.indexOf("script-start"), lines.indexOf("script-end") + 1), ["script-start", "script-end"],
@@ -106,7 +106,7 @@ await b.close();
 b = await bridge(stuck);
 assert.equal((await b.post("/api/a7z/shutdown", {client: B})).ok, true);
 await until(() => b.seen.at(-1)?.state === "failed", "state failed after exit 4");
-assert.match(b.seen.at(-1).line, /停不下来/);
+assert.match(b.seen.at(-1).line, /would not stop/);
 await b.close();
 
 // The real script's busy filter: viewers do not count, robot programs do.
