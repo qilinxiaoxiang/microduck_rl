@@ -20,6 +20,11 @@ duck_kin) +-3-4 cm (sim: 80 % at +-3 cm, 71 % at +-5 cm, 31-39 % when the object
   ~/.venvs/duck-policy/bin/python seepick.py --color orange          on the A7Z, walk_wired running, jaw calibrated
   ~/.venvs/duck-policy/bin/python seepick.py --color orange --t2      the pick is T2 (seepickpix61.onnx): the same phases,
                                                                       the pick command carries the ball's picture box
+  ~/.venvs/duck-policy/bin/python seepick.py --color orange --t2 --hold-s 5   hold-on (cmu/pick_rise/ROBOT-TEST.md): T2
+                                                                      keeps acting through the rise (rise_old false) and
+                                                                      holds at phase HOLD_PHASE, short of walk_wired's
+                                                                      hand-back to stand61; after 5 s held, monitor
+                                                                      (hold the pose, torque on), never stand61
   ~/.venvs/duck-policy/bin/python seepick.py --color green --dry     approach, aim and align only, no pick
   ~/.venvs/duck-policy/bin/python seepick.py --color green --observe 10   detections only, no motion
 """
@@ -90,6 +95,9 @@ PICK_MAX_S = 6.0           # the seeing pick takes 3.6 s to the hand-back (phase
 VERIFY_S = 0.5
 SLIP_S = 0.2
 HOLD_WATCH_S = 10.0        # watch for a slip this long after a pick, then done
+HOLD_PHASE = 0.89          # hold-on: the pick's phase cap, just short of walk_wired.SP_DONE_PHASE (0.90, the hand-back)
+HOLD_MAX_S = 10.0          # hold-on: the pick was trained only up to phase 0.90; sim holds 5 s, longer is untested
+MONITOR = {"mode": "monitor"}   # hold the present pose, torque on (the remote's Space): hold-on never ends in stand61
 DEFAULT_SIZE = 0.013       # m, the training mean width (BODY_SLOT_MEAN)
 SIZE_RANGE = (0.008, 0.03)
 # OpenCV HSV (H 0-180). Orange is approach.py's tested range; the others are starting points to check on real frames
@@ -103,10 +111,15 @@ class SeePick:
     """The coordinator; camera, state, commands and the approach controller are injected (fakes in test_seepick.py).
 
     state() / state_at(t) return approach.parse_state dicts plus jaw_holding and sp_phase (SeeTail)."""
+    hold_s = hold_t = None   # hold-on off unless __init__ sets it
 
     def __init__(self, kin, latest_frame, state, state_at, send, detect, make_approach, tries=3, dry=False,
-                 now=time.time, log=print, pick_here=None, track_gate=None, t2=False):
+                 now=time.time, log=print, pick_here=None, track_gate=None, t2=False, hold_s=None):
         self.t2 = t2
+        if hold_s is not None and not (t2 and 0 < hold_s <= HOLD_MAX_S):
+            raise ValueError(f"hold-on needs t2 and 0 < hold_s <= {HOLD_MAX_S}")
+        self.hold_s = hold_s      # hold-on: s the pick holds at HOLD_PHASE before monitor; None = hand back to stand61
+        self.hold_t = None        # hold-on: when the phase reached HOLD_PHASE
         self.kin, self.latest_frame, self.state_fn, self.state_at = kin, latest_frame, state, state_at
         self.send_fn, self.detect, self.make_approach = send, detect, make_approach
         self.tries, self.dry, self.now, self.log = tries, dry, now, log
@@ -189,6 +202,8 @@ class SeePick:
         obj = {"x": round(o["x"], 4), "y": round(o["y"], 4), "size": round(o["size"], 4), "t": o["t"]}
         if self.t2:
             obj.update(self.pix_box(o), yaw_off=round((o["y"] - T2_Y) / T2_YAW_M_RAD, 3))
+        if self.hold_s is not None:
+            return {"mode": "seepick", "phase": HOLD_PHASE, "rise_old": False, "object": obj}
         return {"mode": "seepick", "phase": 1.0, "object": obj}
 
     def pix_box(self, o):
@@ -349,7 +364,7 @@ class SeePick:
                 return
             self.attempts.append(dict(try_n=self.try_n, x=round(self.obj["x"], 3), y=round(self.obj["y"], 3),
                                       size=round(self.obj["size"], 3)))
-            self.seen_pick, self.picked_t = False, None
+            self.seen_pick, self.picked_t, self.hold_t = False, None, None
             self.send_fn(self.pick_cmd())
             self.cmd_t = now
             self.enter("pick", f"dx {dx * 100:+.1f} dy {dy * 100:+.1f} cm")
@@ -425,6 +440,8 @@ class SeePick:
         self.enter("aim", f"creep done: {why}")
 
     def p_pick(self, st, now):
+        if self.hold_s is not None and self.p_hold_on(st, now):
+            return
         if st["mode"] == "seepick":
             self.seen_pick = True
         elif self.seen_pick:   # walk_wired handed back to stand61 after the rise
@@ -441,6 +458,32 @@ class SeePick:
         if m is not None or now - self.cmd_t >= CMD_PERIOD:
             self.send_fn(self.pick_cmd())
             self.cmd_t = now
+
+    def p_hold_on(self, st, now):
+        """Hold-on's end of the pick; True when it handled this step. The pick never hands back by itself here: after
+        hold_s at HOLD_PHASE (or on a time-out) this writes monitor, and a mode other than seepick is a guard trip."""
+        if st["mode"] == "seepick":
+            self.seen_pick = True
+        elif self.seen_pick:
+            self.attempts[-1]["holding"] = bool(st.get("jaw_holding"))
+            self.finish(False, f"hold-on ended by walk_wired (mode {st['mode']})", stop=False)
+            return True
+        if self.hold_t is None and (st.get("sp_phase") or 0.0) >= HOLD_PHASE - 1e-3:
+            self.hold_t = now
+            self.attempts[-1]["holding_at_hold"] = bool(st.get("jaw_holding"))
+            self.log(f"[{now:.1f}] hold-on: phase {HOLD_PHASE}, {'holding' if st.get('jaw_holding') else 'not holding'}")
+        if self.hold_t is not None and now - self.hold_t >= self.hold_s:
+            rows = [self.state_at(t) for t in np.linspace(now - VERIFY_S, now, 5)]
+            held = sum(bool(r and r.get("jaw_holding")) for r in rows) >= 3
+            self.attempts[-1].update(holding=held, held_s=round(now - self.hold_t, 2))
+            self.send_fn(MONITOR)
+            self.finish(held, f"hold-on {self.hold_s} s: {'holding' if held else 'not holding'}, monitor", stop=False)
+            return True
+        if self.hold_t is None and now - self.t_phase > PICK_MAX_S:
+            self.send_fn(MONITOR)
+            self.finish(False, f"hold-on: phase {HOLD_PHASE} not reached within {PICK_MAX_S} s, monitor", stop=False)
+            return True
+        return self.hold_t is not None   # held: never rewrite the pick command (walk_wired keeps the last one)
 
     def p_verify(self, st, now):
         if now - self.t_phase < VERIFY_S:
@@ -498,6 +541,8 @@ def main():
     p.add_argument("--log", default=None, help="walk_wired log (default: the --log of the running walk_wired)")
     p.add_argument("--tries", type=int, default=3)
     p.add_argument("--t2", action="store_true", help="pick with T2, the picture policy (seepickpix61.onnx)")
+    p.add_argument("--hold-s", type=float, default=None, metavar="S",
+                   help=f"hold-on (needs --t2): T2 holds at phase {HOLD_PHASE} for S s (at most {HOLD_MAX_S}), then monitor")
     p.add_argument("--dry", action="store_true", help="approach, aim and align only, no pick")
     p.add_argument("--observe", type=float, default=None, help="s; print detections only, no motion")
     p.add_argument("--max-s", type=float, default=180.0)
@@ -520,7 +565,7 @@ def main():
     tail = SeeTail(log_path)
     cam = ap.ShmCamera()
     send = ap.send_file(a.cmd)
-    ctl = SeePick(kin, cam.latest, tail.latest, tail.at, send, detect, tries=a.tries, dry=a.dry, t2=a.t2,
+    ctl = SeePick(kin, cam.latest, tail.latest, tail.at, send, detect, tries=a.tries, dry=a.dry, t2=a.t2, hold_s=a.hold_s,
                   pick_here=tuple(a.pick_here) if a.pick_here else None, track_gate=a.track_gate,
                   make_approach=lambda: ap.Approach(kin, cam.latest, tail.latest, tail.at, send, detect,
                                                     log=lambda s: print("  approach " + s, flush=True)),
@@ -544,8 +589,12 @@ def main():
             ctl.step()
             time.sleep(0.05)
     except KeyboardInterrupt:
-        send({"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0})
-        print("interrupted: walk at zero command written (stand61)")
+        if a.hold_s is not None:
+            send(MONITOR)
+            print("interrupted: monitor written (hold the pose)")
+        else:
+            send({"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0})
+            print("interrupted: walk at zero command written (stand61)")
     finally:
         cam.close()
     os.makedirs(os.path.dirname(a.trace), exist_ok=True)

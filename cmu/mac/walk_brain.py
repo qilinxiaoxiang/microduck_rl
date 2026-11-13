@@ -38,6 +38,10 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
                                             u, v and width w in px of the 640 x 360 picture, capture time t of that
                                             detection, seen = the newest processed frame had it) selects it at the
                                             switch. Body slots 55..60 [u, v, width, age, holding, visible].
+                                            "rise_old": false keeps T2 acting through the rise instead of handing it
+                                            to seepick61 at SP_RISE_OLD_PHASE (read at the switch, fixed per pick);
+                                            with "phase": 0.89 the pick then holds the ball itself, never reaching
+                                            walk_wired's hand-back to stand61 (cmu/pick_rise/ROBOT-TEST.md, hold-on).
   {"mode": "kick", "foot": "left", "id": 7} Pollen's ball kick (kick_left61 / kick_right61.onnx), one shot per new id
                                             and only from stand or walk mode: KICK_TICKS policy ticks (0.5 s) with an
                                             all-zero command, then walk mode at zero command (stand61). The action
@@ -452,6 +456,7 @@ class Brain:
         self.sp_blend_s = None        # trial: goals blend from the pick's last goals to stand61's over this long
         self.sp_rise_old_phase = SP_RISE_OLD_PHASE
         self.sp_old_rise = False
+        self.sp_rise_own = False  # this pick keeps its own policy through the rise ("rise_old": false at the switch)
         self.hand_blend = None
         self.sp_yaw_off = 0.0
         self.sp_policy = "seepick"  # "seepickpix" when the pick started with a picture object (u, v, w), fixed per pick
@@ -747,6 +752,7 @@ class Brain:
                 # the policy for the whole pick
                 self.sp_policy = "seepickpix" if is_pix_object(want.get("object")) else "seepick"
                 self.sp_old_rise = False
+                self.sp_rise_own = want.get("rise_old", True) is False
                 self.sp_yaw_off = float(np.clip(float((want.get("object") or {}).get("yaw_off", 0.0)), -SP_YAW_OFF_MAX, SP_YAW_OFF_MAX))
                 if self.sp_policy not in self.sessions:
                     raise RuntimeError(f"no {self.sp_policy}61.onnx in the models directory")
@@ -849,7 +855,7 @@ class Brain:
                 holding_in = want.get("_holding")
                 if self.sp_bit_off_phase is not None and self.sp_phase >= self.sp_bit_off_phase:
                     holding_in = False
-                if (self.sp_rise_old_phase is not None and policy == "seepickpix" and holding_in
+                if (self.sp_rise_old_phase is not None and not self.sp_rise_own and policy == "seepickpix" and holding_in
                         and self.sp_phase >= self.sp_rise_old_phase and "seepick" in self.sessions):
                     # the bite is done and the picture has nothing more to say: the floor-object policy, on the same
                     # phase clock, brings the neck back with the holding bit on (T2 keeps it bowed, robot 2026-11-01)
