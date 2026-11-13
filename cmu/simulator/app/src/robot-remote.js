@@ -26,6 +26,8 @@ import { batteryPercent } from "./battery-percent.js";
 // Backpack switch: 充电背包 / 电池背包 tells the brain which pack is on ({"op": "supply"}): the charger pack runs without the
 // low-battery guard, the 2S pack with it from the first sample. Switching restarts an idle brain; a driving one keeps the
 // old setting until 停. Unset (auto) the brain guesses from the voltage, which can take the charger for a battery.
+// Seeing pick (N / M): 捡球：基线 runs seepick.py with the deployed T2 pick, 捡球：改版 1 with revision r1 and hold-on
+// (a7z-bridge.mjs PICK_VARIANTS, POST /api/a7z/pick). Both start from closed-loop standing; 停 also ends the run.
 
 import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
 
@@ -133,7 +135,12 @@ const ACTIONS = [
   {id: "kickR", key: "E", label: "右踢", hint: "一次 0.5 秒"},
   {id: "sit", key: "R", label: "坐下 / 站起", hint: "再按站起"},
   {id: "bend", key: "G", label: "弯腰 / 起身", hint: "再按起身"},
+  {id: "pickBase", key: "N", label: "捡球：基线", hint: "现在部署的捡球（橙球，先闭环站立）；起身后闭环站立"},
+  {id: "pickR1", key: "M", label: "捡球：改版 1", hint: "rise-s1 自己起身，叼住保持 5 秒后原地保持（先闭环站立）"},
 ];
+const PICK_IDS = {pickBase: "baseline", pickR1: "r1"};
+const PICK_NAMES = {baseline: "捡球：基线", r1: "捡球：改版 1"};
+const PICK_STATES = {running: "进行中", done: "完成", failed: "失败", stopped: "已停止"};
 // Head row: closed-loop stand or walking only.
 const HEAD_HINT = "闭环站立、走路或坐着时有效，按住连续动";
 const HEAD_ACTIONS = [
@@ -218,6 +225,27 @@ export function createRemote({root, state, log}) {
     } catch (e) { last.textContent = `接管失败：${e.message}`; }
   });
   const last = root.querySelector("[data-last]");
+  let pick = null; // the bridge's pick run: {state, variant, line}
+  async function pickPost(body) {
+    const r = await fetch("/api/a7z/pick", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({...body, client: me()})});
+    return r.json();
+  }
+  async function pickStart(variant) {
+    const name = PICK_NAMES[variant], {online, brain} = state();
+    if (!online) { last.textContent = `没发出「${name}」：A7Z 不在线`; return; }
+    if (!brain?.running || brain.mode !== "walk" || !brain.torque) {
+      last.textContent = `「${name}」要从闭环站立开始：先按「闭环站立」，站稳后再按`; return;
+    }
+    if (pick?.state === "running") { last.textContent = `已有「${PICK_NAMES[pick.variant]}」在运行，先按「停」`; return; }
+    last.textContent = `正在启动「${name}」…`;
+    try {
+      const a = await pickPost({op: "start", variant});
+      if (a.busy) { showDriver(a.driver); last.textContent = `没发出「${name}」：${a.error}`; return; }
+      if (!a.ok) { last.textContent = `「${name}」失败：${a.error}`; log(`遥控失败：${name}（${a.error}）`); return; }
+      log(`遥控：${name}`);
+    } catch (e) { last.textContent = `「${name}」失败：${e.message}`; }
+  }
   const heatEl = root.querySelector("[data-heat]");
   let walkTimer = null, busy = false, gate = {blocked: false, reasons: []};
   // 站起 was sent and the brain still reports sit: a head write now ({"mode": "sit"}) would sit it down again
@@ -414,9 +442,11 @@ export function createRemote({root, state, log}) {
       else if (id === "bend") sent = await (mode === "groundpick" ? set({mode: "groundpick", phase: GP_UP}, "起身")
         : set({mode: "groundpick", phase: GP_LOW}, "弯腰"));
       else if (id === "quack") await post({op: "merge", patch: {quack: "new"}}, "叫一声");
+      else if (id in PICK_IDS) await pickStart(PICK_IDS[id]);
       else if (id === "off") { walkStop(); await set({mode: "off"}, "停扭矩"); }
       else if (id === "stop") {
         walkStop();
+        if (pick?.state === "running") await pickPost({op: "stop"}).catch(() => {});
         // Walking or kicking: zero velocity, walk61 brings its stride to rest. Anywhere else (sit, ground pick,
         // stand): monitor holds the present goals with torque on, the stop walk_wired.py documents.
         if (mode !== "walk") headForget();
@@ -443,7 +473,7 @@ export function createRemote({root, state, log}) {
     }
   }
   const KEYS = {KeyT: "stand", KeyY: "stand61", KeyW: "walk", ArrowUp: "walk", KeyA: "left", ArrowLeft: "left",
-    KeyD: "right", ArrowRight: "right", KeyQ: "kickL", KeyE: "kickR", KeyR: "sit", KeyG: "bend",
+    KeyD: "right", ArrowRight: "right", KeyQ: "kickL", KeyE: "kickR", KeyR: "sit", KeyG: "bend", KeyN: "pickBase", KeyM: "pickR1",
     KeyB: "quack", Space: "stop", KeyX: "off", KeyI: "headUp", KeyK: "headDown", KeyJ: "headLeft", KeyL: "headRight",
     KeyU: "tiltLeft", KeyO: "tiltRight", KeyH: "headReset"};
   window.addEventListener("keydown", e => {
@@ -464,10 +494,17 @@ export function createRemote({root, state, log}) {
   showHead();
 
   const modeEl = root.querySelector("[data-mode]"), fileEl = root.querySelector("[data-file]");
-  const MODE_NAMES = {monitor: "监视（不发命令）", stand: "开环站立", walk: "走/闭环站立", kick: "踢腿", sit: "坐", groundpick: "弯腰捡"};
+  const MODE_NAMES = {monitor: "监视（不发命令）", stand: "开环站立", walk: "走/闭环站立", kick: "踢腿", sit: "坐", groundpick: "弯腰捡",
+    seepick: "看着捡球"};
   return {
     me,
     showDriver,
+    showPick(p) {
+      pick = p ?? null;
+      if (!pick?.variant) return;
+      last.textContent = `${PICK_NAMES[pick.variant]}（${PICK_STATES[pick.state] ?? pick.state}）：${pick.line ?? ""}`;
+      if (pick.state !== "running") log(`遥控：${PICK_NAMES[pick.variant]}${PICK_STATES[pick.state] ?? pick.state}`);
+    },
     showFile({path, current, supply}) {
       showSupply(supply);
       if (current === undefined) return;

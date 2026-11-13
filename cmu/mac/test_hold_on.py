@@ -14,6 +14,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import seepick as sp  # noqa: E402
 import walk_brain as wb  # noqa: E402
+import walk_wired as ww  # noqa: E402
 from test_seepick import PickDuck, t2_at  # noqa: E402
 from test_teleop_modes import UPRIGHT_SENSOR_QUAT, WALK0  # noqa: E402
 
@@ -23,7 +24,8 @@ PIX_OBJ = {"u": 330.0, "v": 250.0, "w": 28.0, "t": 99.9, "seen": True}
 def run_brain(pick, ticks):
     """Brain ticks: 10 standing on stand61, then the seeing pick with the jaw holding; (policy, sp_phase) per tick."""
     brain = wb.Brain(os.path.join(wb.WHOLE, "runtime-overlay", "models"))
-    brain.sessions = dict(brain.sessions, seepick=brain.sessions["stand"], seepickpix=brain.sessions["stand"])
+    brain.sessions = dict(brain.sessions, seepick=brain.sessions["stand"], seepickpix=brain.sessions["stand"],
+                          seepickpix_r1=brain.sessions["stand"])
     pos = [wb.to_tick(n, wb.STAND[n]) for n in wb.NAMES]
     out = []
     for k in range(10 + ticks):
@@ -146,3 +148,53 @@ def test_hold_on_needs_t2_and_a_bounded_hold(t2, hold_s):
     with pytest.raises(ValueError):
         sp.SeePick(None, lambda: None, duck.state, lambda t: None, duck.send, duck.detect, make_approach=None,
                    t2=t2, hold_s=hold_s)
+
+
+# --- the remote's two pick buttons: the baseline and revision r1 side by side (walk_brain.PICK_REVISIONS) ---
+
+def test_brain_policy_r1_runs_the_revision_and_keeps_its_own_rise():
+    out = run_brain({"mode": "seepick", "policy": "r1", "object": PIX_OBJ}, 120)   # no rise_old key, phase 0.6
+    assert {pol for pol, _ in out} == {"seepickpix_r1"}
+
+
+def test_brain_r1_hold_on_is_the_remote_button_command():
+    ticks = int(sp.HOLD_PHASE * wb.SP_PERIOD / 0.02) + 50
+    out = run_brain({"mode": "seepick", "phase": sp.HOLD_PHASE, "rise_old": False, "policy": "r1", "object": PIX_OBJ}, ticks)
+    assert {pol for pol, _ in out} == {"seepickpix_r1"}
+    assert max(ph for _, ph in out) < 0.9
+
+
+def test_brain_loads_the_revision_file_beside_the_baseline(tmp_path):
+    models = os.path.join(wb.WHOLE, "runtime-overlay", "models")
+    for f in os.listdir(models):
+        os.symlink(os.path.join(models, f), tmp_path / f)
+    for name in ("seepickpix61.onnx", "seepickpix_r161.onnx"):
+        os.symlink(os.path.join(models, "stand61.onnx"), tmp_path / name)
+    assert {"seepickpix", "seepickpix_r1"} <= set(wb.Brain(str(tmp_path)).sessions)
+
+
+@pytest.mark.parametrize("want,sessions,why", [
+    ({"policy": "r1", "object": PIX_OBJ}, ("seepickpix", "seepickpix_r1"), None),
+    ({"object": PIX_OBJ}, ("seepickpix",), None),
+    ({"policy": "r1", "object": PIX_OBJ}, ("seepickpix",), "no seepickpix_r161.onnx"),
+    ({"policy": "r9", "object": PIX_OBJ}, ("seepickpix", "seepickpix_r1"), "unknown pick policy"),
+    ({"policy": "r1", "object": {"x": 0.1, "y": 0.0, "size": 0.013, "t": 1.0}}, ("seepick", "seepickpix_r1"),
+     "needs a picture object"),
+])
+def test_walk_wired_refuses_a_revision_it_cannot_run(want, sessions, why):
+    block = ww.seepick_block(dict(want, mode="seepick"), True, sessions)
+    assert block is None if why is None else why in block
+
+
+def test_seepick_policy_rides_on_the_pick_command():
+    ctl = t2_at(PickDuck((0.100, -0.021), ["hold"]))
+    ctl.policy, ctl.hold_s = "r1", 5.0
+    ctl.obj = dict(x=0.100, y=-0.021, size=0.013, t=0.0)
+    cmd = ctl.pick_cmd()
+    assert (cmd["policy"], cmd["phase"], cmd["rise_old"]) == ("r1", sp.HOLD_PHASE, False)
+
+
+def test_a_revision_needs_t2():
+    duck = PickDuck((0.1, 0.0), [])
+    with pytest.raises(ValueError):
+        sp.SeePick(None, lambda: None, duck.state, lambda t: None, duck.send, duck.detect, make_approach=None, policy="r1")

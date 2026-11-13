@@ -203,6 +203,7 @@ function ingest(record) {
   if (record.alive) { alive = {lost_s: record.alive.lost_s, at: Date.now()}; return; }
   if ("driver" in record) { remote.showDriver(record.driver); if (!record.history) return; }
   if ("shutdown" in record) { showShutdown(record.shutdown); if (!record.history) return; }
+  if ("pick" in record) { remote.showPick(record.pick); if (!record.history) return; }
   if (record.camera) { showCamera(record.camera); if (!record.history) return; }
   if (record.history) { // first message of a stream: the bridge's 30-minute buffer
     health.length = 0; health.push(...record.history);

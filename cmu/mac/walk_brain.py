@@ -42,6 +42,10 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
                                             to seepick61 at SP_RISE_OLD_PHASE (read at the switch, fixed per pick);
                                             with "phase": 0.89 the pick then holds the ball itself, never reaching
                                             walk_wired's hand-back to stand61 (cmu/pick_rise/ROBOT-TEST.md, hold-on).
+                                            "policy": "r1" runs a pick revision instead of seepickpix61.onnx
+                                            (PICK_REVISIONS; r1 = seepickpix_r161.onnx, the microduck_rl rise-s1 pick,
+                                            loaded beside the baseline so the remote can start either); a revision
+                                            always keeps its own rise (never handed to seepick61).
   {"mode": "kick", "foot": "left", "id": 7} Pollen's ball kick (kick_left61 / kick_right61.onnx), one shot per new id
                                             and only from stand or walk mode: KICK_TICKS policy ticks (0.5 s) with an
                                             all-zero command, then walk mode at zero command (stand61). The action
@@ -111,6 +115,9 @@ SP_AGE_MAX = 2.0
 # T2 with the holding bit keeps the neck bowed (-1.14 rad on the robot, stand61's default +0.35) and stand61 threw it back and
 # fell, 2026-11-01. From this phase, once holding, seepick61 finishes the rise (t2-chain-20261101/README.md).
 SP_RISE_OLD_PHASE = 0.50
+# Pick revisions a seepick command can name with "policy" (picture objects only): name -> session, loaded from
+# <session>61.onnx when present. r1: microduck_rl pick-and-rise rise-s1 (Mjlab-SeeingPickPixRise, md5 1cc1f202).
+PICK_REVISIONS = {"r1": "seepickpix_r1"}
 # T2 on the robot closes at one spot whatever the ball: tip x 0.118-0.122, y 0.003-0.006 at phase 0.35 in all four picks of 2026-11-01
 # (beak_at_close.py). Head yaw moves the tip 0.060 m/rad there (beak_jacobian.py), so a pick can carry "yaw_off" (rad), added to T2's
 # head yaw goal over these phases. Head and neck pitch cannot do the same for x: they move the tip along nearly the same line, x and z together.
@@ -427,8 +434,8 @@ class Brain:
         self.fall_for = 0.0  # s the fall prediction has held (debounce)
         self.lying_for = 0.0  # s the trunk has read lying (FALLEN_Z)
         self.fall_t = None  # time of the last detector tick
-        names = ["walk", "stand"] + [k for k in ("groundpick", "seepick", "seepickpix", "sitstand", "kick_left",
-                                                 "kick_right")
+        names = ["walk", "stand"] + [k for k in ("groundpick", "seepick", "seepickpix", *PICK_REVISIONS.values(),
+                                                 "sitstand", "kick_left", "kick_right")
                                      if os.path.exists(os.path.join(models, k + "61.onnx"))]
         self.sessions = {k: ort.InferenceSession(os.path.join(models, k + "61.onnx"), session_options()) for k in names}
         for k, sess in self.sessions.items():
@@ -751,6 +758,10 @@ class Brain:
                 # T2 (seepickpix61.onnx): the object comes as the tracker's picture box; the form at the switch picks
                 # the policy for the whole pick
                 self.sp_policy = "seepickpix" if is_pix_object(want.get("object")) else "seepick"
+                if want.get("policy") is not None:
+                    if self.sp_policy != "seepickpix" or want["policy"] not in PICK_REVISIONS:
+                        raise RuntimeError(f"unknown pick policy {want['policy']!r} for this object")
+                    self.sp_policy = PICK_REVISIONS[want["policy"]]
                 self.sp_old_rise = False
                 self.sp_rise_own = want.get("rise_old", True) is False
                 self.sp_yaw_off = float(np.clip(float((want.get("object") or {}).get("yaw_off", 0.0)), -SP_YAW_OFF_MAX, SP_YAW_OFF_MAX))
@@ -862,7 +873,7 @@ class Brain:
                     self.sp_policy, policy, self.sp_old_rise = "seepick", "seepick", True
                     self.sp_body[:] = [0.087, 0.0, 0.013, SP_AGE_MAX, 1.0, 0.0]
                     print(f"seepick61 takes the rise at phase {self.sp_phase:.3f}", flush=True)
-                body_fn = seepickpix_body if policy == "seepickpix" else seepick_body
+                body_fn = seepickpix_body if policy.startswith("seepickpix") else seepick_body
                 self.sp_body[:] = body_fn(self.sp_body, None if self.sp_old_rise else want.get("object"), holding_in, now)
                 info["sp_phase"], info["sp_body"] = round(self.sp_phase, 4), [round(float(v), 4) for v in self.sp_body]
                 info["sp_jaw"] = seepick_jaw(self.sp_phase)

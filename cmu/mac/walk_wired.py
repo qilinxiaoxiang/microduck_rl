@@ -568,9 +568,14 @@ def seepick_block(want, jaw_calibrated, brain_sessions=()):
     if not isinstance(obj, dict):
         return 'no "object" in the command'
     if all(k in obj for k in ("u", "v", "w", "t")):     # T2: the tracker's box, seepickpix61.onnx
-        if "seepickpix" not in brain_sessions:
-            return "no seepickpix61.onnx in the models directory"
+        name = "seepickpix" if want.get("policy") is None else walk_brain.PICK_REVISIONS.get(want["policy"])
+        if name is None:
+            return f"unknown pick policy {want['policy']!r} (known: {', '.join(walk_brain.PICK_REVISIONS)})"
+        if name not in brain_sessions:
+            return f"no {name}61.onnx in the models directory"
         return None
+    if want.get("policy") is not None:
+        return "a pick revision needs a picture object (u, v, w, t)"
     if any(k not in obj for k in ("x", "y", "size", "t")):
         return 'no "object" with x, y, size and t (floor) or u, v, w and t (picture) in the command'
     return None

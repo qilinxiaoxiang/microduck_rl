@@ -25,6 +25,9 @@ duck_kin) +-3-4 cm (sim: 80 % at +-3 cm, 71 % at +-5 cm, 31-39 % when the object
                                                                       holds at phase HOLD_PHASE, short of walk_wired's
                                                                       hand-back to stand61; after 5 s held, monitor
                                                                       (hold the pose, torque on), never stand61
+  ~/.venvs/duck-policy/bin/python seepick.py --color orange --t2 --hold-s 5 --policy r1   the same with pick revision r1
+                                                                      (walk_brain.PICK_REVISIONS, seepickpix_r161.onnx):
+                                                                      the remote's 「捡球：改版 1」 button
   ~/.venvs/duck-policy/bin/python seepick.py --color green --dry     approach, aim and align only, no pick
   ~/.venvs/duck-policy/bin/python seepick.py --color green --observe 10   detections only, no motion
 """
@@ -32,6 +35,7 @@ import argparse
 import json
 import math
 import os
+import signal
 import sys
 import time
 
@@ -111,11 +115,14 @@ class SeePick:
     """The coordinator; camera, state, commands and the approach controller are injected (fakes in test_seepick.py).
 
     state() / state_at(t) return approach.parse_state dicts plus jaw_holding and sp_phase (SeeTail)."""
-    hold_s = hold_t = None   # hold-on off unless __init__ sets it
+    hold_s = hold_t = policy = None   # hold-on and pick revision off unless __init__ sets them
 
     def __init__(self, kin, latest_frame, state, state_at, send, detect, make_approach, tries=3, dry=False,
-                 now=time.time, log=print, pick_here=None, track_gate=None, t2=False, hold_s=None):
+                 now=time.time, log=print, pick_here=None, track_gate=None, t2=False, hold_s=None, policy=None):
         self.t2 = t2
+        if policy is not None and not t2:
+            raise ValueError("a pick revision (policy) needs t2")
+        self.policy = policy      # walk_brain.PICK_REVISIONS name carried in the pick command; None = seepickpix61
         if hold_s is not None and not (t2 and 0 < hold_s <= HOLD_MAX_S):
             raise ValueError(f"hold-on needs t2 and 0 < hold_s <= {HOLD_MAX_S}")
         self.hold_s = hold_s      # hold-on: s the pick holds at HOLD_PHASE before monitor; None = hand back to stand61
@@ -202,9 +209,12 @@ class SeePick:
         obj = {"x": round(o["x"], 4), "y": round(o["y"], 4), "size": round(o["size"], 4), "t": o["t"]}
         if self.t2:
             obj.update(self.pix_box(o), yaw_off=round((o["y"] - T2_Y) / T2_YAW_M_RAD, 3))
+        cmd = {"mode": "seepick", "phase": 1.0, "object": obj}
         if self.hold_s is not None:
-            return {"mode": "seepick", "phase": HOLD_PHASE, "rise_old": False, "object": obj}
-        return {"mode": "seepick", "phase": 1.0, "object": obj}
+            cmd.update(phase=HOLD_PHASE, rise_old=False)
+        if self.policy is not None:
+            cmd["policy"] = self.policy
+        return cmd
 
     def pix_box(self, o):
         """T2's picture slots: the last detection's box, seen while that detection is the newest frame. A ball under the
@@ -532,6 +542,10 @@ class SeeTail(ap.LogTail):
             self.rows.append(s)
 
 
+def _interrupt(signum, frame):
+    raise KeyboardInterrupt
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--color", default="orange", choices=sorted(COLORS))
@@ -543,6 +557,7 @@ def main():
     p.add_argument("--t2", action="store_true", help="pick with T2, the picture policy (seepickpix61.onnx)")
     p.add_argument("--hold-s", type=float, default=None, metavar="S",
                    help=f"hold-on (needs --t2): T2 holds at phase {HOLD_PHASE} for S s (at most {HOLD_MAX_S}), then monitor")
+    p.add_argument("--policy", default=None, help="pick revision (needs --t2): walk_brain.PICK_REVISIONS name, e.g. r1")
     p.add_argument("--dry", action="store_true", help="approach, aim and align only, no pick")
     p.add_argument("--observe", type=float, default=None, help="s; print detections only, no motion")
     p.add_argument("--max-s", type=float, default=180.0)
@@ -552,6 +567,9 @@ def main():
                    help="override the tracking gate; 0 = never move the estimate on a sighting (sightings are traced)")
     p.add_argument("--trace", default=os.path.expanduser(f"~/duck-logs/seepick_{time.strftime('%m%d-%H%M%S')}.jsonl"))
     a = p.parse_args()
+    # the remote's pick buttons run this over ssh and end it with SIGTERM when the page stops it or the link drops
+    # (a background job of a non-interactive shell ignores SIGINT): the same exit as Ctrl-C
+    signal.signal(signal.SIGTERM, _interrupt)
     import orange_target
     from duck_kin import DuckKin
     lo, hi = COLORS[a.color]
@@ -565,7 +583,7 @@ def main():
     tail = SeeTail(log_path)
     cam = ap.ShmCamera()
     send = ap.send_file(a.cmd)
-    ctl = SeePick(kin, cam.latest, tail.latest, tail.at, send, detect, tries=a.tries, dry=a.dry, t2=a.t2, hold_s=a.hold_s,
+    ctl = SeePick(kin, cam.latest, tail.latest, tail.at, send, detect, tries=a.tries, dry=a.dry, t2=a.t2, hold_s=a.hold_s, policy=a.policy,
                   pick_here=tuple(a.pick_here) if a.pick_here else None, track_gate=a.track_gate,
                   make_approach=lambda: ap.Approach(kin, cam.latest, tail.latest, tail.at, send, detect,
                                                     log=lambda s: print("  approach " + s, flush=True)),

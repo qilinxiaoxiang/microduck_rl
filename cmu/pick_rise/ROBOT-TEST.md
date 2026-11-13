@@ -138,3 +138,21 @@ half of all attempts end delivered, but nearly every held exit keeps the ball.
   switch in blocks A and D.
 - **Live code:** the live runtime may have changed since the snapshot. Don't assume; check the `phase` handling
   first.
+
+## Remote buttons (2026-11-13)
+
+The robot-live page has two pick buttons. They appear in the remote card once the app files are installed from the
+simulator repo; this repo's `cmu/simulator/app` is a copy.
+
+| Button | Key | Runs on the A7Z | Policy file |
+|---|---|---|---|
+| 捡球：基线 | N | `seepick.py --color orange --t2` | `seepickpix61.onnx` (deployed; seepick61 takes the rise) |
+| 捡球：改版 1 | M | `seepick.py --color orange --t2 --hold-s 5 --policy r1` | `seepickpix_r161.onnx` (rise-s1, hold-on) |
+
+- **Start:** both start only from closed-loop standing (**Y**). They take the driver lease and run one pick at a
+  time.
+- **Stop:** **停 (Space)** ends either one. The page writes the stop, and the bridge sends seepick.py SIGTERM.
+- **Loading both:** the brain loads both files side by side (`walk_brain.PICK_REVISIONS`). The models directory
+  needs `seepickpix_r161.onnx` next to the existing files.
+- **Missing file:** without that file, the r1 button is refused with "no seepickpix_r161.onnx in the models
+  directory".

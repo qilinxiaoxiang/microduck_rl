@@ -12,7 +12,7 @@
 export const TRIP_C = 83, CLEAR_C = 78, MIN_HZ = 45, LOWEST_MHZ = 416, HEALTH_STALE_S = 3;
 // Buttons that start or keep a policy running (walk61, stand61, kick, sitstand, ground pick). Stop, the open-loop
 // stand, torque off and quack need no policy and stay available.
-export const POLICY_ACTS = new Set(["walk", "left", "right", "stand61", "kickL", "kickR", "sit", "bend"]);
+export const POLICY_ACTS = new Set(["walk", "left", "right", "stand61", "kickL", "kickR", "sit", "bend", "pickBase", "pickR1"]);
 
 const fmt = (v, d = 0) => v.toFixed(d);
 

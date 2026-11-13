@@ -43,6 +43,13 @@
 // state running, off, unreachable (it did not answer, nothing was sent) or failed. off and unreachable clear themselves
 // when the A7Z is back.
 // MICRODUCK_PY names the Python with OpenCV (default ~/.venvs/microduck-walk/bin/python).
+//
+// Seeing pick: POST /api/a7z/pick with {"op": "start", "variant": "baseline"|"r1", "client": {...}} runs
+// guide/firmware/mac/seepick.py on the A7Z in a fourth SSH session (PICK_VARIANTS: the deployed T2 pick, or revision r1
+// with hold-on, cmu/pick_rise/ROBOT-TEST.md in microduck_rl); it takes the lease like a move (409 for someone else).
+// Its output lines reach every page as {"pick": {state, variant, line}}: running, then done or failed (seepick.py's
+// result line) or stopped. {"op": "stop"} ends it: the session's stdin closes, the A7Z side sends seepick.py SIGTERM,
+// which writes its own stop (monitor for r1's hold-on, stand61 for the baseline). One pick at a time.
 import {spawn, spawnSync} from "node:child_process";
 import {readFileSync} from "node:fs";
 import {homedir} from "node:os";
@@ -55,6 +62,12 @@ const CAMERA_LINGER_S = 2, CAMERA_SILENT_S = 6, BOUNDARY = "duckframe";
 // EOF and ends the reader.
 const CAMERA_PIPELINE = hold => "exec 3<&0; nice -n 10 ~/.venvs/duck-policy/bin/python ~/rt/microduck-sim/guide/firmware/mac/a7z_cam.py" +
   ` --mjpeg${hold ? " --hold" : ""} & g=$!; (cat <&3 >/dev/null; kill $g) >/dev/null 2>&1 & wait $g`;
+// seepick.py arguments per remote button: the robot runs the deployed seepickpix61.onnx (baseline) or the revision
+// walk_brain.PICK_REVISIONS names (r1 = seepickpix_r161.onnx) with hold-on: 5 s held at phase 0.89, then monitor
+export const PICK_VARIANTS = {baseline: "--color orange --t2", r1: "--color orange --t2 --hold-s 5 --policy r1"};
+// (cd first: a backgrounded `cd && python` list is a subshell, and the TERM would miss python)
+const PICK_PIPELINE = args => "exec 3<&0; cd ~/rt/microduck-sim/guide/firmware/mac || exit 1; ~/.venvs/duck-policy/bin/python -u" +
+  ` seepick.py ${args} 2>&1 & g=$!; (cat <&3 >/dev/null; kill -TERM $g) >/dev/null 2>&1 & wait $g`;
 const SSH_OPTS = ["-T","-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "-o", "ServerAliveInterval=2", "-o", "ServerAliveCountMax=2"];
 
 export function a7zBridge({script, commandScript, stabilizeScript, shutdownScript,
@@ -135,7 +148,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
       }, 1000).unref();
       server.middlewares.use("/api/a7z/stream", (req, res) => {
         res.writeHead(200, {"Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive"});
-        res.write(`data: ${JSON.stringify({history, host, link: child ? "open" : "connecting", camera: camState, driver: driverNow, shutdown})}\n\n`);
+        res.write(`data: ${JSON.stringify({history, host, link: child ? "open" : "connecting", camera: camState, driver: driverNow, shutdown, pick: pickState})}\n\n`);
         if (writer?.supply) res.write(`data: ${JSON.stringify({command: {path: writer.path, supply: writer.supply}})}\n\n`);
         if (!clients.size) watchedSince = Date.now();
         clients.add(res); clearTimeout(linger); start();
@@ -282,7 +295,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
       }, 1000).unref();
       // a Vite restart (config edit) builds a new bridge in the same process: end this one's SSH sessions
       server.httpServer?.on("close", () => {
-        for (const p of [child, writer?.proc, cam?.proc, stab?.proc]) p?.kill();
+        for (const p of [child, writer?.proc, cam?.proc, stab?.proc, pick?.proc]) p?.kill();
         viewers.clear(); stabViewers.clear();
       });
       server.middlewares.use("/api/a7z/campower", (req, res) => {
@@ -352,13 +365,64 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
         res.end(JSON.stringify(answer));
       });
 
+      // ── Seeing pick: seepick.py on the A7Z, started and stopped by the page's pick buttons ──
+      let pick = null, pickState = null;
+      const showPick = patch => { pickState = {...pickState, ...patch}; send({pick: pickState}); };
+      function startPick(variant) {
+        const proc = spawn("ssh", [...SSH_OPTS, host, PICK_PIPELINE(PICK_VARIANTS[variant])], {stdio: ["pipe", "pipe", "pipe"]});
+        const p = {proc, variant, buf: "", result: null, stopped: false};
+        pick = p;
+        proc.stdin.on("error", () => {});
+        showPick({state: "running", variant, line: "启动 seepick.py…", started: Date.now()});
+        const lines = d => {
+          p.buf += d;
+          for (let i; (i = p.buf.indexOf("\n")) >= 0; p.buf = p.buf.slice(i + 1)) {
+            const line = p.buf.slice(0, i).trim();
+            if (!line || /quantum|store now|upgraded/.test(line)) continue;
+            try { const r = JSON.parse(line); if (r && "ok" in r) { p.result = r; continue; } } catch { /* a log line */ }
+            showPick({line});
+          }
+        };
+        proc.stdout.on("data", lines);
+        proc.stderr.on("data", lines);
+        proc.on("exit", code => {
+          if (pick === p) pick = null;
+          const r = p.result;
+          showPick({state: p.stopped ? "stopped" : r ? (r.ok ? "done" : "failed") : "failed",
+            line: r ? `${r.ok ? "成功" : "失败"}：${r.why}` : p.stopped ? "已停止" : `seepick.py 退出（${code}）`, result: r});
+        });
+      }
+      server.middlewares.use("/api/a7z/pick", (req, res) => {
+        if (req.method !== "POST") { res.statusCode = 405; return res.end(); }
+        let body = "";
+        req.on("data", d => { body += d; });
+        req.on("end", async () => {
+          const reply = (status, answer) => { res.writeHead(status, {"Content-Type": "application/json"}); res.end(JSON.stringify(answer)); };
+          let r;
+          try { r = JSON.parse(body); } catch { return reply(400, {ok: false, error: "请求不是 JSON"}); }
+          if (r.op === "stop") {
+            if (pick) { pick.stopped = true; pick.proc.stdin.end(); setTimeout(() => pick?.proc.kill(), 3000); }
+            return reply(200, {ok: true, pick: pickState});
+          }
+          if (r.op !== "start" || !(r.variant in PICK_VARIANTS)) return reply(400, {ok: false, error: `unknown pick request ${body}`});
+          if (pick) return reply(409, {ok: false, error: "已有一次捡球在运行，先停"});
+          if (poweringOff()) return reply(502, {ok: false, error: "A7Z 正在关机"});
+          if (macBrain()) return reply(502, {ok: false, error: "walk_wired.py 在这台 Mac 上运行：捡球按钮只驱动 A7Z 上的大脑"});
+          const claim = await command({op: "claim", client: r.client}).catch(e => ({ok: false, error: e.message}));
+          if (claim.busy) { showDriver(claim.driver); return reply(409, {ok: false, ...claim}); }
+          if (!claim.ok) return reply(502, {ok: false, error: claim.error ?? "A7Z 没有回答"});
+          startPick(r.variant);
+          reply(200, {ok: true, pick: pickState});
+        });
+      });
+
       // ── Graceful power-off: the page's button, the Mac app's script ──
       const SHUTDOWN_STATES = {0: "off", 2: "unreachable"};
       function runShutdown() {
         const show = (state, line) => { shutdown = {state, line}; send({shutdown}); };
         show("running", "正在连接 A7Z…");
         // the script stops every Python program there: nothing here may start one again meanwhile
-        for (const p of [child, writer?.proc, cam?.proc]) p?.kill();
+        for (const p of [child, writer?.proc, cam?.proc, pick?.proc]) p?.kill();
         const proc = spawn("/bin/sh", [shutdownScript, host], {stdio: ["ignore", "pipe", "pipe"]});
         let buf = "", line = "", err = "", ended = false;
         const end = (code, why) => {
