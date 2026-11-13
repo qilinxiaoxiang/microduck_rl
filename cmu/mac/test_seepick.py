@@ -24,6 +24,8 @@ class PickDuck(FakeDuck):
         super().__init__(obj)
         self.outcomes, self.mode_during_pick = list(outcomes), mode_during_pick
         self.pick_t, self.picks, self.holding, self.slip_at, self.in_beak = None, [], False, None, False
+        self.pick_s = PICK_S   # a test makes the pick late
+        self.over = []         # (t, cmd): mode changes written while walk_wired runs the pick or a guard holds it
 
     def send(self, cmd):
         if cmd.get("mode") == "seepick" and self.mode != "seepick" and self.pick_t is None:
@@ -32,11 +34,13 @@ class PickDuck(FakeDuck):
             self.outcome = self.outcomes.pop(0)
             return
         if self.mode in ("seepick", "monitor"):
+            if cmd.get("mode") != "seepick":
+                self.over.append((round(self.t, 2), dict(cmd)))
             return   # walk_wired owns the mode until the hand-back (or the guard holds it)
         super().send(cmd)
 
     def advance(self, dt=0.05):
-        if self.pick_t is not None and self.mode == "seepick" and self.t - self.pick_t >= PICK_S:
+        if self.pick_t is not None and self.mode == "seepick" and self.t - self.pick_t >= self.pick_s:
             self.mode, self.pick_t, self.cmd = "walk", None, {"mode": "walk", "vx": 0.0, "vtheta": 0.0}
             if self.outcome != "miss":
                 self.holding, self.in_beak = True, True
@@ -153,7 +157,7 @@ def test_too_close_is_not_picked():
     ctl.obj = dict(x=0.02, y=0.0, size=0.013, t=0.0)
     ctl.enter("align")
     ctl.step()
-    assert ctl.phase == "approach" and ctl.try_n == 2 and not duck.picks
+    assert ctl.phase == "back" and ctl.try_n == 1 and not duck.picks   # too close: step back, never bite (see below)
 
 
 def test_a_too_far_object_is_crept_up_to_with_the_camera_then_picked():
@@ -176,28 +180,22 @@ def test_a_too_far_object_is_crept_up_to_with_the_camera_then_picked():
     assert phases[:2] == ["burst", "aim"], phases
     assert duck.picks, (phases, ctl.result)
     o = duck.picks[0]
-    # the last sighting before the ball left the picture: its true place is nearer, so the window carries the slack
-    assert abs(o["x"] - sp.SPOT[0]) <= sp.PICK_WIN + sp.PICK_SLACK and abs(o["y"] - sp.SPOT[1]) <= sp.PICK_WIN, o
+    assert sp.SPOT[0] - sp.PICK_WIN <= o["x"] <= sp.PICK_FAR_X and abs(o["y"] - sp.SPOT[1]) <= sp.PICK_WIN, o
     assert all(c.get("vx", 0) <= apc.VX for _, c in duck.sent)
 
 
-def test_a_creep_starting_inside_the_stop_mark_still_walks():
-    """Object at 12.2 cm, dx +3.5, inside BURST_STOP_X: the creep must move, not stop on its first tick (robot 2026-11-01)."""
-    duck = PickDuck((0.122, 0.0), ["hold"])
+def test_an_object_beyond_the_hold_range_is_not_bitten_from_there():
+    """Robot 2026-11-12: the bites at x 0.110, 0.110, 0.112 and 0.125 all closed on nothing; every robot hold sat at
+    x 0.098-0.100. Measured at 11.9 cm the robot moves closer first; it does not bite from there."""
+    duck = PickDuck((0.119, 0.012), ["hold"])
     ctl = sp.SeePick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
                      make_approach=None, now=lambda: duck.t, log=lambda s: None)
     ctl.try_n = 1
-    ctl.obj = dict(x=0.122, y=0.0, size=0.013, t=0.0)
+    ctl.obj = dict(x=0.119, y=0.012, size=0.013, t=0.0)
     ctl.enter("align")
-    assert ctl.phase == "align"
     ctl.step()
-    duck.advance()
-    assert ctl.phase == "burst"
-    while ctl.phase == "burst":
-        ctl.step()
-        duck.advance()
-    assert any(c.get("vx", 0) > 0 for _, c in duck.sent)
-    assert duck.X > 0.01
+    assert ctl.phase == "burst" and not duck.picks, ctl.phase
+    assert not ctl.in_window(0.119, 0.012) and ctl.in_window(0.100, -0.015)
 
 
 def t2_at(duck):
@@ -355,9 +353,11 @@ def test_no_look_down_or_pick_while_the_body_rocks():
     assert ctl.result["ok"], ctl.result
 
 
-def test_a_ball_lost_just_past_the_old_blind_edge_is_picked_not_given_up():
-    """Robot 2026-11-06: after a 16 deg turn toward the ball the estimate read 0.121 m, just over the old 0.12 m blind
-    edge; unseen, the run gave up without a bite. Unseen inside BLIND_R (0.15 m) picks at the last known position."""
+def test_a_ball_not_seen_at_the_pick_spot_is_never_bitten():
+    """Robot 2026-11-12: the lowest look shows the floor from 0.07 m, so the pick window is in the picture; a ball not
+    seen there is not there. The old rule bit the last known position (seepick_1112a try 2, 1112c both tries).
+    Last seen at the feet (0.121 m) it may be under the picture at the toes: two step-backs with a new aim each, no
+    body turn, and when it is still unseen the try ends without a bite."""
     duck = PickDuck((0.6, 0.0), ["hold"])
     duck.detect = lambda frame, accept=None: None      # the ball is under the picture
     ctl = sp.SeePick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
@@ -365,7 +365,182 @@ def test_a_ball_lost_just_past_the_old_blind_edge_is_picked_not_given_up():
     ctl.try_n, ctl.align_n, ctl.meas = 1, 0, []
     ctl.obj = dict(x=0.117, y=-0.031, size=0.012, t=0.0)   # |est| 0.121 m
     ctl.enter("aim")
+    while ctl.phase not in ("done", "failed") and duck.t < 40:
+        ctl.step()
+        duck.advance()
+    assert ctl.phase == "failed" and ctl.result["attempts"] == [] and not duck.picks, (ctl.phase, ctl.result)
+    assert [r["phase"] for r in ctl.trace].count("back") == sp.LOST_BACKS
+    assert not any(c.get("vtheta") for _, c in duck.sent)
+
+
+class KnockDuck(PickDuck):
+    """The bite touches the ball and knocks it away: 2 s into the pick it lies 0.20 m ahead and 0.08 m to the left."""
+
+    def advance(self, dt=0.05):
+        if self.pick_t is not None and self.outcome == "miss" and not getattr(self, "knocked", False) \
+                and self.t - self.pick_t >= 2.0:
+            self.knocked = True
+            c, s = math.cos(self.th), math.sin(self.th)
+            self.obj = (self.X + 0.20 * c - 0.08 * s, self.Y + 0.20 * s + 0.08 * c)
+        super().advance(dt)
+
+
+def test_a_ball_knocked_away_by_the_bite_is_looked_for_not_bitten_blind():
+    """Robot 2026-11-12 (seepick_1112a): try 1 had the ball in the beak and knocked it 5 cm aside; the camera saw it
+    there during the pick, and try 2 still bit the old spot blind (Shawn: "第二次完全是瞎试 因为球完全不在范围内")."""
+    duck = KnockDuck((0.5, 0.0), ["miss", "hold"])
+    ctl = run(duck, tries=5)
+    whys = [r.get("why", "") for r in ctl.trace]
+    assert not any("blind zone" in w for w in whys)
+    # the look at the old spot finds nothing and bites nothing; the search finds the ball and the second bite holds
+    assert ctl.result["ok"] and len(duck.picks) == 2, ctl.result
+    assert any("not seen at the pick spot" in w for w in whys), whys
+
+
+def test_an_object_too_close_is_stepped_back_from():
+    """Shawn 2026-11-12: "同时现在没有后退 为什么 完全应该有后退". An object nearer than the pick window: the robot
+    walks backward at the speed that steps on the robot (BACK_VX), then aims again; the try is not given up."""
+    duck = PickDuck((0.04, 0.0), ["hold"])
+    ctl = sp.SeePick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                     make_approach=lambda: apc.Approach(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(),
+                                                        duck.send, duck.detect, now=lambda: duck.t, log=lambda s: None),
+                     now=lambda: duck.t, log=lambda s: None)
+    ctl.try_n = 1
+    ctl.obj = dict(x=0.04, y=0.0, size=0.013, t=0.0)
+    ctl.enter("align")
+    x0 = duck.obj[0]
+    while ctl.phase in ("align", "back") and duck.t < 10.0:
+        ctl.step()
+        duck.advance()
+    assert ctl.phase == "aim" and ctl.try_n == 1, (ctl.phase, ctl.try_n)
+    backs = [c for _, c in duck.sent if c.get("mode") == "walk" and c.get("vx", 0) < 0]
+    assert backs and all(c["vx"] == sp.BACK_VX for c in backs)
+    assert not duck.picks
+
+
+def test_a_creep_stops_when_the_object_leaves_the_picture():
+    """Robot 2026-11-12 (seepick_1112f): the creep held the lowest look, the neck dropped once walk61 stepped, the ball
+    left the top of the picture and the creep walked on unseen for 1 s; the left foot came down on the ball and the
+    duck fell. A creep with no sighting for SIGHT_LOST_S stops."""
+    duck = PickDuck((0.16, 0.0), [])
+    seen = {"on": True}
+    ctl = sp.SeePick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send,
+                     lambda f, accept=None: duck.detect(f, accept) if seen["on"] else None,
+                     make_approach=lambda: apc.Approach(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(),
+                                                        duck.send, duck.detect, now=lambda: duck.t, log=lambda s: None),
+                     now=lambda: duck.t, log=lambda s: None)
+    ctl.try_n = 1
+    ctl.obj = dict(x=0.16, y=0.0, size=0.013, t=0.0)
+    ctl.enter("align")
+    ctl.step()
+    assert ctl.phase == "burst"
+    seen["on"] = False
+    t0 = duck.t
+    while ctl.phase == "burst" and duck.t < t0 + 3.0:
+        ctl.step()
+        duck.advance()
+    assert ctl.phase == "aim" and duck.t - t0 <= sp.SIGHT_LOST_S + 0.15, (ctl.phase, duck.t - t0)
+    assert any("not seen" in r.get("why", "") for r in ctl.trace)
+
+
+def real_approach(duck):
+    return lambda: apc.Approach(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                                now=lambda: duck.t, log=lambda s: None)
+
+
+def back_cmds(duck):
+    return [c for _, c in duck.sent if c.get("mode") == "walk" and c.get("vx", 0) < 0]
+
+
+def test_a_ball_lost_at_the_feet_after_the_walk_is_stepped_back_from():
+    """The walk runs on and the ball ends under the picture at the toes (approach.LOST_AT_FEET). No try is used and
+    the body does not turn: the robot steps back with the lowest look, sees the ball again and picks it."""
+    duck = PickDuck((0.6, 0.0), ["hold"])
+    duck.coast_m = 0.09
+    ctl = run(duck)
+    assert any("lost at the feet" in r.get("why", "") for r in ctl.trace), [r.get("why") for r in ctl.trace]
+    assert ctl.result["ok"] and ctl.try_n == 1 and ctl.look_n == 0 and len(duck.picks) == 1, ctl.result
+    backs = back_cmds(duck)
+    assert backs and all(c["vx"] == sp.BACK_VX and c["head"]["head_pitch"] == apc.NEAR_HEAD["head_pitch"] for c in backs)
+    assert not any(c.get("vtheta") for _, c in duck.sent if not c.get("vx"))   # no turn in place
+
+
+def test_not_seen_in_the_aim_after_a_sighting_at_the_toes_steps_back():
+    """Last seen at 0.10 m and the aim shows nothing: the ball is under the picture at the toes. The robot steps back
+    and aims again in the same try; it does not start a new search."""
+    duck = PickDuck((0.055, 0.0), ["hold"])
+    ctl = sp.SeePick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                     make_approach=real_approach(duck), now=lambda: duck.t, log=lambda s: None)
+    ctl.try_n, ctl.align_n, ctl.meas = 1, 0, []
+    ctl.obj = dict(x=0.10, y=0.0, size=0.013, t=0.0)
+    ctl.enter("aim")
+    while ctl.phase not in ("done", "failed") and duck.t < 60:
+        ctl.step()
+        duck.advance()
+    assert back_cmds(duck) and ctl.try_n == 1 and ctl.look_n == 0, (ctl.try_n, ctl.look_n, ctl.result)
+    assert ctl.result["ok"] and len(duck.picks) == 1, ctl.result
+
+
+def test_the_pick_window_does_not_widen_after_the_align_moves():
+    """After MAX_ALIGN moves the old window grew by PICK_SLACK on every edge and bit from x 0.110, where every robot
+    bite closed on nothing. Outside the window after the moves: no bite, the try ends."""
+    stub = lambda: type("A", (), {"phase": "search", "step": lambda s: None})()   # noqa: E731
+    for t2, x, y in ((False, sp.PICK_FAR_X + 0.005, 0.0), (False, sp.SPOT[0] - sp.PICK_WIN - 0.005, 0.0),
+                     (False, 0.09, sp.PICK_WIN + 0.005), (True, sp.T2_WIN_X[1] + 0.005, sp.T2_Y),
+                     (True, 0.100, sp.T2_WIN_Y[1] + 0.005)):
+        duck = PickDuck((x, y), ["hold"])
+        ctl = sp.SeePick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                         make_approach=stub, now=lambda: duck.t, log=lambda s: None, t2=t2)
+        ctl.pix_box = lambda o: {}
+        ctl.try_n, ctl.align_n = 1, sp.MAX_ALIGN
+        ctl.obj = dict(x=x, y=y, size=0.013, t=0.0)
+        ctl.enter("align")
+        ctl.step()
+        assert not duck.picks and ctl.phase == "approach" and ctl.try_n == 2, (t2, x, y, ctl.phase)
+
+
+def test_t1_aim_needs_three_frames():
+    """Two frames are no sighting for T1 either (run 8: x 0.037 width 8 mm from 2 frames): no pick position from them."""
+    duck = PickDuck((0.09, 0.0), ["hold"])
+    ctl = sp.SeePick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                     make_approach=lambda: type("A", (), {"phase": "search", "step": lambda s: None})(),
+                     now=lambda: duck.t, log=lambda s: None)
+    ctl.try_n = 1
+    two = iter([dict(x=0.09, y=0.0, size=0.013, t=0.0, cut=False)] * (sp.AIM_MIN_FRAMES - 1))
+    ctl.measure = lambda st, gate=None, gate_m=None: next(two, None)
+    ctl.enter("aim")
+    phases = []
     while ctl.phase == "aim" and duck.t < 20:
         ctl.step()
         duck.advance()
-    assert ctl.phase in ("align", "pick", "turning"), (ctl.phase, ctl.result)
+        phases.append(ctl.phase)
+    assert "align" not in phases and ctl.phase == "approach" and not duck.picks, ctl.phase
+
+
+def test_a_late_pick_is_not_written_over():
+    """A pick still running at PICK_MAX_S: no walk command is written into the bend or the rise. The run ends once
+    walk_wired has handed back."""
+    duck = PickDuck((0.5, 0.0), ["hold"])
+    duck.pick_s = sp.PICK_MAX_S + 2.0
+    ctl = run(duck)
+    assert not duck.over, duck.over[:2]
+    assert not ctl.result["ok"] and "did not hand back" in ctl.result["why"], ctl.result
+    assert duck.mode == "walk" and duck.t >= duck.picks[0]["sent_t"] + duck.pick_s
+
+
+def test_the_time_limit_waits_for_a_pick_in_progress():
+    """--max-s running out during a pick: the pick hands back first, then the run finishes."""
+    duck = PickDuck((0.5, 0.0), ["hold"])
+    ctl = sp.SeePick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                     make_approach=real_approach(duck), now=lambda: duck.t, log=lambda s: None)
+    while not (ctl.phase == "pick" and duck.mode == "seepick") and duck.t < 60:
+        ctl.step()
+        duck.advance()
+    assert ctl.phase == "pick"
+    assert ctl.time_limit("time limit") is False and ctl.phase == "pick" and ctl.result is None
+    while ctl.phase == "pick" and duck.t < 80:
+        assert ctl.time_limit("time limit") is False
+        ctl.step()
+        duck.advance()
+    assert not duck.over, duck.over[:2]
+    assert ctl.time_limit("time limit") is True and ctl.phase == "failed" and ctl.result["why"] == "time limit"

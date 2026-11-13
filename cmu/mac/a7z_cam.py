@@ -62,12 +62,15 @@ def camera_node():
 
 
 def daemon():
-    lock = open(LOCK, "w")
+    # "a", truncate only once the lock is ours: a second daemon opening with "w" (boot service racing the app's --hold viewer)
+    # emptied the running daemon's pid and --stop could no longer stop it (robot 2026-11-12, the app's camera switch)
+    lock = open(LOCK, "a")
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         print("a7z_cam is already running")
         sys.exit(0)   # not a failure: duck-camera.service (Restart=on-failure) must not retry against it
+    lock.truncate(0)
     lock.write(str(os.getpid()))
     lock.flush()
     cap = []

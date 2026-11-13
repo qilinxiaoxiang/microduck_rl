@@ -121,6 +121,11 @@ def trunk_payload(env, env_ids, ranges, asset_cfg, payload: dict):
     m, c, inert, q = _decompose_pseudo_inertia_J(J)
     lo, hi = ranges
     delta = torch.rand(k, 3, device=dev) * (hi - lo) + lo  # COM offset of the loaded trunk (the curriculum's range)
+    cx = payload.get("com_x_whole_m")
+    if cx:  # NEXT-PLAN.md universal3: x offset set in whole-robot terms, U(-cx, cx), at every load
+        m_rest = env.sim.get_default_field("body_mass").sum() - dm.sum()  # every body but trunk_base
+        whole = (m.view(k) + m_rest) / m.view(k)
+        delta[:, 0] = (torch.rand(k, device=dev) * 2 - 1) * float(cx) * whole
     c = c + delta
     J2 = _reconstruct_pseudo_inertia_J(m, c, inert, q)  # same inertia about the moved COM
     m, c, inert, q = _decompose_pseudo_inertia_J(J2)
@@ -148,9 +153,9 @@ def payload_obs(env):
     return po if po is not None else torch.zeros(env.num_envs, 4, device=env.device)
 
 
-def payload_cfg(nominal_manifest, none_manifest, weights=None, smax=1.15, mass_scale=(0.95, 1.05), seed=0):
+def payload_cfg(nominal_manifest, none_manifest, weights=None, smax=1.15, mass_scale=(0.95, 1.05), seed=0, com_x_whole_m=None):
     rest, batt = pack_parts(nominal_manifest, none_manifest)
     return dict(J_rest=part_J(rest).tolist(), J_batt=part_J(batt).tolist(),
                 weights=weights or dict(full=0.40, nobatt=0.25, none=0.10, scaled=0.25), smax=smax,
-                mass_scale=mass_scale, seed=seed,
+                mass_scale=mass_scale, seed=seed, com_x_whole_m=com_x_whole_m,
                 rest_kg=sum(p["mass_kg"] for p in rest), batt_kg=sum(p["mass_kg"] for p in batt))

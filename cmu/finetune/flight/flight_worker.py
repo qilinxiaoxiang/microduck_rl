@@ -79,6 +79,44 @@ fw.DELTAS["bend2"] = dict(fw.DELTAS["bend"], reward_mods=BEND_MODS_CHOSEN)
 # acceptance command (phase 0.33 held 4 s) would otherwise be a state the fine-tune never trains on.
 BEND_HOLD = {"phase": 0.33, "hold_s": 4.0, "frac": 0.5}
 fw.DELTAS["bend3"] = dict(fw.DELTAS["bend2"], phase_hold=BEND_HOLD)
+# universal3 (extensions/flight-20261110/train/NEXT-PLAN.md, 2026-11-12, NOT approved, NOT launched): universal2 plus
+# a whole-robot COM x range of +-12 mm at every load (run A trained +-10 mm at full pack and +-5.5 without it, with
+# only 1.2 % of full-pack resets at +10 mm forward, the acceptance case), forward/back pushes to +-0.35 m/s (the 0.5 N s
+# acceptance shove is 0.26 m/s, 13 % of pushes instead of 7 %), a step-width cost above 100 mm and the torque hinge at
+# -20. Weights from the universal3 audit (out/audit3_u3e_*.json, one case per file).
+# Plus a capped progress term (style_terms.progress_along_cmd, weight 8): the Gaussian tracking alone paid stepping in
+# place 0.84 of the walker at batteries out. A literal, so kaggle_flight.py can compare it with the audited
+# extensions/flight-20261110/train/rm_universal3.json.
+UNIVERSAL3_MODS = {"cmd_ranges": {"lin_vel_x": [-0.05, 0.3], "lin_vel_y": [-0.05, 0.05], "ang_vel_z": [-0.5, 0.5]},
+                   "weights": {"air_time": 6.0, "track_linear_velocity": 3.0, "upright": 0.5, "head_pose_tracking": 1.0},
+                   "pose_std_walking": {".*hip_yaw.*": 0.15},
+                   "foot_heading_weight": -8.0,
+                   "push_x": [-0.35, 0.35],
+                   "com_x_whole_m": 0.012,
+                   "step_width": {"limit": 0.1, "weight": -15.0},
+                   "torque_margin_weight": -20.0,
+                   "progress": {"weight": 8.0, "min_cmd": 0.1}}
+fw.DELTAS["universal3"] = dict(fw.DELTAS["universal"], reward_mods=UNIVERSAL3_MODS)
+# bend4 (NEXT-PLAN.md, NOT approved, NOT launched): bend3 plus a trunk-pitch band cost during the low hold (25-45 deg),
+# a knee cost beyond 1.25 rad and a stand-pose cost during the rest window (the hand-back). bend3's squat earned 1.72
+# (batteries out) and 1.00 (no pack) of the bend under bend3's reward (out/bendaudit4_b4diag_*.json).
+# A literal, compared at push with the audited extensions/flight-20261110/train/rm_bend4.json (out/bendaudit4_b4h*).
+# ankle_near_limit stays off: the audit's bend proxy (groundpick61) itself drives the ankles past 1.20 rad (raw 0.23 at
+# full), so no weight on it can be audited against that proxy (NEXT-PLAN.md section 2).
+BEND4_MODS = {"bend_costs": {"hold": -240.0, "rest": -240.0},
+              "bend4": {"trunk_pitch_off_band": -150.0, "knee_near_limit": -20.0, "stance_off_at_rest": -20.0}}
+# the hand-back inside the episode (bend_terms.install_handback): in a quarter of the cycles the phase stays at 0 for
+# 2 s after the rise and the universal walker (run A final, uni_a, zero command) drives, as walk_brain hands back
+BEND4_HANDBACK = {"frac": 0.25, "hold_s": 2.0, "stander": "init/uni_a.onnx"}
+fw.DELTAS["bend4"] = dict(fw.DELTAS["bend3"], reward_mods=BEND4_MODS, handback=BEND4_HANDBACK,
+                          bend_guard={"window_steps": 6000, "skip_windows": 1, "knee_squat": 1.30, "pitch_min_deg": 20.0,
+                                      "fall_factor": 2.0})
+# universal3h (extensions/flight-20261110/train/HISTORY-PLAN.md, design A; NOT approved, NOT launched): universal3's
+# env and reward unchanged, plus the last 25 frames (0.5 s, RMA's window) of the actor's 48 proprioceptive inputs
+# appended to its observation (history.py). Start from uni_a with zero weights on the history inputs, so iteration 0 is
+# uni_a exactly. The ONNX keeps obs [1, 61] as its first input and carries the history as hist_in / hist_out.
+HISTORY_A = {"k": 25, "p": 48}
+fw.DELTAS["universal3h"] = dict(fw.DELTAS["universal3"], history=HISTORY_A)
 
 
 _orig_load = fw.load_walk61_into_actor
@@ -123,7 +161,31 @@ def load_onnx_into_actor(actor, onnx_path: str, init_std: float):
     return mean, std
 
 
-fw.load_walk61_into_actor = load_onnx_into_actor
+def load_any_into_actor(actor, onnx_path: str, init_std: float):
+    """load_onnx_into_actor for a 61-input actor; history.load_padded for a history actor (universal3h), so the
+    worker's init, flight_audit.py and the smokes load 61-input policies into either actor"""
+    width = int(actor.state_dict()["mlp.0.weight"].shape[1])
+    if width == 61:
+        return load_onnx_into_actor(actor, onnx_path, init_std)
+    import history as hi
+    return hi.load_padded(actor, onnx_path, init_std, *_HISTORY_KP[width])
+
+
+_HISTORY_KP = {}  # actor input width -> (k, p), filled by apply_delta for each history delta built in this process
+fw.load_walk61_into_actor = load_any_into_actor
+_orig_compare = fw.compare_onnx
+
+
+def compare_any_onnx(a: str, b: str, n: int = 256, seed: int = 0) -> float:
+    """fw.compare_onnx, or history.compare_stateful when b carries a history state input"""
+    import onnxruntime as ort
+    if len(ort.InferenceSession(b).get_inputs()) > 1:
+        import history as hi
+        return hi.compare_stateful(a, b, n, seed)
+    return _orig_compare(a, b, n, seed)
+
+
+fw.compare_onnx = compare_any_onnx
 
 
 def actuator_force_over(env, limit: float):
@@ -155,8 +217,28 @@ def apply_delta(env_cfg, delta: dict):
         ev["reset_base"].params["pose_range"]["z"] = tuple(delta["drop_z"])
     if "phase_hold" in delta:  # the runtime's held crouch (bend_terms.held_phase_command_class, BEND-PLAN.md section 3)
         import bend_terms as bt
-        env_cfg.commands["twist"], hold = bt.held_phase_cfg(env_cfg.commands["twist"], delta["phase_hold"])
+        hb = delta.get("handback")  # NEXT-PLAN.md bend4: the stand policy takes over after the rise, in the episode
+        hold_in = dict(delta["phase_hold"], **({"hb_frac": float(hb["frac"]), "hb_s": float(hb["hold_s"])} if hb else {}))
+        env_cfg.commands["twist"], hold = bt.held_phase_cfg(env_cfg.commands["twist"], hold_in)
         print(f"[bend] phase hold {hold} ({type(env_cfg.commands['twist']).__name__})", flush=True)
+        if hb:
+            from mjlab.managers import EventTermCfg
+            ev["handback"] = EventTermCfg(func=bt.install_handback, mode="startup",
+                                          params={"stander_path": str(hb["stander"])})
+    elif "handback" in delta:
+        raise ValueError("handback needs phase_hold (the held phase command carries the hand-back window)")
+    if "history" in delta:  # HISTORY-PLAN.md design A: proprioceptive history on the actor, stateful ONNX export
+        from mjlab.managers import EventTermCfg
+        import history as hi
+        k, p = int(delta["history"]["k"]), int(delta["history"].get("p", hi.P_DEFAULT))
+        ev["install_history"] = EventTermCfg(func=hi.install_history, mode="startup", params={"k": k, "p": p})
+        hi.patch_export(k, p)
+        _HISTORY_KP[61 + k * p] = (k, p)
+        _patch_metadata()
+    if "bend_guard" in delta:  # NEXT-PLAN.md bend4: stop on the squat or rising falls, never on total reward
+        import bend_terms as bt
+        from mjlab.managers import RewardTermCfg
+        env_cfg.rewards["bend_guard"] = RewardTermCfg(func=bt.bend_guard, weight=1e-9, params=dict(delta["bend_guard"]))
     if "torque_margin" in delta:
         from mjlab.managers import RewardTermCfg
         tm = delta["torque_margin"]
@@ -191,6 +273,27 @@ def apply_delta(env_cfg, delta: dict):
         if "foot_heading_weight" in rm:
             env_cfg.rewards["stance_foot_heading"] = RewardTermCfg(func=stl.stance_foot_heading,
                                                                    weight=float(rm["foot_heading_weight"]), params={})
+        if "step_width" in rm:  # NEXT-PLAN.md universal3: lateral foot distance above the limit
+            sw = rm["step_width"]
+            env_cfg.rewards["step_width_over"] = RewardTermCfg(func=stl.step_width_over, weight=float(sw["weight"]),
+                                                               params={"limit": float(sw["limit"])})
+        if "progress" in rm:  # NEXT-PLAN.md universal3: capped progress along the command (after the EMA term)
+            pg = rm["progress"]
+            env_cfg.rewards["progress_along_cmd"] = RewardTermCfg(func=stl.progress_along_cmd, weight=float(pg["weight"]),
+                                                                  params={"min_cmd": float(pg.get("min_cmd", 0.10))})
+        if "torque_margin_weight" in rm and "torque_margin" in env_cfg.rewards:
+            env_cfg.rewards["torque_margin"].weight = float(rm["torque_margin_weight"])
+        if "push_x" in rm and "push_robot" in ev:  # NEXT-PLAN.md universal3: forward/back push range (m/s)
+            ev["push_robot"].params["velocity_range"]["x"] = tuple(float(v) for v in rm["push_x"])
+        if "com_x_whole_m" in rm and "payload" in delta:  # whole-robot x COM range, read by the payload block below
+            delta = dict(delta, payload=dict(delta["payload"], com_x_whole_m=float(rm["com_x_whole_m"])))
+        if "bend4" in rm:  # NEXT-PLAN.md bend4: trunk pitch band at the hold, knee-limit margin, stand pose at rest
+            import bend_terms as bt
+            b4 = rm["bend4"]
+            for name, fn in (("trunk_pitch_off_band", bt.trunk_pitch_off_band), ("knee_near_limit", bt.knee_near_limit),
+                             ("stance_off_at_rest", bt.stance_off_at_rest), ("ankle_near_limit", bt.ankle_near_limit)):
+                if b4.get(name):
+                    env_cfg.rewards[name] = RewardTermCfg(func=fn, weight=float(b4[name]), params={})
         print(f"[style] reward mods {rm}", flush=True)
     if "payload" in delta:
         import os
@@ -199,7 +302,8 @@ def apply_delta(env_cfg, delta: dict):
         d = os.environ.get("FLIGHT_MANIFESTS", UNIVERSAL_MANIFESTS)
         pd = delta["payload"]
         cfg = pl.payload_cfg(str(Path(d) / pd["nominal"]), str(Path(d) / pd["none"]), weights=pd.get("weights"),
-                             smax=float(pd.get("smax", 1.15)), seed=int(pd.get("seed", 0)))
+                             smax=float(pd.get("smax", 1.15)), seed=int(pd.get("seed", 0)),
+                             com_x_whole_m=pd.get("com_x_whole_m"))
         com = ev["randomize_com"]
         com.func = pl.trunk_payload
         com.params = dict(asset_cfg=com.params["asset_cfg"], ranges=com.params["ranges"], payload=cfg)
@@ -210,6 +314,77 @@ def apply_delta(env_cfg, delta: dict):
         delta = {k: v for k, v in delta.items() if k != "payload"}
     print(f"[pack] delta applied: { {k: delta[k] for k in delta if k != 'track_lin_vel'} }", flush=True)
     return env_cfg
+
+
+def _patch_metadata():
+    """get_base_metadata adds history_frames / history_inputs / state_inputs for an env with a history actor, so the
+    runtime can tell a stateful policy from its metadata as well as from its inputs"""
+    import mjlab.rl.exporter_utils as eu
+    if getattr(eu, "_history_patched", False):
+        return
+    orig = eu.get_base_metadata
+
+    def get_base_metadata(env, *a, **k):
+        meta = orig(env, *a, **k)
+        h = getattr(getattr(env, "unwrapped", env), "_history", None)
+        if h:
+            meta.update(history_frames=str(h["k"]), history_inputs=str(h["p"]), state_inputs="hist_in",
+                        state_outputs="hist_out")
+        return meta
+
+    eu.get_base_metadata = get_base_metadata
+    eu._history_patched = True
+
+
+HISTORY_STEP_SCALE = {"value": None}  # set by --history-step-scale; a history actor refuses to train without it
+
+
+def _history_step_scale_from_argv():
+    """--history-step-scale S: the optimizer step scale on the history columns (history.scale_history_step);
+    removed before the worker parses"""
+    if "--history-step-scale" in sys.argv:
+        i = sys.argv.index("--history-step-scale")
+        HISTORY_STEP_SCALE["value"] = float(sys.argv[i + 1])
+        del sys.argv[i:i + 2]
+
+
+def _patch_runner_for_history():
+    """The worker's runner class, with the history step scale installed on its optimizer when the actor is a history
+    actor, and the history weights' size printed at every save (does the branch learn at this scale?). The worker
+    imports load_runner_cls from the registry inside main(), so the registry function is wrapped before main runs."""
+    import mjlab.tasks.registry as reg
+    if getattr(reg, "_history_runner_patched", False):
+        return
+    orig = reg.load_runner_cls
+
+    def load_runner_cls(task):
+        from mjlab.rl import MjlabOnPolicyRunner
+        base = orig(task) or MjlabOnPolicyRunner
+
+        class HistoryRunner(base):
+            def __init__(self, *a, **k):
+                super().__init__(*a, **k)
+                w = self.alg.actor.mlp[0].weight
+                self._hist_w = w if int(w.shape[1]) in _HISTORY_KP else None
+                if self._hist_w is not None:
+                    s = HISTORY_STEP_SCALE["value"]
+                    if s is None:
+                        raise SystemExit("history actor: pass --history-step-scale S (HISTORY-PLAN.md section 8: the "
+                                         "unscaled history update broke the walker within 3 iterations)")
+                    import history as hi
+                    hi.scale_history_step(self.alg.optimizer, w, s)
+
+            def save(self, path, infos=None):
+                super().save(path, infos)
+                if self._hist_w is not None:
+                    w = self._hist_w.detach()
+                    print(f"[history] it {self.current_learning_iteration} first-layer |W| mean: current "
+                          f"{float(w[:, :61].abs().mean()):.5f}, history {float(w[:, 61:].abs().mean()):.6f}", flush=True)
+
+        return HistoryRunner
+
+    reg.load_runner_cls = load_runner_cls
+    reg._history_runner_patched = True
 
 
 def _tq_weight_from_argv():
@@ -229,6 +404,8 @@ if __name__ == "__main__":
     # worker must not find modal: its own try/except then skips the in-worker commit
     sys.modules["modal"] = None
     _tq_weight_from_argv()
+    _history_step_scale_from_argv()
+    _patch_runner_for_history()
     # --task T: train another registered task with the same worker (the bend fine-tune, BEND-PLAN.md:
     # Mjlab-GroundPick-Flat-MicroDuck); removed before the worker parses its own flags
     if "--task" in sys.argv:

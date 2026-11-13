@@ -51,7 +51,7 @@
 // result line) or stopped. {"op": "stop"} ends it: the session's stdin closes, the A7Z side sends seepick.py SIGTERM,
 // which writes its own stop (monitor for r1's hold-on, stand61 for the baseline). One pick at a time.
 import {spawn, spawnSync} from "node:child_process";
-import {readFileSync} from "node:fs";
+import {appendFile, readFileSync} from "node:fs";
 import {homedir} from "node:os";
 
 const HISTORY_S = 1800, SILENT_S = 3, ACK_S = 3, START_ACK_S = 30;  // START_ACK_S covers duck-command.py START_S
@@ -161,7 +161,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
       });
 
       // ── Command writer: one SSH session, requests matched to answers by sequence number ──
-      let writer = null, seq = 0;
+      let writer = null, seq = 0, lastHeld = null;
       function startWriter() {
         if (writer) return writer;
         const code = readFileSync(commandScript).toString("base64");
@@ -199,7 +199,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
         return w;
       }
       async function command(req, ackS = ACK_S) {
-        if (poweringOff()) throw new Error("A7Z 正在关机");
+        if (poweringOff()) throw new Error("A7Z is shutting down");
         const w = startWriter();
         await Promise.race([w.ready, new Promise((_, rej) => setTimeout(() => rej(new Error("A7Z did not answer in time")), ACK_S * 1000 + 4000))]);
         const n = ++seq;
@@ -290,7 +290,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
         if (!cam) return;
         const now = Date.now();
         camFrames = camFrames.filter(t => t > now - 2000);
-        if (now - camLast > CAMERA_SILENT_S * 1000) { cam.stderr += "\n6 秒没有新画面"; cam.proc.kill(); return; }
+        if (now - camLast > CAMERA_SILENT_S * 1000) { cam.stderr += "\nno new frame for 6 s"; cam.proc.kill(); return; }
         camSend({state: camFrames.length ? "streaming" : camIdle ? "idle" : "starting", fps: camFrames.length / 2});
       }, 1000).unref();
       // a Vite restart (config edit) builds a new bridge in the same process: end this one's SSH sessions
@@ -340,7 +340,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
         p.stderr.on("data", d => { err += d; });
         p.on("close", code => { clearTimeout(kill); resolve({code, out, err: err.split("\n").filter(l => l && !/quantum|store now|upgraded/.test(l)).pop() ?? ""}); });
       });
-      const parsed = r => { try { return {ok: true, record: JSON.parse(r.out)}; } catch { return {ok: false, error: r.err || "还没有体检记录"}; } };
+      const parsed = r => { try { return {ok: true, record: JSON.parse(r.out)}; } catch { return {ok: false, error: r.err || "no boot check record yet"}; } };
       async function rerunSelfcheck() {
         paused = true;
         const old = child;
@@ -373,7 +373,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
         const p = {proc, variant, buf: "", result: null, stopped: false};
         pick = p;
         proc.stdin.on("error", () => {});
-        showPick({state: "running", variant, line: "启动 seepick.py…", started: Date.now()});
+        showPick({state: "running", variant, line: "Starting seepick.py…", started: Date.now()});
         const lines = d => {
           p.buf += d;
           for (let i; (i = p.buf.indexOf("\n")) >= 0; p.buf = p.buf.slice(i + 1)) {
@@ -389,7 +389,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
           if (pick === p) pick = null;
           const r = p.result;
           showPick({state: p.stopped ? "stopped" : r ? (r.ok ? "done" : "failed") : "failed",
-            line: r ? `${r.ok ? "成功" : "失败"}：${r.why}` : p.stopped ? "已停止" : `seepick.py 退出（${code}）`, result: r});
+            line: r ? `${r.ok ? "Succeeded" : "Failed"}: ${r.why}` : p.stopped ? "Stopped" : `seepick.py exited (${code})`, result: r});
         });
       }
       server.middlewares.use("/api/a7z/pick", (req, res) => {
@@ -399,18 +399,18 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
         req.on("end", async () => {
           const reply = (status, answer) => { res.writeHead(status, {"Content-Type": "application/json"}); res.end(JSON.stringify(answer)); };
           let r;
-          try { r = JSON.parse(body); } catch { return reply(400, {ok: false, error: "请求不是 JSON"}); }
+          try { r = JSON.parse(body); } catch { return reply(400, {ok: false, error: "request is not JSON"}); }
           if (r.op === "stop") {
             if (pick) { pick.stopped = true; pick.proc.stdin.end(); setTimeout(() => pick?.proc.kill(), 3000); }
             return reply(200, {ok: true, pick: pickState});
           }
           if (r.op !== "start" || !(r.variant in PICK_VARIANTS)) return reply(400, {ok: false, error: `unknown pick request ${body}`});
-          if (pick) return reply(409, {ok: false, error: "已有一次捡球在运行，先停"});
-          if (poweringOff()) return reply(502, {ok: false, error: "A7Z 正在关机"});
-          if (macBrain()) return reply(502, {ok: false, error: "walk_wired.py 在这台 Mac 上运行：捡球按钮只驱动 A7Z 上的大脑"});
+          if (pick) return reply(409, {ok: false, error: "a pick is already running: stop it first"});
+          if (poweringOff()) return reply(502, {ok: false, error: "the A7Z is powering off"});
+          if (macBrain()) return reply(502, {ok: false, error: "walk_wired.py is running on this Mac: the pick buttons only drive the brain on the A7Z"});
           const claim = await command({op: "claim", client: r.client}).catch(e => ({ok: false, error: e.message}));
           if (claim.busy) { showDriver(claim.driver); return reply(409, {ok: false, ...claim}); }
-          if (!claim.ok) return reply(502, {ok: false, error: claim.error ?? "A7Z 没有回答"});
+          if (!claim.ok) return reply(502, {ok: false, error: claim.error ?? "no answer from the A7Z"});
           startPick(r.variant);
           reply(200, {ok: true, pick: pickState});
         });
@@ -420,7 +420,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
       const SHUTDOWN_STATES = {0: "off", 2: "unreachable"};
       function runShutdown() {
         const show = (state, line) => { shutdown = {state, line}; send({shutdown}); };
-        show("running", "正在连接 A7Z…");
+        show("running", "Connecting to A7Z…");
         // the script stops every Python program there: nothing here may start one again meanwhile
         for (const p of [child, writer?.proc, cam?.proc, pick?.proc]) p?.kill();
         const proc = spawn("/bin/sh", [shutdownScript, host], {stdio: ["ignore", "pipe", "pipe"]});
@@ -428,7 +428,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
         const end = (code, why) => {
           if (ended) return;
           ended = true;
-          show(SHUTDOWN_STATES[code] ?? "failed", why ?? (line || `关机脚本退出码 ${code}`));
+          show(SHUTDOWN_STATES[code] ?? "failed", why ?? (line || `shutdown script exit code ${code}`));
           start(); startCamera();   // reconnects by itself once the A7Z is powered again
         };
         proc.stdout.on("data", d => {
@@ -436,7 +436,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
           for (let i; (i = buf.indexOf("\n")) >= 0; buf = buf.slice(i + 1)) if ((line = buf.slice(0, i).trim())) show("running", line);
         });
         proc.stderr.on("data", d => { err = (err + d).slice(-300); });
-        proc.on("error", e => end(null, `关机脚本没能启动：${e.message}`));
+        proc.on("error", e => end(null, `shutdown script failed to start: ${e.message}`));
         proc.on("close", code => end(code, line ? undefined : err.trim() || undefined));
       }
       server.middlewares.use("/api/a7z/shutdown", (req, res) => {
@@ -447,11 +447,11 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
           const reply = (status, answer) => { res.writeHead(status, {"Content-Type": "application/json"}); res.end(JSON.stringify(answer)); };
           if (poweringOff()) return reply(200, {ok: true, shutdown});
           let client;
-          try { ({client} = JSON.parse(body)); } catch { return reply(400, {ok: false, error: "请求不是 JSON"}); }
+          try { ({client} = JSON.parse(body)); } catch { return reply(400, {ok: false, error: "request is not JSON"}); }
           // no answer from the writer is no refusal: the script itself says whether the A7Z is there
           const claim = await command({op: "claim", client}).catch(() => ({}));
           if (claim.busy) { showDriver(claim.driver); return reply(409, {ok: false, ...claim}); }
-          if (claim.ok === false && !claim.driver && claim.error?.includes("身份")) return reply(400, claim);
+          if (claim.ok === false && !claim.driver && claim.error?.includes("driver id")) return reply(400, claim);
           runShutdown();
           reply(200, {ok: true, shutdown});
         });
@@ -467,11 +467,23 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
             r = JSON.parse(body);
             if (!["set", "merge", "read", "take", "supply"].includes(r.op)) throw new Error(`unknown op ${r.op}`);
             const start = r.start === true && (r.op === "set" || r.op === "merge");
-            if (start && macBrain()) throw new Error("walk_wired.py 在这台 Mac 上运行，A7Z 上不另起大脑");
+            if (start && macBrain()) throw new Error("walk_wired.py is running on this Mac, so no second brain is started on the A7Z");
             const req = {op: r.op, client: r.client,
               ...(r.op === "set" ? {cmd: r.cmd, stop: r.stop} : r.op === "merge" ? {patch: r.patch} : r.op === "supply" ? {supply: r.supply} : {})};
             // the backpack switch may restart an idle brain, so it gets the start timeout
+            // held-walk repeats (a walk with for_s): where a late one lost its time. page_gap = between the page's two
+            // sends (its timer), arrive_gap = between their arrivals here (page timer + phone link), ack = the A7Z hop.
+            const held = r.op === "set" && r.cmd?.mode === "walk" && r.cmd.for_s != null && (r.cmd.vx || r.cmd.vtheta);
+            const t0 = Date.now();
             answer = await command(start ? {...req, start} : req, start || r.op === "supply" ? START_ACK_S : ACK_S);
+            if (held) {
+              const p = lastHeld, ack = Date.now() - t0;
+              lastHeld = {t: t0, sent: r.sent_ms, id: r.client?.id};
+              if (p && p.id === r.client?.id && t0 - p.t < 5000 && (t0 - p.t > 400 || ack > 300))
+                appendFile(`${homedir()}/Library/Logs/microduck-remote-cmd.jsonl`, JSON.stringify({t: t0 / 1000,
+                  arrive_gap_ms: t0 - p.t, page_gap_ms: r.sent_ms != null && p.sent != null ? r.sent_ms - p.sent : null,
+                  ack_ms: ack, for_s: r.cmd.for_s, client: r.client?.name}) + "\n", () => {});
+            }
             if ("driver" in answer) showDriver(answer.driver);
             if (answer.ok && r.op === "supply" && writer) writer.supply = answer.supply;
           } catch (e) {

@@ -87,14 +87,14 @@ try {
   // unknown variant: refused before anything runs
   assert.equal((await post("/api/a7z/pick", {op: "start", variant: "r9", client: A})).status, 400);
 
-  // 捡球：改版 1 runs to its result line; every page sees running, then done with the result
+  // "Pick: rev 1" runs to its result line; every page sees running, then done with the result
   let a = await post("/api/a7z/pick", {op: "start", variant: "r1", client: A});
   assert.equal(a.ok, true, JSON.stringify(a));
   await until(() => seen.some(p => p.state === "done"), "r1 done");
   assert.deepEqual(args(), [PICK_VARIANTS.r1]);
   assert.equal(seen[0].state, "running");
   assert.equal(seen.at(-1).variant, "r1");
-  assert.match(seen.at(-1).line, /成功/);
+  assert.match(seen.at(-1).line, /Succeeded/);
   assert.ok(seen.some(p => /pick -> done/.test(p.line ?? "")), "seepick.py's log lines reach the page");
 
   // A holds the lease: B's pick is refused with the driver's name, and nothing runs
@@ -103,7 +103,7 @@ try {
   assert.equal(a.driver?.name, "Shawn");
   assert.equal(args().length, 1);
 
-  // 捡球：基线, a long run: a second start is refused, 停 ends it through SIGTERM
+  // "Pick: baseline", a long run: a second start is refused, Stop ends it through SIGTERM
   writeFileSync(join(dir, "slow"), "");
   seen.length = 0;
   a = await post("/api/a7z/pick", {op: "start", variant: "baseline", client: A});
