@@ -27,7 +27,8 @@ import finetune_worker as fw  # noqa: E402
 CMD = slice(48, 51)  # twist command slots in the 61-D actor observation (48 proprioception first)
 LEAN = 0.2  # rad: lean-and-hold hip-pitch action offset (both hips), added to the stander's output
 DIAG_W = 1e-6
-RT_THR = 0.05  # universal2 intended: largest |twist command| below which the stander runs (walk_brain's split)
+DIAG_CASES = {"walk025": (0.25, 0.0, 0.0), "walk020": (0.20, 0.0, 0.0)}  # --cases only; twist the policy reads
+RT_THR = 0.05 # universal2 intended: largest |twist command| below which the stander runs (walk_brain's split)
 
 
 def track_from_ema(env, std: float, command_name: str):
@@ -108,6 +109,10 @@ def main():
     ap.add_argument("--diag", action="store_true",
                     help="add candidate reward terms at weight 1e-6 (diag_*): their raw per-second values let a design be "
                          "priced offline from the same deterministic rollouts (rewards do not change the dynamics)")
+    ap.add_argument("--delay-mods", default="",
+                    help="diagnostics (RUNLOG 2026-11-18, training env against runtime simulation): JSON with any of "
+                         "act_lag [min, max] (command delay, 5 ms physics steps), joint_pos_lag, joint_vel_lag, imu_lag "
+                         "[min, max] (actor observation delay, 20 ms control steps); unset: the delays as trained")
     a = ap.parse_args()
     import torch
     import mjlab.tasks  # noqa: F401
@@ -171,6 +176,12 @@ def main():
     }
     plan["universal3h"] = list(plan["universal3"])  # HISTORY-PLAN.md: the same cases in the history env
     plan["universal3t"] = list(plan["universal3"])  # TEACHER-STUDENT-PLAN.md: the same cases in the teacher env
+    # diagnostics (RUNLOG 2026-11-18), only when named in --cases and never part of the verdict: the runtime acceptance
+    # walk's command held for the whole episode (the policy reads it; the env's own sampled command is ignored)
+    for c in a.cases.split(","):
+        if c in DIAG_CASES:
+            for job in ("universal3", "universal3h", "universal3t"):
+                plan[job] = plan[job] + [(f"{ld}:{c}", f"u_{ld}", a.walker, DIAG_CASES[c]) for ld in ("full", "nobatt", "none")]
     PIN = {"u_full": dict(full=1.0, nobatt=0.0, none=0.0, scaled=0.0), "u_none": dict(full=0.0, nobatt=0.0, none=1.0, scaled=0.0),
            "u_nobatt": dict(full=0.0, nobatt=1.0, none=0.0, scaled=0.0)}
     plan = {k: v for k, v in plan.items() if k in a.jobs.split(",")}
@@ -205,6 +216,31 @@ def main():
             cfg.scene.entities["robot"] = fw.apply_asbuilt_masses(cfg.scene.entities["robot"],
                                                                   man["nopack" if model in PIN else model],
                                                                   str(A / "existing-model-mass-audit.json"), 0.09)
+            if a.delay_mods:
+                import copy
+                dm = json.loads(a.delay_mods)
+                if "act_lag" in dm or "max_current" in dm:
+                    rob = copy.deepcopy(cfg.scene.entities["robot"])
+                    for act in rob.articulation.actuators:
+                        if "act_lag" in dm:
+                            act.delay_min_lag, act.delay_max_lag = int(dm["act_lag"][0]), int(dm["act_lag"][1])
+                        if "max_current" in dm:  # A; the runtime simulation's servo current limit (1.47 A, 0.538 N m)
+                            assert hasattr(act, "max_current"), type(act)
+                            act.max_current = float(dm["max_current"])
+                    cfg.scene.entities["robot"] = rob
+                    print(f"[audit] max_current {[getattr(x, 'max_current', None) for x in rob.articulation.actuators]}", flush=True)
+                terms = cfg.observations["actor"].terms
+                grav = "projected_gravity" if "projected_gravity" in terms else "raw_accelerometer"
+                for key, names in (("joint_pos_lag", ("joint_pos",)), ("joint_vel_lag", ("joint_vel",)),
+                                   ("imu_lag", ("base_ang_vel", grav))):
+                    if key in dm:
+                        for n in names:
+                            terms[n] = copy.deepcopy(terms[n])
+                            terms[n].delay_min_lag, terms[n].delay_max_lag = int(dm[key][0]), int(dm[key][1])
+                print(f"[audit] delay mods {dm}: command lag "
+                      f"{[(x.delay_min_lag, x.delay_max_lag) for x in cfg.scene.entities['robot'].articulation.actuators]}, "
+                      + ", ".join(f"{n} {(terms[n].delay_min_lag, terms[n].delay_max_lag)}"
+                                  for n in ("joint_pos", "joint_vel", "base_ang_vel", grav)), flush=True)
             cfg.scene.num_envs = a.num_envs
             cfg.seed = 1
             env = RslRlVecEnvWrapper(ManagerBasedRlEnv(cfg=cfg, device=a.device), clip_actions=load_rl_cfg(fw.TASK).clip_actions)
@@ -266,7 +302,7 @@ def main():
         checks = {}
         for case, r in res[job].items():
             grp = case.split(":")[0] + ":" if ":" in case else ""
-            if case in ("intended", "stand61_ref") or case.endswith(":intended"):
+            if case in ("intended", "stand61_ref") or case.endswith(":intended") or case.split(":")[-1] in DIAG_CASES:
                 continue
             it = res[job][grp + "intended"]
             checks[case] = dict(reward_ratio=round(r["reward_per_s"] / it["reward_per_s"], 3),
