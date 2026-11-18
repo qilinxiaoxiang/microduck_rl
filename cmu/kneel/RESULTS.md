@@ -222,3 +222,36 @@ to work from the camera. What would move it:
 - a kneel that tolerates ±3 cm (the sighted rise-s1 is 0.49 there, and its own fine-tunes failed, see round 2);
 - or better perception at the dock's end: a closer, steadier look (head held at a fixed pose that keeps the ball
   in the picture, more frames), or odometry so a stale detection can still be used.
+
+## Round 4: why fine-tuning the sighted kneel degrades rise-s1
+
+1. **Falls were an eval artefact plus a warm-start bug.** `kr_eval` evaluates at `CURRICULA_DONE_STEP`, where the
+   CoM DR is ±2 cm. rise-s1 was trained to step 24,000 (±1 cm), and the fine-tunes restarted its curricula at step 0
+   (action_rate −0.8 against −2.0, CoM ±3 mm). The sighted task now pins every inherited curriculum at rise-s1's step
+   (`pin_curricula_at(cfg, SOURCE_STEP)`), and kr_eval records the fall phase and termination term.
+
+   rise-s1 sighted, untrained, on the pinned env (±1 cm CoM): **0.74 / 0.56 / 0.38** held at ±1 / 3 / 5 cm, falls
+   < 1 % (at ±2 cm CoM: 0.67 / 0.49 / 0.34, 7–10 % falls, half of them `beak_on_floor` at phase 0.2–0.3).
+   Full chain from bd-a2's ends: **0.42** (0.38 at ±2 cm CoM).
+
+2. **The bite still degrades with the curricula pinned.** ks-d (ks-c + pinned curricula) @ 250: 0.67 / 0.41 / 0.23,
+   falls 1–2 %; the bite rate drops (bitten at ±3 cm 0.76 → 0.59).
+
+3. Controls (300 iterations each, same optimiser): ctl-own = the same ONNX-init pipeline in rise-s1's OWN task;
+   ks-e = the kneel env warm-started from rise-s1's full checkpoint (its trained critic).
+
+   | @ 250, pinned kneel env (±1 cm CoM) | ±1 cm held@end | ±3 cm | ±5 cm | falls | drops after hand-over |
+   |---|---|---|---|---|---|
+   | rise-s1 untrained | 0.74 | 0.56 | 0.38 | < 1 % | 3 % |
+   | ctl-own (ONNX-init pipeline, rise-s1's own task) | 0.43 | 0.21 | 0.15 | < 1 % | 5–7 % |
+   | **ks-e (kneel env, rise-s1's full checkpoint incl. critic)** | **0.80** | **0.61** | **0.42** | 0.2 % | 1 % |
+
+   **The pipeline was the cause, not the kneel env.** Rebuilding the actor from the ONNX with a fresh critic degrades
+   rise-s1 even in its own task. Warm-starting from the full checkpoint (`MICRODUCK_WARM_START=1 --agent.resume True
+   --agent.load-run rise-s1-src --agent.load-checkpoint model_999.pt`, the run dir copied into
+   `logs/rsl_rl/kneel_rise_sighted/`) improves it. (The blind kr-b survived the ONNX init, probably because its
+   warm start was already poor enough that the critic warm-up had little to lose.)
+
+   **Full chain from bd-a2's ends with ks-e @ 250: 0.48** (rise-s1: 0.42). ks-f resumes ks-e for 750 more iterations.
+
+   Rule for the next warm start: if the source run's `.pt` exists, start from it, not from its ONNX.

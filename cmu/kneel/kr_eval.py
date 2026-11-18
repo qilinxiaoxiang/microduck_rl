@@ -92,6 +92,8 @@ def rollout(env, policy, blind_fill, clip, offsets=None):
     held_handoff = torch.zeros(n, dtype=torch.bool, device=dev)
     ever_held = torch.zeros(n, dtype=torch.bool, device=dev)
     neck_peak = torch.zeros(n, device=dev)
+    fall_phase = torch.full((n,), float("nan"), device=dev)
+    fall_term = [""] * n
     steps = int(round(kr.EPISODE_S / env.step_dt)) - 1   # the time-out step resets the env: stop one before
     with torch.inference_mode():
         for k in range(steps):
@@ -107,7 +109,15 @@ def rollout(env, policy, blind_fill, clip, offsets=None):
             obs = obs_d["actor"]
             done = (term | trunc).bool()
             last = k == steps - 1
-            fell |= alive & term.bool()
+            newly = alive & term.bool()
+            if newly.any():
+                fall_phase = torch.where(newly, prev_phase, fall_phase)
+                tm = env.termination_manager
+                for name in tm.active_terms:
+                    hit = (newly & tm.get_term(name).bool()).nonzero(as_tuple=True)[0].tolist()
+                    for i in hit:
+                        fall_term[i] = fall_term[i] or name
+            fell |= newly
             # state of the step just taken (envs that terminated were reset inside step: skip them)
             live = alive & ~done
             held = microduck_mdp.grasp_state(env, "object")["held"]
@@ -123,7 +133,8 @@ def rollout(env, policy, blind_fill, clip, offsets=None):
                 rms, tilt = a["rms"].clone(), a["tilt_deg"].clone()
             alive &= ~done
     return dict(off=off, fell=fell, held_handoff=held_handoff, held_end=held_end, ever_held=ever_held,
-                neck_peak=neck_peak, rms=rms, tilt=tilt, survived=alive | (~fell))
+                neck_peak=neck_peak, rms=rms, tilt=tilt, survived=alive | (~fell), fall_phase=fall_phase,
+                fall_term=fall_term)
 
 
 def summarize(r):
@@ -153,6 +164,14 @@ def summarize(r):
                 rows.append([round(lo * 100), int(m.sum()), f(he[m].float().mean()), f(r["fell"][m].float().mean())])
         bins[name] = rows   # [bin start cm, n, held_end, fell]
     out["by_offset"] = bins
+    if r["fell"].sum() >= 4:
+        fp = r["fall_phase"][r["fell"]]
+        edges = [0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.01]
+        out["fall_phase_hist"] = {f"{lo:.1f}-{hi:.1f}": int(((fp >= lo) & (fp < hi)).sum()) for lo, hi in
+                                  zip(edges[:-1], edges[1:])}
+        names = [t for t, fl in zip(r["fall_term"], r["fell"].tolist()) if fl]
+        out["fall_terms"] = {t: names.count(t) for t in sorted(set(names))}
+        out["fell_after_bite"] = f((r["fell"] & r["ever_held"]).float().sum() / r["fell"].float().sum())
     return out
 
 
@@ -203,6 +222,9 @@ def main():
               f"held@end {r['held_end']:.3f}  dropped-after {r['dropped_after_handoff']:.3f}  "
               f"rms {r.get('end_rms_rad', math.nan):.3f}  neck p90 {r.get('neck_peak_held_p90', math.nan):.2f}  "
               f"({time.time() - t0:.0f} s)", flush=True)
+        if "fall_phase_hist" in r:
+            print(f"          falls by phase {r['fall_phase_hist']}  terms {r['fall_terms']}  "
+                  f"after bite {r['fell_after_bite']}", flush=True)
     if a.out:
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.out).write_text(json.dumps(dict(onnx=a.onnx, task=a.task, md5=A.md5(Path(a.onnx)), cases=res),

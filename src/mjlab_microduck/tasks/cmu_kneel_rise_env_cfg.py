@@ -58,6 +58,20 @@ NECK_RATE_FREE = 2.0              # rad/s, per joint, free
 NECK_RATE_WEIGHT = -0.5           # per rad/s above it, summed over the neck / head joints, while held
 
 INIT_ONNX = Path(__file__).parent / "init_policies" / "rise-s1_999.onnx"
+SOURCE_STEP = 24000               # rise-s1's common_step_counter at model_999 (its checkpoint's env_state)
+
+
+def pin_curricula_at(cfg, step: int) -> None:
+    """Warm start: hold every inherited stage curriculum at the stage in force at the SOURCE run's `step` (AGENTS.md).
+    The sighted kneel fine-tunes (ks-a/b/c) restarted them at step 0, so the first ~250 iterations ran action_rate at
+    -0.8 against rise-s1's -2.0 (and CoM DR at 3 mm against 10 mm)."""
+    for term in cfg.curriculum.values():
+        for key, val in list(term.params.items()):
+            if isinstance(val, list) and val and all(isinstance(v, dict) and "step" in v for v in val):
+                live = [v for v in val if v["step"] <= step] or val[:1]
+                term.params[key] = [{**live[-1], "step": 0}]
+                if key == "weight_stages" and term.params.get("reward_name") in cfg.rewards:
+                    cfg.rewards[term.params["reward_name"]].weight = live[-1]["weight"]
 
 
 def blind_body_command(env: ManagerBasedRlEnv, dim: int = 6) -> torch.Tensor:
@@ -88,6 +102,9 @@ def make_kneel_rise_env_cfg(variant: str, play: bool = False, sighted: bool = Fa
     """sighted=True keeps the camera slots during the descent (RESULTS.md next step 1): the blind kneel's success
     collapses for dx >= +2 cm, and a policy that sees the ball can correct for it."""
     cfg = make_seeing_pix_handoff_env_cfg(variant, play=play, rise=True)
+
+    if sighted:
+        pin_curricula_at(cfg, SOURCE_STEP)
 
     # 3. hold-on past the hand-over
     cfg.commands["twist"].hold_phase = HOLD_PHASE

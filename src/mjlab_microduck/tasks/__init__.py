@@ -1,3 +1,4 @@
+import dataclasses as _dc
 from mjlab_microduck.train_hook import maybe_submit_to_hf_jobs
 
 # `train <task> ... --hf-jobs` submits to HF Jobs and exits here, before any
@@ -604,6 +605,32 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
         rl_cfg=kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, sighted=True),
         runner_cls=KneelRiseSightedFromRiseRunner,
     )
+
+# Control for the sighted kneel's degradation (2026-11-18, RESULTS.md round 4): the same fine-tune pipeline (ONNX
+# init, fresh critic, fixed lr, entropy 0, curricula pinned at rise-s1's step) in rise-s1's OWN task, start window at
+# its operating value. Diagnostic only.
+from .cmu_kneel_rise_env_cfg import SOURCE_STEP as _KR_SRC_STEP
+from .cmu_kneel_rise_env_cfg import pin_curricula_at as _pin_curricula_at
+
+
+def _make_rise_control_cfg(variant, play=False):
+    from . import cmu_seeing_pix_env_cfg as _pix
+
+    cfg = make_seeing_pix_handoff_env_cfg(variant, play=play, rise=True)
+    _pin_curricula_at(cfg, _KR_SRC_STEP)
+    cfg.events["reset_object"].params["window"] = _pix.PIX_WINDOW_MAX
+    cfg.curriculum.pop("pix_window", None)
+    return cfg
+
+
+register_mjlab_task(
+    task_id="Mjlab-SeeingPickPixRise-Ctl-MicroDuck-CMU-Plugged",
+    env_cfg=_make_rise_control_cfg("plugged"),
+    play_env_cfg=_make_rise_control_cfg("plugged", play=True),
+    rl_cfg=_dc.replace(kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, sighted=True), experiment_name="kneel_rise_ctl",
+                       run_name="kneel_rise_ctl"),
+    runner_cls=KneelRiseSightedFromRiseRunner,
+)
 
 # Ball dock (cmu_ball_dock_env_cfg.py, 2026-11-18): the closed-loop half of the split pick. A commander (vx, vy, wz,
 # head pitch / yaw) over the frozen deployed walk61, seeing the ball through the U20CAM model, rewarded for standing

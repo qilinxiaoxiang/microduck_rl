@@ -86,3 +86,10 @@ def test_sighted_variant_keeps_camera_and_own_experiment():
     assert cfg.events["reset_object"].params["window"] == kr.SIGHTED_WINDOW_START
     assert cfg.curriculum["dock_window"].params["window_max"] == kr.SIGHTED_WINDOW_MAX
     assert cfg.commands["twist"].hold_phase == kr.HOLD_PHASE
+
+
+def test_sighted_pins_inherited_curricula_at_rise_s1_step():
+    cfg = kr.make_kneel_rise_env_cfg("plugged", sighted=True)
+    ar = cfg.curriculum["action_rate_weight"].params["weight_stages"]
+    assert ar == [{"step": 0, "weight": -2.0}] and cfg.rewards["action_rate_l2"].weight == -2.0
+    assert cfg.curriculum["com_range"].params["range_stages"] == [{"step": 0, "range": 0.01}]
