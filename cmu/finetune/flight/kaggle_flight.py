@@ -50,7 +50,9 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
                "ts_teacher.onnx": TRAIN / "ckpt/ts_teacher/teacher.onnx",
                # round 2: the teacher trained with the runtime loop delay (delta universal4t)
                "ts2_teacher.onnx": TRAIN / "ckpt/ts2_teacher/teacher.onnx",
-               "ts2b_teacher.onnx": TRAIN / "ckpt/ts2b_teacher/teacher.onnx"}.items():
+               "ts2b_teacher.onnx": TRAIN / "ckpt/ts2b_teacher/teacher.onnx",
+               # teacher A at its last iteration (0 falls of 100 in the runtime selection cases)
+               "ts2a999_teacher.onnx": TRAIN / "ckpt/ts2a999_teacher/teacher.onnx"}.items():
     if _p.exists():
         kj.ASSETS[f"init/{_n}"] = _p
 _flags = kj.worker_flags
