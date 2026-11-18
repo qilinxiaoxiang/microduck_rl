@@ -255,3 +255,20 @@ to work from the camera. What would move it:
    **Full chain from bd-a2's ends with ks-e @ 250: 0.48** (rise-s1: 0.42). ks-f resumes ks-e for 750 more iterations.
 
    Rule for the next warm start: if the source run's `.pt` exists, start from it, not from its ONNX.
+
+### ks-f: ks-e resumed to iteration 999 (pinned env, ±1 cm CoM, 512 envs per cell)
+
+| Policy | ±1 cm held@end | ±3 cm | ±5 cm | ±3 cm 55 ms | falls | full chain from bd-a2 |
+|---|---|---|---|---|---|---|
+| rise-s1 untrained | 0.74 | 0.56 | 0.38 | – | < 1 % | 0.42 |
+| ks-e @ 250 | 0.80 | 0.61 | 0.42 | – | 0.2 % | 0.48 |
+| ks-f @ 500 | 0.81 | 0.66 | 0.49 | 0.70 | ~1 % | 0.48 |
+| **ks-f @ 750** | **0.79** | **0.71** | **0.64** | **0.73** | ~1 % | **0.52** |
+| ks-f @ 999 | 0.78 | 0.71 | 0.66 | 0.73 | ~1 % | 0.49 |
+
+The chained cells differ by about their sampling error (±2 points at 512 envs); @750 and @999 are equivalent.
+**Kneel to use: `policies/ks-f_750.onnx`** (61-D, sighted: the runtime feeds the U20CAM slots 55–60 as for the
+pixel pick). The chain is now capped by the dock: 86.5 % of its ends are alive and still, and the kneel's success
+from those ends (0.56–0.60) is below its ±5 cm window number because of the dock's tail beyond 5 cm.
+
+Next: the dock's tail (stop-short / lateral beyond 5 cm), the battery body for both, then `infer_policy.py`.
