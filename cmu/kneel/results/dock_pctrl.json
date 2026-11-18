@@ -1,0 +1,28 @@
+[
+ {
+  "mode": "pctrl",
+  "n": 256,
+  "fell": 0.0234,
+  "lost_or_fell": 0.0234,
+  "kicked": 0.0,
+  "mean_speed": 0.087,
+  "travel_m": 0.1474,
+  "docked_end": 0.625,
+  "err_end_p50_cm": 0.825,
+  "err_end_p90_cm": 5.9948,
+  "within_2cm": 0.7539,
+  "within_4cm": 0.8281,
+  "still_end": 0.6875,
+  "t_first_dock_p50": 2.54,
+  "kneel_ready": 0.6562,
+  "dx_p10_p50_p90_cm": [
+   -0.5887,
+   0.205,
+   3.9571
+  ],
+  "dy_abs_p50_p90_cm": [
+   0.4863,
+   2.0069
+  ]
+ }
+]

@@ -5237,7 +5237,11 @@ class GroundPickPhaseCommand(UniformVelocityCommand):
         return self.vel_command_b
 
     def compute(self, dt: float) -> None:
-        self._gp_phase = (self._gp_phase + dt / self._period) % 1.0
+        hold = getattr(self.cfg, "hold_phase", None)
+        if hold is None:
+            self._gp_phase = (self._gp_phase + dt / self._period) % 1.0
+        else:   # the runtime's "hold on": the phase stops at hold_phase, so the jaw stays shut
+            self._gp_phase = torch.clamp(self._gp_phase + dt / self._period, max=hold)
         self.vel_command_b[:, 0] = torch.cos(2 * torch.pi * self._gp_phase)
         self.vel_command_b[:, 1] = torch.sin(2 * torch.pi * self._gp_phase)
         self.vel_command_b[:, 2] = 0.0
@@ -5267,6 +5271,7 @@ class GroundPickPhaseCommandCfg(UniformVelocityCommandCfg):
     class_type: type = GroundPickPhaseCommand
     period: float = 4.0  # cycle length in seconds; sitstand uses 8.0
     randomize_phase: bool = True  # False -> each episode starts at phase 0 (standing)
+    hold_phase: float | None = None  # stop the phase here instead of wrapping (kneel-rise hold-on)
 
     def build(self, env: ManagerBasedRlEnv) -> "GroundPickPhaseCommand":
         return GroundPickPhaseCommand(self, env)

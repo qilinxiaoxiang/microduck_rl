@@ -1,0 +1,28 @@
+[
+ {
+  "mode": "policy",
+  "n": 256,
+  "fell": 0.0078,
+  "lost_or_fell": 0.0078,
+  "kicked": 0.0117,
+  "mean_speed": 0.0663,
+  "travel_m": 0.1424,
+  "docked_end": 0.3711,
+  "err_end_p50_cm": 1.9351,
+  "err_end_p90_cm": 6.2564,
+  "within_2cm": 0.5078,
+  "within_4cm": 0.832,
+  "still_end": 0.7773,
+  "t_first_dock_p50": 2.08,
+  "kneel_ready": 0.418,
+  "dx_p10_p50_p90_cm": [
+   -2.2389,
+   0.4333,
+   3.8199
+  ],
+  "dy_abs_p50_p90_cm": [
+   0.7329,
+   3.0077
+  ]
+ }
+]

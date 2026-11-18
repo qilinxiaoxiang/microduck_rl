@@ -514,3 +514,83 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
             rl_cfg=_rl(MicroduckStaticGraspRlCfg),
             runner_cls=SeeingPixFromSpxRunner,
         )
+
+# Kneel-rise (cmu_kneel_rise_env_cfg.py, 2026-11-18): the open-loop half of the split pick. Blind (holding bit only),
+# docked starts, the phase held at 0.90 and the episode run 2.5 s past the hand-over, neck-rate cost while holding.
+# Warm start from rise-s1 @ 999 with the blinded slots' first-layer columns zeroed.
+from .cmu_kneel_rise_env_cfg import BLIND_ZERO as _KR_ZERO
+from .cmu_kneel_rise_env_cfg import INIT_ONNX as _KR_INIT
+from .cmu_kneel_rise_env_cfg import kneel_rise_rl_cfg, make_kneel_rise_env_cfg
+
+
+class KneelRiseFromRiseRunner(GroundGraspFromPickRunner):
+    """Plus a critic warm-up: for the first CRITIC_WARMUP_ITERS updates the actor is frozen and only the fresh critic
+    trains (at CRITIC_WARMUP_LR). Run kr-a (no warm-up) lost the inherited bite within ~60 iterations (held at the
+    hand-over 0.29 -> 0) to updates driven by an untrained critic, and spent ~400 iterations relearning it."""
+
+    INIT_ONNX = _KR_INIT
+    CRITIC_WARMUP_ITERS = 50
+    CRITIC_WARMUP_LR = 1e-3
+
+    def __init__(self, env, train_cfg: dict, log_dir=None, device="cpu", **kwargs):
+        super().__init__(env, train_cfg, log_dir, device, **kwargs)
+        update, alg, n = self.alg.update, self.alg, [0]
+        actor_params = list(alg.actor.parameters())
+
+        def warm_update():
+            warm = n[0] < self.CRITIC_WARMUP_ITERS
+            if warm:
+                for prm in actor_params:
+                    prm.requires_grad_(False)
+                self._set_lr(self.CRITIC_WARMUP_LR)
+            try:
+                out = update()
+            finally:
+                for prm in actor_params:
+                    prm.requires_grad_(True)
+            n[0] += 1
+            if warm:
+                self._set_lr(self.INIT_LR)   # the adaptive schedule raised it on KL = 0; restart from the init lr
+                if n[0] == self.CRITIC_WARMUP_ITERS:
+                    print(f"[kneel_rise] critic warm-up done after {n[0]} updates: actor unfrozen")
+            return out
+
+        self.alg.update = warm_update
+
+    def _set_lr(self, lr):
+        self.alg.learning_rate = lr
+        for g in self.alg.optimizer.param_groups:
+            g["lr"] = lr
+
+    def _init_actor_from_onnx(self):
+        super()._init_actor_from_onnx()
+        import torch
+
+        cols = [_SP_START + i for i in _KR_ZERO]
+        with torch.no_grad():
+            self.alg.actor.mlp[0].weight[:, cols] = 0.0
+        print(f"[kneel_rise] blinded body slots {cols}: first-layer columns zeroed")
+
+
+for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-20261104")):
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelRise-FromRise-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_kneel_rise_env_cfg(_variant),
+        play_env_cfg=make_kneel_rise_env_cfg(_variant, play=True),
+        rl_cfg=kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg),
+        runner_cls=KneelRiseFromRiseRunner,
+    )
+
+# Ball dock (cmu_ball_dock_env_cfg.py, 2026-11-18): the closed-loop half of the split pick. A commander (vx, vy, wz,
+# head pitch / yaw) over the frozen deployed walk61, seeing the ball through the U20CAM model, rewarded for standing
+# still with the ball at the kneel-rise landing spot.
+from .cmu_ball_dock_env_cfg import BallDockRlCfg, make_ball_dock_env_cfg
+
+for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-20261104")):
+    register_mjlab_task(
+        task_id=f"Mjlab-BallDock-Walk61-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_ball_dock_env_cfg(_variant),
+        play_env_cfg=make_ball_dock_env_cfg(_variant, play=True),
+        rl_cfg=BallDockRlCfg,
+        runner_cls=MicroduckOnPolicyRunner,
+    )

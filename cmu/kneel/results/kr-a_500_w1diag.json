@@ -1,0 +1,58 @@
+{
+ "onnx": "cmu/kneel/policies/kr-a_500.onnx",
+ "task": "Mjlab-KneelRise-FromRise-MicroDuck-CMU-Plugged",
+ "md5": "6dfc405c8038d284cf873aa610ad008e",
+ "cases": {
+  "w1": {
+   "n": 512,
+   "fell": 0.002,
+   "bitten": 0.7422,
+   "held_handoff": 0.5254,
+   "held_end": 0.5098,
+   "dropped_after_handoff": 0.0297,
+   "end_rms_rad": 0.1387,
+   "end_tilt_deg": 7.3642,
+   "neck_peak_held_p50": 8.3911,
+   "neck_peak_held_p90": 9.4512,
+   "lost_after_bite": 0.3132,
+   "neck_peak_kept_p50": 8.3911,
+   "neck_peak_lost_p50": 8.0813,
+   "by_offset": {
+    "dx": [
+     [
+      -1,
+      211,
+      0.5735,
+      0.0
+     ],
+     [
+      0,
+      301,
+      0.4651,
+      0.0033
+     ]
+    ],
+    "dy": [
+     [
+      -1,
+      235,
+      0.4681,
+      0.0043
+     ],
+     [
+      0,
+      261,
+      0.5441,
+      0.0
+     ],
+     [
+      1,
+      9,
+      0.6667,
+      0.0
+     ]
+    ]
+   }
+  }
+ }
+}

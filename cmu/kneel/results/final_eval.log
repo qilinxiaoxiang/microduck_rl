@@ -1,0 +1,10 @@
+w1        fell 0.006  bitten 0.810  held@0.90 0.639  held@end 0.617  dropped-after 0.034  rms 0.208  neck p90 6.61  (37 s)
+w3        fell 0.000  bitten 0.598  held@0.90 0.441  held@end 0.424  dropped-after 0.040  rms 0.206  neck p90 6.32  (33 s)
+w5        fell 0.000  bitten 0.381  held@0.90 0.275  held@end 0.262  dropped-after 0.050  rms 0.206  neck p90 6.58  (33 s)
+w3_lat55  fell 0.004  bitten 0.633  held@0.90 0.492  held@end 0.482  dropped-after 0.020  rms 0.208  neck p90 6.59  (34 s)
+--- final DR
+w1        fell 0.078  bitten 0.705  held@0.90 0.527  held@end 0.500  dropped-after 0.052  rms 0.214  neck p90 6.52  (42 s)
+w3        fell 0.082  bitten 0.537  held@0.90 0.371  held@end 0.350  dropped-after 0.058  rms 0.220  neck p90 6.54  (37 s)
+--- chained
+chained  dock ok 0.859 x kneel held@end 0.328 -> 0.282  (fell 0.002, bitten 0.488)
+ALLDONE
