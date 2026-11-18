@@ -74,3 +74,15 @@ def test_neck_rate_cost_sign_and_gate():
     t = cfg.rewards["held_neck_rate"]
     assert t.func is kr.held_neck_rate_cost and t.weight < 0   # >= 0 cost: negative weight
     assert 0 < kr.NECK_RATE_FREE < 5.0                          # the issue-5 drops were at 5-8 rad/s
+
+
+def test_sighted_variant_keeps_camera_and_own_experiment():
+    for b in BODIES:
+        t = f"Mjlab-KneelRise-Sighted-FromRise-MicroDuck-CMU-{b}"
+        assert t in list_tasks()
+        assert load_rl_cfg(t).experiment_name == "kneel_rise_sighted"
+    cfg = kr.make_kneel_rise_env_cfg("plugged", sighted=True)
+    assert cfg.observations["actor"].terms["body_command"].func is not kr.blind_body_command
+    assert cfg.events["reset_object"].params["window"] == kr.SIGHTED_WINDOW_START
+    assert cfg.curriculum["dock_window"].params["window_max"] == kr.SIGHTED_WINDOW_MAX
+    assert cfg.commands["twist"].hold_phase == kr.HOLD_PHASE

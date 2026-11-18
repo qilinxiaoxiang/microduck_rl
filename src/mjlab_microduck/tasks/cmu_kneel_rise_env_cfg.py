@@ -79,7 +79,14 @@ def held_neck_rate_cost(env: ManagerBasedRlEnv,
     return held * torch.clamp(qd - free, min=0.0).sum(-1)
 
 
-def make_kneel_rise_env_cfg(variant: str, play: bool = False):
+SIGHTED_WINDOW_START = 0.01       # as kr-b: ks-a (+-2 cm) and ks-b (+-4 cm) starts unlearned the bite (grasp_held fell
+                                  # while the bite's impact / overrun taxes shrank); start where most bites succeed
+SIGHTED_WINDOW_MAX = 0.05         # covers the dock's measured end spread (bd-a2 dx p10/p90 -1.8 / +2.6 cm)
+
+
+def make_kneel_rise_env_cfg(variant: str, play: bool = False, sighted: bool = False):
+    """sighted=True keeps the camera slots during the descent (RESULTS.md next step 1): the blind kneel's success
+    collapses for dx >= +2 cm, and a policy that sees the ball can correct for it."""
     cfg = make_seeing_pix_handoff_env_cfg(variant, play=play, rise=True)
 
     # 3. hold-on past the hand-over
@@ -87,17 +94,20 @@ def make_kneel_rise_env_cfg(variant: str, play: bool = False):
     cfg.episode_length_s = EPISODE_S
 
     # 1. blind actor
-    cfg.observations["actor"].terms["body_command"] = ObservationTermCfg(func=blind_body_command, params={"dim": 6})
+    if not sighted:
+        cfg.observations["actor"].terms["body_command"] = ObservationTermCfg(func=blind_body_command,
+                                                                              params={"dim": 6})
 
     # 2. docked starts
+    w0, wmax = (SIGHTED_WINDOW_START, SIGHTED_WINDOW_MAX) if sighted else (DOCK_WINDOW_START, DOCK_WINDOW_MAX)
     ev = cfg.events["reset_object"]
-    ev.params.update(window=DOCK_WINDOW_MAX if play else DOCK_WINDOW_START, start_speed=START_SPEED,
+    ev.params.update(window=wmax if play else w0, start_speed=START_SPEED,
                      kick_prob=0.0, center_frac=DOCK_CENTER_FRAC)
     cfg.curriculum.pop("pix_window", None)
     if not play:
         cfg.curriculum["dock_window"] = CurriculumTermCfg(
             func=pix.pix_window_curriculum,
-            params={"event_name": "reset_object", "window_step": DOCK_WINDOW_STEP, "window_max": DOCK_WINDOW_MAX,
+            params={"event_name": "reset_object", "window_step": DOCK_WINDOW_STEP, "window_max": wmax,
                     "advance_success": DOCK_ADVANCE})
 
     # 4. neck rate while holding
@@ -106,9 +116,9 @@ def make_kneel_rise_env_cfg(variant: str, play: bool = False):
     return cfg
 
 
-def kneel_rise_rl_cfg(base):
+def kneel_rise_rl_cfg(base, sighted: bool = False):
     rl = copy.deepcopy(base)
-    rl.experiment_name = "kneel_rise"
-    rl.run_name = "kneel_rise"
+    rl.experiment_name = "kneel_rise_sighted" if sighted else "kneel_rise"
+    rl.run_name = rl.experiment_name
     rl.max_iterations = 1000
     return rl

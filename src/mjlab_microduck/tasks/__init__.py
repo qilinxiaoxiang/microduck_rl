@@ -581,6 +581,30 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
         runner_cls=KneelRiseFromRiseRunner,
     )
 
+
+
+class KneelRiseSightedFromRiseRunner(KneelRiseFromRiseRunner):
+    """The sighted variant: rise-s1's camera columns are kept. rise-s1 untrained is already the best kneel (held at end
+    0.67 / 0.49 / 0.34 at +-1 / 3 / 5 cm, 7-9 % falls), and ks-a (adaptive lr, entropy 0.01, warm-up 50) degraded it
+    to 0.50 / 0.29 / 0.16 by iteration 250 while the action std grew 0.25 -> 0.31. Hence a longer warm-up and a low
+    lr; launch with --agent.algorithm.schedule fixed --agent.algorithm.entropy-coef 0.0."""
+
+    INIT_LR = 3e-5
+    CRITIC_WARMUP_ITERS = 100
+
+    def _init_actor_from_onnx(self):
+        GroundGraspFromPickRunner._init_actor_from_onnx(self)
+
+
+for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-20261104")):
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelRise-Sighted-FromRise-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_kneel_rise_env_cfg(_variant, sighted=True),
+        play_env_cfg=make_kneel_rise_env_cfg(_variant, play=True, sighted=True),
+        rl_cfg=kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, sighted=True),
+        runner_cls=KneelRiseSightedFromRiseRunner,
+    )
+
 # Ball dock (cmu_ball_dock_env_cfg.py, 2026-11-18): the closed-loop half of the split pick. A commander (vx, vy, wz,
 # head pitch / yaw) over the frozen deployed walk61, seeing the ball through the U20CAM model, rewarded for standing
 # still with the ball at the kneel-rise landing spot.
@@ -593,4 +617,23 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
         play_env_cfg=make_ball_dock_env_cfg(_variant, play=True),
         rl_cfg=BallDockRlCfg,
         runner_cls=MicroduckOnPolicyRunner,
+    )
+
+# Walk nudge (cmu_walk_nudge_env_cfg.py, 2026-11-18): walk61 fine-tuned to step to a target 1-6 cm away and stop, the
+# twist slots carrying gain x the remaining error. Warm start from walk61 with the critic warm-up.
+from .cmu_walk_nudge_env_cfg import INIT_ONNX as _WN_INIT
+from .cmu_walk_nudge_env_cfg import make_walk_nudge_env_cfg, walk_nudge_rl_cfg
+
+
+class WalkNudgeFromWalk61Runner(KneelRiseSightedFromRiseRunner):
+    INIT_ONNX = _WN_INIT
+
+
+for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-20261104")):
+    register_mjlab_task(
+        task_id=f"Mjlab-WalkNudge-FromWalk61-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_walk_nudge_env_cfg(_variant),
+        play_env_cfg=make_walk_nudge_env_cfg(_variant, play=True),
+        rl_cfg=walk_nudge_rl_cfg(MicroduckRlCfg),
+        runner_cls=WalkNudgeFromWalk61Runner,
     )

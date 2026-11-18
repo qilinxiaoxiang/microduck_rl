@@ -122,3 +122,65 @@ All runs stopped; the GPU is free.
 2. **Dock:** give it a fine-step low level (walk61 fine-tuned on |v| < 0.15 m/s with the dead zone removed). This
    attacks finding 2 and the +3 cm stop-short tail.
 3. Train both on the battery body before any robot test. Rehearse in `scripts/infer_policy.py`.
+
+## Round 2 (2026-11-18 afternoon)
+
+### walk61 pulses are not a fine-positioning tool (`pulse_check.py`, `results/pulse_walk61.json`)
+
+From standing: stand 1 s, command pulse (±x/±y, 0.25–0.40, 0.1–0.5 s), stand 1.5 s; 32 envs per cell.
+- Lateral pulses never step (median 0 in every cell).
+- Forward: 0.40 m/s × 0.3 s gives +2.0 to +2.4 cm median (p90 +4); shorter or slower pulses give 0. Backward
+  steps are larger (−4 to −10 cm).
+- At zero command, 10–20 % of envs creep backward 5–25 cm over 3 s (head down or level).
+
+### Nudge: `Mjlab-WalkNudge-FromWalk61-MicroDuck-CMU-<body>` (`cmu_walk_nudge_env_cfg.py`)
+
+walk61 fine-tuned on the 61-D layout with the twist slots carrying 8 × the remaining error to a target 0–6 cm
+away (±4 cm lateral, ±0.25 rad yaw, 20 % zero targets, re-drawn every 2.5–4 s). Velocity tracking is replaced by a
+position Gaussian (std 1.5 cm), potential-based progress and yaw terms. Stepping terms are gated at > 1.5 cm. Warm
+start from walk61 with the 50-update critic warm-up. Iteration 0 = walk61 under a P-controller.
+
+`nudge_check.py`, 1024 envs, one target each, 3 s, no pushes:
+
+| Policy | within 1 cm | within 2 cm | err p50 / p90 | targets < 3 cm within 1 cm | still | falls | leg rms to HOME p90 |
+|---|---|---|---|---|---|---|---|
+| walk61 (iteration 0) | 0.56 | 0.83 | 0.86 / 2.7 cm | 0.31 | 0.76 | 1.1 % | 0.17 rad |
+| **wn-a @ 250** | **0.99** | 1.00 | 0.16 / 0.35 cm | 0.98 | 0.95 | 0 % | 0.09 rad |
+| wn-a @ 1000 | 1.00 | 1.00 | 0.17 / 0.30 cm | 1.00 | **0.05** | 0 % | 0.18 rad |
+
+| wn-b @ 500 (position × stillness) | 0.95 | 0.99 | 0.32 / 0.73 cm | 0.81 | 0.99 | 0 % | 0.13 rad |
+| **wn-b @ 750** | **0.97** | 1.00 | 0.26 / 0.65 cm | 0.86 | **1.00** | 0 % | 0.15 rad |
+
+wn-a @ 1000 marches in place at the target (stepping keeps the error tiny but the trunk never settles; yaw error
+0.9 → 4.5°). wn-b multiplies the position Gaussian by a trunk-stillness Gaussian (std 3 cm/s) and stays still
+(wn-b was stopped at ~800 iterations). **Candidates: wn-b @ 750 (`policies/wn-b_750.onnx`), or wn-a @ 250.**
+
+End stance is walk61's (foot split p90 1.1 cm, width 8.1–8.5 cm). Caveat: the target error here is the true foot-frame
+error. On the robot it comes from the camera (8–10 fps, 0.1–0.3 s delay, drops), which is not yet in this task.
+
+### Sighted kneel-rise: `Mjlab-KneelRise-Sighted-FromRise-MicroDuck-CMU-<body>`
+
+The kneel-rise task with the camera slots kept (rise-s1's own input).
+
+| Policy | ±1 cm held@end | ±3 cm | ±5 cm | falls |
+|---|---|---|---|---|
+| kr-c @ 1998 (blind, best of round 1) | 0.63 | 0.43 | 0.27 | 0 % |
+| **rise-s1 @ 999, sighted, untrained** | **0.67** | **0.49** | **0.34** | 7–9 % |
+| ks-a @ 250 (adaptive lr, entropy 0.01, window from ±2 cm) | 0.50 | 0.29 | 0.16 | 6 % |
+| ks-b @ 250 (fixed lr 3e-5, entropy 0, warm-up 100, window from ±4 cm) | 0.29 | 0.17 | 0.11 | 15 % |
+
+ks-a degraded the warm start after the warm-up (held at hand-over 0.55 → 0.14–0.24, action std 0.25 → 0.31) and
+was stopped. ks-b (gentler optimiser, wider start) collapsed the same way: after the warm-up grasp_held fell 3.1 → 1.2
+while the taxes that come with biting shrank (action_overrun −0.82 → −0.33, neck rates, beak / jaw floor impacts).
+So it is the attempt-tax failure, not the step size: with most starts outside the window where bites succeed,
+not biting wins. The blind kr-b, which improved, started at ±1 cm. ks-c (ks-b's optimiser, window from ±1 cm) did
+not fix it:
+
+| Policy | ±1 cm held@end | ±3 cm | ±5 cm | falls |
+|---|---|---|---|---|
+| ks-c @ 250 | 0.45 | 0.26 | 0.15 | 15 % |
+
+Three fine-tunes of the sighted rise-s1 in this env all made it worse, and falls doubled even at ±1 cm. Stopped.
+**The kneel to use is rise-s1 @ 999 itself, with the camera** (`init_policies/rise-s1_999.onnx`). Before another
+fine-tune, measure why this env degrades it: replay rise-s1 in its own task against this one, and look at the falls
+(which spawn, which phase).

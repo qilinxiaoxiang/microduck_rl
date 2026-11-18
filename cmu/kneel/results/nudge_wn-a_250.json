@@ -1,0 +1,51 @@
+{
+ "onnx": "cmu/kneel/policies/wn-a_250.onnx",
+ "md5": "6075cbbae42a888ed5cd68906cca3894",
+ "seconds": 3.0,
+ "res": {
+  "all": {
+   "n": 1024,
+   "fell": 0.0,
+   "err_p50_cm": 0.1589,
+   "err_p90_cm": 0.3428,
+   "within_1cm": 0.9961,
+   "within_2cm": 1.0,
+   "dx_abs_p90_cm": 0.2852,
+   "still": 0.9521,
+   "yaw_err_p50_deg": 0.8747
+  },
+  "zero": {
+   "n": 215,
+   "fell": 0.0,
+   "err_p50_cm": 0.0717,
+   "err_p90_cm": 0.1808,
+   "within_1cm": 1.0,
+   "within_2cm": 1.0,
+   "dx_abs_p90_cm": 0.1475,
+   "still": 1.0,
+   "yaw_err_p50_deg": 0.6649
+  },
+  "lt3cm": {
+   "n": 236,
+   "fell": 0.0,
+   "err_p50_cm": 0.2016,
+   "err_p90_cm": 0.483,
+   "within_1cm": 0.9831,
+   "within_2cm": 1.0,
+   "dx_abs_p90_cm": 0.3678,
+   "still": 0.9492,
+   "yaw_err_p50_deg": 0.9868
+  },
+  "ge3cm": {
+   "n": 573,
+   "fell": 0.0,
+   "err_p50_cm": 0.1797,
+   "err_p90_cm": 0.3251,
+   "within_1cm": 1.0,
+   "within_2cm": 1.0,
+   "dx_abs_p90_cm": 0.2843,
+   "still": 0.9354,
+   "yaw_err_p50_deg": 0.9433
+  }
+ }
+}
