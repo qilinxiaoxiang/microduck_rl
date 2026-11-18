@@ -108,6 +108,10 @@ def main():
     ap.add_argument("--save-interval", type=int, default=20)
     ap.add_argument("--stop-after", type=int, default=120)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--resume-pt", default=None, help="continue a student from a saved model_<iter>.pt: weights (and the "
+                    "optimizer when the file has it), iteration count kept; the first --warmup-iters iterations after the "
+                    "resume are teacher-driven without updates (baseline), then beta is 0; the learning rate runs from "
+                    "--lr at the resume iteration to --lr-final at --max-iters")
     ap.add_argument("--max-hours", type=float, required=True)
     ap.add_argument("--max-dollars", type=float, default=1.0)   # accepted for the shared launcher presets; unused
     ap.add_argument("--rate-per-hour", type=float, default=0.0)
@@ -141,6 +145,15 @@ def main():
     print(f"[distill] student {spec}; segment {a.bptt_steps} ticks ({a.bptt_steps * 0.02:.2f} s), {a.num_envs} envs, "
           f"{a.epochs} epochs x minibatches of {a.mb_envs} envs", flush=True)
     opt = torch.optim.Adam(student.parameters(), lr=a.lr)
+    it0 = 0
+    if a.resume_pt:
+        ck = torch.load(a.resume_pt, map_location=dev, weights_only=False)
+        assert ck["spec"] == spec, (ck["spec"], spec)
+        student.load_state_dict(ck["student"])
+        it0 = int(ck["iter"])
+        if "opt" in ck:
+            opt.load_state_dict(ck["opt"])
+        print(f"[distill] resumed from {a.resume_pt} at iteration {it0}; optimizer state {'loaded' if 'opt' in ck else 'not in the file, fresh Adam'}", flush=True)
     robot, cm = env.scene["robot"], env.command_manager
     N, T = a.num_envs, a.bptt_steps
 
@@ -165,10 +178,13 @@ def main():
     state = student.init_state(N, dev)
     base = Tally()                       # teacher-driven envs, whole run
     win_s, win_loss, win_err, win_n = Tally(), 0.0, 0.0, 0
-    best, bad, stop, last_t, last_it, rows = None, 0, "max_iters reached", time.time(), 0, []
+    best, bad, stop, last_t, last_it, rows = None, 0, "max_iters reached", time.time(), it0, []
     half_noise = (torch.arange(N, device=dev) % 2 == 0)
-    for it in range(1, a.max_iters + 1):
-        beta = 1.0 if it <= a.warmup_iters else max(0.0, 1.0 - (it - a.warmup_iters) / max(a.beta_iters, 1))
+    for it in range(it0 + 1, a.max_iters + 1):
+        if it0:
+            beta = 1.0 if it <= it0 + a.warmup_iters else 0.0
+        else:
+            beta = 1.0 if it <= a.warmup_iters else max(0.0, 1.0 - (it - a.warmup_iters) / max(a.beta_iters, 1))
         tmask = torch.rand(N, device=dev) < beta
         O = torch.empty(T, N, rc.OBS, device=dev)
         L = torch.empty(T, N, rc.ACT, device=dev)
@@ -196,11 +212,11 @@ def main():
                 base.add(tmask, d & ~to, along, moving, low)
                 win_s.add(~tmask, d & ~to, along, moving, low)
         student.train()
-        lr = a.lr + (a.lr_final - a.lr) * min(1.0, it / max(a.max_iters, 1))
+        lr = a.lr + (a.lr_final - a.lr) * min(1.0, (it - it0) / max(a.max_iters - it0, 1))
         for g in opt.param_groups:
             g["lr"] = lr
         keep = (~D).float()
-        for _ in range(a.epochs):
+        for _ in range(0 if (it0 and beta == 1.0) else a.epochs):   # no update on a resume's teacher-driven baseline
             perm = torch.randperm(N, device=dev)
             for i in range(0, N, a.mb_envs):
                 idx = perm[i:i + a.mb_envs]
@@ -227,7 +243,7 @@ def main():
                        loss=round(win_loss, 5), student_action_mse=round(win_err / win_n, 5) if win_n else None,
                        student=s_out, teacher_base=b_out, time=time.strftime("%Y-%m-%dT%H:%M:%S"))
             rows.append(row)
-            torch.save(dict(student=student.state_dict(), spec=spec, iter=it, args=vars(a)), run_dir / f"model_{it}.pt")
+            torch.save(dict(student=student.state_dict(), opt=opt.state_dict(), spec=spec, iter=it, args=vars(a)), run_dir / f"model_{it}.pt")
             dx = export(f"model_{it}.onnx", str(run_dir / f"model_{it}.pt"))
             (run_dir / "progress.json").write_text(json.dumps(dict(row, rows=rows), indent=1))
             with open(run_dir / "progress.csv", "a") as f:

@@ -52,13 +52,16 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
                "ts2_teacher.onnx": TRAIN / "ckpt/ts2_teacher/teacher.onnx",
                "ts2b_teacher.onnx": TRAIN / "ckpt/ts2b_teacher/teacher.onnx",
                # teacher A at its last iteration (0 falls of 100 in the runtime selection cases)
-               "ts2a999_teacher.onnx": TRAIN / "ckpt/ts2a999_teacher/teacher.onnx"}.items():
+               "ts2a999_teacher.onnx": TRAIN / "ckpt/ts2a999_teacher/teacher.onnx",
+               # its students' last saved states, continued with --resume-pt
+               "s2c_132.pt": TRAIN / "ckpt/s2c_132/model_132.pt",
+               "l2c_140.pt": TRAIN / "ckpt/l2c_140/model_140.pt"}.items():
     if _p.exists():
         kj.ASSETS[f"init/{_n}"] = _p
 _flags = kj.worker_flags
 # --distill jobs run distill_worker.py through flight_worker.py (TEACHER-STUDENT-PLAN.md)
 DISTILL_FLAGS = {"--distill", "--teacher-onnx", "--core", "--hidden", "--layers", "--bptt-steps", "--beta-iters", "--act-noise",
-                 "--epochs", "--mb-envs", "--lr", "--lr-final", "--stop-after", "--device"}
+                 "--epochs", "--mb-envs", "--lr", "--lr-final", "--stop-after", "--device", "--resume-pt"}
 kj.worker_flags = lambda: _flags() | {"--scratch", "--task", "--history-step-scale"} | DISTILL_FLAGS
 
 
@@ -71,7 +74,7 @@ def _audit_gate(argv):
     if "push" not in argv or "run" not in argv:
         return
     for i, a in enumerate(argv):  # every /root/assets path a job names must be a shipped asset the entry copies
-        if a in ("--onnx", "--manifest", "--teacher-onnx") and i + 1 < len(argv) and argv[i + 1].startswith("/root/assets/"):
+        if a in ("--onnx", "--manifest", "--teacher-onnx", "--resume-pt") and i + 1 < len(argv) and argv[i + 1].startswith("/root/assets/"):
             if argv[i + 1][len("/root/assets/"):] not in kj.ASSETS:
                 sys.exit(f"asset check: {argv[i + 1]} is not in the shipped assets")
     deltas = [argv[i + 1] for i, a in enumerate(argv) if a == "--delta" and i + 1 < len(argv)]
