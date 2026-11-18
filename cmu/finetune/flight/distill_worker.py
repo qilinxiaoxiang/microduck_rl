@@ -108,6 +108,9 @@ def main():
     ap.add_argument("--save-interval", type=int, default=20)
     ap.add_argument("--stop-after", type=int, default=120)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--drop-max", type=float, default=0.0, help="dropped servo reads as in the runtime: per env a drop "
+                    "probability uniform in 0..drop-max; on a dropped tick the student is not called, its state is kept "
+                    "and the previous action stays applied; the loss counts only the ticks it ran (robot: 0.036)")
     ap.add_argument("--resume-pt", default=None, help="continue a student from a saved model_<iter>.pt: weights (and the "
                     "optimizer when the file has it), iteration count kept; the first --warmup-iters iterations after the "
                     "resume are teacher-driven without updates (baseline), then beta is 0; the learning rate runs from "
@@ -180,6 +183,12 @@ def main():
     win_s, win_loss, win_err, win_n = Tally(), 0.0, 0.0, 0
     best, bad, stop, last_t, last_it, rows = None, 0, "max_iters reached", time.time(), it0, []
     half_noise = (torch.arange(N, device=dev) % 2 == 0)
+    # --drop-max: per env a drop probability drawn uniformly from 0 to drop_max, redrawn when the env resets
+    p_drop = torch.rand(N, device=dev) * a.drop_max
+    prev_act = torch.zeros(N, rc.ACT, device=dev)
+    has_prev = torch.zeros(N, dtype=torch.bool, device=dev)   # no drop on an episode's first tick (nothing to hold)
+    gap = torch.zeros(N, dtype=torch.long, device=dev)
+    drop_n, tick_n = 0, 0
     for it in range(it0 + 1, a.max_iters + 1):
         if it0:
             beta = 1.0 if it <= it0 + a.warmup_iters else 0.0
@@ -189,22 +198,40 @@ def main():
         O = torch.empty(T, N, rc.OBS, device=dev)
         L = torch.empty(T, N, rc.ACT, device=dev)
         D = torch.empty(T, N, dtype=torch.bool, device=dev)
+        R = torch.ones(T, N, dtype=torch.bool, device=dev)    # the student ran on this tick (no dropped read)
+        Z = torch.zeros(T, N, dtype=torch.bool, device=dev)   # its state was zeroed before the call (gap over 5 ticks)
         state0 = state.clone()
         student.eval()
         with torch.no_grad():
             for t in range(T):
                 o = obs["actor"].to(dev)
                 lab = teacher(torch.cat([o, tc.priv_obs(env).to(dev)], dim=1))
-                act_s, state = student.step(o, state)
-                win_err += float(((act_s - lab) ** 2).mean(dim=1)[~tmask].sum())
-                win_n += int((~tmask).sum())
-                act_s = act_s + a.act_noise * torch.randn_like(act_s) * half_noise.view(N, 1)
-                O[t], L[t] = o, lab
-                obs, _, dones, extras = venv.step(torch.where(tmask.view(N, 1), lab, act_s).to(env.device))
+                # dropped servo reads as in the runtime (brain_sim_check --drop: each tick independently; the Brain
+                # skips the tick, the policy is not called, its state is not stepped, the servos keep the last goal;
+                # flight_eval._StatefulSession zeroes the state after more than RECURRENT_MAX_GAP = 5 skipped ticks)
+                ran = ~((torch.rand(N, device=dev) < p_drop) & has_prev)
+                zero = ran & (gap > 5)
+                state = state * (~zero).view(N, 1)
+                act_new, state_new = student.step(o, state)
+                state = torch.where(ran.view(N, 1), state_new, state)
+                gap = torch.where(ran, torch.zeros_like(gap), gap + 1)
+                win_err += float(((act_new - lab) ** 2).mean(dim=1)[~tmask & ran].sum())
+                win_n += int((~tmask & ran).sum())
+                drop_n += int((~ran).sum())
+                tick_n += N
+                act_new = act_new + a.act_noise * torch.randn_like(act_new) * half_noise.view(N, 1)
+                act_s = torch.where(ran.view(N, 1), act_new, prev_act)
+                O[t], L[t], R[t], Z[t] = o, lab, ran, zero
+                applied = torch.where(tmask.view(N, 1), lab, act_s)
+                obs, _, dones, extras = venv.step(applied.to(env.device))
                 d = dones.to(dev).bool()
                 to = extras.get("time_outs", torch.zeros_like(d)).to(dev).bool()
                 D[t] = d
                 state = state * (~d).view(N, 1)
+                prev_act, has_prev = applied, ~d
+                gap = gap * (~d)
+                if a.drop_max > 0 and bool(d.any()):
+                    p_drop = torch.where(d, torch.rand(N, device=dev) * a.drop_max, p_drop)
                 cmd, v = cm.get_command("twist"), robot.data.root_link_lin_vel_b
                 along = (v[:, 0] * torch.sign(cmd[:, 0])).to(dev)
                 moving = (cmd[:, 0].abs() > 0.15).to(dev)
@@ -222,8 +249,11 @@ def main():
                 idx = perm[i:i + a.mb_envs]
                 s, loss = state0[idx], 0.0
                 for t in range(T):
-                    act, s = student.step(O[t, idx], s)
-                    loss = loss + ((act - L[t, idx]) ** 2).mean()
+                    r = R[t, idx]
+                    s = s * (~Z[t, idx]).view(-1, 1)
+                    act, s_new = student.step(O[t, idx], s)
+                    s = torch.where(r.view(-1, 1), s_new, s)      # a dropped tick leaves the state as it was
+                    loss = loss + (((act - L[t, idx]) ** 2).mean(dim=1) * r).sum() / r.sum().clamp(min=1)
                     s = s * keep[t, idx].view(-1, 1)
                 loss = loss / T
                 opt.zero_grad()
@@ -241,6 +271,7 @@ def main():
             s_out, b_out = win_s.out(), base.out()
             row = dict(iter=it, elapsed_s=round(elapsed, 1), it_per_s=round(its, 4), beta=round(beta, 3), lr=lr,
                        loss=round(win_loss, 5), student_action_mse=round(win_err / win_n, 5) if win_n else None,
+                       dropped_tick_fraction=round(drop_n / max(tick_n, 1), 4), drop_max=a.drop_max,
                        student=s_out, teacher_base=b_out, time=time.strftime("%Y-%m-%dT%H:%M:%S"))
             rows.append(row)
             torch.save(dict(student=student.state_dict(), opt=opt.state_dict(), spec=spec, iter=it, args=vars(a)), run_dir / f"model_{it}.pt")
@@ -249,6 +280,7 @@ def main():
             with open(run_dir / "progress.csv", "a") as f:
                 f.write(json.dumps(row) + "\n")
             print(f"[cap] it {it} elapsed {elapsed / 60:.1f} min it/s {its:.4f} beta {beta:.2f} loss {win_loss:.5f} "
+                  f"dropped ticks {row['dropped_tick_fraction']} (drawn 0..{a.drop_max}) "
                   f"student mse {row['student_action_mse']} student {s_out} teacher {b_out} onnx {dx:.1e}", flush=True)
             tf, ts, tl = b_out["falls_per_env_min"], b_out["speed"], b_out["low_speed"]
             sf, ss, sl = s_out["falls_per_env_min"], s_out["speed"], s_out["low_speed"]
@@ -263,6 +295,7 @@ def main():
                     stop = (f"task-metric stop at iter {it}: student falls {sf} per env-min (teacher {tf}), low-command speed "
                             f"{sl} (teacher {tl}) on two saves")
             win_s, win_err, win_n = Tally(), 0.0, 0
+            drop_n, tick_n = 0, 0
             if elapsed >= a.max_hours * 3600:
                 stop = f"time cap {a.max_hours} h reached at iter {it}"
             if stop != "max_iters reached":

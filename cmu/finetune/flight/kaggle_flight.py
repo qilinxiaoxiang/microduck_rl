@@ -61,7 +61,7 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
 _flags = kj.worker_flags
 # --distill jobs run distill_worker.py through flight_worker.py (TEACHER-STUDENT-PLAN.md)
 DISTILL_FLAGS = {"--distill", "--teacher-onnx", "--core", "--hidden", "--layers", "--bptt-steps", "--beta-iters", "--act-noise",
-                 "--epochs", "--mb-envs", "--lr", "--lr-final", "--stop-after", "--device", "--resume-pt"}
+                 "--epochs", "--mb-envs", "--lr", "--lr-final", "--stop-after", "--device", "--resume-pt", "--drop-max"}
 kj.worker_flags = lambda: _flags() | {"--scratch", "--task", "--history-step-scale"} | DISTILL_FLAGS
 
 
