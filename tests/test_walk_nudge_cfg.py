@@ -47,3 +47,17 @@ def test_inherited_curricula_collapsed():
         for v in term.params.values():
             if isinstance(v, list) and v and all(isinstance(s, dict) and "step" in s for s in v):
                 assert len(v) == 1 and v[0]["step"] == 0
+
+
+def test_camera_variant_registered_and_shaped_like_the_detector():
+    for b in BODIES:
+        t = f"Mjlab-WalkNudge-Cam-FromWalk61-MicroDuck-CMU-{b}"
+        assert t in list_tasks()
+        assert load_rl_cfg(t).experiment_name == "walk_nudge_cam"
+    cfg = wn.make_walk_nudge_env_cfg("plugged", camera=True)
+    assert cfg.commands["twist"].camera and not wn.make_walk_nudge_env_cfg("plugged").commands["twist"].camera
+    from mjlab_microduck.tasks import cmu_seeing_pix_env_cfg as pix
+    assert wn.CAM_PERIOD_STEPS == pix.PIX_PERIOD_STEPS
+    dt = 0.02
+    assert (wn.CAM_DELAY_STEPS[0] * dt, wn.CAM_DELAY_STEPS[1] * dt) == pix.PIX_DELAY_S
+    assert wn.CAM_DROP[1] >= pix.PIX_DROP[1]

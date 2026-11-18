@@ -637,3 +637,10 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
         rl_cfg=walk_nudge_rl_cfg(MicroduckRlCfg),
         runner_cls=WalkNudgeFromWalk61Runner,
     )
+    register_mjlab_task(
+        task_id=f"Mjlab-WalkNudge-Cam-FromWalk61-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_walk_nudge_env_cfg(_variant, camera=True),
+        play_env_cfg=make_walk_nudge_env_cfg(_variant, play=True, camera=True),
+        rl_cfg=walk_nudge_rl_cfg(MicroduckRlCfg, camera=True),
+        runner_cls=WalkNudgeFromWalk61Runner,
+    )

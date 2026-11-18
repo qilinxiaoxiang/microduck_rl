@@ -184,3 +184,41 @@ Three fine-tunes of the sighted rise-s1 in this env all made it worse, and falls
 **The kneel to use is rise-s1 @ 999 itself, with the camera** (`init_policies/rise-s1_999.onnx`). Before another
 fine-tune, measure why this env degrades it: replay rise-s1 in its own task against this one, and look at the falls
 (which spawn, which phase).
+
+## Round 3: the nudge with the camera (2026-11-18 evening)
+
+`chain_check.py`: bd-a2 docks for 6 s, then the nudge takes over for 4 s (3 s in the first rows) with the head held.
+In `cam` mode the nudge's twist slots get 8 × the ball error ESTIMATED from the commander's camera slots: the newest
+detection back-projected onto the floor with the nominal calibration and the camera pose of its capture step, in that
+step's foot frame (no odometry), zero once older than 0.4 s. 512 envs, ball 10–35 cm, ±45°.
+
+| Chain | kneel-ready | within 1 cm | err p50 / p90 | estimator err at switch p50 / p90 |
+|---|---|---|---|---|
+| dock only (bd-a2) | 0.58 | 0.32 | 1.4 / 3.4 cm | – |
+| dock → wn-b, TRUE error | **0.88** | 0.59 | 0.85 / 1.6 cm | – |
+| dock → wn-b, camera, first estimator (stale pixel through the current pose) | 0.23 | 0.13 | 3.6 / 29 cm | – |
+| dock → wn-b, camera | 0.58 | 0.26 | 1.6 / 4.0 cm | 1.2 / 2.6 cm |
+| dock → wn-b, camera, perfect calibration | 0.56 | 0.35 | 1.3 / 3.0 cm | 0.1 / 1.2 cm |
+| dock → wn-b, camera, perfect calibration, no box bias | 0.59 | 0.38 | 1.2 / 3.0 cm | 0.1 / 1.3 cm |
+| dock → wn-b, camera, 4 s | 0.55 | 0.26 | 1.7 / 4.0 cm | 1.2 / 2.6 cm |
+| dock → **wn-c**, camera, 4 s | 0.53 | 0.19 | 1.7 / 3.5 cm | 1.2 / 2.5 cm |
+
+- With perfect calibration the chain is no better, so the calibration error is not what limits it. The loop is: one
+  sample per 100–120 ms, 0.1–0.3 s late, and a third of the nudge's steps without a fresh detection.
+- wn-c (`Mjlab-WalkNudge-Cam-*`: wn-b's task with the command sampled like the detector, see the cfg's CAM_*
+  constants) trained on exactly that. On its own task it improves on wn-b (within 1 / 2 cm 0.50 / 0.80 vs 0.39 / 0.70;
+  the ±1 cm bias caps within 1 cm near 0.79), but it plateaued by iteration 500, stays still only 44 % of the time,
+  and does not help in the chain. Stopped at ~900.
+
+### The kneel is the better lever: full chain, kneel replayed from the dock's end states (`kr_eval --dock-errors`)
+
+| Dock ends | blind kr-c | **sighted rise-s1 (untrained)** |
+|---|---|---|
+| bd-a2 | 0.29 | **0.38** |
+| bd-a2 → wn-c, camera | 0.29 | 0.39 |
+
+**Current best pipeline in sim: bd-a2 dock → sighted rise-s1 kneel, 38 %.** The nudge adds nothing once it has
+to work from the camera. What would move it:
+- a kneel that tolerates ±3 cm (the sighted rise-s1 is 0.49 there, and its own fine-tunes failed, see round 2);
+- or better perception at the dock's end: a closer, steadier look (head held at a fixed pose that keeps the ball
+  in the picture, more frames), or odometry so a stale detection can still be used.

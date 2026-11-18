@@ -51,6 +51,22 @@ YAW_WEIGHT = 1.0
 STEP_TOL = 0.015                     # m: closer than this, stepping is not rewarded
 STAND_TOL = 0.008                    # m: closer than this, the pose term uses its tight standing std
 
+# Camera-shaped command (camera=True). With the true error every step wn-b ends 97 % within 1 cm; driven through the
+# U20CAM model (cmu/kneel/chain_check.py) the dock -> nudge chain fell back to the dock's own 58 % kneel-ready, and
+# even with a perfect calibration it stayed at 56 %: the loop (one sample per 100-120 ms, 0.1-0.3 s late, a third of
+# the steps without a fresh detection) is what it was never trained on. So the command it trains on is the error
+# sampled like a detection: frames every CAM_PERIOD_STEPS, delivered CAM_DELAY_STEPS late, CAM_DROP of them missing,
+# in the foot frame of the capture step, plus per-frame noise and a per-episode bias; zero once the newest sample is
+# older than CAM_MAX_AGE_S (chain_check's runtime estimator does the same). Rewards still use the true error.
+CAM_PERIOD_STEPS = (5, 6)            # 10 / 8.3 fps (cmu_seeing_pix_env_cfg.PIX_PERIOD_STEPS)
+CAM_DELAY_STEPS = (5, 15)            # 0.10-0.30 s (PIX_DELAY_S)
+CAM_DROP = (0.0, 0.4)                # per-episode share of frames without a detection (PIX_DROP 0-0.3, + occlusion)
+CAM_NOISE_M = 0.003                  # per frame, per axis
+CAM_BIAS_M = 0.01                    # per episode, per axis, uniform +-: the calibration error the runtime cannot see
+CAM_MAX_AGE_S = 0.4
+CAM_TARGET_YAW = (-0.05, 0.05)       # the camera gives no heading target (the runtime writes 0): keep the slot small
+_CAM_H = 24
+
 INIT_ONNX = WALK_ONNX
 
 
@@ -74,12 +90,62 @@ class NudgeCommand(CommandTerm):
         self.offset = torch.zeros(self.num_envs, 3, device=self.device)
         self.metrics["err_xy"] = torch.zeros(self.num_envs, device=self.device)
         self.metrics["within_1cm"] = torch.zeros(self.num_envs, device=self.device)
+        if cfg.camera:
+            n, dev = self.num_envs, self.device
+            self.t = torch.zeros(n, dtype=torch.long, device=dev)
+            self.buf = torch.zeros(n, _CAM_H, 3, device=dev)
+            self.buf_det = torch.zeros(n, _CAM_H, dtype=torch.bool, device=dev)
+            self.buf_step = torch.full((n, _CAM_H), -10 ** 6, dtype=torch.long, device=dev)
+            self.held = torch.zeros(n, 3, device=dev)
+            self.held_step = torch.full((n,), -10 ** 6, dtype=torch.long, device=dev)
+            self.period = torch.full((n,), 5, dtype=torch.long, device=dev)
+            self.delay = torch.full((n,), 10, dtype=torch.long, device=dev)
+            self.phase = torch.zeros(n, dtype=torch.long, device=dev)
+            self.drop = torch.zeros(n, device=dev)
+            self.bias = torch.zeros(n, 2, device=dev)
 
     @property
     def command(self) -> torch.Tensor:
         g = torch.tensor((self.cfg.gain, self.cfg.gain, self.cfg.yaw_gain), device=self.device)
         lim = torch.tensor(self.cfg.cmd_max, device=self.device)
-        return torch.maximum(torch.minimum(self.err * g, lim), -lim)
+        return torch.maximum(torch.minimum(self.sensed() * g, lim), -lim)
+
+    def sensed(self) -> torch.Tensor:
+        """The error the policy is given: the true one, or (camera=True) the newest delivered sample, zero if stale."""
+        if not self.cfg.camera:
+            return self.err
+        fresh = (self.t - self.held_step).float() * self._env.step_dt < CAM_MAX_AGE_S
+        return torch.where(fresh.unsqueeze(-1), self.held, torch.zeros_like(self.held))
+
+    def reset(self, env_ids=None):
+        if self.cfg.camera:
+            ids = torch.arange(self.num_envs, device=self.device) if env_ids is None else env_ids
+            n, dev = len(ids), self.device
+            self.t[ids] = 0
+            self.buf_step[ids] = -10 ** 6
+            self.held_step[ids] = -10 ** 6
+            self.period[ids] = torch.randint(CAM_PERIOD_STEPS[0], CAM_PERIOD_STEPS[1] + 1, (n,), device=dev)
+            self.delay[ids] = torch.randint(CAM_DELAY_STEPS[0], CAM_DELAY_STEPS[1] + 1, (n,), device=dev)
+            self.phase[ids] = torch.randint(0, 6, (n,), device=dev)
+            self.drop[ids] = torch.empty(n, device=dev).uniform_(*CAM_DROP)
+            self.bias[ids] = torch.empty(n, 2, device=dev).uniform_(-CAM_BIAS_M, CAM_BIAS_M)
+        return super().reset(env_ids)
+
+    def _camera_step(self) -> None:
+        n, dev = self.num_envs, self.device
+        ar = torch.arange(n, device=dev)
+        t = self.t
+        frame = ((t + self.phase) % self.period) == 0
+        det = frame & (torch.rand(n, device=dev) >= self.drop)
+        meas = self.err.clone()
+        meas[:, :2] += self.bias + torch.randn(n, 2, device=dev) * CAM_NOISE_M
+        slot = t % _CAM_H
+        self.buf[ar, slot], self.buf_det[ar, slot], self.buf_step[ar, slot] = meas, det, t
+        src = (t - self.delay) % _CAM_H
+        hit = (self.buf_step[ar, src] == t - self.delay) & self.buf_det[ar, src]
+        self.held = torch.where(hit.unsqueeze(-1), self.buf[ar, src], self.held)
+        self.held_step = torch.where(hit, t - self.delay, self.held_step)
+        self.t = t + 1
 
     def _refresh(self) -> None:
         p, yaw = foot_origin(self._env)
@@ -109,6 +175,8 @@ class NudgeCommand(CommandTerm):
 
     def _update_command(self) -> None:
         self._refresh()
+        if self.cfg.camera:
+            self._camera_step()
 
     def _update_metrics(self) -> None:
         e = self.err[:, :2].norm(dim=-1)
@@ -125,6 +193,7 @@ class NudgeCommandCfg(CommandTermCfg):
     target_y: tuple[float, float] = TARGET_Y
     target_yaw: tuple[float, float] = TARGET_YAW
     zero_prob: float = ZERO_PROB
+    camera: bool = False
     resampling_time_range: tuple[float, float] = NUDGE_RESAMPLE_S
 
     def build(self, env: ManagerBasedRlEnv) -> NudgeCommand:
@@ -166,11 +235,12 @@ def nudge_progress(env: ManagerBasedRlEnv, command_name: str = "twist") -> torch
     return r
 
 
-def make_walk_nudge_env_cfg(variant: str = CURRENT, play: bool = False):
+def make_walk_nudge_env_cfg(variant: str = CURRENT, play: bool = False, camera: bool = False):
     cfg = make_cmu_velocity_env_cfg(variant, play=play)
     _collapse_curricula_to_final(cfg)
     cfg.curriculum.pop("standing_envs", None)        # it edits the velocity command's standing share
-    cfg.commands["twist"] = NudgeCommandCfg()
+    cfg.commands["twist"] = (NudgeCommandCfg(camera=True, target_yaw=CAM_TARGET_YAW) if camera
+                             else NudgeCommandCfg())
 
     r = cfg.rewards
     r.pop("track_linear_velocity")
@@ -186,9 +256,9 @@ def make_walk_nudge_env_cfg(variant: str = CURRENT, play: bool = False):
     return cfg
 
 
-def walk_nudge_rl_cfg(base):
+def walk_nudge_rl_cfg(base, camera: bool = False):
     rl = copy.deepcopy(base)
-    rl.experiment_name = "walk_nudge"
-    rl.run_name = "walk_nudge"
+    rl.experiment_name = "walk_nudge_cam" if camera else "walk_nudge"
+    rl.run_name = rl.experiment_name
     rl.max_iterations = 2000
     return rl
