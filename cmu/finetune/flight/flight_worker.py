@@ -117,6 +117,12 @@ fw.DELTAS["bend4"] = dict(fw.DELTAS["bend3"], reward_mods=BEND4_MODS, handback=B
 # uni_a exactly. The ONNX keeps obs [1, 61] as its first input and carries the history as hist_in / hist_out.
 HISTORY_A = {"k": 25, "p": 48}
 fw.DELTAS["universal3h"] = dict(fw.DELTAS["universal3"], history=HISTORY_A)
+# universal3t (extensions/flight-20261110/train/TEACHER-STUDENT-PLAN.md; approved 2026-11-18): universal3's env and
+# reward unchanged, plus seven privileged simulator values appended to the actor observation (teacher.py: payload kg,
+# loaded trunk COM, trunk linear velocity). This is the PPO teacher of the teacher-student pair; it never runs on the
+# robot. Start from the best one-frame policy with zero weights on the seven columns (iteration 0 equals it).
+TEACHER_PRIV = {"n": 7}
+fw.DELTAS["universal3t"] = dict(fw.DELTAS["universal3"], teacher_priv=TEACHER_PRIV)
 
 
 _orig_load = fw.load_walk61_into_actor
@@ -167,11 +173,15 @@ def load_any_into_actor(actor, onnx_path: str, init_std: float):
     width = int(actor.state_dict()["mlp.0.weight"].shape[1])
     if width == 61:
         return load_onnx_into_actor(actor, onnx_path, init_std)
+    if width in _PRIV_WIDTH:  # the privileged teacher (universal3t)
+        import teacher as tc
+        return tc.load_padded_priv(actor, onnx_path, init_std, _PRIV_WIDTH[width])
     import history as hi
     return hi.load_padded(actor, onnx_path, init_std, *_HISTORY_KP[width])
 
 
 _HISTORY_KP = {}  # actor input width -> (k, p), filled by apply_delta for each history delta built in this process
+_PRIV_WIDTH = {}  # actor input width -> number of privileged columns, filled by apply_delta for the teacher delta
 fw.load_walk61_into_actor = load_any_into_actor
 _orig_compare = fw.compare_onnx
 
@@ -179,9 +189,13 @@ _orig_compare = fw.compare_onnx
 def compare_any_onnx(a: str, b: str, n: int = 256, seed: int = 0) -> float:
     """fw.compare_onnx, or history.compare_stateful when b carries a history state input"""
     import onnxruntime as ort
-    if len(ort.InferenceSession(b).get_inputs()) > 1:
+    ins = ort.InferenceSession(b).get_inputs()
+    if len(ins) > 1:
         import history as hi
         return hi.compare_stateful(a, b, n, seed)
+    if int(ins[0].shape[1]) != 61:  # a teacher ONNX: random privileged columns too
+        import teacher as tc
+        return tc.compare_priv(a, b, n, seed)
     return _orig_compare(a, b, n, seed)
 
 
@@ -312,6 +326,15 @@ def apply_delta(env_cfg, delta: dict):
         print(f"[payload] pack rest {cfg['rest_kg']:.4f} kg + batteries {cfg['batt_kg']:.4f} kg from {d}; "
               f"weights {cfg['weights']}, smax {cfg['smax']}", flush=True)
         delta = {k: v for k, v in delta.items() if k != "payload"}
+    if "teacher_priv" in delta:  # TEACHER-STUDENT-PLAN.md: privileged columns after the 61 actor inputs
+        from mjlab.managers import EventTermCfg, ObservationTermCfg
+        import teacher as tc
+        n = int(delta["teacher_priv"]["n"])
+        assert n == tc.PRIV_N and "payload" in env_cfg.observations["critic"].terms, "the teacher needs the payload env"
+        env_cfg.observations["actor"].terms["priv"] = ObservationTermCfg(func=tc.priv_obs)
+        ev["capture_env"] = EventTermCfg(func=tc.capture_env, mode="startup")
+        _PRIV_WIDTH[61 + n] = n
+        print(f"[teacher] actor obs = 61 + {n} privileged ({', '.join(tc.PRIV_NAMES)})", flush=True)
     print(f"[pack] delta applied: { {k: delta[k] for k in delta if k != 'track_lin_vel'} }", flush=True)
     return env_cfg
 
@@ -403,6 +426,14 @@ if __name__ == "__main__":
     # its client on the subprocess path, but these runs mount their own Volume (flight_modal.py commits it), so the
     # worker must not find modal: its own try/except then skips the in-worker commit
     sys.modules["modal"] = None
+    # --distill: the DAgger distillation of the teacher into a recurrent student (distill_worker.py) instead of PPO.
+    # The Kaggle entry always starts this file; the deltas registered above are shared through sys.modules.
+    if "--distill" in sys.argv:
+        sys.argv.remove("--distill")
+        sys.modules["flight_worker"] = sys.modules["__main__"]
+        import distill_worker
+        distill_worker.main()
+        sys.exit(0)
     _tq_weight_from_argv()
     _history_step_scale_from_argv()
     _patch_runner_for_history()

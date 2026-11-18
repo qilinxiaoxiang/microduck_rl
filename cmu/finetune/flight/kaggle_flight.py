@@ -42,11 +42,19 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
                "groundpick61.onnx": TRAIN / "ckpt/bend_spec/groundpick61.onnx",
                "seepick61.onnx": TRAIN / "ckpt/bend_spec/seepick61.onnx",
                # NEXT-PLAN.md: universal3 starts from run A final; bend4's in-episode hand-back stander
-               "uni_a.onnx": TRAIN / "ckpt/uni_a/walk61.onnx"}.items():
+               "uni_a.onnx": TRAIN / "ckpt/uni_a/walk61.onnx",
+               # TEACHER-STUDENT-PLAN.md: the one-frame start of the teacher and the control arm, the iteration-0
+               # teacher (bench only) and the trained teacher the students are distilled from
+               "ts_start.onnx": TRAIN / "ckpt/ts_start/walk61.onnx",
+               "ts_teacher_m0.onnx": TRAIN / "ckpt/ts_teacher_m0/teacher.onnx",
+               "ts_teacher.onnx": TRAIN / "ckpt/ts_teacher/teacher.onnx"}.items():
     if _p.exists():
         kj.ASSETS[f"init/{_n}"] = _p
 _flags = kj.worker_flags
-kj.worker_flags = lambda: _flags() | {"--scratch", "--task", "--history-step-scale"}
+# --distill jobs run distill_worker.py through flight_worker.py (TEACHER-STUDENT-PLAN.md)
+DISTILL_FLAGS = {"--distill", "--teacher-onnx", "--core", "--hidden", "--layers", "--bptt-steps", "--beta-iters", "--act-noise",
+                 "--epochs", "--mb-envs", "--lr", "--lr-final", "--stop-after", "--device"}
+kj.worker_flags = lambda: _flags() | {"--scratch", "--task", "--history-step-scale"} | DISTILL_FLAGS
 
 
 def _audit_gate(argv):
@@ -58,7 +66,7 @@ def _audit_gate(argv):
     if "push" not in argv or "run" not in argv:
         return
     for i, a in enumerate(argv):  # every /root/assets path a job names must be a shipped asset the entry copies
-        if a in ("--onnx", "--manifest") and i + 1 < len(argv) and argv[i + 1].startswith("/root/assets/"):
+        if a in ("--onnx", "--manifest", "--teacher-onnx") and i + 1 < len(argv) and argv[i + 1].startswith("/root/assets/"):
             if argv[i + 1][len("/root/assets/"):] not in kj.ASSETS:
                 sys.exit(f"asset check: {argv[i + 1]} is not in the shipped assets")
     deltas = [argv[i + 1] for i, a in enumerate(argv) if a == "--delta" and i + 1 < len(argv)]
@@ -82,6 +90,10 @@ def _audit_gate(argv):
         tg = float(job[job.index("--track-guard") + 1]) if "--track-guard" in job else 0.0
         if d.endswith("h") and d.startswith("universal") and "--history-step-scale" not in job:  # HISTORY-PLAN.md section 8
             sys.exit(f"history job with delta {d!r} has no --history-step-scale; the unscaled update broke the walker")
+        if "--distill" in job:  # distill_worker.py stops on the student's low-command speed and falls against the teacher's
+            if "--teacher-onnx" not in job or "--core" not in job:
+                sys.exit("distill job needs --teacher-onnx and --core")
+            continue
         if d not in ("bend4",) and tg <= 0:
             sys.exit(f"task-metric stop: job with delta {d!r} has no --track-guard; refusing a run that cannot stop itself")
     tree = ast.parse((HERE / "flight_worker.py").read_text())
@@ -90,6 +102,7 @@ def _audit_gate(argv):
                                 ("bend3", "BEND_MODS_CHOSEN", "rm_bend_chosen.json"),
                                 ("universal3", "UNIVERSAL3_MODS", "rm_universal3.json"),  # NEXT-PLAN.md
                                 ("universal3h", "UNIVERSAL3_MODS", "rm_universal3.json"),  # HISTORY-PLAN.md
+                                ("universal3t", "UNIVERSAL3_MODS", "rm_universal3.json"),  # TEACHER-STUDENT-PLAN.md
                                 ("bend4", "BEND4_MODS", "rm_bend4.json")):
         if delta in deltas:
             mods = next(ast.literal_eval(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)

@@ -170,6 +170,7 @@ def main():
                                     ("lean_back", dict(cmd=(0.0, 0.0, 0.0), lean=-LEAN)))],
     }
     plan["universal3h"] = list(plan["universal3"])  # HISTORY-PLAN.md: the same cases in the history env
+    plan["universal3t"] = list(plan["universal3"])  # TEACHER-STUDENT-PLAN.md: the same cases in the teacher env
     PIN = {"u_full": dict(full=1.0, nobatt=0.0, none=0.0, scaled=0.0), "u_none": dict(full=0.0, nobatt=0.0, none=1.0, scaled=0.0),
            "u_nobatt": dict(full=0.0, nobatt=1.0, none=0.0, scaled=0.0)}
     plan = {k: v for k, v in plan.items() if k in a.jobs.split(",")}
@@ -187,6 +188,8 @@ def main():
             cfg = load_env_cfg(fw.TASK, play=False)
             if job == "universal3h":  # HISTORY-PLAN.md: universal3's env with the actor history (policies load padded)
                 delta = dict(fw.DELTAS["universal"], history=dict(flight_worker.HISTORY_A))
+            elif job == "universal3t":  # universal3's env with the privileged actor columns (policies load padded)
+                delta = dict(fw.DELTAS["universal"], teacher_priv=dict(flight_worker.TEACHER_PRIV))
             else:
                 delta = dict(fw.DELTAS["universal" if job in ("universal2", "universal3") else job])
             if a.reward_mods:
@@ -276,7 +279,7 @@ def main():
             ok = ok and checks["stand"]["reward_ratio"] <= 0.80
         if job == "universal":  # the stand gate at both loads
             ok = ok and checks["full:stand"]["reward_ratio"] <= 0.80 and checks["none:stand"]["reward_ratio"] <= 0.80
-        if job in ("universal2", "universal3", "universal3h"):  # every degenerate policy at every load
+        if job in ("universal2", "universal3", "universal3h", "universal3t"):  # every degenerate policy at every load
             ok = ok and all(c["reward_ratio"] <= 0.80 for k, c in checks.items() if ":splay" not in k)
         res[job]["verdict"] = dict(checks=checks, max_stand_ratio=0.80 if job in ("packwalk", "packwalk_tq", "universal", "universal2", "universal3") else None,
                                    verdict="PASS" if ok else "FAIL")
