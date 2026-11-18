@@ -47,7 +47,10 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
                # teacher (bench only) and the trained teacher the students are distilled from
                "ts_start.onnx": TRAIN / "ckpt/ts_start/walk61.onnx",
                "ts_teacher_m0.onnx": TRAIN / "ckpt/ts_teacher_m0/teacher.onnx",
-               "ts_teacher.onnx": TRAIN / "ckpt/ts_teacher/teacher.onnx"}.items():
+               "ts_teacher.onnx": TRAIN / "ckpt/ts_teacher/teacher.onnx",
+               # round 2: the teacher trained with the runtime loop delay (delta universal4t)
+               "ts2_teacher.onnx": TRAIN / "ckpt/ts2_teacher/teacher.onnx",
+               "ts2b_teacher.onnx": TRAIN / "ckpt/ts2b_teacher/teacher.onnx"}.items():
     if _p.exists():
         kj.ASSETS[f"init/{_n}"] = _p
 _flags = kj.worker_flags
@@ -103,6 +106,10 @@ def _audit_gate(argv):
                                 ("universal3", "UNIVERSAL3_MODS", "rm_universal3.json"),  # NEXT-PLAN.md
                                 ("universal3h", "UNIVERSAL3_MODS", "rm_universal3.json"),  # HISTORY-PLAN.md
                                 ("universal3t", "UNIVERSAL3_MODS", "rm_universal3.json"),  # TEACHER-STUDENT-PLAN.md
+                                ("universal4", "UNIVERSAL3_MODS", "rm_universal3.json"),   # round 2: same reward,
+                                ("universal4t", "UNIVERSAL3_MODS", "rm_universal3.json"),  # runtime loop delay
+                                ("universal4b", "UNIVERSAL3_MODS", "rm_universal3.json"),  # the longer delay setting
+                                ("universal4tb", "UNIVERSAL3_MODS", "rm_universal3.json"),
                                 ("bend4", "BEND4_MODS", "rm_bend4.json")):
         if delta in deltas:
             mods = next(ast.literal_eval(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)

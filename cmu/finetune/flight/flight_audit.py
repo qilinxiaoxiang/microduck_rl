@@ -111,7 +111,7 @@ def main():
                          "priced offline from the same deterministic rollouts (rewards do not change the dynamics)")
     ap.add_argument("--delay-mods", default="",
                     help="diagnostics (RUNLOG 2026-11-18, training env against runtime simulation): JSON with any of "
-                         "act_lag [min, max] (command delay, 5 ms physics steps), joint_pos_lag, joint_vel_lag, imu_lag "
+                         "act_lag [min, max] (command delay, 5 ms physics steps), act_period, max_current, joint_pos_lag, joint_vel_lag, imu_lag "
                          "[min, max] (actor observation delay, 20 ms control steps); unset: the delays as trained")
     a = ap.parse_args()
     import torch
@@ -176,11 +176,13 @@ def main():
     }
     plan["universal3h"] = list(plan["universal3"])  # HISTORY-PLAN.md: the same cases in the history env
     plan["universal3t"] = list(plan["universal3"])  # TEACHER-STUDENT-PLAN.md: the same cases in the teacher env
+    for j4 in flight_worker.LOOP_DELAYS:  # round 2: the same cases with the loop delay (t = the teacher env)
+        plan[j4] = list(plan["universal3"])
     # diagnostics (RUNLOG 2026-11-18), only when named in --cases and never part of the verdict: the runtime acceptance
     # walk's command held for the whole episode (the policy reads it; the env's own sampled command is ignored)
     for c in a.cases.split(","):
         if c in DIAG_CASES:
-            for job in ("universal3", "universal3h", "universal3t"):
+            for job in ("universal3", "universal3h", "universal3t", *flight_worker.LOOP_DELAYS):
                 plan[job] = plan[job] + [(f"{ld}:{c}", f"u_{ld}", a.walker, DIAG_CASES[c]) for ld in ("full", "nobatt", "none")]
     PIN = {"u_full": dict(full=1.0, nobatt=0.0, none=0.0, scaled=0.0), "u_none": dict(full=0.0, nobatt=0.0, none=1.0, scaled=0.0),
            "u_nobatt": dict(full=0.0, nobatt=1.0, none=0.0, scaled=0.0)}
@@ -201,6 +203,10 @@ def main():
                 delta = dict(fw.DELTAS["universal"], history=dict(flight_worker.HISTORY_A))
             elif job == "universal3t":  # universal3's env with the privileged actor columns (policies load padded)
                 delta = dict(fw.DELTAS["universal"], teacher_priv=dict(flight_worker.TEACHER_PRIV))
+            elif job in flight_worker.LOOP_DELAYS:  # round 2: universal3 / universal3t plus the loop delay
+                delta = dict(fw.DELTAS["universal"], loop_delay=dict(flight_worker.LOOP_DELAYS[job]))
+                if "teacher_priv" in fw.DELTAS[job]:
+                    delta["teacher_priv"] = dict(flight_worker.TEACHER_PRIV)
             else:
                 delta = dict(fw.DELTAS["universal" if job in ("universal2", "universal3") else job])
             if a.reward_mods:
@@ -216,31 +222,12 @@ def main():
             cfg.scene.entities["robot"] = fw.apply_asbuilt_masses(cfg.scene.entities["robot"],
                                                                   man["nopack" if model in PIN else model],
                                                                   str(A / "existing-model-mass-audit.json"), 0.09)
-            if a.delay_mods:
-                import copy
+            if a.delay_mods:  # after the delta's own loop delay, so a named key overrides it
                 dm = json.loads(a.delay_mods)
-                if "act_lag" in dm or "max_current" in dm:
-                    rob = copy.deepcopy(cfg.scene.entities["robot"])
-                    for act in rob.articulation.actuators:
-                        if "act_lag" in dm:
-                            act.delay_min_lag, act.delay_max_lag = int(dm["act_lag"][0]), int(dm["act_lag"][1])
-                        if "max_current" in dm:  # A; the runtime simulation's servo current limit (1.47 A, 0.538 N m)
-                            assert hasattr(act, "max_current"), type(act)
-                            act.max_current = float(dm["max_current"])
-                    cfg.scene.entities["robot"] = rob
-                    print(f"[audit] max_current {[getattr(x, 'max_current', None) for x in rob.articulation.actuators]}", flush=True)
-                terms = cfg.observations["actor"].terms
-                grav = "projected_gravity" if "projected_gravity" in terms else "raw_accelerometer"
-                for key, names in (("joint_pos_lag", ("joint_pos",)), ("joint_vel_lag", ("joint_vel",)),
-                                   ("imu_lag", ("base_ang_vel", grav))):
-                    if key in dm:
-                        for n in names:
-                            terms[n] = copy.deepcopy(terms[n])
-                            terms[n].delay_min_lag, terms[n].delay_max_lag = int(dm[key][0]), int(dm[key][1])
-                print(f"[audit] delay mods {dm}: command lag "
-                      f"{[(x.delay_min_lag, x.delay_max_lag) for x in cfg.scene.entities['robot'].articulation.actuators]}, "
-                      + ", ".join(f"{n} {(terms[n].delay_min_lag, terms[n].delay_max_lag)}"
-                                  for n in ("joint_pos", "joint_vel", "base_ang_vel", grav)), flush=True)
+                if dm.pop("no_push", False):  # diagnostics: random pushes off (the runtime acceptance walk has none)
+                    cfg.events["push_robot"].interval_range_s = (1e6, 1e6 + 1.0)
+                    print("[audit] random pushes off", flush=True)
+                flight_worker.apply_loop_delay(cfg, dm)
             cfg.scene.num_envs = a.num_envs
             cfg.seed = 1
             env = RslRlVecEnvWrapper(ManagerBasedRlEnv(cfg=cfg, device=a.device), clip_actions=load_rl_cfg(fw.TASK).clip_actions)
@@ -315,7 +302,7 @@ def main():
             ok = ok and checks["stand"]["reward_ratio"] <= 0.80
         if job == "universal":  # the stand gate at both loads
             ok = ok and checks["full:stand"]["reward_ratio"] <= 0.80 and checks["none:stand"]["reward_ratio"] <= 0.80
-        if job in ("universal2", "universal3", "universal3h", "universal3t"):  # every degenerate policy at every load
+        if job in ("universal2", "universal3", "universal3h", "universal3t", *flight_worker.LOOP_DELAYS):  # every degenerate policy at every load
             ok = ok and all(c["reward_ratio"] <= 0.80 for k, c in checks.items() if ":splay" not in k)
         res[job]["verdict"] = dict(checks=checks, max_stand_ratio=0.80 if job in ("packwalk", "packwalk_tq", "universal", "universal2", "universal3") else None,
                                    verdict="PASS" if ok else "FAIL")

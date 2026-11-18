@@ -54,6 +54,7 @@ def main():
     ap.add_argument("--envs", type=int, default=64)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--delta", default="universal3", help="the env the student was distilled in (universal3 | universal4)")
     a = ap.parse_args()
     fw = fl.fw
     md = os.environ["FLIGHT_MANIFESTS"]
@@ -64,7 +65,7 @@ def main():
         push["asset_cfg"] = cfg.events["push_robot"].params["asset_cfg"]
         cfg.events["push_robot"].interval_range_s = (1e6, 1e6 + 1.0)
 
-    env, venv, _ = build_env(fw, "universal3", str(Path(md) / "flightpack-none.json"),
+    env, venv, _ = build_env(fw, a.delta, str(Path(md) / "flightpack-none.json"),
                              str(Path(__file__).resolve().parents[2] / "whole/electrical/existing-model-mass-audit.json"),
                              0.09, a.envs, a.seed, "cpu", pin=PIN[a.load], mutate=mutate)
     student = rc.load_checkpoint(a.student_pt)

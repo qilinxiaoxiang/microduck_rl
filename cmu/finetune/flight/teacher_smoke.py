@@ -38,6 +38,7 @@ def main():
     ap.add_argument("--envs", type=int, default=64)
     ap.add_argument("--iters", type=int, default=3)
     ap.add_argument("--outdir", default="/tmp/teacher_smoke")
+    ap.add_argument("--delta", default="universal3t", help="the teacher delta (universal3t | universal4t)")
     a = ap.parse_args()
     import mjlab.tasks  # noqa: F401
     from mjlab.envs import ManagerBasedRlEnv
@@ -52,7 +53,7 @@ def main():
     t0 = time.time()
     env_cfg = load_env_cfg(fw.TASK, play=False)
     agent_cfg = load_rl_cfg(fw.TASK)
-    fw.apply_delta(env_cfg, dict(fw.DELTAS["universal3t"]))
+    fw.apply_delta(env_cfg, dict(fw.DELTAS[a.delta]))
     env_cfg.scene.entities["robot"] = fw.apply_asbuilt_masses(
         env_cfg.scene.entities["robot"], str(Path(md) / "flightpack-none.json"),
         str(Path(__file__).resolve().parents[2] / "whole/electrical/existing-model-mass-audit.json"), 0.09)

@@ -123,6 +123,23 @@ fw.DELTAS["universal3h"] = dict(fw.DELTAS["universal3"], history=HISTORY_A)
 # robot. Start from the best one-frame policy with zero weights on the seven columns (iteration 0 equals it).
 TEACHER_PRIV = {"n": 7}
 fw.DELTAS["universal3t"] = dict(fw.DELTAS["universal3"], teacher_priv=TEACHER_PRIV)
+# universal4 / universal4t (TEACHER-STUDENT-PLAN.md "Round 2", approved 2026-11-18): universal3's reward and payload
+# unchanged, with the control loop timed as the runtime simulation (brain_sim_check.py --sensor-delay 1 --action-delay 1:
+# readings one 20 ms tick old, action applied 20 ms late, 40 ms from measurement to servo). RUNLOG 2026-11-18: the
+# universal3 env has 15-30 ms (fresh joint positions, command lag 3-6 physics steps) and its policies fall in the
+# runtime simulation from that difference alone. Lags: act in 5 ms physics steps, observations in 20 ms control ticks
+# (joint_vel 2 = its own one-tick lag in the base recipe plus the stale reading). act_period: physics steps one env
+# keeps its drawn command lag (the base recipe redraws every step; the runtime's delay is constant).
+# Two settings, trained side by side because the training env does not reproduce the runtime simulation's falls at
+# equal dead time (RUNLOG 2026-11-18: its cliff sits about 20 ms later, and with pushes off tsc_999 at 45 ms falls
+# 0.19 per env-minute where the runtime simulation drops it 19 of 20 at 44 ms):
+#   universal4 / universal4t    command lag 4-9 steps: dead time 40-65 ms (the runtime's nominal 40 ms at its low end)
+#   universal4b / universal4tb  command lag 7-12 steps: dead time 55-80 ms (about 15 ms longer)
+LOOP_DELAY = {"act_lag": [4, 9], "act_period": 400, "joint_pos_lag": [1, 1], "joint_vel_lag": [2, 2], "imu_lag": [1, 1]}
+LOOP_DELAY_B = dict(LOOP_DELAY, act_lag=[7, 12])
+LOOP_DELAYS = {"universal4": LOOP_DELAY, "universal4t": LOOP_DELAY, "universal4b": LOOP_DELAY_B, "universal4tb": LOOP_DELAY_B}
+for _n, _ld in LOOP_DELAYS.items():
+    fw.DELTAS[_n] = dict(fw.DELTAS["universal3t" if "t" in _n[len("universal4"):] else "universal3"], loop_delay=_ld)
 
 
 _orig_load = fw.load_walk61_into_actor
@@ -335,8 +352,42 @@ def apply_delta(env_cfg, delta: dict):
         ev["capture_env"] = EventTermCfg(func=tc.capture_env, mode="startup")
         _PRIV_WIDTH[61 + n] = n
         print(f"[teacher] actor obs = 61 + {n} privileged ({', '.join(tc.PRIV_NAMES)})", flush=True)
+    if "loop_delay" in delta:
+        apply_loop_delay(env_cfg, delta["loop_delay"])
     print(f"[pack] delta applied: { {k: delta[k] for k in delta if k != 'track_lin_vel'} }", flush=True)
     return env_cfg
+
+
+def apply_loop_delay(env_cfg, ld: dict):
+    """Round 2: the control loop's delays (LOOP_DELAY above; also flight_audit.py --delay-mods). Any of act_lag
+    [min, max] (command delay, 5 ms physics steps), act_period (physics steps a drawn command lag is kept),
+    joint_pos_lag / joint_vel_lag / imu_lag [min, max] (actor observation delay, 20 ms control ticks), max_current (A).
+    The robot cfg is copied: apply_asbuilt_masses, which runs after the delta, keeps its actuators."""
+    import copy
+    if any(k in ld for k in ("act_lag", "act_period", "max_current")):
+        rob = copy.deepcopy(env_cfg.scene.entities["robot"])
+        for act in rob.articulation.actuators:
+            if "act_lag" in ld:
+                act.delay_min_lag, act.delay_max_lag = int(ld["act_lag"][0]), int(ld["act_lag"][1])
+            if "act_period" in ld:
+                act.delay_update_period = int(ld["act_period"])
+            if "max_current" in ld:  # the runtime simulation's servo current limit is 1.47 A (0.538 N m)
+                assert hasattr(act, "max_current"), type(act)
+                act.max_current = float(ld["max_current"])
+        env_cfg.scene.entities["robot"] = rob
+    terms = env_cfg.observations["actor"].terms
+    grav = "projected_gravity" if "projected_gravity" in terms else "raw_accelerometer"
+    for key, names in (("joint_pos_lag", ("joint_pos",)), ("joint_vel_lag", ("joint_vel",)),
+                       ("imu_lag", ("base_ang_vel", grav))):
+        if key in ld:
+            for n in names:
+                terms[n] = copy.deepcopy(terms[n])
+                terms[n].delay_min_lag, terms[n].delay_max_lag = int(ld[key][0]), int(ld[key][1])
+    acts = env_cfg.scene.entities["robot"].articulation.actuators
+    print(f"[delay] loop delay {ld}: command lag "
+          f"{[(x.delay_min_lag, x.delay_max_lag, x.delay_update_period, getattr(x, 'max_current', None)) for x in acts]}, "
+          + ", ".join(f"{n} {(terms[n].delay_min_lag, terms[n].delay_max_lag)}" for n in ("joint_pos", "joint_vel", "base_ang_vel", grav)),
+          flush=True)
 
 
 def _patch_metadata():
