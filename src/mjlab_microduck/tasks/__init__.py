@@ -605,6 +605,22 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
         rl_cfg=kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, sighted=True),
         runner_cls=KneelRiseSightedFromRiseRunner,
     )
+    # the sighted kneel on the dock's end states (near side included); warm start from ks-f's checkpoint
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelRise-DockFit-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_kneel_rise_env_cfg(_variant, dockfit=True),
+        play_env_cfg=make_kneel_rise_env_cfg(_variant, play=True, dockfit=True),
+        rl_cfg=kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, dockfit=True),
+        runner_cls=KneelRiseSightedFromRiseRunner,
+    )
+    # ... and on the ball alone (the fetch target); warm start from ks-g's checkpoint
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelRise-DockFit-Ball-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_kneel_rise_env_cfg(_variant, dockfit=True, ball_only=True),
+        play_env_cfg=make_kneel_rise_env_cfg(_variant, play=True, dockfit=True, ball_only=True),
+        rl_cfg=kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, dockfit=True, ball_only=True),
+        runner_cls=KneelRiseSightedFromRiseRunner,
+    )
 
 # Control for the sighted kneel's degradation (2026-11-18, RESULTS.md round 4): the same fine-tune pipeline (ONNX
 # init, fresh critic, fixed lr, entropy 0, curricula pinned at rise-s1's step) in rise-s1's OWN task, start window at
@@ -636,6 +652,7 @@ register_mjlab_task(
 # head pitch / yaw) over the frozen deployed walk61, seeing the ball through the U20CAM model, rewarded for standing
 # still with the ball at the kneel-rise landing spot.
 from .cmu_ball_dock_env_cfg import NUDGE_LOW_ONNX as _BD_NUDGE
+from .cmu_ball_dock_env_cfg import DOCK_TARGET_DX as _BD_TARGET_DX
 from .cmu_ball_dock_env_cfg import BallDockRlCfg, make_ball_dock_env_cfg
 
 for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-20261104")):
@@ -652,6 +669,15 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
         play_env_cfg=make_ball_dock_env_cfg(_variant, play=True, walk_onnx=_BD_NUDGE),
         rl_cfg=_dc.replace(BallDockRlCfg, experiment_name="ball_dock_nudge", run_name="ball_dock_nudge",
                            max_iterations=2500),
+        runner_cls=MicroduckOnPolicyRunner,
+    )
+    # bd-c: the dock over the nudge, target moved DOCK_TARGET_DX ahead; resume from bd-b's checkpoint
+    register_mjlab_task(
+        task_id=f"Mjlab-BallDock-Nudge-Fwd-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_ball_dock_env_cfg(_variant, walk_onnx=_BD_NUDGE, target_dx=_BD_TARGET_DX),
+        play_env_cfg=make_ball_dock_env_cfg(_variant, play=True, walk_onnx=_BD_NUDGE, target_dx=_BD_TARGET_DX),
+        rl_cfg=_dc.replace(BallDockRlCfg, experiment_name="ball_dock_fwd", run_name="ball_dock_fwd",
+                           max_iterations=600),
         runner_cls=MicroduckOnPolicyRunner,
     )
 

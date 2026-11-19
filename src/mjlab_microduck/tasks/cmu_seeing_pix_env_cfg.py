@@ -258,6 +258,11 @@ def reset_pix_object(
     distractor_prob: float = sp.DISTRACTOR_PROB,
     start_speed: tuple = START_SPEED,
     look_jitter: float = LOOK_JITTER,
+    r_min: float = R_MIN,
+    dock_frac: float = 0.0,
+    dock_mu: tuple = (0.0, 0.0),
+    dock_std: tuple = (0.0, 0.0),
+    dock_clip: tuple = (-0.04, 0.05, 0.04),
 ) -> None:
     """The seeing pick's reset (object, distractor, kick, holding), then: the target moved to range r and bearing b in
     the window (r in [max(R_MIN, r0 - window), min(R_MAX, r0 + window)], |b| <= min(45 deg, window / r0) where r0 is
@@ -276,12 +281,21 @@ def reset_pix_object(
     yaw = sp._yaw(root[:, 3:7])
     c, s = torch.cos(yaw), torch.sin(yaw)
     r0 = sp.OBJECT_NOMINAL_XY[0]
-    r = _uniform(n, max(R_MIN, r0 - window), min(R_MAX, r0 + window), dev)
+    r = _uniform(n, max(r_min, r0 - window), min(R_MAX, r0 + window), dev)
     bmax = min(BEARING_MAX, window / r0)
     b = _uniform(n, -bmax, bmax, dev)
     centre = torch.rand(n, device=dev) < center_frac
     r = torch.where(centre, torch.full_like(r, r0), r)
     b = torch.where(centre, torch.zeros_like(b), b)
+    if dock_frac > 0.0:
+        # a share of the starts drawn from the dock's measured end errors (dx, dy Gaussian around the landing spot,
+        # clipped to dx in [lo, hi], |dy| <= ymax): the window above never puts the ball closer than r_min
+        dk = torch.rand(n, device=dev) < dock_frac
+        lo, hi, ymax = dock_clip
+        dx = (dock_mu[0] + torch.randn(n, device=dev) * dock_std[0]).clamp(lo, hi)
+        dy = (dock_mu[1] + torch.randn(n, device=dev) * dock_std[1]).clamp(-ymax, ymax)
+        r = torch.where(dk, torch.hypot(r0 + dx, dy), r)
+        b = torch.where(dk, torch.atan2(dy, r0 + dx), b)
     off = torch.stack([r * torch.cos(b), r * torch.sin(b)], -1)
     pose = env.sim.data.qpos[env_ids][:, obj.indexing.free_joint_q_adr].clone()   # written by the reset above
     pose[:, 0] = root[:, 0] + c * off[:, 0] - s * off[:, 1]

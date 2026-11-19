@@ -97,10 +97,28 @@ SIGHTED_WINDOW_START = 0.01       # as kr-b: ks-a (+-2 cm) and ks-b (+-4 cm) sta
                                   # while the bite's impact / overrun taxes shrank); start where most bites succeed
 SIGHTED_WINDOW_MAX = 0.05         # covers the dock's measured end spread (bd-a2 dx p10/p90 -1.8 / +2.6 cm)
 
+# dockfit: the sighted kneel on the dock's actual end states. The window reset never puts the ball closer than
+# R_MIN = 8 cm (dx >= -0.7 cm on axis), but bd-b ends with dx p10 -1.9 cm, and ks-f@750 holds only 0.33 / 0.03 of
+# the dx [-2, -1) / [-3, -2) cm bins (round 6). Half the starts come from bd-b@2000's end errors (robust fit:
+# dx p10/p50/p90 -1.9 / -0.2 / +1.4 cm, |dy| p90 1.1 cm; stds widened ~25 %), the rest from the full window with
+# the near edge opened. The window starts at its max (ks-f already holds it), so no window curriculum.
+DOCKFIT_FRAC = 0.5
+DOCKFIT_MU = (-0.002, 0.0)
+DOCKFIT_STD = (0.016, 0.010)
+DOCKFIT_CLIP = (-0.04, 0.04, 0.03)
+DOCKFIT_R_MIN = 0.05              # dx >= -3.7 cm on axis
+# The fetch target is the ball, but the seeing pick's reset also draws boxes and cylinders (0.5 / 0.25 / 0.25).
+# From bd-b's ends ks-f holds the ball 0.67 (misses: never bitten) and the box 0.42 (drops): the mixed number hid
+# both. ball_only=True trains the ball alone (its per-axis radius DR, 1.06-1.44 cm lumpy ellipsoid, stays).
+BALL_ONLY_PROBS = (1.0, 0.0, 0.0)
 
-def make_kneel_rise_env_cfg(variant: str, play: bool = False, sighted: bool = False):
+
+def make_kneel_rise_env_cfg(variant: str, play: bool = False, sighted: bool = False, dockfit: bool = False,
+                            ball_only: bool = False):
     """sighted=True keeps the camera slots during the descent (RESULTS.md next step 1): the blind kneel's success
-    collapses for dx >= +2 cm, and a policy that sees the ball can correct for it."""
+    collapses for dx >= +2 cm, and a policy that sees the ball can correct for it. dockfit=True (implies sighted)
+    trains on the dock's end states, near side included."""
+    sighted = sighted or dockfit
     cfg = make_seeing_pix_handoff_env_cfg(variant, play=play, rise=True)
 
     if sighted:
@@ -121,11 +139,17 @@ def make_kneel_rise_env_cfg(variant: str, play: bool = False, sighted: bool = Fa
     ev.params.update(window=wmax if play else w0, start_speed=START_SPEED,
                      kick_prob=0.0, center_frac=DOCK_CENTER_FRAC)
     cfg.curriculum.pop("pix_window", None)
-    if not play:
+    if dockfit:
+        ev.params.update(window=wmax, r_min=DOCKFIT_R_MIN, dock_frac=DOCKFIT_FRAC, dock_mu=DOCKFIT_MU,
+                         dock_std=DOCKFIT_STD, dock_clip=DOCKFIT_CLIP)
+    elif not play:
         cfg.curriculum["dock_window"] = CurriculumTermCfg(
             func=pix.pix_window_curriculum,
             params={"event_name": "reset_object", "window_step": DOCK_WINDOW_STEP, "window_max": wmax,
                     "advance_success": DOCK_ADVANCE})
+
+    if ball_only:
+        cfg.events["object_size"].params["probs"] = BALL_ONLY_PROBS
 
     # 4. neck rate while holding
     cfg.rewards["held_neck_rate"] = RewardTermCfg(func=held_neck_rate_cost, weight=NECK_RATE_WEIGHT,
@@ -133,9 +157,10 @@ def make_kneel_rise_env_cfg(variant: str, play: bool = False, sighted: bool = Fa
     return cfg
 
 
-def kneel_rise_rl_cfg(base, sighted: bool = False):
+def kneel_rise_rl_cfg(base, sighted: bool = False, dockfit: bool = False, ball_only: bool = False):
     rl = copy.deepcopy(base)
-    rl.experiment_name = "kneel_rise_sighted" if sighted else "kneel_rise"
+    rl.experiment_name = ("kneel_rise_ball" if ball_only else "kneel_rise_dockfit" if dockfit else
+                          "kneel_rise_sighted" if sighted else "kneel_rise")
     rl.run_name = rl.experiment_name
     rl.max_iterations = 1000
     return rl

@@ -63,3 +63,27 @@ def test_nudge_low_level_variant():
     assert bd.NUDGE_LOW_ONNX.exists()
     cfg = bd.make_ball_dock_env_cfg("plugged", walk_onnx=bd.NUDGE_LOW_ONNX)
     assert cfg.actions["dock"].walk_onnx == str(bd.NUDGE_LOW_ONNX)
+
+
+def test_forward_dock_moves_only_the_target():
+    import torch
+    from mjlab.tasks.registry import list_tasks
+    from mjlab_microduck.tasks import cmu_ball_dock_env_cfg as bd
+    assert "Mjlab-BallDock-Nudge-Fwd-MicroDuck-CMU-Plugged" in list_tasks()
+    cfg = bd.make_ball_dock_env_cfg("plugged", walk_onnx=bd.NUDGE_LOW_ONNX, target_dx=bd.DOCK_TARGET_DX)
+    assert cfg.rewards["docked"].params["target_dx"] == bd.DOCK_TARGET_DX > 0
+    assert cfg.rewards["dock_progress"].params["target_dx"] == bd.DOCK_TARGET_DX
+    assert "dock_range" not in cfg.curriculum and cfg.events["reset_ball_dock"].params["r_max"] == bd.R_RANGE[1]
+    # the plain dock is untouched
+    plain = bd.make_ball_dock_env_cfg("plugged", walk_onnx=bd.NUDGE_LOW_ONNX)
+    assert "target_dx" not in plain.rewards["docked"].params and "dock_range" in plain.curriculum
+
+    class _E:   # target_error shifts dx only
+        pass
+    e = _E()
+    orig = bd.dock_error
+    bd.dock_error = lambda env: torch.tensor([[0.0075, 0.002]])
+    try:
+        assert torch.allclose(bd.target_error(e, 0.0075), torch.tensor([[0.0, 0.002]]))
+    finally:
+        bd.dock_error = orig

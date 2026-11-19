@@ -93,3 +93,30 @@ def test_sighted_pins_inherited_curricula_at_rise_s1_step():
     ar = cfg.curriculum["action_rate_weight"].params["weight_stages"]
     assert ar == [{"step": 0, "weight": -2.0}] and cfg.rewards["action_rate_l2"].weight == -2.0
     assert cfg.curriculum["com_range"].params["range_stages"] == [{"step": 0, "range": 0.01}]
+
+
+def test_dockfit_variant_opens_near_side_and_draws_dock_ends():
+    from mjlab_microduck.tasks import cmu_seeing_pix_env_cfg as pix
+    for b in BODIES:
+        t = f"Mjlab-KneelRise-DockFit-MicroDuck-CMU-{b}"
+        assert t in list_tasks()
+        assert load_rl_cfg(t).experiment_name == "kneel_rise_dockfit"
+    cfg = kr.make_kneel_rise_env_cfg("plugged", dockfit=True)
+    p = cfg.events["reset_object"].params
+    assert cfg.observations["actor"].terms["body_command"].func is not kr.blind_body_command   # sighted
+    assert "dock_window" not in cfg.curriculum and p["window"] == kr.SIGHTED_WINDOW_MAX
+    # the near edge reaches past the dock's p10 (-1.9 cm) where the plain window stops at R_MIN
+    r0 = kr.pix.sp.OBJECT_NOMINAL_XY[0]
+    assert pix.R_MIN - r0 > -0.01 and p["r_min"] - r0 < -0.03
+    assert 0.0 < p["dock_frac"] < 1.0 and p["dock_clip"][0] < -0.03
+    assert cfg.curriculum["com_range"].params["range_stages"] == [{"step": 0, "range": 0.01}]
+
+
+def test_ball_only_variant_draws_only_the_ball():
+    t = "Mjlab-KneelRise-DockFit-Ball-MicroDuck-CMU-Plugged"
+    assert t in list_tasks() and load_rl_cfg(t).experiment_name == "kneel_rise_ball"
+    cfg = kr.make_kneel_rise_env_cfg("plugged", dockfit=True, ball_only=True)
+    assert cfg.events["object_size"].params["probs"] == (1.0, 0.0, 0.0)
+    assert cfg.events["reset_object"].params["dock_frac"] == kr.DOCKFIT_FRAC
+    # the plain variants keep the seeing pick's mix
+    assert "probs" not in kr.make_kneel_rise_env_cfg("plugged", dockfit=True).events["object_size"].params

@@ -61,6 +61,10 @@ WALK_ONNX = REPO / "cmu" / "whole" / "runtime-overlay" / "models" / "walk61.onnx
 # docked earlier) from walk61's zero-command drift and dead zone; under a scripted P-command on the true error the
 # nudge docks 99.8 % kneel-ready against walk61's 71 %. Its twist contract is 8 x the remaining error.
 NUDGE_LOW_ONNX = REPO / "cmu" / "kneel" / "policies" / "wn-b_750.onnx"
+# bd-c: bd-b fine-tuned to stop with the ball this much beyond the landing spot. Replaying bd-b@2000's end errors on
+# the ball, ks-f@750 holds 0.667 as docked, 0.738 / 0.765 / 0.753 shifted +0.5 / +0.75 / +1.0 cm: the kneel's
+# ball curve peaks at dx 0..+1 cm and falls off a cliff below -1 cm, where bd-b's near tail sits (round 6).
+DOCK_TARGET_DX = 0.0075
 
 # ── Commander action: tanh-free, clipped to [-1, 1], then scaled ──
 # walk61's trained ranges. It has a dead zone: in this env it does not step below ~0.2 m/s and moves ~0.1 m/s at a
@@ -423,29 +427,37 @@ def commander_last_action(env: ManagerBasedRlEnv) -> torch.Tensor:
     return env.action_manager.get_term("dock").raw_action.clamp(-1.0, 1.0)
 
 
-def ball_state_obs(env: ManagerBasedRlEnv) -> torch.Tensor:
-    """Critic: the ball in the foot frame, its error to the landing spot, its speed, and whether it is in the
+def target_error(env: ManagerBasedRlEnv, target_dx: float = 0.0) -> torch.Tensor:
+    """The ball's error to the dock's target: the landing spot moved target_dx along the heading (the ball that far
+    beyond the landing spot). dock_error stays the kneel's frame (evals, chain replay)."""
+    e = dock_error(env)
+    return torch.stack([e[:, 0] - target_dx, e[:, 1]], -1)
+
+
+def ball_state_obs(env: ManagerBasedRlEnv, target_dx: float = 0.0) -> torch.Tensor:
+    """Critic: the ball in the foot frame, its error to the dock target, its speed, and whether it is in the
     picture."""
     half = torch.full((env.num_envs,), BALL_RADIUS, device=env.device)
     _, _, _, inside = pix.object_pixels(env, env.scene["ball"].data.root_link_pos_w, half)
     v = env.scene["ball"].data.root_link_lin_vel_w[:, :2]
-    return torch.cat([ball_in_foot_frame(env), dock_error(env), v, inside.float().unsqueeze(-1)], -1)
+    return torch.cat([ball_in_foot_frame(env), target_error(env, target_dx), v, inside.float().unsqueeze(-1)], -1)
 
 
 # ── Rewards ─────────────────────────────────────────────────────────────────────
-def dock_progress(env: ManagerBasedRlEnv) -> torch.Tensor:
-    """Distance gained toward the landing spot this step (m). Potential-based: holding pays 0, backing off costs."""
+def dock_progress(env: ManagerBasedRlEnv, target_dx: float = 0.0) -> torch.Tensor:
+    """Distance gained toward the dock target this step (m). Potential-based: holding pays 0, backing off costs."""
     st = _ds(env)
-    d = dock_error(env).norm(dim=-1)
+    d = target_error(env, target_dx).norm(dim=-1)
     prev = st["prev_dist"]
     out = torch.where(prev < 0, torch.zeros_like(d), prev - d)
     st["prev_dist"] = d.clone()
     return out
 
 
-def docked(env: ManagerBasedRlEnv, std: float = DOCK_STD, still_std: float = STILL_STD) -> torch.Tensor:
-    """In [0, 1]: at the landing spot AND still (product of Gaussians)."""
-    e = dock_error(env).norm(dim=-1)
+def docked(env: ManagerBasedRlEnv, std: float = DOCK_STD, still_std: float = STILL_STD,
+           target_dx: float = 0.0) -> torch.Tensor:
+    """In [0, 1]: at the dock target AND still (product of Gaussians)."""
+    e = target_error(env, target_dx).norm(dim=-1)
     return torch.exp(-(e / std) ** 2) * torch.exp(-(trunk_speed(env) / still_std) ** 2)
 
 
@@ -472,7 +484,8 @@ def ball_lost(env: ManagerBasedRlEnv, max_dist: float = 0.6) -> torch.Tensor:
 
 
 # ── Env cfg ─────────────────────────────────────────────────────────────────────
-def make_ball_dock_env_cfg(variant: str = CURRENT, play: bool = False, walk_onnx: Path = WALK_ONNX):
+def make_ball_dock_env_cfg(variant: str = CURRENT, play: bool = False, walk_onnx: Path = WALK_ONNX,
+                           target_dx: float = 0.0):
     cfg = make_cmu_velocity_env_cfg(variant, play=play)
     cfg.scene.entities = {**cfg.scene.entities, "ball": BALL_CFG}
     cfg.episode_length_s = EPISODE_S
@@ -532,6 +545,14 @@ def make_ball_dock_env_cfg(variant: str = CURRENT, play: bool = False, walk_onnx
     cfg.curriculum = keep
     if not play:
         cfg.curriculum["dock_range"] = CurriculumTermCfg(func=dock_range_curriculum)
+
+    # a moved target (the fine-tune of a docked policy: full range from the start, no range curriculum)
+    if target_dx:
+        for name in ("dock_progress", "docked"):
+            cfg.rewards[name].params["target_dx"] = target_dx
+        cfg.observations["critic"].terms["ball_state"].params = {"target_dx": target_dx}
+        cfg.curriculum.pop("dock_range", None)
+        cfg.events["reset_ball_dock"].params["r_max"] = R_RANGE[1]
     return cfg
 
 

@@ -1,0 +1,118 @@
+{
+ "onnx": "cmu/kneel/policies/ks-g_500.onnx",
+ "task": "Mjlab-KneelRise-Sighted-FromRise-MicroDuck-CMU-Plugged",
+ "md5": "9927949cc6fbead7208f1f80c795b55b",
+ "cases": {
+  "chained": {
+   "n": 1024,
+   "fell": 0.0039,
+   "bitten": 0.7588,
+   "held_handoff": 0.7217,
+   "held_end": 0.7051,
+   "dropped_after_handoff": 0.023,
+   "end_rms_rad": 0.0812,
+   "end_tilt_deg": 2.7305,
+   "neck_peak_held_p50": 6.3783,
+   "neck_peak_held_p90": 7.2035,
+   "lost_after_bite": 0.0708,
+   "neck_peak_kept_p50": 6.3783,
+   "neck_peak_lost_p50": 6.3576,
+   "by_shape": {
+    "ball": {
+     "n": 1024,
+     "held_end": 0.7051,
+     "bitten": 0.7588
+    }
+   },
+   "by_offset": {
+    "dx": [
+     [
+      -4,
+      17,
+      0.0,
+      0.0
+     ],
+     [
+      -3,
+      62,
+      0.2258,
+      0.0161
+     ],
+     [
+      -2,
+      183,
+      0.5301,
+      0.0055
+     ],
+     [
+      -1,
+      263,
+      0.8251,
+      0.0038
+     ],
+     [
+      0,
+      291,
+      0.8832,
+      0.0
+     ],
+     [
+      1,
+      136,
+      0.8162,
+      0.0074
+     ],
+     [
+      2,
+      49,
+      0.5306,
+      0.0
+     ]
+    ],
+    "dy": [
+     [
+      -2,
+      23,
+      0.6087,
+      0.0435
+     ],
+     [
+      -1,
+      367,
+      0.6948,
+      0.0027
+     ],
+     [
+      0,
+      511,
+      0.7358,
+      0.002
+     ],
+     [
+      1,
+      110,
+      0.7,
+      0.0091
+     ]
+    ]
+   },
+   "fall_phase_hist": {
+    "0.0-0.2": 0,
+    "0.2-0.3": 1,
+    "0.3-0.4": 3,
+    "0.4-0.5": 0,
+    "0.5-0.6": 0,
+    "0.6-0.7": 0,
+    "0.7-0.8": 0,
+    "0.8-0.9": 0,
+    "0.9-1.0": 0
+   },
+   "fall_terms": {
+    "beak_on_floor": 4
+   },
+   "fell_after_bite": 0.0,
+   "dock_ok_frac": 1.0,
+   "chained_success": 0.7051
+  }
+ }
+}

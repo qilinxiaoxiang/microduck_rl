@@ -313,3 +313,53 @@ over wn-b_750, which replaces walk61 for the whole approach).
 is the limit again: from these ends (error p50 1.1 cm) it holds 0.62, against 0.79 at ±1 cm.
 Caveats unchanged: Plugged body, kneel replayed from the dock's end offsets (no head pose / sway at the switch),
 two new policies in the runtime (wn-b replaces walk61 during the dock).
+
+## Round 6: pushing the kneel (2026-11-19 afternoon)
+
+### Two measurement fixes first
+
+- **The kneel evals were mixed-shape.** The kneel task inherits the seeing pick's object reset: ball / box / upright
+  cylinder at 0.5 / 0.25 / 0.25. The fetch target (and the only thing the dock trains on) is the ball. Every earlier
+  kneel and "full chain" number in this file averages over all three. `kr_eval` now prints `by_shape` and takes
+  `--ball-only`. From bd-b @ 2000's ends, ks-f @ 750 holds the **ball 0.64–0.67** (misses: never bitten) and the
+  **box 0.42** (bitten 0.75, then drops). At ±1 cm it holds the ball **0.90** (the mixed number was 0.79).
+- **Where the kneel fails on the ball** (`kr_eval --grid --ball-only`: dx U[−4, +3] cm, dy U[±1.5] cm, start
+  offsets placed directly; `loss_probe.py`): ks-f @ 750 holds 0.96 / 0.90 in the dx [0, 1) / [1, 2) cm bins, and
+  falls off a cliff on the near side: 0.69 / 0.24 / 0.02 at [−1, 0) / [−2, −1) / [−3, −2). The window reset never
+  puts the ball closer than `R_MIN` = 8 cm (dx ≥ −0.7 cm on axis), so the near side was never trained, while bd-b's
+  ends have dx p10 −1.9 cm. Ball misses are swats: in every never-bitten episode the ball moved > 1 cm (p50 9.7 cm).
+  Drops after a bite are 4 % on the ball (13 % mixed; the boxes squeeze out during the rise, phase 0.40–0.60).
+
+### Two levers, each about +6 points on the ball from the dock's ends
+
+- **Kneel on the dock's end states** (`Mjlab-KneelRise-DockFit-MicroDuck-CMU-*`, ks-g; `...-DockFit-Ball-...`,
+  ks-h). Half the starts come from a Gaussian fit of bd-b's ends (dx −0.2 ± 1.6 cm, dy 0 ± 1.0 cm), the rest from
+  the full ±5 cm window with the near edge opened (`r_min` 5 cm). Warm starts from the full checkpoint as in round 4
+  (ks-g from ks-f @ 750, 1000 iterations planned, stopped at 675; ks-h from ks-g @ 500 on the ball only, 750
+  iterations). It moves the curve toward the near side: ks-h @ 749 holds 0.63 / 0.87 / 0.88 / 0.77 in the dx
+  [−2, −1) … [+1, +2) bins (ks-f: 0.24 / 0.69 / 0.96 / 0.90). The near side is bought partly with the far side and
+  the centre; the policy does not get both.
+- **Dock target forward** (`Mjlab-BallDock-Nudge-Fwd-MicroDuck-CMU-*`, bd-c: bd-b @ 2000 resumed for 600
+  iterations with `DOCK_TARGET_DX` = 0.75 cm, i.e. it stops with the ball 0.75 cm beyond the landing spot). A
+  replay of bd-b's ends shifted by +0.5 / +0.75 / +1.0 cm gave ks-f 0.738 / 0.765 / 0.753, so this was the cheapest
+  test. bd-c @ 2400: end dx p10 / p50 / p90 −1.2 / +0.6 / +2.3 cm (bd-b: −1.9 / −0.2 / +1.4), still 0.99,
+  within 4 cm 0.97, falls **1.0 %** (bd-b 0 %; @ 2599: 0.6 %). Its `kneel_ready` / `docked_end` are measured
+  against the unshifted spot, so they read lower by design.
+
+### Full chain on the ball (`kr_eval --ball-only --dock-errors`, 2048 episodes, seed 11; dock falls count as failures)
+
+| Dock → kneel | ball held at end |
+|---|---|
+| bd-b @ 2000 → ks-f @ 750 (round 5's pair) | 0.667 |
+| bd-b @ 2000 → ks-h @ 749 | 0.727 |
+| bd-c @ 2400 → ks-f @ 750 | 0.728 |
+| **bd-c @ 2400 → ks-h @ 749** | **0.738** |
+
+The three new pairings are within ~1 point of each other (the standard error is ~1 point). Stacking both levers
+adds little: ks-h's curve peaks at dx −1..+1 cm, so it gains less from bd-c's shift than ks-f does.
+**Pair to use: `bd-c_2400.onnx` (over wn-b_750) → `ks-h_749.onnx`**, or `bd-c_2400` → `ks-f_750` to keep the round 5 kneel.
+
+What's left on the ball, roughly: ~20 % never bitten (swats, mostly with the ball off-centre), ~4 % dropped,
+~1 % falls (the dock's). Caveats unchanged: Plugged body, kneel replayed from the dock's end offsets (no head pose /
+sway at the switch). ks-h is trained on the ball alone, so it is not a box or cylinder picker. Its end stance rms is
+0.054 rad (ks-f 0.066).

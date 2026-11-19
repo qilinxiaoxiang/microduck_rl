@@ -191,8 +191,10 @@ def _uniform(n: int, lo: float, hi: float, dev) -> torch.Tensor:
 # ── Events ────────────────────────────────────────────────────────────────────
 @requires_model_fields("geom_size", "geom_rbound", "geom_aabb")
 def seeing_object_shape(env: ManagerBasedRlEnv, env_ids: torch.Tensor | None,
-                        asset_cfg: SceneEntityCfg = SceneEntityCfg("object", geom_names=GEOM_NAMES)) -> None:
-    """Pick the active shape per env and its size; shrink the other two geoms inside it."""
+                        asset_cfg: SceneEntityCfg = SceneEntityCfg("object", geom_names=GEOM_NAMES),
+                        probs: tuple | None = None) -> None:
+    """Pick the active shape per env (SHAPE_PROBS unless `probs`) and its size; shrink the other two geoms inside
+    it."""
     if env_ids is None:
         env_ids = torch.arange(env.num_envs, device=env.device)
     env_ids = env_ids.to(env.device)
@@ -202,7 +204,7 @@ def seeing_object_shape(env: ManagerBasedRlEnv, env_ids: torch.Tensor | None,
     st = _st(env)
     obj: Entity = env.scene["object"]
     gids = [int(obj.indexing.geom_ids[i]) for i in range(len(GEOM_NAMES))]
-    shape = torch.multinomial(torch.tensor(SHAPE_PROBS, device=dev), n, replacement=True)
+    shape = torch.multinomial(torch.tensor(SHAPE_PROBS if probs is None else probs, device=dev), n, replacement=True)
     half = torch.zeros(n, 3, device=dev)
     sizes = torch.full((n, 3, 3), HIDDEN, device=dev)
     ball = torch.stack([_uniform(n, *BALL_RADIUS, dev) for _ in range(3)], -1)

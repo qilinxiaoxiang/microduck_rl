@@ -80,6 +80,7 @@ def rollout(env, policy, blind_fill, clip, offsets=None):
         place_at_offsets(env, offsets)
         env.sim.forward()
     robot, obj = env.scene["robot"], env.scene["object"]
+    shape = sp._st(env)["shape"].clone()   # 0 ball, 1 box, 2 cylinder (the seeing pick's per-episode object)
     cmd = env.command_manager.get_term("twist")
     root0, yaw0 = robot.data.root_link_pos_w[:, :2].clone(), sp._yaw(robot.data.root_link_quat_w)
     c, s = torch.cos(yaw0), torch.sin(yaw0)
@@ -134,7 +135,7 @@ def rollout(env, policy, blind_fill, clip, offsets=None):
             alive &= ~done
     return dict(off=off, fell=fell, held_handoff=held_handoff, held_end=held_end, ever_held=ever_held,
                 neck_peak=neck_peak, rms=rms, tilt=tilt, survived=alive | (~fell), fall_phase=fall_phase,
-                fall_term=fall_term)
+                fall_term=fall_term, shape=shape)
 
 
 def summarize(r):
@@ -153,6 +154,10 @@ def summarize(r):
         out.update(lost_after_bite=f(lost.float().sum() / r["ever_held"].float().sum().clamp(min=1)),
                    neck_peak_kept_p50=f(r["neck_peak"][he].median()),
                    neck_peak_lost_p50=f(r["neck_peak"][lost].median()))
+    # by object shape: the fetch target is the ball; the seeing pick's reset also draws boxes and cylinders
+    out["by_shape"] = {nm: dict(n=int((r["shape"] == k).sum()), held_end=f(he[r["shape"] == k].float().mean()),
+                                bitten=f(r["ever_held"][r["shape"] == k].float().mean()))
+                       for k, nm in enumerate(sp.SHAPES) if (r["shape"] == k).sum() > 0}
     # success by start offset: range error dx (along the heading) and lateral dy, 1 cm bins
     bins = {}
     for name, comp in (("dx", 0), ("dy", 1)):
@@ -187,8 +192,13 @@ def main():
     p.add_argument("--out", default=None)
     p.add_argument("--dock-errors", default=None, help="dock_check --out JSON: chain kneel-rise onto its end states")
     p.add_argument("--step", type=int, default=A.CURRICULA_DONE_STEP, help="curriculum step (iteration x 24)")
+    p.add_argument("--ball-only", action="store_true", help="every episode's object is the ball (the fetch target)")
+    p.add_argument("--dock-shift", type=float, default=0.0, help="m added to the dock's end dx (what-if: aim further)")
+    p.add_argument("--grid", action="store_true", help="also a near/far sweep: dx U[-4, +3] cm, dy U[-1.5, +1.5] cm")
     a = p.parse_args()
     pol = A.OnnxMlp(Path(a.onnx), a.device)
+    if a.ball_only:
+        sp.SHAPE_PROBS = (1.0, 0.0, 0.0)   # read by seeing_object_shape at every reset
     blind_fill = None
     if a.warm_start:
         cols = [55 + i for i in kr.BLIND_ZERO]
@@ -199,7 +209,7 @@ def main():
         # chained estimate: kneel-rise from the dock's end states (dock falls / not-still ends count as failures)
         d = [r for r in json.loads(Path(a.dock_errors).read_text()) if "end_errors" in r][0]["end_errors"]
         ok = torch.tensor(d["ok"], dtype=torch.bool)
-        e = torch.stack([torch.tensor(d["dx"]), torch.tensor(d["dy"])], -1)[ok]
+        e = torch.stack([torch.tensor(d["dx"]) + a.dock_shift, torch.tensor(d["dy"])], -1)[ok]
         g = torch.Generator().manual_seed(a.seed)
         pick = e[torch.randint(len(e), (a.num_envs,), generator=g)].to(a.device)
         env = make_env(a.task, a.num_envs, a.seed, 0.0, False, a.device, a.step)
@@ -209,8 +219,17 @@ def main():
         r["chained_success"] = round(r["dock_ok_frac"] * r["held_end"], 4)
         res["chained"] = r
         print(f"chained  dock ok {r['dock_ok_frac']:.3f} x kneel held@end {r['held_end']:.3f} -> "
-              f"{r['chained_success']:.3f}  (fell {r['fell']:.3f}, bitten {r['bitten']:.3f})", flush=True)
+              f"{r['chained_success']:.3f}  (fell {r['fell']:.3f}, bitten {r['bitten']:.3f})  {r['by_shape']}", flush=True)
         a.cases = ""
+    if a.grid:
+        g = torch.Generator().manual_seed(a.seed)
+        u = torch.rand(a.num_envs, 2, generator=g)
+        pick = torch.stack([-0.04 + 0.07 * u[:, 0], -0.015 + 0.03 * u[:, 1]], -1).to(a.device)
+        env = make_env(a.task, a.num_envs, a.seed, 0.0, False, a.device, a.step)
+        r = res["grid"] = summarize(rollout(env, pol, blind_fill, clip, offsets=pick))
+        env.close()
+        print(f"grid     fell {r['fell']:.3f}  held@end {r['held_end']:.3f}  by dx {r['by_offset']['dx']}  "
+              f"{r['by_shape']}", flush=True)
     for case in filter(None, a.cases.split(",")):
         window, lat = CASES[case]
         t0 = time.time()
@@ -221,7 +240,7 @@ def main():
         print(f"{case:9s} fell {r['fell']:.3f}  bitten {r['bitten']:.3f}  held@0.90 {r['held_handoff']:.3f}  "
               f"held@end {r['held_end']:.3f}  dropped-after {r['dropped_after_handoff']:.3f}  "
               f"rms {r.get('end_rms_rad', math.nan):.3f}  neck p90 {r.get('neck_peak_held_p90', math.nan):.2f}  "
-              f"({time.time() - t0:.0f} s)", flush=True)
+              f"({time.time() - t0:.0f} s)  {r['by_shape']}", flush=True)
         if "fall_phase_hist" in r:
             print(f"          falls by phase {r['fall_phase_hist']}  terms {r['fall_terms']}  "
                   f"after bite {r['fell_after_bite']}", flush=True)
