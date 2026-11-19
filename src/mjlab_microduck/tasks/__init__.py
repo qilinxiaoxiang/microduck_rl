@@ -635,6 +635,7 @@ register_mjlab_task(
 # Ball dock (cmu_ball_dock_env_cfg.py, 2026-11-18): the closed-loop half of the split pick. A commander (vx, vy, wz,
 # head pitch / yaw) over the frozen deployed walk61, seeing the ball through the U20CAM model, rewarded for standing
 # still with the ball at the kneel-rise landing spot.
+from .cmu_ball_dock_env_cfg import NUDGE_LOW_ONNX as _BD_NUDGE
 from .cmu_ball_dock_env_cfg import BallDockRlCfg, make_ball_dock_env_cfg
 
 for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-20261104")):
@@ -643,6 +644,14 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
         env_cfg=make_ball_dock_env_cfg(_variant),
         play_env_cfg=make_ball_dock_env_cfg(_variant, play=True),
         rl_cfg=BallDockRlCfg,
+        runner_cls=MicroduckOnPolicyRunner,
+    )
+    register_mjlab_task(
+        task_id=f"Mjlab-BallDock-Nudge-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_ball_dock_env_cfg(_variant, walk_onnx=_BD_NUDGE),
+        play_env_cfg=make_ball_dock_env_cfg(_variant, play=True, walk_onnx=_BD_NUDGE),
+        rl_cfg=_dc.replace(BallDockRlCfg, experiment_name="ball_dock_nudge", run_name="ball_dock_nudge",
+                           max_iterations=2500),
         runner_cls=MicroduckOnPolicyRunner,
     )
 

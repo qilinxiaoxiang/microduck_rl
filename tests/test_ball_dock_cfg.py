@@ -53,3 +53,13 @@ def test_target_is_the_kneel_rise_landing_spot():
     assert OBJECT_NOMINAL_XY == (0.087, 0.0)
     assert bd.R_RANGE[0] > OBJECT_NOMINAL_XY[0]   # the robot always has to move to dock
     assert bd.DOCKED_TOL <= 0.02
+
+
+def test_nudge_low_level_variant():
+    for b in BODIES:
+        t = f"Mjlab-BallDock-Nudge-MicroDuck-CMU-{b}"
+        assert t in list_tasks()
+        assert load_rl_cfg(t).experiment_name == "ball_dock_nudge"
+    assert bd.NUDGE_LOW_ONNX.exists()
+    cfg = bd.make_ball_dock_env_cfg("plugged", walk_onnx=bd.NUDGE_LOW_ONNX)
+    assert cfg.actions["dock"].walk_onnx == str(bd.NUDGE_LOW_ONNX)

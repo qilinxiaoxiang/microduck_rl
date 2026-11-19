@@ -56,6 +56,11 @@ from mjlab_microduck.tasks.symmetry import PpoWithSymmetryCfg
 
 REPO = Path(__file__).resolve().parents[3]
 WALK_ONNX = REPO / "cmu" / "whole" / "runtime-overlay" / "models" / "walk61.onnx"   # deployed (robot-condition.json)
+# The nudge (cmu_walk_nudge_env_cfg.py, wn-b @ 750) as the low level instead of walk61 (cmu/kneel/RESULTS.md round 5):
+# bd-a2's failures are not spawn-dependent but end-of-dock limit cycles (12 % still walking at 8 s, half of them
+# docked earlier) from walk61's zero-command drift and dead zone; under a scripted P-command on the true error the
+# nudge docks 99.8 % kneel-ready against walk61's 71 %. Its twist contract is 8 x the remaining error.
+NUDGE_LOW_ONNX = REPO / "cmu" / "kneel" / "policies" / "wn-b_750.onnx"
 
 # ── Commander action: tanh-free, clipped to [-1, 1], then scaled ──
 # walk61's trained ranges. It has a dead zone: in this env it does not step below ~0.2 m/s and moves ~0.1 m/s at a

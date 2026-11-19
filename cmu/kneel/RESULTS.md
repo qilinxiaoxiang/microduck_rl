@@ -272,3 +272,44 @@ pixel pick). The chain is now capped by the dock: 86.5 % of its ends are alive a
 from those ends (0.56–0.60) is below its ±5 cm window number because of the dock's tail beyond 5 cm.
 
 Next: the dock's tail (stop-short / lateral beyond 5 cm), the battery body for both, then `infer_policy.py`.
+
+## Round 5: the dock's tail (2026-11-19)
+
+`dock_diag.py`, bd-a2 @ 2298, 2048 episodes of 8 s, ball 10–35 cm, ±45°:
+
+| End state | share | notes |
+|---|---|---|
+| near (still, < 3 cm) | 0.80 | |
+| moving (trunk ≥ 5 cm/s) | 0.12 | error p50 4.3 cm, 0.16 m/s; 54 % had been docked earlier |
+| far (still, ≥ 3 cm) | 0.07 | min error reached 1.4 cm, then drifted (dx p50 −3 cm) |
+| lost / fell | 0.01 | |
+
+Flat across spawn range and bearing: the tail is not hard spawns but an end-of-dock limit cycle (walk61 drifts at zero
+command and cannot step below ~0.2 m/s, so the commander overshoots and re-corrects).
+
+- **stand61 as the hold** (`chain_check --modes stand6,standor`, stand61 under a zero twist after 6 s, or latched
+  when the TRUE error first drops under 2 cm): worse, kneel-ready 0.53 / 0.32, error p90 15–20 cm. Switching into
+  stand61 from a walking state makes it step away.
+- **The nudge as the low level** (`dock_check --walk-onnx wn-b_750.onnx --mode stand,pnudge`, scripted 8 × TRUE
+  error): kneel-ready **0.998** (walk61 under the same scripted command: 0.71), error p90 1.0 cm, 0 % falls
+  (walk61 3.7 %); zero-command drift over 4 s 1.0 cm (walk61 2.7 cm). wn-b also covers the 10–35 cm approach.
+- So: **bd-b = the dock commander retrained over wn-b** (`Mjlab-BallDock-Nudge-MicroDuck-CMU-*`, camera only, same
+  rewards as bd-a), so the commander learns the camera's latency and the low level holds still.
+
+### bd-b: the dock commander over wn-b (camera only, 512 envs, ball 10–35 cm, ±45°)
+
+| Dock | still at end | within 2 / 4 cm | err p50 / p90 | falls | kneel-ready box | full chain with ks-f @ 750 |
+|---|---|---|---|---|---|---|
+| bd-a2 @ 2298 (over walk61) | 0.87 | 0.71 / ~0.85 | 1.4 / 3.4 cm | ~1 % | 0.59 | 0.52 |
+| bd-b @ 1000 | 0.99 | 0.78 / 0.95 | 1.3 / 2.6 cm | 0.6 % | 0.62 | 0.58 |
+| **bd-b @ 2000** | **1.00** | **0.84 / 0.98** | **1.1 / 2.3 cm** | **0 %** | 0.75 | **0.62** |
+| bd-b @ 2499 | 1.00 | 0.82 / 0.98 | 1.2 / 2.4 cm | 0.2 % | 0.65 | 0.61 |
+
+`dock_diag` on bd-b @ 2499 (2048 envs): near 0.956, far 0.038, moving 0.003, fell / lost 0.002 (bd-a2: 0.80 / 0.07 /
+0.12 / 0.01). The limit cycle is gone. **Dock to use: `policies/bd-b_2000.onnx`** (20-D camera obs → 6-D command
+over wn-b_750, which replaces walk61 for the whole approach).
+
+**Best pipeline in sim: bd-b @ 2000 → ks-f @ 750, 62 %.** Every dock end is now usable (dock ok 1.00), so the kneel
+is the limit again: from these ends (error p50 1.1 cm) it holds 0.62, against 0.79 at ±1 cm.
+Caveats unchanged: Plugged body, kneel replayed from the dock's end offsets (no head pose / sway at the switch),
+two new policies in the runtime (wn-b replaces walk61 during the dock).

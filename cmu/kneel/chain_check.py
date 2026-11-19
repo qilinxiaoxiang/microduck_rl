@@ -2,6 +2,8 @@
 
 Phase 1 (DOCK_S): the trained dock commander (bd-a2) over walk61, as in dock_check --mode policy.
 Phase 2 (NUDGE_S): one of
+  stand6  stand61 (pass it as --nudge) under a zero twist from DOCK_S on
+  standor stand61 latched per env the first time the TRUE error is under 2 cm (oracle trigger, an upper bound)
   dock    the commander keeps going (the round-1 baseline)
   cam     the nudge policy replaces walk61; its twist slots get NUDGE_GAIN x the ball error ESTIMATED from the
           camera: the last detection's pixel (delayed, noisy, biased, dropped frames, as the commander sees it)
@@ -135,7 +137,9 @@ def run(env, dock, nudge, mode):
             return
         cm = env.command_manager
         tw, hd = cm.get_term("twist").value, cm.get_term("head_pose").value
-        if mode.startswith("cam"):
+        if mode.startswith("stand"):
+            e = torch.zeros(n, 2, device=dev)          # stand61 (passed as --nudge) under a zero twist
+        elif mode.startswith("cam"):
             e, valid = est.error()
             valid_steps.add_(valid.float())
         else:
@@ -165,7 +169,7 @@ def run(env, dock, nudge, mode):
     est_err_at_switch = None
     k_switch = int(DOCK_S / dt)
     for k in range(int((DOCK_S + NUDGE_S) / dt)):
-        if k == k_switch and mode != "dock":
+        if k == k_switch and mode not in ("dock", "standor"):
             head_hold[:] = env.command_manager.get_term("head_pose").value
             on[:] = True
             if mode.startswith("cam"):
@@ -173,6 +177,12 @@ def run(env, dock, nudge, mode):
                 est_err_at_switch = torch.where(v0, (e0 - bd.dock_error(env)).norm(dim=-1),
                                                 torch.full_like(v0, float("nan"), dtype=e0.dtype))
                 valid_at_switch = v0
+        if mode == "standor":
+            # oracle trigger: latch to the stand policy the first time the TRUE error is under 2 cm
+            newly = ~on & (bd.dock_error(env).norm(dim=-1) < 0.02)
+            if newly.any():
+                head_hold[newly] = env.command_manager.get_term("head_pose").value[newly]
+                on |= newly
         est.record()
         obs, _, t, tr, _ = env.step(dock(obs["actor"]))
         fell |= alive & t.bool()

@@ -27,8 +27,10 @@ KNEEL_DX = (-0.02, 0.01)   # m: kr-a@500 holds 22-54 % in these dx bins, ~0 beyo
 KNEEL_DY = 0.03
 
 
-def make_env(task, n, seed, device, r_max=None):
+def make_env(task, n, seed, device, r_max=None, walk_onnx=None):
     cfg = load_env_cfg(task, play=False)
+    if walk_onnx:
+        cfg.actions["dock"].walk_onnx = walk_onnx
     cfg.scene.num_envs = n
     cfg.seed = seed
     cfg.curriculum.pop("dock_range", None)
@@ -85,6 +87,13 @@ def run(env, mode, policy=None, seconds=None):
                 a = torch.zeros(n, bd.ACTION_DIM, device=dev)
             elif mode == "pctrl":
                 a = pctrl(env)
+            elif mode == "pnudge":
+                # the nudge's own contract (twist = 8 x error) on the TRUE error, head aimed as pctrl
+                a = pctrl(env)
+                e = bd.dock_error(env)
+                a[:, 0] = (8.0 * e[:, 0] / bd.VX_MAX).clamp(-1, 1)
+                a[:, 1] = (8.0 * e[:, 1] / bd.VY_MAX).clamp(-1, 1)
+                a[:, 2] = 0.0
             else:
                 a = policy(obs["actor"])
             obs, _, term, trunc, _ = env.step(a)
@@ -102,7 +111,7 @@ def run(env, mode, policy=None, seconds=None):
     out = dict(mode=mode, n=n, fell=f(fell.float().mean()), lost_or_fell=f((~alive).float().mean()),
                kicked=f(kicked.float().mean()), mean_speed=f((speed_sum / steps)[a_].mean()),
                travel_m=f((o1 - o0).norm(dim=-1)[a_].mean()))
-    if mode in ("pctrl", "policy"):
+    if mode in ("pctrl", "pnudge", "policy"):
         out.update(docked_end=f((a_ & bd.docked_mask(env)).float().mean()),
                    err_end_p50_cm=f(100 * err[a_].median()), err_end_p90_cm=f(100 * torch.quantile(err[a_], 0.9)),
                    within_2cm=f((a_ & (err < 0.02)).float().mean()), within_4cm=f((a_ & (err < 0.04)).float().mean()),
@@ -128,8 +137,9 @@ def main():
     p.add_argument("--r-max", type=float, default=None)
     p.add_argument("--device", default="cuda:0")
     p.add_argument("--out", default=None)
+    p.add_argument("--walk-onnx", default=None, help="low-level policy in place of walk61 (e.g. a nudge)")
     a = p.parse_args()
-    env = make_env(a.task, a.num_envs, 3, a.device, a.r_max)
+    env = make_env(a.task, a.num_envs, 3, a.device, a.r_max, a.walk_onnx)
     pol = None
     if a.onnx:
         m = A.OnnxMlp.__new__(A.OnnxMlp)
