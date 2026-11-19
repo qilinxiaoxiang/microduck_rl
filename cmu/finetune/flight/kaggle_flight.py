@@ -55,7 +55,9 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
                "ts2a999_teacher.onnx": TRAIN / "ckpt/ts2a999_teacher/teacher.onnx",
                # its students' last saved states, continued with --resume-pt
                "s2c_132.pt": TRAIN / "ckpt/s2c_132/model_132.pt",
-               "l2c_140.pt": TRAIN / "ckpt/l2c_140/model_140.pt"}.items():
+               "l2c_140.pt": TRAIN / "ckpt/l2c_140/model_140.pt",
+               # the from-scratch student trained with dropped ticks, last saved state
+               "s2f_160.pt": TRAIN / "ckpt/s2f_160/model_160.pt"}.items():
     if _p.exists():
         kj.ASSETS[f"init/{_n}"] = _p
 _flags = kj.worker_flags
