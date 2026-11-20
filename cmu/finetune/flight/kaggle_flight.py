@@ -58,6 +58,8 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
                "l2c_140.pt": TRAIN / "ckpt/l2c_140/model_140.pt",
                # the from-scratch student trained with dropped ticks, last saved state
                "s2f_160.pt": TRAIN / "ckpt/s2f_160/model_160.pt",
+               # round 3 run AB's save 140: the start of PPO on the distilled student (--resume-pt)
+               "s3AB_140.pt": TRAIN / "ckpt/s3AB_140/model_140.pt",
                # round 3: the deployed walk61, the anchor target of universal5t and its second start policy; the
                # round-3 teacher the students are distilled from
                "walk61.onnx": REPO / "cmu/whole/runtime-overlay/models/walk61.onnx",
@@ -70,7 +72,11 @@ for _p in sorted((TRAIN / "init").glob("ts3t_*.onnx")):
 _flags = kj.worker_flags
 # --distill jobs run distill_worker.py through flight_worker.py (TEACHER-STUDENT-PLAN.md)
 DISTILL_FLAGS = {"--distill", "--teacher-onnx", "--core", "--hidden", "--layers", "--bptt-steps", "--beta-iters", "--act-noise",
-                 "--epochs", "--mb-envs", "--lr", "--lr-final", "--stop-after", "--device", "--resume-pt", "--drop-max"}
+                 "--epochs", "--mb-envs", "--lr", "--lr-final", "--stop-after", "--device", "--resume-pt", "--drop-max",
+                 # 2026-11-20: run AB's recipe (anchor, case and stop shares, gain flag) and the PPO term on the student
+                 "--anchor-onnx", "--anchor-w", "--anchor-head", "--case-share", "--stop-share", "--gain-flag-col",
+                 "--rl-w", "--bc-w", "--bc-w-final", "--rl-clip", "--rl-gamma", "--rl-lam", "--rl-std", "--rl-vf",
+                 "--rl-critic-lr", "--rl-critic-warmup"}
 kj.worker_flags = lambda: _flags() | {"--scratch", "--task", "--history-step-scale"} | DISTILL_FLAGS
 
 
