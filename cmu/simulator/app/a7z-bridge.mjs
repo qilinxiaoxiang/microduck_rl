@@ -67,7 +67,9 @@ const CAMERA_PIPELINE = hold => "exec 3<&0; nice -n 10 ~/.venvs/duck-policy/bin/
 // dock is ready for a full pick + rise test (seepick.py --dock, not on the remote)
 export const PICK_VARIANTS = {dock: "--color orange --dock-only"};
 // (cd first: a backgrounded `cd && python` list is a subshell, and the TERM would miss python)
-const PICK_PIPELINE = args => "exec 3<&0; cd ~/rt/microduck-sim/guide/firmware/mac || exit 1; ~/.venvs/duck-policy/bin/python -u" +
+// MICRODUCK_A7Z_MAC: the A7Z folder seepick.py runs from, e.g. a staging copy (~/dock-stage/microduck-sim/guide/firmware/mac)
+const A7Z_MAC = process.env.MICRODUCK_A7Z_MAC ?? "~/rt/microduck-sim/guide/firmware/mac";
+const PICK_PIPELINE = args => `exec 3<&0; cd ${A7Z_MAC} || exit 1; ~/.venvs/duck-policy/bin/python -u` +
   ` seepick.py ${args} 2>&1 & g=$!; (cat <&3 >/dev/null; kill -TERM $g) >/dev/null 2>&1 & wait $g`;
 const SSH_OPTS = ["-T","-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "-o", "ServerAliveInterval=2", "-o", "ServerAliveCountMax=2"];
 
