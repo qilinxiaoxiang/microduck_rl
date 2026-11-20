@@ -1227,6 +1227,9 @@ def run(args):
     settled_at, tilt_after_stop = None, 0.0
     if args.kick_at is not None:
         T = max(T, args.kick_at + 4.0)
+    steps = []   # --step-at: per small step, the true feet midpoint and trunk yaw at its start and end, the brain's estimate
+    if args.step_at:
+        T = max(T, max(args.step_at) + args.step_hold)
     if args.sit_at is not None:
         T = max(T, (args.unsit_at if args.unsit_at is not None else args.sit_at + 6.0) + 6.0)
     if args.resit_at is not None:
@@ -1327,6 +1330,9 @@ def run(args):
                     walking = want.get("mode") == "walk" and any(float(want.get(k, 0)) for k in ("vx", "vy", "vtheta"))
             if args.kick_at is not None and t >= args.kick_at and kick_done_t is None:
                 want = {"mode": "kick", "foot": args.kick_foot, "id": 1}
+            k_step = sum(t >= a for a in args.step_at)
+            if k_step:   # the remote's Small step: a new id per press
+                want = {"mode": "step", "dx": args.step_dx, "dy": 0.0, "dyaw": 0.0, "id": k_step}
             if args.sit_at is not None and t >= args.sit_at and (args.unsit_at is None or t < args.unsit_at):
                 want = {"mode": "sit"}
                 seat_t = args.sit_at + walk_brain.SIT_PREP_S + walk_brain.SIT_SETTLE_S + 0.2
@@ -1538,6 +1544,19 @@ def run(args):
         maxtilt = max(maxtilt, tilt)
         tz = float(d.xpos[trunk, 2])
         hist.append((round(t, 2), tilt, float(np.linalg.norm(d.sensordata[gyro_adr:gyro_adr + 3])), tz))
+        if args.step_at:
+            k_step = sum(t >= a for a in args.step_at)
+            mid = 0.5 * (d.geom_xpos[feet[0], :2] + d.geom_xpos[feet[1], :2])
+            if k_step > len(steps):
+                steps.append(dict(at=round(t, 2), mid0=mid.copy(), yaw0=_yaw(d.xquat[trunk]), target_cm=args.step_dx * 100))
+            if steps:
+                st_ = steps[-1]
+                cy, sy = math.cos(st_["yaw0"]), math.sin(st_["yaw0"])   # not c: that name is the servo controller here
+                dv = mid - st_["mid0"]
+                st_.update(moved_cm=[round(float(cy * dv[0] + sy * dv[1]) * 100, 2), round(float(-sy * dv[0] + cy * dv[1]) * 100, 2)],
+                           yaw_deg=round(math.degrees((_yaw(d.xquat[trunk]) - st_["yaw0"] + math.pi) % (2 * math.pi) - math.pi), 1),
+                           est_err_cm=None if info.get("step_err") is None else [round(v * 100, 2) for v in info["step_err"][:2]],
+                           policy=info.get("policy"), end_t=round(t, 2), max_tilt=round(max(st_.get("max_tilt", 0.0), tilt), 1))
         if sp is not None:
             sp.observe(t, brain, info, tilt, tz)
         if sp_trace is not None:
@@ -1662,7 +1681,8 @@ def run(args):
                      applied_s_below_0p5_after_grip_s=None if half is None else round(half - g0, 2),
                      min_applied_s=round(min(r["s_applied"] for r in hrows), 3))
     return dict(model=args.model, volt=args.volt, walk_ramp=args.walk_ramp, com_x_mm=args.com_x, zero=zero, imu_pitch=args.imu_pitch,
-                kick=kick, sit=sitr, hold=holdr, quack_head_ran={str(k): v for k, v in quack_ok.items()},
+                kick=kick, small_steps=[{k: v for k, v in st_.items() if k not in ("mid0", "yaw0")} for st_ in steps] or None,
+                sit=sitr, hold=holdr, quack_head_ran={str(k): v for k, v in quack_ok.items()},
                 quack_head_reached={str(k): {n: round(v, 3) for n, v in r.items()} for k, r in quack_reach.items()},
                 quack_peak_tilt={str(k): round(max(h[1] for h in window(k, k + QUACK_HEAD_S + 1.0)), 1) for k in quack_ok},
                 seepick=None if sp is None else dict(sp.summary(brain), post_handback=sp_post(sp, window, stable_after, args), guard=dict(
@@ -1873,6 +1893,10 @@ def main():
     ap.add_argument("--quack-yaw", type=float, default=0.25, help="rad; head_yaw delta of the --quack-at tilts")
     ap.add_argument("--quack-pitch", type=float, default=0.0, help="rad; head_pitch delta of the --quack-at moves")
     ap.add_argument("--kick-at", type=float, default=None, help="s; one kick command (id 1) at this time")
+    ap.add_argument("--step-at", type=float, nargs="*", default=[], metavar="T",
+                    help="s; the remote's Small step ({'mode': 'step', 'dx': --step-dx, 'id': n}) at each of these times")
+    ap.add_argument("--step-dx", type=float, default=0.03, help="m; the small step's target")
+    ap.add_argument("--step-hold", type=float, default=4.0, help="s simulated after the last small step")
     ap.add_argument("--kick-foot", choices=("left", "right"), default="left")
     ap.add_argument("--sit-at", type=float, default=None, help="s; {\"mode\": \"sit\"} from here")
     ap.add_argument("--sit-head", type=json.loads, default=None,

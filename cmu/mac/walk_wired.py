@@ -36,6 +36,8 @@ Pickup additions (2026-10-16, walk_brain.py and jaw_ctl.py have the details):
   {"mode": "dock", "object": {...}}      the ball dock (walk_brain.py): commander over the nudge, guarded as walk (tilt,
                                           action limit; a trip ramps to STAND). Refused (zero-command walk) without
                                           nudge61.onnx and dock_commander.onnx or without a picture object.
+  {"mode": "step", "dx": 0.03, "id": 7}  a small step with the nudge (walk_brain.py), guarded as walk; refused (zero-command
+                                          walk) without nudge61.onnx
   {"mode": "seepick", "object": {...}}   the seeing pick (walk_brain.py): this process drives the jaw on the trained
                                           timeline (walk_brain.seepick_jaw, "grip" once closed), hands the policy the
                                           jaw's holding bit (jaw_ctl.holding) and, once the rise is complete, writes
@@ -604,6 +606,13 @@ def dock_block(want, brain):
     return None
 
 
+def step_block(brain):
+    """Why a switch to the small step must not start, or None."""
+    if walk_brain.DOCK_NUDGE not in getattr(brain, "sessions", {}):
+        return f"no {walk_brain.DOCK_NUDGE}61.onnx in the models directory"
+    return None
+
+
 def p_gain_writes(kp, kp_now, settled=False, step=KP_STEP):
     """{servo ID: gain} to write for the Brain's kp (one int for every joint, or {joint name: int} from the hold) given
     the gains last written (kp_now, {joint name: int} or None). A whole-robot gain is written exactly; per-joint hold
@@ -1064,7 +1073,7 @@ def main():
                 want["head"] = last_cmd[1]["head"]  # the head keeps looking where the walk command aimed it
             write_cmd(args.cmd, want, f"walk for_s {want_s(last_cmd)} elapsed")
             last_cmd, cmd_since = read_cmd(args.cmd, None), time.time()
-        if brain.mode in ("walk", "kick", "dock") and diverging:
+        if brain.mode in ("walk", "kick", "dock", "step") and diverging:
             if brain.mode == "kick":
                 brain.end_kick(diverging)  # the stand ramp next tick starts from the last goals sent
             want = {"mode": "stand"}
@@ -1083,7 +1092,7 @@ def main():
         now = time.perf_counter()
         if guard and guard.state == "stop":
             # a kick or a sit ends through the walk policy at zero command (the Brain stands a sit up first)
-            want = stop_command(torque_on, "walk" if brain.mode in ("kick", "sit", "dock") else brain.mode)
+            want = stop_command(torque_on, "walk" if brain.mode in ("kick", "sit", "dock", "step") else brain.mode)
         elif guard and guard.state == "floor":
             seated = brain.mode == "sit" and brain.sit is not None and brain.sit["phase"] == "seated"
             want = floor_command(torque_on, seated, now - guard.floor_t)
@@ -1144,6 +1153,12 @@ def main():
             if block:
                 want = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0} if brain.mode == "walk" else {"mode": brain.mode}
                 write_cmd(args.cmd, want, f"ball dock refused: {block}")
+                last_cmd, cmd_since = read_cmd(args.cmd, None), time.time()
+        if want.get("mode") == "step" and brain.mode != "step":
+            block = step_block(brain)
+            if block:
+                want = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0} if brain.mode == "walk" else {"mode": brain.mode}
+                write_cmd(args.cmd, want, f"small step refused: {block}")
                 last_cmd, cmd_since = read_cmd(args.cmd, None), time.time()
         if want.get("mode") == "walk":
             for k, key in enumerate(("vx", "vy", "vtheta")):

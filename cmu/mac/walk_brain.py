@@ -57,6 +57,13 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
                                             seeing pick's landing spot; the kneel ("policy": "dk" in a seepick command,
                                             seepickpix_dk61.onnx) starts from there. info["dock_cmd"] is the twist it asked
                                             for; dockpick.py decides when it is docked.
+  {"mode": "step", "dx": 0.03, "dy": 0.0, "dyaw": 0.0, "id": 7}
+                                            a small step (the nudge, nudge61.onnx, microduck_rl cmu_walk_nudge_env_cfg): a
+                                            new id sets a target dx, dy (m, heading frame, within STEP_RANGE) and dyaw (rad)
+                                            from where the feet stand now; every tick the twist slots carry NUDGE_GAIN x the
+                                            remaining error, as in training, which leg odometry (LegOdometry: the planted
+                                            foot is fixed on the floor, duck_kin forward kinematics, IMU yaw) estimates. The
+                                            nudge steps there and stands still; the mode holds there until another command.
   {"mode": "kick", "foot": "left", "id": 7} Pollen's ball kick (kick_left61 / kick_right61.onnx), one shot per new id
                                             and only from stand or walk mode: KICK_TICKS policy ticks (0.5 s) with an
                                             all-zero command, then walk mode at zero command (stand61). The action
@@ -142,6 +149,51 @@ DOCK_HEAD_PITCH = (0.0, 1.10)
 DOCK_HEAD_YAW_MAX = 0.8
 DOCK_NECK_BOW = 0.8
 DOCK_HEAD_JOINTS = ("neck_pitch", "head_pitch", "head_yaw")
+
+
+# Small step (mode "step"): the nudge's command contract (cmu_walk_nudge_env_cfg.NudgeCommand): twist = clip(gain x
+# remaining error to the target in the trunk heading frame, CMD_MAX); trained on targets within TARGET_X / TARGET_Y /
+# TARGET_YAW. The error is measured from the midpoint of the feet.
+NUDGE_GAIN, NUDGE_YAW_GAIN = 8.0, 2.0
+NUDGE_CMD_MAX = (0.4, 0.3, 1.0)
+STEP_RANGE = (0.06, 0.04, 0.25)   # |dx|, |dy| m and |dyaw| rad: the trained target range
+
+
+class LegOdometry:
+    """Where the feet midpoint is on the floor (world xy, m), from the joints, gravity and IMU yaw only: the lower foot
+    is planted, so it stays where it was; at a switch the new planted foot is placed from the old one through the legs.
+    Feet are the duck_kin sole boxes (centre; the lowest vertex decides which is planted)."""
+
+    def __init__(self, kin=None):
+        if kin is None:
+            import duck_kin
+            kin = duck_kin.DuckKin(duck_kin.Intrinsics.from_fov(90, 60, 640, 360))   # the camera is not used
+        self.kin = kin
+        self.stance, self.stance_xy = None, np.zeros(2)
+
+    def feet(self, q, gb):
+        """[(xy, z_min)] per foot in the heading-aligned foot frame (zero yaw)."""
+        Rs, ps = self.kin.place(q, gb)
+        out = []
+        for g in self.kin.feet:
+            R, p = Rs[g["body"]], ps[g["body"]]
+            c = p + R @ g["p"]
+            zmin = float(((g["v"] @ g["R"].T + g["p"]) @ R.T + p)[:, 2].min())
+            out.append((c[:2], zmin))
+        return out
+
+    def update(self, q, gb, yaw):
+        """-> feet midpoint, world xy (the frame of the first call: the planted foot starts at its heading-frame spot)."""
+        f = self.feet(q, gb)
+        c, s = math.cos(yaw), math.sin(yaw)
+        rot = np.array([[c, -s], [s, c]])
+        st = 0 if f[0][1] <= f[1][1] else 1
+        if self.stance is None:
+            self.stance_xy = rot @ f[st][0]
+        elif st != self.stance:   # the new planted foot, from the old one through the legs this tick
+            self.stance_xy = self.stance_xy + rot @ (f[st][0] - f[self.stance][0])
+        self.stance = st
+        return self.stance_xy + rot @ (0.5 * (f[1 - st][0] - f[st][0]))
 
 
 def dock_commands(a):
@@ -474,8 +526,8 @@ class Brain:
     or None to write nothing) and the P gain (0 = leave unchanged).
     """
 
-    POLICY_MODES = ("walk", "groundpick", "seepick", "kick", "sit", "dock")  # modes driven by an ONNX policy at KP_RL
-    TORQUE_MODES = ("stand", "walk", "groundpick", "seepick", "sit", "dock")  # modes that switch torque on
+    POLICY_MODES = ("walk", "groundpick", "seepick", "kick", "sit", "dock", "step")  # modes driven by an ONNX policy at KP_RL
+    TORQUE_MODES = ("stand", "walk", "groundpick", "seepick", "sit", "dock", "step")  # modes that switch torque on
 
     def __init__(self, models, compensation=True, walk_ramp=0.0, yaw_trim_file=None, getup=None):
         self.getup_mode = GETUP if getup is None else getup
@@ -503,6 +555,7 @@ class Brain:
         self.dk_cam = np.zeros(5, dtype=np.float32)    # dock: [u, v, width, age, visible] last handed to the commander
         self.dk_act = np.zeros(6, dtype=np.float32)    # dock: the commander's last action (clipped)
         self.dk_twist, self.dk_head = np.zeros(3, dtype=np.float32), np.zeros(4, dtype=np.float32)  # the nudge's command
+        self.step = None   # small step: {"id", "target" (world xy), "yaw" (target), "odom"}; set on the first policy tick
         self.comp_cfg = {"delay_compensation": "constant_velocity" if compensation else "none",
                          "prediction_fraction": 1.0, "predict_heading": True}
         self.walk_ramp = walk_ramp
@@ -848,6 +901,15 @@ class Brain:
                 self.head_cmd[:] = 0
                 if not was_policy:
                     self.last_action[:] = 0
+            elif self.mode == "step":
+                # from stand61/walk61: hold the present pose; the nudge takes over at the first fresh upright sample
+                if DOCK_NUDGE not in self.sessions:
+                    raise RuntimeError(f"no {DOCK_NUDGE}61.onnx in the models directory")
+                self.ramp, self.goal = None, dict(start)
+                self.step = None
+                self.head_cmd[:] = 0
+                if not was_policy:
+                    self.last_action[:] = 0
             elif self.mode == "sit" and not was_policy and self.seated():
                 # from monitor mode while seated (a brain restart on a seated robot): the present pose is the goal,
                 # the policy takes over in the seated phase with the posture flag at 1, and its last action is the
@@ -878,7 +940,7 @@ class Brain:
                     # the robot to their own pose in closed loop (as-built sim from STAND: walks 1.17 m)
                     self.ramp, self.goal = None, dict(start)
                 self.heading, self.walk_seg = None, None
-                self.stepped = prev_mode == "dock"   # out of a dock the nudge may be mid-step: walk61 brings it to rest
+                self.stepped = prev_mode in ("dock", "step")   # the nudge may be mid-step: walk61 brings it to rest
             if self.mode != "monitor":
                 self.head_hold = None
             print(f"mode -> {self.mode}", flush=True)
@@ -970,6 +1032,28 @@ class Brain:
                 info["dock_cmd"] = [round(float(v), 3) for v in command]
                 info["dock_head"] = [round(float(v), 3) for v in head[:3]]
                 info["dock_cam"] = [round(float(v), 3) for v in self.dk_cam]
+            elif self.mode == "step":
+                if self.step is None or want.get("id") != self.step["id"]:
+                    odom = self.step["odom"] if self.step else LegOdometry()
+                    mid = odom.update(q, grav_body, yaw)
+                    lim = STEP_RANGE
+                    dx, dy, dyaw = (float(np.clip(float(want.get(k, 0.0) or 0.0), -m, m))
+                                    for k, m in zip(("dx", "dy", "dyaw"), lim))
+                    c, s_ = math.cos(yaw), math.sin(yaw)
+                    self.step = {"id": want.get("id"), "odom": odom, "yaw": yaw + dyaw,
+                                 "target": mid + np.array([c * dx - s_ * dy, s_ * dx + c * dy])}
+                    print(f"step: target dx {dx * 100:+.1f} dy {dy * 100:+.1f} cm dyaw {math.degrees(dyaw):+.0f} deg", flush=True)
+                mid = self.step["odom"].update(q, grav_body, yaw)
+                d = self.step["target"] - mid
+                c, s_ = math.cos(yaw), math.sin(yaw)
+                err = (c * d[0] + s_ * d[1], -s_ * d[0] + c * d[1],
+                       math.atan2(math.sin(self.step["yaw"] - yaw), math.cos(self.step["yaw"] - yaw)))
+                command = [float(np.clip(g * e, -m, m)) for g, e, m in
+                           zip((NUDGE_GAIN, NUDGE_GAIN, NUDGE_YAW_GAIN), err, NUDGE_CMD_MAX)]
+                self.head_cmd += HEAD_ALPHA * (np.zeros(4, dtype=np.float32) - self.head_cmd)
+                head, policy = self.head_cmd, DOCK_NUDGE
+                info["step_err"] = [round(err[0], 4), round(err[1], 4), round(err[2], 3)]
+                info["step_mid"] = [round(float(v), 4) for v in mid]
             elif self.mode == "kick":
                 # robotd: a skill's twist is its own (zero for a kick) and the head/body slots are zero-padded
                 command, head = [0.0, 0.0, 0.0], np.zeros(4, dtype=np.float32)

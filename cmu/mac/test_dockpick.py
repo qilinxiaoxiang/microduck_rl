@@ -262,3 +262,36 @@ def test_dock_only_stops_at_the_ball_and_stands():
     assert not duck.kneels and duck.sent[-1][1]["mode"] == "walk"
     assert max(abs(v) for v in ctl.attempts[-1]["err_cm"]) < 2.0
 
+
+
+# --- the small step (mode "step": the nudge with leg odometry) ---------------------------------------------------
+def test_step_runs_the_nudge_toward_the_target_and_new_ids_retarget():
+    step = {"mode": "step", "dx": 0.03, "dy": 0.0, "dyaw": 0.0, "id": 1}
+    brain, infos = brain_ticks([WALK0] * 10 + [step] * 5 + [dict(step, id=2, dx=0.0)] * 3)
+    s = infos[10:]
+    assert {i["policy"] for i in s} == {wb.DOCK_NUDGE}
+    # standing still on the spot: the whole 3 cm is ahead, x gain 8 = 0.24 m/s in the vx slot
+    assert s[0]["step_err"][0] == pytest.approx(0.03, abs=1e-3) and abs(s[0]["step_err"][1]) < 1e-3
+    assert s[-1]["step_err"][0] == pytest.approx(0.0, abs=1e-3)   # id 2: a zero target from where it stands
+
+
+def test_step_target_is_clipped_to_the_trained_range():
+    brain, infos = brain_ticks([WALK0] * 10 + [{"mode": "step", "dx": 0.5, "dy": -0.5, "id": 1}])
+    assert infos[-1]["step_err"][:2] == pytest.approx([wb.STEP_RANGE[0], -wb.STEP_RANGE[1]], abs=1e-3)
+
+
+def test_leg_odometry_tracks_a_planted_foot():
+    odom = wb.LegOdometry()
+    q = dict(wb.STAND)
+    m0 = odom.update(q, (0.0, 0.0, -1.0), 0.0)
+    assert odom.update(q, (0.0, 0.0, -1.0), 0.0) == pytest.approx(m0)   # nothing moved
+    # the same pose turned 90 deg about the planted foot: the midpoint swings round it, it does not jump
+    m1 = odom.update(q, (0.0, 0.0, -1.0), math.pi / 2)
+    assert np.linalg.norm(m1 - odom.stance_xy) == pytest.approx(np.linalg.norm(m0 - odom.stance_xy), abs=1e-9)
+
+
+def test_walk_wired_refuses_a_step_without_the_nudge():
+    brain = wb.Brain(MODELS)
+    assert ww.step_block(brain) is None
+    brain.sessions = {k: v for k, v in brain.sessions.items() if k != wb.DOCK_NUDGE}
+    assert "nudge61.onnx" in ww.step_block(brain)

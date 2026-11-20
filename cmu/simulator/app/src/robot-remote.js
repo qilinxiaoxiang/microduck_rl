@@ -26,6 +26,8 @@ import { batteryPercent } from "./battery-percent.js";
 // Backpack switch: Charger pack / Battery pack tells the brain which pack is on ({"op": "supply"}): the charger pack runs without the
 // low-battery guard, the 2S pack with it from the first sample. Switching restarts an idle brain; a driving one keeps the
 // old setting until Stop. Unset (auto) the brain guesses from the voltage, which can take the charger for a battery.
+// Small step (F): {"mode": "step", "dx": STEP_DX, "id": "new"}, the nudge policy steps STEP_DX forward from where the feet
+// stand (walk_brain leg odometry) and stands still there; from Balance stand only; Stop hands back to walk61 at zero.
 // Dock (N): "Dock to ball" runs seepick.py --dock-only (dockpick.py: find the ball nearby, the learned dock to the
 // kneel's start spot, then stand; a7z-bridge.mjs PICK_VARIANTS, POST /api/a7z/pick). It replaced the two pick buttons
 // (the baseline T2 pick and revision r1) until dock + kneel is ready. Starts from Balance stand; Stop also ends the run.
@@ -37,6 +39,7 @@ import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
 // so the duck walked in 1 s bursts. 0.15 s / 1.5 s rides through a 1.3 s stall; a dead link stops the duck 1.5 s later
 // (0.37 m at 0.25 m/s). Releasing the button still sends the stop at once. Each repeat carries its send time and the
 // bridge logs late ones (a7z-bridge.mjs, ~/Library/Logs/microduck-remote-cmd.jsonl), so the slow hop is named.
+const STEP_DX = 0.03; // m: the small step's target, within the nudge's trained +-6 cm
 const WALK_VX = 0.25, WALK_REPEAT_MS = 150, WALK_FOR_S = 1.5;
 // Arc yaw rate, rad/s, positive = left: the rate walk_brain holds with the IMU (the held heading turns at vtheta and its
 // trim + PI loop follows, turn command within +-TURN_MAX 2.0). 0.3 is the fastest rate both ways under the robot's
@@ -151,6 +154,7 @@ const ACTIONS = [
   {id: "kickR", key: "E", label: "Kick right", hint: "One 0.5 s kick"},
   {id: "sit", key: "R", label: "Sit / Stand up", hint: "Press again to stand up"},
   {id: "bend", key: "G", label: "Bend / Rise", hint: "Press again to rise"},
+  {id: "stepFwd", key: "F", label: "Small step", hint: "Steps 3 cm forward with the small-step policy and stands still there (start from Balance stand)"},
   {id: "pickDock", key: "N", label: "Dock to ball", hint: "Orange ball 10-50 cm in front: finds it, steps up to stop just behind it (no pick), then Balance stand (start from Balance stand)"},
 ];
 const PICK_IDS = {pickDock: "dock"};
@@ -456,6 +460,9 @@ export function createRemote({root, state, log}) {
       else if (id === "sit") await set({mode: "sit"}, "Sit");
       else if (id === "bend") sent = await (mode === "groundpick" ? set({mode: "groundpick", phase: GP_UP}, "Rise")
         : set({mode: "groundpick", phase: GP_LOW}, "Bend"));
+      else if (id === "stepFwd" && mode !== "walk" && mode !== "step")
+        last.textContent = "Small step starts from standing: press \"Balance stand\" first";
+      else if (id === "stepFwd") await set({mode: "step", dx: STEP_DX, dy: 0, dyaw: 0, id: "new"}, "Small step");
       else if (id === "quack") await post({op: "merge", patch: {quack: "new"}}, "Quack");
       else if (id in PICK_IDS) await pickStart(PICK_IDS[id]);
       else if (id === "off") { walkStop(); await set({mode: "off"}, "Torque off"); }
@@ -465,7 +472,7 @@ export function createRemote({root, state, log}) {
         // Walking or kicking: zero velocity, walk61 brings its stride to rest. Anywhere else (sit, ground pick,
         // stand): monitor holds the present goals with torque on, the stop walk_wired.py documents.
         if (mode !== "walk") headForget();
-        await (mode === "walk" || mode === "kick" ? setStop(withHead(WALK_ZERO, head), "Stop") : set({mode: "monitor"}, "Stop (hold pose)"));
+        await (["walk", "kick", "step", "dock"].includes(mode) ? setStop(withHead(WALK_ZERO, head), "Stop") : set({mode: "monitor"}, "Stop (hold pose)"));
       }
       if (sent && TORQUE_ACTS.has(id)) await checkTorque(buttons.get(id).querySelector("span").textContent);
     } finally {
@@ -488,7 +495,7 @@ export function createRemote({root, state, log}) {
     }
   }
   const KEYS = {KeyT: "stand", KeyY: "stand61", KeyW: "walk", ArrowUp: "walk", KeyS: "back", ArrowDown: "back", KeyA: "left", ArrowLeft: "left",
-    KeyD: "right", ArrowRight: "right", KeyQ: "kickL", KeyE: "kickR", KeyR: "sit", KeyG: "bend", KeyN: "pickDock",
+    KeyD: "right", ArrowRight: "right", KeyQ: "kickL", KeyE: "kickR", KeyR: "sit", KeyG: "bend", KeyN: "pickDock", KeyF: "stepFwd",
     KeyB: "quack", Space: "stop", KeyX: "off", KeyI: "headUp", KeyK: "headDown", KeyJ: "headLeft", KeyL: "headRight",
     KeyU: "tiltLeft", KeyO: "tiltRight", KeyH: "headReset"};
   window.addEventListener("keydown", e => {
@@ -510,7 +517,7 @@ export function createRemote({root, state, log}) {
 
   const modeEl = root.querySelector("[data-mode]"), fileEl = root.querySelector("[data-file]");
   const MODE_NAMES = {monitor: "monitor (no commands)", stand: "fixed stand", walk: "walk / balance stand", kick: "kick", sit: "sit", groundpick: "bend to pick",
-    seepick: "seeing pick"};
+    seepick: "seeing pick", step: "small step", dock: "ball dock"};
   return {
     me,
     showDriver,
