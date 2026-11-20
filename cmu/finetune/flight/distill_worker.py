@@ -135,6 +135,10 @@ def main():
     # slot, disabled in this family); the teacher and the walk61 anchor read the unchanged inputs. The eval side is
     # flight_eval's FLIGHT_OBS_SET="60:1.0".
     ap.add_argument("--pack-flag-col", type=int, default=-1)
+    # experiment only: --gain-flag-col <c> writes the env's position-gain scale minus 1 (0 = the runtime's KP 200,
+    # 1 = KP 400) into actor column c of the student's input (59 = a disabled body-pose slot). The robot walk-log
+    # states of G1 carry 0 there, which is their gain. Eval: FLIGHT_OBS_SET="59:<kp/200 - 1>".
+    ap.add_argument("--gain-flag-col", type=int, default=-1)
     # walk -> stop with the pack (2026-11-20: the students fall 1.5 to 3 s after the walk command ends, at low gain)
     ap.add_argument("--stop-share", type=float, default=0.0,
                     help="share of the envs that, while they carry the pack, are commanded like the gate's pack walk: "
@@ -352,9 +356,13 @@ def main():
                 zero = ran & (gap > 5)
                 state = state * (~zero).view(N, 1)
                 o_s = o
-                if a.pack_flag_col >= 0:
+                if a.pack_flag_col >= 0 or a.gain_flag_col >= 0:
                     o_s = o.clone()
+                if a.pack_flag_col >= 0:
                     o_s[:, a.pack_flag_col] = (~nop).float()
+                if a.gain_flag_col >= 0:
+                    assert hasattr(env, "_kp_scale"), "the gain flag needs gain_dr (env._kp_scale)"   # as teacher.priv_obs
+                    o_s[:, a.gain_flag_col] = env._kp_scale.to(dev).view(-1) - 1.0
                 act_new, state_new = student.step(o_s, state)
                 state = torch.where(ran.view(N, 1), state_new, state)
                 gap = torch.where(ran, torch.zeros_like(gap), gap + 1)
