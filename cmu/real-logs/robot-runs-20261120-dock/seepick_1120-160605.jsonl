@@ -1,0 +1,5 @@
+{"t": 1795208766.0345528, "phase": "find", "why": "try 1: start"}
+{"t": 1795208768.558346, "phase": "find", "meas": {"x": 0.7835464884418197, "y": 0.011751189136911463, "size": 0.012282937723138525, "t": 1795208766.5264034, "cut": false, "frame": 11776, "u": 301.5, "v": 72.5, "w": 9.0}}
+{"t": 1795208768.6332257, "phase": "find", "meas": {"x": 0.8251924501485456, "y": 0.010755711913502197, "size": 0.011551074674416927, "t": 1795208768.4142585, "cut": false, "frame": 11795, "u": 301.0, "v": 67.0, "w": 8.0}}
+{"t": 1795208768.6894915, "phase": "failed", "why": "ball 0.80 m away, beyond the dock's 0.5 m: bring the duck closer"}
+{"result": {"ok": false, "why": "ball 0.80 m away, beyond the dock's 0.5 m: bring the duck closer", "tries": 1, "attempts": []}}
