@@ -23,7 +23,11 @@ Through this runtime (brain_sim_check --sp-dock, battery-20261104 body, 2026-11-
 trained stop in 14 of 16 starts (10-45 cm, up to 80 deg), never falls (peak tilt 6-25 deg); the kneel after it bit 0
 of 20 on either body, so the dock + kneel run is not ready (the training-env chain holds ~0.7; the hand-over is suspect).
 """
+import hashlib
+import json
 import math
+import os
+import time
 
 import numpy as np
 
@@ -63,6 +67,43 @@ def dock_head(x, y):
     pitch = min(HEAD_PITCH_LIMITS[1], max(HEAD_PITCH_LIMITS[0], 1.1 + (0.245 - r) * (0.3 / 0.086)))
     yaw = min(HEAD_YAW_LIMIT, max(-HEAD_YAW_LIMIT, math.atan2(y, x)))
     return {"head_pitch": round(pitch, 3), "head_yaw": round(yaw, 3), "neck_pitch": ap.DEFAULT_HEAD["neck_pitch"]}
+
+
+BRAIN_FILES = ("nudge61.onnx", "dock_commander.onnx")   # what walk_wired must have loaded for mode "dock"
+STALE_LOG_S = 3.0
+
+
+def preflight(log_path, here=os.path.dirname(os.path.abspath(__file__)), now=time.time):
+    """[(ok, line)] for what the dock needs on the A7Z, so the remote shows why a press did nothing: a running brain,
+    one started on this checkout's walk_brain.py (an older brain ignores mode "dock" and the robot stands there), the dock
+    files in the models it loaded, and the camera calibration."""
+    out = []
+    if not log_path:
+        return [(False, "no walk_wired log: start the brain from the app (Balance stand) first")]
+    try:
+        with open(log_path, "rb") as f:
+            f.seek(max(0, os.path.getsize(log_path) - 4096))
+            last = json.loads(f.read().split(b"\n")[-2])
+        age = now() - float(last["t"])
+        out.append((age < STALE_LOG_S, f"brain running (last tick {age:.1f} s ago, mode {last.get('mode')})"))
+    except (OSError, ValueError, KeyError, IndexError) as e:
+        out.append((False, f"brain log unreadable: {e}"))
+    meta_path = (log_path[:-6] if log_path.endswith(".jsonl") else log_path) + ".meta.jsonl"
+    try:
+        with open(meta_path) as f:
+            meta = json.loads(f.read().strip().splitlines()[-1])
+    except (OSError, ValueError, IndexError):
+        out.append((False, f"no brain run record ({meta_path}): restart the brain"))
+        return out
+    with open(os.path.join(here, "walk_brain.py"), "rb") as f:
+        disk = hashlib.sha256(f.read()).hexdigest()[:16]
+    ran = (meta.get("code_sha") or {}).get("walk_brain.py")
+    out.append((ran == disk, "brain runs this checkout's walk_brain.py" if ran == disk else
+                "brain started on an older walk_brain.py: restart it (torque off, then Balance stand) so it knows the dock"))
+    missing = [n for n in BRAIN_FILES if n not in (meta.get("model_sha") or {})]
+    out.append((not missing, f"dock policy files loaded from {meta.get('models_dir')}" if not missing else
+                f"brain did not load {', '.join(missing)} from {meta.get('models_dir')}: copy them there, restart the brain"))
+    return out
 
 
 class DockedJudge:
@@ -113,6 +154,12 @@ class DockPick(sp.SeePick):
         return sp.MONITOR if self.phase in ("pick", "hold") else {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
 
     # --- the machine -------------------------------------------------------------------------------------------
+    def p_start(self, st, now):
+        if not self.dock_only and st.get("jaw_deg") is None:   # the dock alone never moves the jaw
+            self.finish(False, "the jaw is not calibrated or not read (jaw_deg missing in walk_wired's log)", stop=False)
+            return
+        self.next_try("start")
+
     def next_try(self, why):
         if self.try_n >= self.tries:
             self.finish(False, f"{self.tries} tries used ({why})")

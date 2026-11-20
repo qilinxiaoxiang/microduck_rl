@@ -681,6 +681,8 @@ def main():
                         "--hold-s s (default 5); misses retry from where the ball went, --tries in all (default 2)")
     p.add_argument("--dock-only", action="store_true",
                    help="find the ball nearby and dock to it (dockpick.py), then stand; no kneel")
+    p.add_argument("--preflight", action="store_true",
+                   help="with --dock / --dock-only: print what the dock needs on this A7Z and exit (also checked on every run)")
     p.add_argument("--dry", action="store_true", help="approach, aim and align only, no pick")
     p.add_argument("--observe", type=float, default=None, help="s; print detections only, no motion")
     p.add_argument("--max-s", type=float, default=180.0)
@@ -708,6 +710,15 @@ def main():
     log_path = a.log or ap.find_log()
     if not log_path:
         sys.exit("no walk_wired log found: start the brain from the app first")
+    if a.dock or a.dock_only:
+        import dockpick
+        checks = dockpick.preflight(log_path)
+        for ok, line in checks:
+            print(f"{'ok  ' if ok else 'FAIL'} {line}", flush=True)
+        bad = [line for ok, line in checks if not ok]
+        if bad or a.preflight:
+            print(json.dumps(dict(ok=not bad, why=bad[0] if bad else "preflight passed")))
+            return
     kin = DuckKin()
     tail = SeeTail(log_path)
     cam = ap.ShmCamera()

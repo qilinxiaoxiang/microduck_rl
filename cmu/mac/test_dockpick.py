@@ -295,3 +295,41 @@ def test_walk_wired_refuses_a_step_without_the_nudge():
     assert ww.step_block(brain) is None
     brain.sessions = {k: v for k, v in brain.sessions.items() if k != wb.DOCK_NUDGE}
     assert "nudge61.onnx" in ww.step_block(brain)
+
+
+# --- why a press can do nothing: the preflight the remote's run prints first ---------------------------------------
+def brain_files(tmp_path, walk_brain_sha=None, models=dp.BRAIN_FILES, age=0.5):
+    import hashlib
+    import json
+    import time
+    log = tmp_path / "duck_wired_log_x.jsonl"
+    log.write_text(json.dumps({"t": time.time() - age, "mode": "walk"}) + "\n")
+    sha = walk_brain_sha or hashlib.sha256(open(os.path.join(HERE, "walk_brain.py"), "rb").read()).hexdigest()[:16]
+    (tmp_path / "duck_wired_log_x.meta.jsonl").write_text(json.dumps(
+        {"code_sha": {"walk_brain.py": sha}, "model_sha": {n: "0" for n in models}, "models_dir": "/m"}) + "\n")
+    return str(log)
+
+
+def test_preflight_passes_on_a_brain_that_can_dock(tmp_path):
+    assert all(ok for ok, _ in dp.preflight(brain_files(tmp_path)))
+
+
+@pytest.mark.parametrize("kw,why", [({"walk_brain_sha": "old"}, "older walk_brain.py"),
+                                    ({"models": ("nudge61.onnx",)}, "dock_commander.onnx"),
+                                    ({"age": 30.0}, "brain running")])
+def test_preflight_says_why_the_dock_would_not_run(tmp_path, kw, why):
+    bad = [line for ok, line in dp.preflight(brain_files(tmp_path, **kw)) if not ok]
+    assert len(bad) == 1 and why in bad[0]
+
+
+def test_preflight_without_a_brain():
+    assert dp.preflight(None) == [(False, "no walk_wired log: start the brain from the app (Balance stand) first")]
+
+
+def test_dock_only_does_not_need_the_jaw():
+    duck = DockDuck((0.25, 0.0), [])
+    duck.state = lambda _s=duck.state: dict(_s(), jaw_deg=None)
+    assert run_dock_only(duck).result["ok"]
+    duck = DockDuck((0.25, 0.0), ["hold"])
+    duck.state = lambda _s=duck.state: dict(_s(), jaw_deg=None)
+    assert "jaw" in run(duck).result["why"]
