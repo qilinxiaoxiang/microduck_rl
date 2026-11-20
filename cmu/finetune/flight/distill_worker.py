@@ -145,6 +145,9 @@ def main():
     # policy calls after the state was empty (episode start, or a gap of more than 5 dropped ticks); 1 = off.
     ap.add_argument("--cold-weight", type=float, default=1.0)
     ap.add_argument("--cold-ticks", type=int, default=25)
+    # --state-reset-p P: each policy call empties the env's recurrent state with probability P (rollout and replay
+    # alike, through the Z buffer), so rows shortly after an empty state are several percent of the data
+    ap.add_argument("--state-reset-p", type=float, default=0.0)
     # walk -> stop with the pack (2026-11-20: the students fall 1.5 to 3 s after the walk command ends, at low gain)
     ap.add_argument("--stop-share", type=float, default=0.0,
                     help="share of the envs that, while they carry the pack, are commanded like the gate's pack walk: "
@@ -365,6 +368,8 @@ def main():
                 # flight_eval._StatefulSession zeroes the state after more than RECURRENT_MAX_GAP = 5 skipped ticks)
                 ran = ~((torch.rand(N, device=dev) < p_drop) & has_prev)
                 zero = ran & (gap > 5)
+                if a.state_reset_p > 0:   # cold rows by design: the state is emptied at random ticks
+                    zero = zero | (ran & (torch.rand(N, device=dev) < a.state_reset_p))
                 state = state * (~zero).view(N, 1)
                 o_s = o
                 if a.pack_flag_col >= 0 or a.gain_flag_col >= 0:
