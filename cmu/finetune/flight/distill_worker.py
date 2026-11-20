@@ -139,6 +139,12 @@ def main():
     # 1 = KP 400) into actor column c of the student's input (59 = a disabled body-pose slot). The robot walk-log
     # states of G1 carry 0 there, which is their gain. Eval: FLIGHT_OBS_SET="59:<kp/200 - 1>".
     ap.add_argument("--gain-flag-col", type=int, default=-1)
+    # 2026-11-20 06:20: without the pack at gain 400 the students step in place because their first about 10 calls
+    # from an empty recurrent state differ from walk61 (rms 0.15 to 0.24 rad against 0.03 warm) and push the robot
+    # into a stepping regime that walk61 itself keeps up. --cold-weight W: loss weight of the first --cold-ticks
+    # policy calls after the state was empty (episode start, or a gap of more than 5 dropped ticks); 1 = off.
+    ap.add_argument("--cold-weight", type=float, default=1.0)
+    ap.add_argument("--cold-ticks", type=int, default=25)
     # walk -> stop with the pack (2026-11-20: the students fall 1.5 to 3 s after the walk command ends, at low gain)
     ap.add_argument("--stop-share", type=float, default=0.0,
                     help="share of the envs that, while they carry the pack, are commanded like the gate's pack walk: "
@@ -292,6 +298,10 @@ def main():
         meta = dict(get_base_metadata(env, run_path=run_path))
         meta.update(state_inputs="state_in", state_outputs="state_out", recurrent_core=spec["core"],
                     state_dim=str(spec["state_dim"]), target_slots=str(spec["target_slots"]), bptt_steps=str(T))
+        if a.gain_flag_col >= 0:   # the eval harness (flight_eval._StatefulSession) feeds the cell's gain from this key
+            meta.update(gain_flag_col=str(a.gain_flag_col))
+        if a.pack_flag_col >= 0:
+            meta.update(pack_flag_col=str(a.pack_flag_col))
         attach_metadata_to_onnx(p, meta)
         d = rc.check_onnx(student, p)
         assert d < 1e-3, f"{name}: ONNX differs from the torch student by {d}"
@@ -314,6 +324,7 @@ def main():
     prev_act = torch.zeros(N, rc.ACT, device=dev)
     has_prev = torch.zeros(N, dtype=torch.bool, device=dev)   # no drop on an episode's first tick (nothing to hold)
     gap = torch.zeros(N, dtype=torch.long, device=dev)
+    age = torch.zeros(N, dtype=torch.long, device=dev)        # policy calls since the env's recurrent state was empty
     drop_n, tick_n = 0, 0
     for it in range(it0 + 1, a.max_iters + 1):
         if it0:
@@ -420,6 +431,10 @@ def main():
                 act_s = torch.where(ran.view(N, 1), act_new, prev_act)
                 O[t], L[t], R[t], Z[t] = o_s, lab_train, ran, zero
                 WT[t] = 1.0 + (a.stop_weight - 1.0) * (~nop & (since_stop >= 0) & (since_stop < 150)).float()
+                age = torch.where(zero, torch.zeros_like(age), age)       # calls since the state was last empty
+                if a.cold_weight != 1.0:
+                    WT[t] = WT[t] * (1.0 + (a.cold_weight - 1.0) * (ran & (age < a.cold_ticks)).float())
+                age = age + ran.long()
                 applied = torch.where(tmask.view(N, 1), lab, act_s)
                 obs, _, dones, extras = venv.step(applied.to(env.device))
                 d = dones.to(dev).bool()
@@ -432,6 +447,7 @@ def main():
                 state = state * (~d).view(N, 1)
                 prev_act, has_prev = applied, ~d
                 gap = gap * (~d)
+                age = age * (~d)
                 if a.drop_max > 0 and bool(d.any()):
                     p_drop = torch.where(d, torch.rand(N, device=dev) * a.drop_max, p_drop)
                 cmd, v = cm.get_command("twist"), robot.data.root_link_lin_vel_b
