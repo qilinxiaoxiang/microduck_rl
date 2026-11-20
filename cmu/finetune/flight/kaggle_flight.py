@@ -64,6 +64,9 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
                "ts3_teacher.onnx": TRAIN / "ckpt/ts3_teacher/teacher.onnx"}.items():
     if _p.exists():
         kj.ASSETS[f"init/{_n}"] = _p
+# round 3: every teacher save that passed the chatter gates (train/ts3_distill_trigger.py copies it to train/init/)
+for _p in sorted((TRAIN / "init").glob("ts3t_*.onnx")):
+    kj.ASSETS[f"init/{_p.name}"] = _p
 _flags = kj.worker_flags
 # --distill jobs run distill_worker.py through flight_worker.py (TEACHER-STUDENT-PLAN.md)
 DISTILL_FLAGS = {"--distill", "--teacher-onnx", "--core", "--hidden", "--layers", "--bptt-steps", "--beta-iters", "--act-noise",
