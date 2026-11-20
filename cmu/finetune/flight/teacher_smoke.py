@@ -103,7 +103,8 @@ def main():
     o = venv.get_observations()
     with torch.no_grad():
         act = runner.alg.actor(o).numpy()
-    ra = np.concatenate([ref.run(None, {ref.get_inputs()[0].name: o["actor"][i:i + 1, :61].numpy()})[0] for i in range(a.envs)])
+    wid = ref.get_inputs()[0].shape[1]  # 61 for a walking policy, 61 + n for a teacher save (a continuation)
+    ra = np.concatenate([ref.run(None, {ref.get_inputs()[0].name: o["actor"][i:i + 1, :wid].numpy()})[0] for i in range(a.envs)])
     rep["padded_vs_init_max_abs"] = float(np.abs(act - ra).max())
     runner.export_policy_to_onnx(str(out), "teacher_m0.onnx")
     s0 = ort.InferenceSession(str(out / "teacher_m0.onnx"))

@@ -183,6 +183,22 @@ ARM_VARIANTS = {"universal5t_b05": {"anchor61": dict(ANCHOR61, beta=0.5)},
 # (teacher.enable_gain). Same rewards and randomisation as universal5t, so the same audit record. Its students are
 # distilled in universal5 and have to infer the gain from their own history, as they do the load.
 ARM_VARIANTS["universal5tg"] = {"teacher_priv": {"n": 8}}
+# universal5tgs (2026-11-19 23:10): universal5tg with both action-smoothness weights doubled. In ts3-teach-h the
+# pack-walk speed and the action jumps rose together from save 750 on (0.07 m/s and 5 jumps, 0.14 and 41, 0.20 and
+# 158 per 17 s episode) while the action-rate cost only went from -0.39 to -0.62 per episode: at -2.0 / -0.6 the
+# speed terms pay more than jumps cost. A reward change, so it has its own audit record (rm_universal5s.json).
+UNIVERSAL5S_MODS = {"cmd_ranges": {"lin_vel_x": [-0.05, 0.3], "lin_vel_y": [-0.05, 0.05], "ang_vel_z": [-0.5, 0.5]},
+                    "weights": {"air_time": 6.0, "track_linear_velocity": 3.0, "upright": 0.5, "head_pose_tracking": 1.0,
+                                "action_rate_l2": -4.0},
+                    "pose_std_walking": {".*hip_yaw.*": 0.15},
+                    "foot_heading_weight": -8.0,
+                    "push_x": [-0.35, 0.35],
+                    "com_x_whole_m": 0.012,
+                    "step_width": {"limit": 0.1, "weight": -15.0},
+                    "torque_margin_weight": -20.0,
+                    "progress": {"weight": 14.0, "min_cmd": 0.1},
+                    "action_acc": {"weight": -1.2}}
+ARM_VARIANTS["universal5tgs"] = {"teacher_priv": {"n": 8}, "reward_mods": UNIVERSAL5S_MODS}
 for _n, _v in ARM_VARIANTS.items():
     fw.DELTAS[_n] = dict(fw.DELTAS["universal5t"], **_v)
     LOOP_DELAYS[_n] = LOOP_DELAY
