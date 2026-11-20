@@ -39,7 +39,9 @@ import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
 // so the duck walked in 1 s bursts. 0.15 s / 1.5 s rides through a 1.3 s stall; a dead link stops the duck 1.5 s later
 // (0.37 m at 0.25 m/s). Releasing the button still sends the stop at once. Each repeat carries its send time and the
 // bridge logs late ones (a7z-bridge.mjs, ~/Library/Logs/microduck-remote-cmd.jsonl), so the slow hop is named.
-const STEP_DX = 0.03; // m: the small step's target, within the nudge's trained +-6 cm
+// m: the small step's target, within the nudge's trained +-6 cm. Asked for 3 cm it moved 3.2-4.1 (leg odometry reads
+// about 20 % short); 2.5 cm moved 2.7-3.4, mean 3.0 (brain_sim_check --step-at, battery body, 18 steps, no falls)
+const STEP_DX = 0.025;
 const WALK_VX = 0.25, WALK_REPEAT_MS = 150, WALK_FOR_S = 1.5;
 // Arc yaw rate, rad/s, positive = left: the rate walk_brain holds with the IMU (the held heading turns at vtheta and its
 // trim + PI loop follows, turn command within +-TURN_MAX 2.0). 0.3 is the fastest rate both ways under the robot's
@@ -154,7 +156,7 @@ const ACTIONS = [
   {id: "kickR", key: "E", label: "Kick right", hint: "One 0.5 s kick"},
   {id: "sit", key: "R", label: "Sit / Stand up", hint: "Press again to stand up"},
   {id: "bend", key: "G", label: "Bend / Rise", hint: "Press again to rise"},
-  {id: "stepFwd", key: "F", label: "Small step", hint: "Steps 3 cm forward with the small-step policy and stands still there (start from Balance stand)"},
+  {id: "stepFwd", key: "F", label: "Small step", hint: "Steps about 3 cm forward with the small-step policy and stands still there (start from Balance stand)"},
   {id: "pickDock", key: "N", label: "Dock to ball", hint: "Orange ball 10-50 cm in front: finds it, steps up to stop just behind it (no pick), then Balance stand (start from Balance stand)"},
 ];
 const PICK_IDS = {pickDock: "dock"};
