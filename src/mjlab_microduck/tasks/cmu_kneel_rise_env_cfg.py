@@ -111,10 +111,17 @@ DOCKFIT_R_MIN = 0.05              # dx >= -3.7 cm on axis
 # From bd-b's ends ks-f holds the ball 0.67 (misses: never bitten) and the box 0.42 (drops): the mixed number hid
 # both. ball_only=True trains the ball alone (its per-axis radius DR, 1.06-1.44 cm lumpy ellipsoid, stays).
 BALL_ONLY_PROBS = (1.0, 0.0, 0.0)
+# ... and on bd-c's ends (the dock with its target 0.75 cm forward): dx p10 / p50 / p90 -1.2 / +0.6 / +2.3 cm,
+# |dy| p90 1.1 cm (stds widened ~25 %); a larger dock-shaped share, since this kneel serves that dock.
+DOCKFIT_C = dict(mu=(0.006, 0.0), std=(0.017, 0.010), frac=0.7)
+# A/B (round 7): the static grasp pose pull (one fixed 14-joint target, weight 6, std 0.25 rad, phase 0.22-0.36) is
+# the same whatever the ball's offset; ks-f / ks-h / ks-i trade the near side against the far side. LOW_POSE runs it
+# at 2 against a control continued at 6.
+LOW_POSE_WEIGHT = 2.0
 
 
 def make_kneel_rise_env_cfg(variant: str, play: bool = False, sighted: bool = False, dockfit: bool = False,
-                            ball_only: bool = False):
+                            ball_only: bool = False, dock_fit: dict | None = None, low_pose: bool = False):
     """sighted=True keeps the camera slots during the descent (RESULTS.md next step 1): the blind kneel's success
     collapses for dx >= +2 cm, and a policy that sees the ball can correct for it. dockfit=True (implies sighted)
     trains on the dock's end states, near side included."""
@@ -140,8 +147,9 @@ def make_kneel_rise_env_cfg(variant: str, play: bool = False, sighted: bool = Fa
                      kick_prob=0.0, center_frac=DOCK_CENTER_FRAC)
     cfg.curriculum.pop("pix_window", None)
     if dockfit:
-        ev.params.update(window=wmax, r_min=DOCKFIT_R_MIN, dock_frac=DOCKFIT_FRAC, dock_mu=DOCKFIT_MU,
-                         dock_std=DOCKFIT_STD, dock_clip=DOCKFIT_CLIP)
+        fit = dock_fit or dict(mu=DOCKFIT_MU, std=DOCKFIT_STD, frac=DOCKFIT_FRAC)
+        ev.params.update(window=wmax, r_min=DOCKFIT_R_MIN, dock_frac=fit["frac"], dock_mu=fit["mu"],
+                         dock_std=fit["std"], dock_clip=DOCKFIT_CLIP)
     elif not play:
         cfg.curriculum["dock_window"] = CurriculumTermCfg(
             func=pix.pix_window_curriculum,
@@ -150,6 +158,8 @@ def make_kneel_rise_env_cfg(variant: str, play: bool = False, sighted: bool = Fa
 
     if ball_only:
         cfg.events["object_size"].params["probs"] = BALL_ONLY_PROBS
+    if low_pose:
+        cfg.rewards["static_pose"].weight = LOW_POSE_WEIGHT
 
     # 4. neck rate while holding
     cfg.rewards["held_neck_rate"] = RewardTermCfg(func=held_neck_rate_cost, weight=NECK_RATE_WEIGHT,

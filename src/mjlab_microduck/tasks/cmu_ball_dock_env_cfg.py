@@ -61,6 +61,7 @@ WALK_ONNX = REPO / "cmu" / "whole" / "runtime-overlay" / "models" / "walk61.onnx
 # docked earlier) from walk61's zero-command drift and dead zone; under a scripted P-command on the true error the
 # nudge docks 99.8 % kneel-ready against walk61's 71 %. Its twist contract is 8 x the remaining error.
 NUDGE_LOW_ONNX = REPO / "cmu" / "kneel" / "policies" / "wn-b_750.onnx"
+NUDGE_SN_ONNX = REPO / "cmu" / "kneel" / "policies" / "wn-sn1.onnx"    # wn-b retrained under servo noise level 1
 # bd-c: bd-b fine-tuned to stop with the ball this much beyond the landing spot. Replaying bd-b@2000's end errors on
 # the ball, ks-f@750 holds 0.667 as docked, 0.738 / 0.765 / 0.753 shifted +0.5 / +0.75 / +1.0 cm: the kneel's
 # ball curve peaks at dx 0..+1 cm and falls off a cliff below -1 cm, where bd-b's near tail sits (round 6).
@@ -417,9 +418,11 @@ def dock_camera(env: ManagerBasedRlEnv) -> torch.Tensor:
     return out
 
 
-def head_joints(env: ManagerBasedRlEnv) -> torch.Tensor:
+def head_joints(env: ManagerBasedRlEnv, biased: bool = False) -> torch.Tensor:
+    """Neck pitch, head pitch, head yaw; `biased` reads what the encoders report (servo_noise level >= 1)."""
     ps = pix._px(env)
-    q = env.scene["robot"].data.joint_pos
+    d = env.scene["robot"].data
+    q = d.joint_pos_biased if biased else d.joint_pos
     return q[:, [ps["neck_j"], ps["head_j"], ps["yaw_j"]]]
 
 

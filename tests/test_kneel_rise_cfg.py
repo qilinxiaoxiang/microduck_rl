@@ -120,3 +120,13 @@ def test_ball_only_variant_draws_only_the_ball():
     assert cfg.events["reset_object"].params["dock_frac"] == kr.DOCKFIT_FRAC
     # the plain variants keep the seeing pick's mix
     assert "probs" not in kr.make_kneel_rise_env_cfg("plugged", dockfit=True).events["object_size"].params
+
+
+def test_low_pose_variant_only_lowers_static_pose():
+    from mjlab.tasks.registry import load_env_cfg
+    lo = load_env_cfg("Mjlab-KneelRise-DockFitC-Ball-LowPose-MicroDuck-CMU-Plugged", play=False)
+    ctl = load_env_cfg("Mjlab-KneelRise-DockFitC-Ball-MicroDuck-CMU-Plugged", play=False)
+    assert lo.rewards["static_pose"].weight == kr.LOW_POSE_WEIGHT < ctl.rewards["static_pose"].weight
+    assert {k: r.weight for k, r in lo.rewards.items() if k != "static_pose"} == \
+        {k: r.weight for k, r in ctl.rewards.items() if k != "static_pose"}
+    assert ctl.events["reset_object"].params["dock_mu"] == kr.DOCKFIT_C["mu"]

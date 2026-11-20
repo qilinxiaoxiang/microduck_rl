@@ -521,6 +521,7 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
 # Warm start from rise-s1 @ 999 with the blinded slots' first-layer columns zeroed.
 from .cmu_kneel_rise_env_cfg import BLIND_ZERO as _KR_ZERO
 from .cmu_kneel_rise_env_cfg import INIT_ONNX as _KR_INIT
+from .cmu_kneel_rise_env_cfg import DOCKFIT_C as _KR_DOCKFIT_C
 from .cmu_kneel_rise_env_cfg import kneel_rise_rl_cfg, make_kneel_rise_env_cfg
 
 
@@ -621,6 +622,16 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
         rl_cfg=kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, dockfit=True, ball_only=True),
         runner_cls=KneelRiseSightedFromRiseRunner,
     )
+    # ... on bd-c's ends (the forward dock); warm start from ks-h's checkpoint
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelRise-DockFitC-Ball-MicroDuck-CMU-{_suffix}",
+        env_cfg=make_kneel_rise_env_cfg(_variant, dockfit=True, ball_only=True, dock_fit=_KR_DOCKFIT_C),
+        play_env_cfg=make_kneel_rise_env_cfg(_variant, play=True, dockfit=True, ball_only=True,
+                                             dock_fit=_KR_DOCKFIT_C),
+        rl_cfg=_dc.replace(kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, dockfit=True, ball_only=True),
+                           experiment_name="kneel_rise_ball_c", run_name="kneel_rise_ball_c"),
+        runner_cls=KneelRiseSightedFromRiseRunner,
+    )
 
 # Control for the sighted kneel's degradation (2026-11-18, RESULTS.md round 4): the same fine-tune pipeline (ONNX
 # init, fresh critic, fixed lr, entropy 0, curricula pinned at rise-s1's step) in rise-s1's OWN task, start window at
@@ -705,4 +716,70 @@ for _suffix, _variant in (("Plugged", "plugged"), ("Battery-20261104", "battery-
         play_env_cfg=make_walk_nudge_env_cfg(_variant, play=True, camera=True),
         rl_cfg=walk_nudge_rl_cfg(MicroduckRlCfg, camera=True),
         runner_cls=WalkNudgeFromWalk61Runner,
+    )
+
+
+# Round 7 A/B: the bd-c-fitted ball kneel with the static-pose pull at LOW_POSE_WEIGHT (control: the task above)
+register_mjlab_task(
+    task_id="Mjlab-KneelRise-DockFitC-Ball-LowPose-MicroDuck-CMU-Plugged",
+    env_cfg=make_kneel_rise_env_cfg("plugged", dockfit=True, ball_only=True, dock_fit=_KR_DOCKFIT_C, low_pose=True),
+    play_env_cfg=make_kneel_rise_env_cfg("plugged", play=True, dockfit=True, ball_only=True, dock_fit=_KR_DOCKFIT_C,
+                                         low_pose=True),
+    rl_cfg=_dc.replace(kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, dockfit=True, ball_only=True),
+                       experiment_name="kneel_rise_ball_lowpose", run_name="kneel_rise_ball_lowpose"),
+    runner_cls=KneelRiseSightedFromRiseRunner,
+)
+
+# Servo measurement noise (servo_noise.py, 2026-11-20): the chain's tasks with every joint reading at noise level 1
+# (train) and 2 (stress test). The dock's SN1 training twin runs over wn-sn1 (the nudge retrained at level 1).
+from .cmu_ball_dock_env_cfg import NUDGE_SN_ONNX as _BD_NUDGE_SN
+from .servo_noise import apply_servo_noise as _sn, noisy_task_id as _sn_id
+
+for _lvl in (1, 2):
+    _base = "Mjlab-WalkNudge-FromWalk61-MicroDuck-CMU-Plugged"
+    register_mjlab_task(
+        task_id=_sn_id(_base, _lvl),
+        env_cfg=_sn(make_walk_nudge_env_cfg("plugged"), _lvl),
+        play_env_cfg=_sn(make_walk_nudge_env_cfg("plugged", play=True), _lvl),
+        rl_cfg=_dc.replace(walk_nudge_rl_cfg(MicroduckRlCfg), experiment_name=f"walk_nudge_sn{_lvl}",
+                           run_name=f"walk_nudge_sn{_lvl}"),
+        runner_cls=WalkNudgeFromWalk61Runner,
+    )
+    _base = "Mjlab-BallDock-Nudge-MicroDuck-CMU-Plugged"       # dock evals (dock_check --walk-onnx picks the low level)
+    register_mjlab_task(
+        task_id=_sn_id(_base, _lvl),
+        env_cfg=_sn(make_ball_dock_env_cfg("plugged", walk_onnx=_BD_NUDGE), _lvl),
+        play_env_cfg=_sn(make_ball_dock_env_cfg("plugged", play=True, walk_onnx=_BD_NUDGE), _lvl),
+        rl_cfg=_dc.replace(BallDockRlCfg, experiment_name=f"ball_dock_nudge_sn{_lvl}",
+                           run_name=f"ball_dock_nudge_sn{_lvl}"),
+        runner_cls=MicroduckOnPolicyRunner,
+    )
+    _base = "Mjlab-BallDock-Nudge-Fwd-MicroDuck-CMU-Plugged"   # the forward dock over wn-sn1
+    register_mjlab_task(
+        task_id=_sn_id(_base, _lvl),
+        env_cfg=_sn(make_ball_dock_env_cfg("plugged", walk_onnx=_BD_NUDGE_SN, target_dx=_BD_TARGET_DX), _lvl),
+        play_env_cfg=_sn(make_ball_dock_env_cfg("plugged", play=True, walk_onnx=_BD_NUDGE_SN,
+                                                target_dx=_BD_TARGET_DX), _lvl),
+        rl_cfg=_dc.replace(BallDockRlCfg, experiment_name=f"ball_dock_fwd_sn{_lvl}", run_name=f"ball_dock_fwd_sn{_lvl}",
+                           max_iterations=600),
+        runner_cls=MicroduckOnPolicyRunner,
+    )
+    _base = "Mjlab-KneelRise-Sighted-FromRise-MicroDuck-CMU-Plugged"   # kneel evals (kr_eval)
+    register_mjlab_task(
+        task_id=_sn_id(_base, _lvl),
+        env_cfg=_sn(make_kneel_rise_env_cfg("plugged", sighted=True), _lvl),
+        play_env_cfg=_sn(make_kneel_rise_env_cfg("plugged", play=True, sighted=True), _lvl),
+        rl_cfg=_dc.replace(kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, sighted=True),
+                           experiment_name=f"kneel_rise_sighted_sn{_lvl}", run_name=f"kneel_rise_sighted_sn{_lvl}"),
+        runner_cls=KneelRiseSightedFromRiseRunner,
+    )
+    _base = "Mjlab-KneelRise-DockFitC-Ball-MicroDuck-CMU-Plugged"      # the kneel on bd-c's ends, ball only
+    register_mjlab_task(
+        task_id=_sn_id(_base, _lvl),
+        env_cfg=_sn(make_kneel_rise_env_cfg("plugged", dockfit=True, ball_only=True, dock_fit=_KR_DOCKFIT_C), _lvl),
+        play_env_cfg=_sn(make_kneel_rise_env_cfg("plugged", play=True, dockfit=True, ball_only=True,
+                                                 dock_fit=_KR_DOCKFIT_C), _lvl),
+        rl_cfg=_dc.replace(kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, dockfit=True, ball_only=True),
+                           experiment_name=f"kneel_rise_ball_c_sn{_lvl}", run_name=f"kneel_rise_ball_c_sn{_lvl}"),
+        runner_cls=KneelRiseSightedFromRiseRunner,
     )
