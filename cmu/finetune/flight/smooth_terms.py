@@ -29,6 +29,26 @@ def action_acc_l2(env):
     return torch.sum(torch.square(am.action - 2.0 * am.prev_action + am.prev_prev_action), dim=1)
 
 
+def leg_step_over(env, limit: float = 0.3):
+    """sum over the ten leg actions of max(|a_t - a_t-1| - limit, 0)^2 (a cost: >= 0, used with a negative weight).
+    Only the part of a per-tick leg action change above the limit: the knee torque reversals of 0.5 to 0.9 rad in
+    one tick that the chatter gates count (RUNLOG.md 2026-11-20 00:15), which action_rate_l2 prices at almost
+    nothing next to the many small steps. Raw actions, the quantity the gate reads."""
+    am = env.action_manager
+    d = torch.abs(am.action - am.prev_action)[:, LEG_OUT]
+    return torch.sum(torch.square(torch.clamp(d - float(limit), min=0.0)), dim=1)
+
+
+# the runtime's joint ranges (guide/firmware/mac/walk_brain.py JOINT_RANGE, clamp_goal): the brain cuts every servo goal
+# to these before it is sent; delta key "goal_clamp" applies the same cut to the training env's position targets
+RUNTIME_JOINT_RANGE = {
+    "left_hip_yaw": (-0.4363, 0.5236), "left_hip_roll": (-0.384, 0.384), "left_hip_pitch": (-1.5708, 1.5708),
+    "left_knee": (-1.5708, 1.5708), "left_ankle": (-1.5708, 1.5708), "neck_pitch": (-1.5708, 1.0472),
+    "head_pitch": (-1.5708, 1.5708), "head_yaw": (-2.9671, 2.9671), "head_roll": (-0.4363, 0.4363),
+    "right_hip_yaw": (-0.5236, 0.4363), "right_hip_roll": (-0.384, 0.384), "right_hip_pitch": (-1.5708, 1.5708),
+    "right_knee": (-1.5708, 1.5708), "right_ankle": (-1.5708, 1.5708)}
+
+
 def randomize_kp_scale(env, env_ids, kp_range):
     """reset event: one position-gain scale per env, the same on every BAM servo of the robot (non-accumulating:
     reset_gains first, as mdp.randomize_delayed_actuator_gains). The velocity gain keeps its nominal value: the

@@ -128,6 +128,7 @@ def _audit_gate(argv):
                                 ("universal5t", "UNIVERSAL5_MODS", "rm_universal5.json"),
                                 ("universal5tg", "UNIVERSAL5_MODS", "rm_universal5.json"),  # + gain scale as teacher input
                                 ("universal5tgs", "UNIVERSAL5S_MODS", "rm_universal5s.json"),  # smoothness weights doubled
+                                ("universal5tgb", "UNIVERSAL5B_MODS", "rm_universal5b.json"),  # leg big-step term + goal clamp
                                 ("bend4", "BEND4_MODS", "rm_bend4.json")):
         if delta in deltas:
             mods = next(ast.literal_eval(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)

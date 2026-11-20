@@ -199,6 +199,25 @@ UNIVERSAL5S_MODS = {"cmd_ranges": {"lin_vel_x": [-0.05, 0.3], "lin_vel_y": [-0.0
                     "progress": {"weight": 14.0, "min_cmd": 0.1},
                     "action_acc": {"weight": -1.2}}
 ARM_VARIANTS["universal5tgs"] = {"teacher_priv": {"n": 8}, "reward_mods": UNIVERSAL5S_MODS}
+# universal5tgb (2026-11-20 00:20): universal5tg (the -2.0 / -0.6 smoothness weights; doubling them did nothing in
+# ts3m-k625) plus leg_step_over: only the part of a per-tick leg action change above 0.3 rad, squared, weight -200,
+# so one 0.65 rad knee step costs 0.35^2 x 200 x 0.02 s = 0.49 reward (0.034 under action_rate_l2 at -4). The
+# pack-walk jumps are knee torque reversals at low gain (RUNLOG.md 00:15). goal_clamp: the runtime's joint-range cut
+# on the position targets, which the training env lacked (hip roll and head roll goals beyond range on 20 to 40 %
+# of pack-walk ticks). A reward change: own audit record (rm_universal5b.json).
+UNIVERSAL5B_MODS = {"cmd_ranges": {"lin_vel_x": [-0.05, 0.3], "lin_vel_y": [-0.05, 0.05], "ang_vel_z": [-0.5, 0.5]},
+                    "weights": {"air_time": 6.0, "track_linear_velocity": 3.0, "upright": 0.5, "head_pose_tracking": 1.0,
+                                "action_rate_l2": -2.0},
+                    "pose_std_walking": {".*hip_yaw.*": 0.15},
+                    "foot_heading_weight": -8.0,
+                    "push_x": [-0.35, 0.35],
+                    "com_x_whole_m": 0.012,
+                    "step_width": {"limit": 0.1, "weight": -15.0},
+                    "torque_margin_weight": -20.0,
+                    "progress": {"weight": 14.0, "min_cmd": 0.1},
+                    "action_acc": {"weight": -0.6},
+                    "leg_step": {"limit": 0.3, "weight": -200.0}}
+ARM_VARIANTS["universal5tgb"] = {"teacher_priv": {"n": 8}, "reward_mods": UNIVERSAL5B_MODS, "goal_clamp": True}
 for _n, _v in ARM_VARIANTS.items():
     fw.DELTAS[_n] = dict(fw.DELTAS["universal5t"], **_v)
     LOOP_DELAYS[_n] = LOOP_DELAY
@@ -377,6 +396,10 @@ def apply_delta(env_cfg, delta: dict):
         if rm.get("action_acc", {}).get("weight"):  # round 3: second difference of the actions (smooth_terms.py)
             import smooth_terms as sm
             env_cfg.rewards["action_acc_l2"] = RewardTermCfg(func=sm.action_acc_l2, weight=float(rm["action_acc"]["weight"]))
+        if rm.get("leg_step", {}).get("weight"):  # round 3: only the part of a leg action step above the limit
+            import smooth_terms as sm
+            env_cfg.rewards["leg_step_over"] = RewardTermCfg(func=sm.leg_step_over, weight=float(rm["leg_step"]["weight"]),
+                                                             params={"limit": float(rm["leg_step"]["limit"])})
         if "torque_margin_weight" in rm and "torque_margin" in env_cfg.rewards:
             env_cfg.rewards["torque_margin"].weight = float(rm["torque_margin_weight"])
         if "push_x" in rm and "push_robot" in ev:  # NEXT-PLAN.md universal3: forward/back push range (m/s)
@@ -420,6 +443,10 @@ def apply_delta(env_cfg, delta: dict):
         ev["capture_env"] = EventTermCfg(func=tc.capture_env, mode="startup")
         _PRIV_WIDTH[61 + n] = n
         print(f"[teacher] actor obs = 61 + {n} privileged ({', '.join(tc.PRIV_NAMES)})", flush=True)
+    if delta.get("goal_clamp"):  # round 3: the runtime's clamp_goal on every position target (walk_brain.JOINT_RANGE)
+        import smooth_terms as sm
+        env_cfg.actions["joint_pos"].clip = dict(sm.RUNTIME_JOINT_RANGE)
+        print(f"[clamp] position targets cut to the runtime joint ranges ({len(sm.RUNTIME_JOINT_RANGE)} joints)", flush=True)
     if "loop_delay" in delta:
         apply_loop_delay(env_cfg, delta["loop_delay"])
     if "gain_dr" in delta:  # round 3: one position-gain scale per env per episode (smooth_terms.randomize_kp_scale)

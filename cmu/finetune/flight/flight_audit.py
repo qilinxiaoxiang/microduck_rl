@@ -214,7 +214,11 @@ def main():
             elif job in flight_worker.LOOP_DELAYS:  # round 2: universal3 / universal3t plus the loop delay
                 delta = dict(fw.DELTAS["universal"], loop_delay=dict(flight_worker.LOOP_DELAYS[job]))
                 if "teacher_priv" in fw.DELTAS[job]:
-                    delta["teacher_priv"] = dict(flight_worker.TEACHER_PRIV)
+                    # the job's own privileged columns (8 with the gain input), so a gain-input teacher loads as the
+                    # intended walk; a 61-input policy still loads padded
+                    delta["teacher_priv"] = dict(fw.DELTAS[job]["teacher_priv"])
+                if fw.DELTAS[job].get("goal_clamp"):  # the runtime's joint-range clamp on the targets (universal5tgb)
+                    delta["goal_clamp"] = True
                 if "gain_dr" in fw.DELTAS[job]:  # round 3: the audit runs under the same position-gain range
                     delta["gain_dr"] = dict(fw.DELTAS[job]["gain_dr"])
             else:
