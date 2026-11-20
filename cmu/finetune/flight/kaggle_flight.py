@@ -40,11 +40,13 @@ for p in sorted((TRAIN / "manifests").glob("flightpack-*.json")):
 # init policies for the approved 2026-11-11 runs (UNIVERSAL-PLAN.md, BEND-PLAN.md) -> /root/assets/init/<name>
 for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
                "groundpick61.onnx": TRAIN / "ckpt/bend_spec/groundpick61.onnx",
-               "seepick61.onnx": TRAIN / "ckpt/bend_spec/seepick61.onnx"}.items():
+               "seepick61.onnx": TRAIN / "ckpt/bend_spec/seepick61.onnx",
+               # NEXT-PLAN.md: universal3 starts from run A final; bend4's in-episode hand-back stander
+               "uni_a.onnx": TRAIN / "ckpt/uni_a/walk61.onnx"}.items():
     if _p.exists():
         kj.ASSETS[f"init/{_n}"] = _p
 _flags = kj.worker_flags
-kj.worker_flags = lambda: _flags() | {"--scratch", "--task"}
+kj.worker_flags = lambda: _flags() | {"--scratch", "--task", "--history-step-scale"}
 
 
 def _audit_gate(argv):
@@ -65,10 +67,30 @@ def _audit_gate(argv):
     for d in sorted(set(deltas)):
         if subprocess.run([sys.executable, str(TRAIN / "audit_gate.py"), "check", d]).returncode:
             sys.exit(f"audit gate: refusing to launch delta {d!r}")
+    # Every job needs a stop on a task metric (2026-11-12: the from-scratch pair ran its whole 10 h cap standing still,
+    # and bend3 ran 3 h into a squat; neither had one). bend4 carries its own guard in the worker.
+    jobs, cur = [], []
+    for a in argv:
+        if a == "--":
+            jobs.append(cur)
+            cur = []
+        else:
+            cur.append(a)
+    jobs.append(cur)
+    for job in (j for j in jobs if "--delta" in j):
+        d = job[job.index("--delta") + 1]
+        tg = float(job[job.index("--track-guard") + 1]) if "--track-guard" in job else 0.0
+        if d.endswith("h") and d.startswith("universal") and "--history-step-scale" not in job:  # HISTORY-PLAN.md section 8
+            sys.exit(f"history job with delta {d!r} has no --history-step-scale; the unscaled update broke the walker")
+        if d not in ("bend4",) and tg <= 0:
+            sys.exit(f"task-metric stop: job with delta {d!r} has no --track-guard; refusing a run that cannot stop itself")
     tree = ast.parse((HERE / "flight_worker.py").read_text())
     for delta, var, audited in (("universal2", "REWARD_MODS_CHOSEN", "rm_chosen.json"),
                                 ("bend2", "BEND_MODS_CHOSEN", "rm_bend_chosen.json"),
-                                ("bend3", "BEND_MODS_CHOSEN", "rm_bend_chosen.json")):
+                                ("bend3", "BEND_MODS_CHOSEN", "rm_bend_chosen.json"),
+                                ("universal3", "UNIVERSAL3_MODS", "rm_universal3.json"),  # NEXT-PLAN.md
+                                ("universal3h", "UNIVERSAL3_MODS", "rm_universal3.json"),  # HISTORY-PLAN.md
+                                ("bend4", "BEND4_MODS", "rm_bend4.json")):
         if delta in deltas:
             mods = next(ast.literal_eval(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)
                         and getattr(n.targets[0], "id", "") == var)

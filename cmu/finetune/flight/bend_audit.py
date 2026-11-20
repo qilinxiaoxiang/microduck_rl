@@ -62,7 +62,10 @@ def main():
     ap.add_argument("--manifest", default="manifests/flightpack-none.json",
                     help="robot compile manifest under --assets (default the 960 g no-pack robot of the payload env)")
     ap.add_argument("--reward-mods", default="", help="JSON merged into the delta as reward_mods (a redesign re-audit)")
-    ap.add_argument("--delta", default="bend", help="flight_worker delta audited (bend, bend2, bend3)")
+    ap.add_argument("--delta", default="bend", help="flight_worker delta audited (bend, bend2, bend3, bend4)")
+    ap.add_argument("--cases", default="", help="comma list of degenerate cases to run besides intended (default all)")
+    ap.add_argument("--handback-frac", type=float, default=None,
+                    help="override the delta's hand-back share of cycles (bend4: 0.25); 1.0 measures hand-back survival")
     a = ap.parse_args()
     import torch
     import mjlab.tasks  # noqa: F401
@@ -81,6 +84,8 @@ def main():
 
     cfg = load_env_cfg(TASK, play=False)
     delta = dict(fw.DELTAS[a.delta])
+    if a.handback_frac is not None and "handback" in delta:
+        delta["handback"] = dict(delta["handback"], frac=a.handback_frac)
     delta["payload"] = dict(delta["payload"], weights=PIN[a.load])
     if a.reward_mods:
         delta["reward_mods"] = json.loads(a.reward_mods)
@@ -93,6 +98,10 @@ def main():
         for n, f in (("diag_hold", bt.mouth_high_at_hold), ("diag_rest", bt.mouth_low_at_rest)):
             cfg.rewards[n] = RewardTermCfg(func=_accumulating(n, f), weight=DIAG_W,
                                            params={"asset_cfg": SceneEntityCfg("robot", site_names=["mouth_tip"])})
+        for n, f in (("diag_pitch_band", bt.trunk_pitch_off_band), ("diag_knee_limit", bt.knee_near_limit),
+                     ("diag_stance_rest", bt.stance_off_at_rest),
+                     ("diag_ankle_limit", bt.ankle_near_limit)):  # NEXT-PLAN.md bend4 candidates
+            cfg.rewards[n] = RewardTermCfg(func=_accumulating(n, f), weight=DIAG_W, params={})
     cfg.scene.entities["robot"] = fw.apply_asbuilt_masses(cfg.scene.entities["robot"], str(A / a.manifest),
                                                           str(A / "existing-model-mass-audit.json"), 0.09)
     cfg.scene.num_envs = a.num_envs
@@ -173,15 +182,26 @@ def main():
              "stay_down": make(gp, cap=0.40, comp=True)}
     if pack:
         cases["sit_back"] = make(gp)
+    if "squat" in pol:  # NEXT-PLAN.md bend4: bend3's learned squat (knee at its limit, trunk 13-16 deg), real dynamics
+        cases["squat"] = make(load_actor("squat"))
+    if a.cases:  # a subset keeps the full-pack run (six cases) under the 10-minute job limit
+        cases = {k: v for k, v in cases.items() if k == "intended" or k in a.cases.split(",")}
     res = {}
     for name, fn in cases.items():
         t0 = time.time()
         u._diag_sum = {}
+        if hasattr(u, "_hb_stats"):
+            u._hb_stats.update(steps=0, falls=0)
         r = fw.eval_policy(env, fn, a.steps, a.device)
         r["diag_raw_per_s"] = {k: v / (u.num_envs * a.steps) for k, v in u._diag_sum.items()}
+        if hasattr(u, "_hb_stats"):  # hand-back: stander-driven env-steps and falls while it drove
+            hb = dict(u._hb_stats)
+            r["handback"] = dict(hb, seconds=round(hb["steps"] * u.step_dt, 1),
+                                 falls_per_stander_min=round(hb["falls"] / max(hb["steps"] * u.step_dt / 60.0, 1e-9), 3))
+            print(f"[bend-audit] {a.load} {name} hand-back: {r['handback']}", flush=True)
         with torch.inference_mode():  # sim tensors are inference tensors after the rollout
             compensate(False)
-        r.update(policy=("groundpick61" if name != "stand" else stander), compensated=bool(pack and name in ("intended", "half_bend", "stay_down")),
+        r.update(policy={"stand": stander, "squat": "squat"}.get(name, "groundpick61"), compensated=bool(pack and name in ("intended", "half_bend", "stay_down")),
                  wall_s=round(time.time() - t0, 1),
                  weights={n: float(u.reward_manager.get_term_cfg(n).weight) for n in u.reward_manager.active_terms})
         res[name] = r

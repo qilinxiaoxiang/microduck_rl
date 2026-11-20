@@ -67,7 +67,7 @@ let r = await mac.post({...walk, client: A});
 assert.equal(r.status, 200, r.error); assert.deepEqual(onFile(), walk.cmd, "the driver's command is in the control file");
 r = await mini.post({op: "set", cmd: {mode: "stand"}, client: B});
 assert.equal(r.status, 409, "the other bridge's page is refused"); assert.equal(r.driver.name, "Shawn");
-assert.match(r.error, /Shawn 正在控制/);
+assert.match(r.error, /Shawn is driving/);
 assert.deepEqual(onFile(), walk.cmd, "a refused command writes nothing");
 await until("the other bridge's page is told who drives", () => pageB.seen.some(m => m.driver?.name === "Shawn"));
 // closed-loop stand and head moves are zero-velocity walk commands, and they move the robot
@@ -119,7 +119,7 @@ await until("pages are told the lease went idle", () => pageA.seen.at(-1)?.drive
 r = await mac.post({...walk, client: A});
 assert.equal(r.status, 200, r.error);
 r = await mac.post({op: "take"});
-assert.equal(r.status, 502, "a page without an id cannot take the lease"); assert.match(r.error, /驾驶身份/);
+assert.equal(r.status, 502, "a page without an id cannot take the lease"); assert.match(r.error, /driver id/);
 pageB.close();                      // a viewer's page closes: the holder keeps the lease
 await new Promise(done => setTimeout(done, 300));
 r = await mac.post({op: "read"});

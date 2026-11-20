@@ -142,13 +142,13 @@ def lease_refusal(req):
         d = holder()
         if d and d["id"] != client.get("id") and not stop and req["op"] != "take":
             return {"busy": True, "driver": view(d),
-                    "error": f"{d['name']} 正在控制（{round(time.monotonic() - d['last'])} 秒前发过命令）。"
-                             "停、停扭矩随时可用；要接管先点「接管」"}
+                    "error": f"{d['name']} is driving (last command {round(time.monotonic() - d['last'])} s ago). "
+                             "Stop and Torque off always work; to drive, press \"Take over\" first"}
         if not client.get("id") and not stop:
-            return {"driver": view(d), "error": "页面没带驾驶身份，刷新页面再试"}
+            return {"driver": view(d), "error": "The page sent no driver id, reload the page and try again"}
         tmp = LEASE + ".tmp"
         with open(tmp, "w") as f:
-            json.dump({"id": client.get("id") or "anonymous", "name": str(client.get("name") or "未命名")[:40],
+            json.dump({"id": client.get("id") or "anonymous", "name": str(client.get("name") or "unnamed")[:40],
                        "last": time.monotonic()}, f)
         os.replace(tmp, LEASE)
     return None

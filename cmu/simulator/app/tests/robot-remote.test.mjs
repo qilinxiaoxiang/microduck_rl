@@ -18,7 +18,7 @@ globalThis.fetch = async (_url, {body}) => {
 
 const {walkCommand, stickCommand, headStep, headTargets, createRemote} = await import("../src/robot-remote.js");
 
-const ZERO = {mode: "walk", vx: 0, vy: 0, vtheta: 0, for_s: 0.6};
+const ZERO = {mode: "walk", vx: 0, vy: 0, vtheta: 0, for_s: 1.5};
 const cmd = ids => walkCommand(new Set(ids)).cmd;
 
 // forward alone: straight
@@ -32,8 +32,13 @@ assert.deepEqual(cmd(["right"]), {...ZERO, vtheta: -0.5});
 // left and right cancel: straight with forward, zero without
 assert.deepEqual(cmd(["walk", "left", "right"]), {...ZERO, vx: 0.25});
 assert.deepEqual(cmd(["left", "right"]), ZERO);
-assert.equal(walkCommand(new Set(["left"])).label, "原地左转");
-assert.equal(walkCommand(new Set(["walk", "right"])).label, "右转");
+// back: straight backward at -0.4, a held turn ignored, forward and back cancel
+assert.deepEqual(cmd(["back"]), {...ZERO, vx: -0.4});
+assert.equal(walkCommand(new Set(["back"])).label, "Back");
+assert.deepEqual(cmd(["back", "left"]), {...ZERO, vx: -0.4});
+assert.deepEqual(cmd(["walk", "back"]), ZERO);
+assert.equal(walkCommand(new Set(["left"])).label, "Turn left");
+assert.equal(walkCommand(new Set(["walk", "right"])).label, "Arc right");
 
 // Stick: walking starts past 30 % forward at 0.25 and a full push reaches 0.4 (walk61's trained top); pulling back does
 // nothing; sideways arcs within +-0.3 or, with no forward push, turns in place at 0.5.
@@ -41,10 +46,15 @@ assert.equal(stickCommand(0, -0.3).cmd.vx, 0);
 assert.equal(stickCommand(0, -0.31).cmd.vx, 0.252);
 assert.equal(stickCommand(0, -1).cmd.vx, 0.4);
 assert.equal(stickCommand(0, -3).cmd.vx, 0.4);
-assert.deepEqual(stickCommand(0, 1).cmd, ZERO);
+// pulled back: straight backward at -0.4 (the robot-tested speed), no turn; a small pull or a mostly sideways pull does not back
+assert.deepEqual(stickCommand(0, 1).cmd, {...ZERO, vx: -0.4});
+assert.equal(stickCommand(0, 1).label, "Back");
+assert.deepEqual(stickCommand(0, 0.3).cmd, ZERO);
+assert.deepEqual(stickCommand(-0.3, 0.6).cmd, {...ZERO, vx: -0.4});
+assert.deepEqual(stickCommand(0.8, 0.5).cmd, {...ZERO, vtheta: -0.5});
 assert.ok(stickCommand(-1, -1).cmd.vtheta > 0 && stickCommand(1, -1).cmd.vtheta >= -0.3);
 assert.deepEqual(stickCommand(0.8, 0).cmd, {...ZERO, vtheta: -0.5});
-assert.equal(stickCommand(0, -1).label, "前进");
+assert.equal(stickCommand(0, -1).label, "Forward");
 
 // Head: steps clamp to walk_brain.HEAD_RANGE (pitch 1.10, yaw 1.40, roll 0.31), targets are absolute model rad
 let d = null;
@@ -120,6 +130,23 @@ assert.deepEqual(lastCmd(), {...ZERO, vx: 0.25});
 key("keyup", "ArrowUp");
 assert.deepEqual(lastCmd(), {mode: "walk", vx: 0, vy: 0, vtheta: 0});
 assert.equal(timers.size, 0);
+// back: the rendered page has the button; S (or the down arrow) held walks backward at -0.4 with the repeat, a turn key
+// held with it changes nothing, release stops
+assert.ok(root.buttons.some(b => b.dataset.act === "back"));
+key("keydown", "KeyS");
+assert.deepEqual(lastCmd(), {...ZERO, vx: -0.4});
+tick();
+assert.deepEqual(lastCmd(), {...ZERO, vx: -0.4});
+key("keydown", "KeyA");
+assert.deepEqual(lastCmd(), {...ZERO, vx: -0.4});
+key("keyup", "KeyA");
+key("keyup", "KeyS");
+assert.deepEqual(lastCmd(), {mode: "walk", vx: 0, vy: 0, vtheta: 0});
+assert.equal(timers.size, 0);
+key("keydown", "ArrowDown");
+assert.deepEqual(lastCmd(), {...ZERO, vx: -0.4});
+key("keyup", "ArrowDown");
+assert.equal(timers.size, 0);
 // right alone -> in place right, released -> zero
 key("keydown", "KeyD");
 assert.deepEqual(lastCmd(), {...ZERO, vtheta: -0.5});
@@ -190,7 +217,7 @@ key("keyup", "KeyK");
 assert.equal(timers.size, 0);
 key("keydown", "KeyH");
 assert.deepEqual(lastCmd(), {mode: "sit"});
-// 站起: the brain reports sit until the rise ends; head keys stay refused so nothing writes "sit" again
+// Stand up: the brain reports sit until the rise ends; head keys stay refused so nothing writes "sit" again
 key("keydown", "KeyR");
 await settle();
 assert.deepEqual(lastCmd(), {mode: "walk", vx: 0, vy: 0, vtheta: 0});
