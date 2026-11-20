@@ -148,6 +148,12 @@ def main():
     # --state-reset-p P: each policy call empties the env's recurrent state with probability P (rollout and replay
     # alike, through the Z buffer), so rows shortly after an empty state are several percent of the data
     ap.add_argument("--state-reset-p", type=float, default=0.0)
+    # failure-proximal rows (2026-11-20 08:40): a row is proximal when its env falls within the next 50 ticks (1 s)
+    # of the same segment; rows in a segment's last 50 ticks with no fall after them are unclassified.
+    # --prox-diag prints, per save, rows and student-teacher mse by case and by distance to the fall ([prox] line);
+    # --prox-weight W multiplies the loss weight of proximal rows by W (hindsight, known after the segment's rollout)
+    ap.add_argument("--prox-diag", action="store_true")
+    ap.add_argument("--prox-weight", type=float, default=1.0)
     # walk -> stop with the pack (2026-11-20: the students fall 1.5 to 3 s after the walk command ends, at low gain)
     ap.add_argument("--stop-share", type=float, default=0.0,
                     help="share of the envs that, while they carry the pack, are commanded like the gate's pack walk: "
@@ -294,6 +300,12 @@ def main():
     # <band>_walk (non-zero command); the same with T_ in front for teacher-driven envs (beta > 0 iterations)
     S_keys = [f"{w}{g}{sec}" for w in ("", "T_") for g in ("low", "high") for sec in (0, 1, 2, "_still", "_walk")]
     S_n = {k: dict(rows=0, e2=0.0, stu_step=0.0, tea_step=0.0, falls=0, walked=0.0) for k in S_keys}
+    # [prox] cases of student-driven rows: no pack; with the pack by gain band (low: scale <= 1.2) and command phase
+    P_names = ["nopack"] + [f"pack_{g}_{ph}" for g in ("low", "high")
+                            for ph in ("still", "onset", "walk", "stop3s", "stopped")]
+    P_buckets = ("far", "s05_10", "s00_05", "unclassified")   # no fall within 1 s / 0.5-1 s before / last 0.5 s
+    P_n = {k: {b: [0, 0.0] for b in P_buckets} for k in P_names}
+    use_prox = a.prox_diag or a.prox_weight != 1.0
 
     def export(name, run_path):
         p = str(run_dir / name)
@@ -341,6 +353,9 @@ def main():
         R = torch.ones(T, N, dtype=torch.bool, device=dev)    # the student ran on this tick (no dropped read)
         Z = torch.zeros(T, N, dtype=torch.bool, device=dev)   # its state was zeroed before the call (gap over 5 ticks)
         WT = torch.ones(T, N, device=dev)                     # loss weight of the row (--stop-weight)
+        PC = torch.full((T, N), -1, dtype=torch.long, device=dev)   # [prox] case of the row, -1 = not student-driven
+        PE = torch.zeros(T, N, device=dev)                          # its student-teacher mse
+        PF = torch.zeros(T, N, dtype=torch.bool, device=dev)        # the env fell on this tick
         state0 = state.clone()
         student.eval()
         with torch.no_grad():
@@ -429,6 +444,14 @@ def main():
                     S_n[k]["stu_step"] += float(st_s[mk].sum())
                     S_n[k]["tea_step"] += float(st_t[mk].sum())
                     S_n[k]["walked"] += float(walked[mk].float().sum())
+                if use_prox:
+                    # phase: 0 zero command, no walk before it; 1 first 1.5 s of a walk command; 2 walking later;
+                    # 3 first 3 s after a stop; 4 stopped longer
+                    ph = torch.where(zc, torch.where(since_stop < 0, 0, torch.where(since_stop < 150, 3, 4)),
+                                     torch.where(moving_run <= 75, 1, 2))
+                    pc = torch.where(nop, torch.zeros_like(ph), 1 + (ks > 1.2).long() * 5 + ph)
+                    PC[t] = torch.where(sd, pc, torch.full_like(pc, -1))
+                    PE[t] = e2
                 prev_stu, prev_lab = act_new.clone(), lab.clone()
                 drop_n += int((~ran).sum())
                 tick_n += N
@@ -445,6 +468,7 @@ def main():
                 d = dones.to(dev).bool()
                 to = extras.get("time_outs", torch.zeros_like(d)).to(dev).bool()
                 D[t] = d
+                PF[t] = d & ~to
                 for k, mk in stop_masks.items():
                     S_n[k]["falls"] += int((mk & d & ~to).sum())
                 since_stop = torch.where(d, torch.full_like(since_stop, -1), since_stop)
@@ -461,6 +485,24 @@ def main():
                 low = moving & (cmd[:, 0].abs() < 0.3).to(dev)
                 base.add(tmask, d & ~to, along, moving, low)
                 win_s.add(~tmask, d & ~to, along, moving, low)
+        if use_prox:
+            # ticks from each row to its env's next fall in this segment (a reset without a fall ends the look-ahead)
+            BIG = 10 * T
+            nxt = torch.full((N,), BIG, dtype=torch.long, device=dev)
+            dist = torch.empty(T, N, dtype=torch.long, device=dev)
+            for t in range(T - 1, -1, -1):
+                nxt = torch.where(D[t], torch.where(PF[t], torch.full_like(nxt, t), torch.full_like(nxt, BIG)), nxt)
+                dist[t] = nxt - t
+            tt = torch.arange(T, device=dev).view(T, 1).expand(T, N)
+            bk = torch.where(dist < 25, 2, torch.where(dist < 50, 1, torch.where(tt < T - 50, 0, 3)))
+            for ci, cn in enumerate(P_names):
+                cm_ = PC == ci
+                for bi, bn in enumerate(P_buckets):
+                    m_ = cm_ & (bk == bi)
+                    P_n[cn][bn][0] += int(m_.sum())
+                    P_n[cn][bn][1] += float(PE[m_].sum())
+            if a.prox_weight != 1.0:
+                WT = WT * (1.0 + (a.prox_weight - 1.0) * (dist < 50).float())
         student.train()
         lr = a.lr + (a.lr_final - a.lr) * min(1.0, (it - it0) / max(a.max_iters - it0, 1))
         for g in opt.param_groups:
@@ -513,6 +555,11 @@ def main():
                                    walked_s=round(0.02 * v["walked"] / v["rows"], 2)) if v["rows"] else dict(rows=0)
                            for k, v in S_n.items()}
             print(f"[stop] it {it} {json.dumps(row['stop'])}", flush=True)
+            if use_prox:
+                row["prox"] = {k: {b: dict(rows=v[b][0], mse=round(v[b][1] / v[b][0], 5) if v[b][0] else None)
+                                   for b in P_buckets} for k, v in P_n.items()}
+                print(f"[prox] it {it} {json.dumps(row['prox'])}", flush=True)
+                P_n = {k: {b: [0, 0.0] for b in P_buckets} for k in P_names}
             S_n = {k: dict(rows=0, e2=0.0, stu_step=0.0, tea_step=0.0, falls=0, walked=0.0) for k in S_keys}
             A_n = dict.fromkeys(A_n, 0)
             rows.append(row)
