@@ -533,6 +533,7 @@ def main():
     ap.add_argument("--low-speed-floor", type=float, default=0.03, help="m/s along a 0.15-0.3 m/s command below which the policy counts as not stepping")
     ap.add_argument("--rebaseline-saves", type=int, default=0, help="on a resume: discard the stored guard baseline and take the next N saves as the new one (guard off meanwhile)")
     ap.add_argument("--track-guard", type=float, default=0.0, help="stop when the episode velocity-tracking error exceeds this factor x the warm-up (frozen walk61) value on two saves; 0 = off")
+    ap.add_argument("--track-grace", type=int, default=0, help="iterations before the speed checks of --track-guard apply (start policies that cannot walk in the env yet)")
     ap.add_argument("--no-asbuilt", action="store_true")
     ap.add_argument("--guard-fraction", type=float, default=0.5, help="stop when mean reward < fraction * peak for two saves")
     ap.add_argument("--guard-after", type=int, default=100, help="iterations after the warm-up before the reward guard may stop the run")
@@ -701,8 +702,14 @@ def main():
             sbase = float(np.mean(self.speed_base)) if self.speed_base else float("nan")
             lbase = float(np.nanmean(self.low_base)) if self.low_base else float("nan")
             low_bad = bool(args.track_guard) and low == low and lbase == lbase and (low < lbase / args.track_guard or low < args.low_speed_floor)
+            # --track-grace N: a start policy that cannot walk in this env (walk61 under the flight pack: speed along
+            # the command -0.04 in the warm-up) fails both speed checks from the first save; until iteration N only
+            # the tracking-error check applies, from N on the speed checks apply as usual (2026-11-19 ts3m-w61long
+            # was stopped at iteration 250, 150 actor iterations in)
+            in_grace = it < args.track_grace
+            speed_bad = (not in_grace) and (speed < sbase / args.track_guard if sbase > 0 else speed < args.low_speed_floor)
             track_ok = not (args.track_guard and not self.rebase_left and base == base and track == track and
-                            (track > args.track_guard * base or speed < sbase / args.track_guard or low_bad))
+                            (track > args.track_guard * base or speed_bad or (low_bad and not in_grace)))
             row = dict(iter=it, elapsed_s=round(elapsed, 1), dollars=round(dollars, 3), mean_reward=rew, mean_ep_len=length,
                        it_per_s=round(its, 3) if its == its else None, lr=self.alg.learning_rate, action_std=std, warmup=self.warm,
                        track_err=round(track, 4) if track == track else None, track_base=round(base, 4) if base == base else None,
