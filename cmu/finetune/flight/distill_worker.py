@@ -154,6 +154,24 @@ def main():
     # --prox-weight W multiplies the loss weight of proximal rows by W (hindsight, known after the segment's rollout)
     ap.add_argument("--prox-diag", action="store_true")
     ap.add_argument("--prox-weight", type=float, default=1.0)
+    # reinforcement learning on the student, imitation kept (2026-11-20 09:00; RUNLOG 08:33 recipe A, 08:50
+    # proposal). Default off (--rl-w 0): the worker is then exactly the distillation it was. With --rl-w > 0 the
+    # student-driven envs act with Gaussian noise of a learned std around the student's output (instead of
+    # --act-noise on half the envs), the env's own reward is read (the delta's rewards, unchanged), a critic on the
+    # teacher's inputs (61 actor inputs + privileged block, the teacher's normaliser) gives values, GAE runs over
+    # the segment, and the loss is bc_w x imitation + rl_w x (clipped PPO surrogate + rl_vf x value loss).
+    # --bc-w-final anneals the imitation weight linearly over the run. During the first --rl-critic-warmup
+    # iterations only the critic learns from the reward (the actor sees imitation only).
+    ap.add_argument("--rl-w", type=float, default=0.0)
+    ap.add_argument("--bc-w", type=float, default=1.0)
+    ap.add_argument("--bc-w-final", type=float, default=None)
+    ap.add_argument("--rl-clip", type=float, default=0.1)
+    ap.add_argument("--rl-gamma", type=float, default=0.99)
+    ap.add_argument("--rl-lam", type=float, default=0.95)
+    ap.add_argument("--rl-std", type=float, default=0.1, help="initial action std (the worker's --act-noise value)")
+    ap.add_argument("--rl-vf", type=float, default=1.0)
+    ap.add_argument("--rl-critic-lr", type=float, default=1e-3)
+    ap.add_argument("--rl-critic-warmup", type=int, default=3)
     # walk -> stop with the pack (2026-11-20: the students fall 1.5 to 3 s after the walk command ends, at low gain)
     ap.add_argument("--stop-share", type=float, default=0.0,
                     help="share of the envs that, while they carry the pack, are commanded like the gate's pack walk: "
@@ -200,14 +218,38 @@ def main():
     print(f"[distill] student {spec}; segment {a.bptt_steps} ticks ({a.bptt_steps * 0.02:.2f} s), {a.num_envs} envs, "
           f"{a.epochs} epochs x minibatches of {a.mb_envs} envs", flush=True)
     opt = torch.optim.Adam(student.parameters(), lr=a.lr)
+    rl_on = a.rl_w > 0
+    critic = log_std = opt_c = None
+    if rl_on:
+        XW = teacher.width
+        critic = torch.nn.Sequential(torch.nn.Linear(XW, 256), torch.nn.ELU(), torch.nn.Linear(256, 256), torch.nn.ELU(),
+                                     torch.nn.Linear(256, 1)).to(dev)
+        log_std = torch.nn.Parameter(torch.full((rc.ACT,), math.log(a.rl_std), device=dev))
+        opt_c = torch.optim.Adam(list(critic.parameters()) + [log_std], lr=a.rl_critic_lr)
+        LS_LO, LS_HI = math.log(0.02), math.log(0.3)
+
+        def value_of(x):   # critic on the teacher's inputs, the teacher's own normaliser
+            return critic((x - teacher.mean) / teacher.div).squeeze(-1)
+
+        def logp_of(act, mean, ls):
+            return (-0.5 * ((act - mean) / ls.exp()) ** 2 - ls - 0.5 * math.log(2 * math.pi)).sum(dim=-1)
+        print(f"[rl] PPO on the student: rl_w {a.rl_w} bc_w {a.bc_w} -> {a.bc_w_final if a.bc_w_final is not None else a.bc_w} "
+              f"clip {a.rl_clip} gamma {a.rl_gamma} lambda {a.rl_lam} std {a.rl_std} critic inputs {XW} critic lr "
+              f"{a.rl_critic_lr} critic-only iterations {a.rl_critic_warmup}; rewards: the delta's own, unchanged", flush=True)
     it0 = 0
     if a.resume_pt:
         ck = torch.load(a.resume_pt, map_location=dev, weights_only=False)
         assert ck["spec"] == spec, (ck["spec"], spec)
         student.load_state_dict(ck["student"])
         it0 = int(ck["iter"])
-        if "opt" in ck:
+        if "opt" in ck and not rl_on:   # the PPO pass starts with a fresh Adam at its own learning rate
             opt.load_state_dict(ck["opt"])
+        if rl_on and "rl" in ck:        # a resume of a PPO run: its critic and action std
+            critic.load_state_dict(ck["rl"]["critic"])
+            with torch.no_grad():
+                log_std.copy_(ck["rl"]["log_std"].to(dev))
+            opt.load_state_dict(ck["opt"])
+            opt_c.load_state_dict(ck["rl"]["opt_c"])
         print(f"[distill] resumed from {a.resume_pt} at iteration {it0}; optimizer state {'loaded' if 'opt' in ck else 'not in the file, fresh Adam'}", flush=True)
     robot, cm = env.scene["robot"], env.command_manager
     N, T = a.num_envs, a.bptt_steps
@@ -356,6 +398,13 @@ def main():
         PC = torch.full((T, N), -1, dtype=torch.long, device=dev)   # [prox] case of the row, -1 = not student-driven
         PE = torch.zeros(T, N, device=dev)                          # its student-teacher mse
         PF = torch.zeros(T, N, dtype=torch.bool, device=dev)        # the env fell on this tick
+        if rl_on:
+            XB = torch.empty(T, N, teacher.width, device=dev)       # critic inputs
+            AB = torch.empty(T, N, rc.ACT, device=dev)              # sampled action
+            LP = torch.empty(T, N, device=dev)                      # its log-probability at rollout time
+            VB = torch.empty(T, N, device=dev)                      # value at rollout time
+            RW = torch.empty(T, N, device=dev)                      # reward (time-outs bootstrapped)
+            SDM = torch.zeros(T, N, dtype=torch.bool, device=dev)   # student-driven row with a policy call
         state0 = state.clone()
         student.eval()
         with torch.no_grad():
@@ -455,7 +504,13 @@ def main():
                 prev_stu, prev_lab = act_new.clone(), lab.clone()
                 drop_n += int((~ran).sum())
                 tick_n += N
-                act_new = act_new + a.act_noise * torch.randn_like(act_new) * half_noise.view(N, 1)
+                if rl_on:
+                    mean_s = act_new
+                    act_new = mean_s + log_std.exp() * torch.randn_like(mean_s)
+                    XB[t] = torch.cat([o, pv], dim=1)
+                    AB[t], LP[t], VB[t], SDM[t] = act_new, logp_of(act_new, mean_s, log_std), value_of(XB[t]), sd
+                else:
+                    act_new = act_new + a.act_noise * torch.randn_like(act_new) * half_noise.view(N, 1)
                 act_s = torch.where(ran.view(N, 1), act_new, prev_act)
                 O[t], L[t], R[t], Z[t] = o_s, lab_train, ran, zero
                 WT[t] = 1.0 + (a.stop_weight - 1.0) * (~nop & (since_stop >= 0) & (since_stop < 150)).float()
@@ -464,9 +519,11 @@ def main():
                     WT[t] = WT[t] * (1.0 + (a.cold_weight - 1.0) * (ran & (age < a.cold_ticks)).float())
                 age = age + ran.long()
                 applied = torch.where(tmask.view(N, 1), lab, act_s)
-                obs, _, dones, extras = venv.step(applied.to(env.device))
+                obs, rew_t, dones, extras = venv.step(applied.to(env.device))
                 d = dones.to(dev).bool()
                 to = extras.get("time_outs", torch.zeros_like(d)).to(dev).bool()
+                if rl_on:   # a time-out is not a failure: bootstrap with the value of the state it cut (as rsl_rl)
+                    RW[t] = rew_t.to(dev).view(-1) + a.rl_gamma * VB[t] * to.float()
                 D[t] = d
                 PF[t] = d & ~to
                 for k, mk in stop_masks.items():
@@ -508,11 +565,34 @@ def main():
         for g in opt.param_groups:
             g["lr"] = lr
         keep = (~D).float()
+        frac_run = min(1.0, (it - it0) / max(a.max_iters - it0, 1))
+        bc_w = a.bc_w + ((a.bc_w_final if a.bc_w_final is not None else a.bc_w) - a.bc_w) * frac_run
+        if rl_on:
+            with torch.no_grad():   # GAE over the segment; the value after its last tick from the next observation
+                v_next = value_of(torch.cat([obs["actor"].to(dev), tc.priv_obs(env).to(dev)], dim=1))
+                ADV = torch.empty(T, N, device=dev)
+                adv = torch.zeros(N, device=dev)
+                for t in range(T - 1, -1, -1):
+                    nonterm = keep[t]
+                    delta_t = RW[t] + a.rl_gamma * v_next * nonterm - VB[t]
+                    adv = delta_t + a.rl_gamma * a.rl_lam * nonterm * adv
+                    ADV[t] = adv
+                    v_next = VB[t]
+                RET = ADV + VB
+                n_sd = int(SDM.sum())
+                if n_sd > 1:
+                    ADV = (ADV - ADV[SDM].mean()) / (ADV[SDM].std() + 1e-8)
+                rl_stat = dict(rows=n_sd, reward_per_step=round(float(RW[SDM].mean()), 5) if n_sd else None,
+                               value_mean=round(float(VB[SDM].mean()), 4) if n_sd else None,
+                               return_mean=round(float(RET[SDM].mean()), 4) if n_sd else None,
+                               value_mse_before=round(float(((VB - RET)[SDM] ** 2).mean()), 5) if n_sd else None)
+            actor_rl = it > it0 + a.warmup_iters + a.rl_critic_warmup   # before that only the critic learns
+            kl_s, clip_s, surr_s, vl_s, n_up = 0.0, 0.0, 0.0, 0.0, 0
         for _ in range(0 if (it0 and beta == 1.0) else a.epochs):   # no update on a resume's teacher-driven baseline
             perm = torch.randperm(N, device=dev)
             for i in range(0, N, a.mb_envs):
                 idx = perm[i:i + a.mb_envs]
-                s, loss = state0[idx], 0.0
+                s, loss, surr = state0[idx], 0.0, 0.0
                 for t in range(T):
                     r = R[t, idx]
                     s = s * (~Z[t, idx]).view(-1, 1)
@@ -520,13 +600,43 @@ def main():
                     s = torch.where(r.view(-1, 1), s_new, s)      # a dropped tick leaves the state as it was
                     rw = r.float() * WT[t, idx]
                     loss = loss + (((act - L[t, idx]) ** 2).mean(dim=1) * rw).sum() / rw.sum().clamp(min=1)
+                    if rl_on:
+                        m = SDM[t, idx].float()
+                        lr_ = logp_of(AB[t, idx], act, log_std) - LP[t, idx]
+                        ratio = lr_.exp()
+                        ad = ADV[t, idx]
+                        s_t = torch.min(ratio * ad, ratio.clamp(1.0 - a.rl_clip, 1.0 + a.rl_clip) * ad)
+                        surr = surr - (s_t * m).sum() / m.sum().clamp(min=1)
+                        with torch.no_grad():
+                            kl_s += float(((ratio - 1.0 - lr_) * m).sum() / m.sum().clamp(min=1)) / T
+                            clip_s += float((((ratio - 1.0).abs() > a.rl_clip).float() * m).sum() / m.sum().clamp(min=1)) / T
                     s = s * keep[t, idx].view(-1, 1)
                 loss = loss / T
+                total = bc_w * loss if rl_on else loss
+                if rl_on:
+                    surr = surr / T
+                    mv = SDM[:, idx].float()
+                    vl = (((value_of(XB[:, idx]) - RET[:, idx]) ** 2) * mv).sum() / mv.sum().clamp(min=1)
+                    total = total + a.rl_w * ((surr if actor_rl else 0.0) + a.rl_vf * vl)
+                    surr_s, vl_s, n_up = surr_s + float(surr), vl_s + float(vl), n_up + 1
+                    opt_c.zero_grad()
                 opt.zero_grad()
-                loss.backward()
+                total.backward()
                 torch.nn.utils.clip_grad_norm_(student.parameters(), 1.0)
                 opt.step()
+                if rl_on:
+                    torch.nn.utils.clip_grad_norm_(critic.parameters(), 1.0)
+                    opt_c.step()
+                    with torch.no_grad():
+                        log_std.clamp_(LS_LO, LS_HI)
+                assert math.isfinite(float(total)), f"non-finite loss at iteration {it}"
                 win_loss = 0.9 * win_loss + 0.1 * float(loss) if win_loss else float(loss)
+        if rl_on:
+            rl_stat.update(bc_w=round(bc_w, 4), actor_rl=bool(actor_rl), surrogate=round(surr_s / max(n_up, 1), 5),
+                           value_loss=round(vl_s / max(n_up, 1), 5), approx_kl=round(kl_s / max(n_up, 1), 6),
+                           clip_fraction=round(clip_s / max(n_up, 1), 4), std_mean=round(float(log_std.exp().mean()), 4),
+                           imitation_loss=round(win_loss, 5))
+            print(f"[rl] it {it} {json.dumps(rl_stat)}", flush=True)
 
         capped = time.time() - t_start >= a.max_hours * 3600   # checked every iteration; the state is saved below
         if it % a.save_interval == 0 or it == a.max_iters or capped:
@@ -563,7 +673,11 @@ def main():
             S_n = {k: dict(rows=0, e2=0.0, stu_step=0.0, tea_step=0.0, falls=0, walked=0.0) for k in S_keys}
             A_n = dict.fromkeys(A_n, 0)
             rows.append(row)
-            torch.save(dict(student=student.state_dict(), opt=opt.state_dict(), spec=spec, iter=it, args=vars(a)), run_dir / f"model_{it}.pt")
+            ck_out = dict(student=student.state_dict(), opt=opt.state_dict(), spec=spec, iter=it, args=vars(a))
+            if rl_on:
+                row["rl"] = rl_stat
+                ck_out["rl"] = dict(critic=critic.state_dict(), log_std=log_std.detach().cpu(), opt_c=opt_c.state_dict())
+            torch.save(ck_out, run_dir / f"model_{it}.pt")
             dx = export(f"model_{it}.onnx", str(run_dir / f"model_{it}.pt"))
             (run_dir / "progress.json").write_text(json.dumps(dict(row, rows=rows), indent=1))
             with open(run_dir / "progress.csv", "a") as f:
