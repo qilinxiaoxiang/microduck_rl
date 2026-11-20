@@ -46,6 +46,17 @@ Modes, switched live by writing JSON to the control file (default /tmp/duck_cmd.
                                             (PICK_REVISIONS; r1 = seepickpix_r161.onnx, the microduck_rl rise-s1 pick,
                                             loaded beside the baseline so the remote can start either); a revision
                                             always keeps its own rise (never handed to seepick61).
+  {"mode": "dock", "object": {"u": 330.5, "v": 250.0, "w": 28.0, "t": 1793000000.0, "seen": true}}
+                                            the ball dock (microduck_rl cmu/kneel, Mjlab-BallDock-Nudge-Fwd-Wide-SN1): a
+                                            commander (dock_commander.onnx, 20 inputs: the ball's picture box [u, v, width,
+                                            age, visible] as T2 reads it, measured neck_pitch / head_pitch / head_yaw,
+                                            gravity, gyro, its own last action) writes walk velocity and head deltas into
+                                            the command slots of the nudge (nudge61.onnx, walk61 fine-tuned to make small
+                                            steps), which drives the joints at KP 200. The nudge reads the commander's
+                                            previous output, as in training. It stops with the ball 0.75 cm beyond the
+                                            seeing pick's landing spot; the kneel ("policy": "dk" in a seepick command,
+                                            seepickpix_dk61.onnx) starts from there. info["dock_cmd"] is the twist it asked
+                                            for; dockpick.py decides when it is docked.
   {"mode": "kick", "foot": "left", "id": 7} Pollen's ball kick (kick_left61 / kick_right61.onnx), one shot per new id
                                             and only from stand or walk mode: KICK_TICKS policy ticks (0.5 s) with an
                                             all-zero command, then walk mode at zero command (stand61). The action
@@ -117,7 +128,30 @@ SP_AGE_MAX = 2.0
 SP_RISE_OLD_PHASE = 0.50
 # Pick revisions a seepick command can name with "policy" (picture objects only): name -> session, loaded from
 # <session>61.onnx when present. r1: microduck_rl pick-and-rise rise-s1 (Mjlab-SeeingPickPixRise, md5 1cc1f202).
-PICK_REVISIONS = {"r1": "seepickpix_r1"}
+# dk: the kneel of the split pick (microduck_rl cmu/kneel ks-sn1 @ 749, Mjlab-KneelRise-DockFitC-Ball-SN1), trained from
+# the dock's end states with servo noise level 1 and hold-on to phase 0.90; run after the dock (dockpick.py).
+PICK_REVISIONS = {"r1": "seepickpix_r1", "dk": "seepickpix_dk"}
+# Ball dock (mode "dock"): microduck_rl cmu_ball_dock_env_cfg.DockCommanderAction. The commander's 6 outputs, clipped to
+# +-1, become the nudge's twist (vx, vy, wz) = a[0:3] x (DOCK_VX_MAX, DOCK_VY_MAX, DOCK_WZ_MAX) and head deltas from the
+# default pose: neck_pitch = DOCK_NECK_BOW x min(a[5], 0), head_pitch = DOCK_HEAD_PITCH[0] + (a[3] + 1) / 2 x span,
+# head_yaw = a[4] x DOCK_HEAD_YAW_MAX, head_roll 0. No head EMA and no heading hold: training wrote them straight in.
+DOCK_COMMANDER = "dock_commander.onnx"
+DOCK_NUDGE = "nudge"   # nudge61.onnx
+DOCK_VX_MAX, DOCK_VY_MAX, DOCK_WZ_MAX = 0.40, 0.30, 1.0
+DOCK_HEAD_PITCH = (0.0, 1.10)
+DOCK_HEAD_YAW_MAX = 0.8
+DOCK_NECK_BOW = 0.8
+DOCK_HEAD_JOINTS = ("neck_pitch", "head_pitch", "head_yaw")
+
+
+def dock_commands(a):
+    """Commander action (6) -> (twist [vx, vy, wz], head deltas [neck, head_pitch, head_yaw, head_roll])."""
+    a = np.clip(np.asarray(a, dtype=np.float32), -1.0, 1.0)
+    twist = np.array([a[0] * DOCK_VX_MAX, a[1] * DOCK_VY_MAX, a[2] * DOCK_WZ_MAX], dtype=np.float32)
+    lo, hi = DOCK_HEAD_PITCH
+    head = np.array([DOCK_NECK_BOW * min(float(a[5]), 0.0), lo + (float(a[3]) + 1.0) * 0.5 * (hi - lo),
+                     a[4] * DOCK_HEAD_YAW_MAX, 0.0], dtype=np.float32)
+    return twist, head
 # T2 on the robot closes at one spot whatever the ball: tip x 0.118-0.122, y 0.003-0.006 at phase 0.35 in all four picks of 2026-11-01
 # (beak_at_close.py). Head yaw moves the tip 0.060 m/rad there (beak_jacobian.py), so a pick can carry "yaw_off" (rad), added to T2's
 # head yaw goal over these phases. Head and neck pitch cannot do the same for x: they move the tip along nearly the same line, x and z together.
@@ -423,8 +457,8 @@ class Brain:
     or None to write nothing) and the P gain (0 = leave unchanged).
     """
 
-    POLICY_MODES = ("walk", "groundpick", "seepick", "kick", "sit")  # modes driven by an ONNX policy at KP_RL
-    TORQUE_MODES = ("stand", "walk", "groundpick", "seepick", "sit")  # modes that switch torque on
+    POLICY_MODES = ("walk", "groundpick", "seepick", "kick", "sit", "dock")  # modes driven by an ONNX policy at KP_RL
+    TORQUE_MODES = ("stand", "walk", "groundpick", "seepick", "sit", "dock")  # modes that switch torque on
 
     def __init__(self, models, compensation=True, walk_ramp=0.0, yaw_trim_file=None, getup=None):
         self.getup_mode = GETUP if getup is None else getup
@@ -435,7 +469,7 @@ class Brain:
         self.lying_for = 0.0  # s the trunk has read lying (FALLEN_Z)
         self.fall_t = None  # time of the last detector tick
         names = ["walk", "stand"] + [k for k in ("groundpick", "seepick", "seepickpix", *PICK_REVISIONS.values(),
-                                                 "sitstand", "kick_left", "kick_right")
+                                                 "sitstand", "kick_left", "kick_right", DOCK_NUDGE)
                                      if os.path.exists(os.path.join(models, k + "61.onnx"))]
         self.sessions = {k: ort.InferenceSession(os.path.join(models, k + "61.onnx"), session_options()) for k in names}
         for k, sess in self.sessions.items():
@@ -445,6 +479,13 @@ class Brain:
             assert float(meta.get("action_scale", "1")) == 1.0, k
             assert meta["default_joint_pos"] == self.sessions["walk"].get_modelmeta().custom_metadata_map["default_joint_pos"], k
         self.default = dict(zip(OBSERVATION_DOF_ORDER, [float(v) for v in meta["default_joint_pos"].split(",")]))
+        self.dock_cmd = None   # the commander (20 -> 6), loaded only beside nudge61.onnx
+        if DOCK_NUDGE in self.sessions and os.path.exists(os.path.join(models, DOCK_COMMANDER)):
+            self.dock_cmd = ort.InferenceSession(os.path.join(models, DOCK_COMMANDER), session_options())
+            assert self.dock_cmd.get_inputs()[0].shape == [1, 20], DOCK_COMMANDER
+        self.dk_cam = np.zeros(5, dtype=np.float32)    # dock: [u, v, width, age, visible] last handed to the commander
+        self.dk_act = np.zeros(6, dtype=np.float32)    # dock: the commander's last action (clipped)
+        self.dk_twist, self.dk_head = np.zeros(3, dtype=np.float32), np.zeros(4, dtype=np.float32)  # the nudge's command
         self.comp_cfg = {"delay_compensation": "constant_velocity" if compensation else "none",
                          "prediction_fraction": 1.0, "predict_heading": True}
         self.walk_ramp = walk_ramp
@@ -770,6 +811,19 @@ class Brain:
                 self.head_cmd[:] = 0
                 if not was_policy:
                     self.last_action[:] = 0
+            elif self.mode == "dock":
+                # from stand61/walk61 (the dock was trained from standing or walking at up to 0.15 m/s): hold the
+                # present pose; the nudge takes over at the first fresh upright sample with a zero command
+                if self.dock_cmd is None:
+                    raise RuntimeError(f"no {DOCK_NUDGE}61.onnx and {DOCK_COMMANDER} in the models directory")
+                self.ramp, self.goal = None, dict(start)
+                self.dk_cam[:] = 0.0
+                self.dk_cam[3] = SP_AGE_MAX
+                self.dk_act[:] = 0.0
+                self.dk_twist[:], self.dk_head[:] = 0.0, 0.0
+                self.head_cmd[:] = 0
+                if not was_policy:
+                    self.last_action[:] = 0
             elif self.mode == "sit" and not was_policy and self.seated():
                 # from monitor mode while seated (a brain restart on a seated robot): the present pose is the goal,
                 # the policy takes over in the seated phase with the posture flag at 1, and its last action is the
@@ -800,7 +854,7 @@ class Brain:
                     # the robot to their own pose in closed loop (as-built sim from STAND: walks 1.17 m)
                     self.ramp, self.goal = None, dict(start)
                 self.heading, self.walk_seg = None, None
-                self.stepped = False
+                self.stepped = prev_mode == "dock"   # out of a dock the nudge may be mid-step: walk61 brings it to rest
             if self.mode != "monitor":
                 self.head_hold = None
             print(f"mode -> {self.mode}", flush=True)
@@ -877,6 +931,21 @@ class Brain:
                 self.sp_body[:] = body_fn(self.sp_body, None if self.sp_old_rise else want.get("object"), holding_in, now)
                 info["sp_phase"], info["sp_body"] = round(self.sp_phase, 4), [round(float(v), 4) for v in self.sp_body]
                 info["sp_jaw"] = seepick_jaw(self.sp_phase)
+            elif self.mode == "dock":
+                # the commander sees the same (compensated) state as the nudge; the nudge reads the commander's
+                # previous output (DockCommanderAction: walk61's obs is the previous step's, slots included)
+                cam = seepickpix_body(np.r_[self.dk_cam[:3], self.dk_cam[3], 0.0, self.dk_cam[4]],
+                                      want.get("object"), False, now)
+                self.dk_cam[:] = [cam[0], cam[1], cam[2], cam[3], cam[5]]
+                heads = [state[6 + OBSERVATION_DOF_ORDER.index(n)] + self.default[n] for n in DOCK_HEAD_JOINTS]
+                cobs = np.concatenate([self.dk_cam, heads, state[3:6], state[0:3], self.dk_act]).astype(np.float32)
+                a = self.dock_cmd.run(None, {self.dock_cmd.get_inputs()[0].name: cobs[None]})[0][0]
+                command, head, policy = self.dk_twist.tolist(), self.dk_head.copy(), DOCK_NUDGE
+                self.dk_act[:] = np.clip(a, -1.0, 1.0)
+                self.dk_twist[:], self.dk_head[:] = dock_commands(self.dk_act)
+                info["dock_cmd"] = [round(float(v), 3) for v in command]
+                info["dock_head"] = [round(float(v), 3) for v in head[:3]]
+                info["dock_cam"] = [round(float(v), 3) for v in self.dk_cam]
             elif self.mode == "kick":
                 # robotd: a skill's twist is its own (zero for a kick) and the head/body slots are zero-padded
                 command, head = [0.0, 0.0, 0.0], np.zeros(4, dtype=np.float32)

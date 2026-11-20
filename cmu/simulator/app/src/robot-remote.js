@@ -26,7 +26,8 @@ import { batteryPercent } from "./battery-percent.js";
 // Backpack switch: 充电背包 / 电池背包 tells the brain which pack is on ({"op": "supply"}): the charger pack runs without the
 // low-battery guard, the 2S pack with it from the first sample. Switching restarts an idle brain; a driving one keeps the
 // old setting until 停. Unset (auto) the brain guesses from the voltage, which can take the charger for a battery.
-// Seeing pick (N / M): 捡球：基线 runs seepick.py with the deployed T2 pick, 捡球：改版 1 with revision r1 and hold-on
+// Dock and pick (N / M): 对位：走到球前 runs seepick.py --dock-only (dockpick.py: find the ball nearby, the learned dock
+// to the kneel's start spot, then stand; it replaced the baseline T2 pick button), 捡球：改版 1 revision r1 with hold-on
 // (a7z-bridge.mjs PICK_VARIANTS, POST /api/a7z/pick). Both start from closed-loop standing; 停 also ends the run.
 
 import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
@@ -135,11 +136,11 @@ const ACTIONS = [
   {id: "kickR", key: "E", label: "右踢", hint: "一次 0.5 秒"},
   {id: "sit", key: "R", label: "坐下 / 站起", hint: "再按站起"},
   {id: "bend", key: "G", label: "弯腰 / 起身", hint: "再按起身"},
-  {id: "pickBase", key: "N", label: "捡球：基线", hint: "现在部署的捡球（橙球，先闭环站立）；起身后闭环站立"},
+  {id: "pickDock", key: "N", label: "对位：走到球前", hint: "橙球放在前方 10–50 cm：自己找球，小步走到球正前方停下（不叼），然后闭环站立（先闭环站立）"},
   {id: "pickR1", key: "M", label: "捡球：改版 1", hint: "rise-s1 自己起身，叼住保持 5 秒后原地保持（先闭环站立）"},
 ];
-const PICK_IDS = {pickBase: "baseline", pickR1: "r1"};
-const PICK_NAMES = {baseline: "捡球：基线", r1: "捡球：改版 1"};
+const PICK_IDS = {pickDock: "dock", pickR1: "r1"};
+const PICK_NAMES = {dock: "对位：走到球前", r1: "捡球：改版 1"};
 const PICK_STATES = {running: "进行中", done: "完成", failed: "失败", stopped: "已停止"};
 // Head row: closed-loop stand or walking only.
 const HEAD_HINT = "闭环站立、走路或坐着时有效，按住连续动";
@@ -473,7 +474,7 @@ export function createRemote({root, state, log}) {
     }
   }
   const KEYS = {KeyT: "stand", KeyY: "stand61", KeyW: "walk", ArrowUp: "walk", KeyA: "left", ArrowLeft: "left",
-    KeyD: "right", ArrowRight: "right", KeyQ: "kickL", KeyE: "kickR", KeyR: "sit", KeyG: "bend", KeyN: "pickBase", KeyM: "pickR1",
+    KeyD: "right", ArrowRight: "right", KeyQ: "kickL", KeyE: "kickR", KeyR: "sit", KeyG: "bend", KeyN: "pickDock", KeyM: "pickR1",
     KeyB: "quack", Space: "stop", KeyX: "off", KeyI: "headUp", KeyK: "headDown", KeyJ: "headLeft", KeyL: "headRight",
     KeyU: "tiltLeft", KeyO: "tiltRight", KeyH: "headReset"};
   window.addEventListener("keydown", e => {

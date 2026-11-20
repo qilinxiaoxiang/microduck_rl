@@ -63,6 +63,7 @@ from walk_wired import QUACK_HEAD_S, quack_head_block, quack_head_pose  # noqa: 
 from walk_wired import CMD_ALPHA, GripStop, hold_allowed  # noqa: E402
 from walk_wired import SP_DONE_PHASE  # noqa: E402
 import walk_brain  # noqa: E402
+import dockpick  # noqa: E402
 import duck_kin  # noqa: E402
 import jaw_ctl  # noqa: E402
 import jaw_limits as jl  # noqa: E402
@@ -553,6 +554,7 @@ class SeePick:
                        # the object's travel in the foot frame: first beak touch -> pinch, and over the trained close
                        # window (phase 0.34 -> 0.40); the jaw command when --sp-close-on-contact started the close
                        first_contact=None, push_contact_to_pinch_mm=None, close_window=None, contact_close=None)
+        self.dock, self.judge, self.dock_cmd, self.pick_t = None, None, None, None   # --sp-dock
         self.close_shift = 0.0  # --sp-close-on-contact: phase advance of the jaw timeline after the first touch
         self.holding_now = False
         self.state = {}
@@ -572,6 +574,9 @@ class SeePick:
     def place(self):
         p, yaw = self.trunk_frame()
         off = np.array(SP_LANDING_XY) + np.array(self.a.sp_offset)
+        if self.a.sp_dock is not None:   # the dock's spawn: range and bearing from the root (reset_ball_dock)
+            r, b = self.a.sp_dock[0], math.radians(self.a.sp_dock[1])
+            off = np.array([r * math.cos(b), r * math.sin(b)])
         c, s = math.cos(yaw), math.sin(yaw)
         x, y = p[0] + c * off[0] - s * off[1], p[1] + s * off[0] + c * off[1]
         z = self.obj["half"][2] + 0.0005
@@ -620,8 +625,50 @@ class SeePick:
             self.jaw_meas.extend([q] * self.jaw_meas.maxlen)
         self.jaw_meas.append(q)
 
+    def dock_want(self, t):
+        """--sp-dock, as dockpick.DockPick on the robot: stand with the head aimed at the ball (dockpick.dock_head) for
+        dockpick.DOCK_AIM_S, then {"mode": "dock"} with the picture box until dockpick.DockedJudge says docked, then the
+        kneel (seepick, revision --sp-policy, hold-on phase). None once the kneel runs (want() takes over)."""
+        if self.spawn is None:
+            self.place()
+            xy = self.foot_xy(self.d.xpos[self.body])
+            self.dock = dict(spawn_foot_xy=[round(float(v), 4) for v in xy], head=dockpick.dock_head(*xy))
+        if t < self.a.sp_at:
+            return {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0, "head": self.dock["head"]}
+        if self.switched is None:
+            self.switched = t
+            self.judge = dockpick.DockedJudge(t)
+            self.cam_cfg["handover"] = self.pix.start(t, self.d.xpos[self.body], max(self.obj["half"][:2]),
+                                                      self.d.site_xpos[self.site["lip_up"]])
+        if self.pick_t is not None:
+            return None
+        self.k = int(round((t - self.switched) / 0.02))
+        last = self.pix.step(self.k, t, self.d.xpos[self.body], max(self.obj["half"][:2]), self.d.site_xpos[self.site["lip_up"]])
+        why = self.judge.update(t, self.dock_cmd, self.foot_xy(self.d.xpos[self.body]))
+        if why is None:
+            return {"mode": "dock", "object": last}
+        self.pick_t = t
+        p, yaw = self.trunk_frame()
+        self.root0 = (p.copy(), yaw)
+        xy = self.foot_xy(self.d.xpos[self.body])
+        self.dock.update(docked=why, dock_s=round(t - self.switched, 2), end_foot_xy=[round(float(v), 4) for v in xy],
+                         end_err_cm=[round(float(xy[0] - SP_LANDING_XY[0]) * 100, 2), round(float(xy[1]) * 100, 2)],
+                         end_head={n: round(float(self.d.qpos[self.m.jnt_qposadr[self.m.joint(n).id]]), 3)
+                                   for n in ("neck_pitch", "head_pitch", "head_yaw")})
+        return None
+
     def want(self, t):
         """The control-file command while the seeing pick runs: mode, the newest delivered detection, holding bit."""
+        if self.a.sp_dock is not None:
+            w = self.dock_want(t)
+            if w is not None:
+                return w
+            self.k = int(round((t - self.switched) / 0.02))
+            last = self.pix.step(self.k, t, self.d.xpos[self.body], max(self.obj["half"][:2]),
+                                 self.d.site_xpos[self.site["lip_up"]])
+            self.holding_now = self.holding()
+            return {"mode": "seepick", "object": last, "_holding": self.holding_now, "policy": self.a.sp_policy,
+                    "phase": self.a.sp_phase, "rise_old": False}
         if self.switched is None:
             self.place()
             self.switched = t
@@ -650,12 +697,14 @@ class SeePick:
         return {"mode": "seepick", "object": dict(last), "_holding": self.holding_now}
 
     def active(self, t):
-        return self.a.sp_at is not None and t >= self.a.sp_at and self.done_t is None
+        start = self.a.sp_at - (dockpick.DOCK_AIM_S if self.a.sp_dock is not None else 0.0) if self.a.sp_at is not None else None
+        return start is not None and t >= start and self.done_t is None
 
     def after_tick(self, t, brain, info):
         """walk_wired.py after brain.tick: jaw goal from info["sp_jaw"], the hand-back at SP_DONE_PHASE, and later in
         the same tick jaw.write(link, brain.goal or measured_head, measured_head) through jaw_limits."""
         phase = info.get("sp_phase")
+        self.dock_cmd = info.get("dock_cmd") if brain.mode == "dock" else None
         if brain.mode == "seepick" and "sp_jaw" in info:
             self.goal_deg = info["sp_jaw"]
             if self.a.sp_close_on_contact and phase is not None:
@@ -760,6 +809,9 @@ class SeePick:
             return
         d, e = self.d, self.ev
         e["max_tilt"] = max(e["max_tilt"], tilt)
+        if self.dock is not None and self.pick_t is None:   # --sp-dock: the dock's own numbers, before the kneel
+            self.dock["max_tilt"] = round(max(self.dock.get("max_tilt", 0.0), tilt), 1)
+            self.dock["fell"] = self.dock.get("fell", False) or tilt > 45
         e["min_trunk_z"] = round(trunk_z if e["min_trunk_z"] is None else min(e["min_trunk_z"], trunk_z), 4)
         if info.get("action") is not None:
             e["max_action"] = round(max(e["max_action"], max(abs(a) for a in info["action"])), 3)
@@ -845,7 +897,8 @@ class SeePick:
                             beak_mu=self.a.sp_beak_mu, **self.model_report),
                    switched_at=self.switched, handback_at=self.done_t,
                    handback_from_switch_s=None if self.done_t is None or self.switched is None else round(self.done_t - self.switched, 2),
-                   events=self.ev, jaw_cap=self.cap, at_handback=self.state.get("handback"))
+                   events=self.ev, jaw_cap=self.cap, at_handback=self.state.get("handback"), dock=self.dock,
+                   kneel_at=self.pick_t)
         if self.switched is not None:
             out["at_end"] = self.snapshot(brain)
         return out
@@ -1099,6 +1152,9 @@ def run(args):
         sp = SeePick(m, d, args, sp_obj, sp_rng, sp_model)
         args.vx = 0.0
         T = max(T, args.sp_at + walk_brain.SP_PERIOD * SP_DONE_PHASE / (1.0 - args.drop) + 0.3 + args.sp_after)
+        if args.sp_dock is not None:   # the dock (at most DOCK_MAX_S), the kneel to its hold phase, then --sp-after held
+            T = max(T, args.sp_at + dockpick.DOCK_MAX_S + walk_brain.SP_PERIOD * args.sp_phase / (1.0 - args.drop) + 0.5
+                    + args.sp_after)
     sp_trace = SpTrace(brain, args.sp_trace, "seepickpix" if args.sp_pix else "seepick") if args.sp_trace and sp is not None else None
     mouth = m.site("mouth_tip").id
     feet = [m.geom(g).id for g in ("left_foot_collision", "right_foot_collision")]
@@ -1789,6 +1845,11 @@ def main():
     sp.add_argument("--sp-at", type=float, default=None, help="s; switch stand61 to seepick here (forces vx 0)")
     sp.add_argument("--sp-offset", type=float, nargs=2, default=[0.0, 0.0], metavar=("DX", "DY"),
                     help="m; object offset from the trained landing spot SP_LANDING_XY in the foot frame")
+    sp.add_argument("--sp-dock", type=float, nargs=2, default=None, metavar=("R", "BEARING_DEG"),
+                    help="dock first (dockpick.py): the ball R m from the root at BEARING_DEG; aim, dock mode until docked, "
+                         "then the kneel (--sp-policy, --sp-phase); implies --sp-pix")
+    sp.add_argument("--sp-policy", default=None, help="pick revision (walk_brain.PICK_REVISIONS); --sp-dock default dk")
+    sp.add_argument("--sp-phase", type=float, default=None, help="pick phase target; --sp-dock default seepick.HOLD_PHASE (hold-on)")
     sp.add_argument("--sp-shape", choices=("ball", "box", "cylinder"), default="ball")
     sp.add_argument("--sp-half", type=float, nargs=3, default=None, metavar=("HX", "HY", "HZ"), help="m; exact half extents (overrides the draw)")
     sp.add_argument("--sp-size", type=float, default=None, help="m; largest horizontal width (default: drawn from the training range)")
@@ -1828,6 +1889,13 @@ def main():
     sp.add_argument("--sp-after", type=float, default=3.0, help="s simulated after the hand-back to stand61")
     sp.add_argument("--sp-log", default=None, help="JSONL: per tick jaw goal/written/measured, cap, head pose, body slots")
     args = ap.parse_args()
+    if args.sp_dock is not None:
+        import seepick
+        args.sp_pix = True
+        args.sp_policy = args.sp_policy or dockpick.POLICY
+        args.sp_phase = seepick.HOLD_PHASE if args.sp_phase is None else args.sp_phase
+    elif args.sp_policy is not None or args.sp_phase is not None:
+        ap.error("--sp-policy and --sp-phase go with --sp-dock")
     global tick_log
     tick_log = open(args.tick_log, "w") if args.tick_log else None
     if args.volt is None:

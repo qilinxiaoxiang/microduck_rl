@@ -80,8 +80,9 @@ const args = () => readFileSync(argsLog, "utf8").trim().split("\n");
 writeFileSync(argsLog, "");
 
 try {
-  // the buttons' arguments: the deployed pick, and r1 with hold-on
-  assert.equal(PICK_VARIANTS.baseline, "--color orange --t2");
+  // the buttons' arguments: the ball dock alone, and r1 with hold-on
+  assert.equal(PICK_VARIANTS.dock, "--color orange --dock-only");
+  assert.equal(PICK_VARIANTS.baseline, undefined);
   assert.equal(PICK_VARIANTS.r1, "--color orange --t2 --hold-s 5 --policy r1");
 
   // unknown variant: refused before anything runs
@@ -98,18 +99,18 @@ try {
   assert.ok(seen.some(p => /pick -> done/.test(p.line ?? "")), "seepick.py's log lines reach the page");
 
   // A holds the lease: B's pick is refused with the driver's name, and nothing runs
-  a = await post("/api/a7z/pick", {op: "start", variant: "baseline", client: B});
+  a = await post("/api/a7z/pick", {op: "start", variant: "dock", client: B});
   assert.equal(a.status, 409);
   assert.equal(a.driver?.name, "Shawn");
   assert.equal(args().length, 1);
 
-  // 捡球：基线, a long run: a second start is refused, 停 ends it through SIGTERM
+  // 对位：走到球前, a long run: a second start is refused, 停 ends it through SIGTERM
   writeFileSync(join(dir, "slow"), "");
   seen.length = 0;
-  a = await post("/api/a7z/pick", {op: "start", variant: "baseline", client: A});
+  a = await post("/api/a7z/pick", {op: "start", variant: "dock", client: A});
   assert.equal(a.ok, true, JSON.stringify(a));
-  await until(() => seen.some(p => /start -> aim/.test(p.line ?? "")), "baseline running");
-  assert.equal(args().at(-1), PICK_VARIANTS.baseline);
+  await until(() => seen.some(p => /start -> aim/.test(p.line ?? "")), "dock running");
+  assert.equal(args().at(-1), PICK_VARIANTS.dock);
   assert.equal((await post("/api/a7z/pick", {op: "start", variant: "r1", client: A})).status, 409);
   await post("/api/a7z/pick", {op: "stop", client: A});
   await until(() => seen.some(p => p.state === "stopped"), "stopped");

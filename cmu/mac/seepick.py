@@ -28,6 +28,10 @@ duck_kin) +-3-4 cm (sim: 80 % at +-3 cm, 71 % at +-5 cm, 31-39 % when the object
   ~/.venvs/duck-policy/bin/python seepick.py --color orange --t2 --hold-s 5 --policy r1   the same with pick revision r1
                                                                       (walk_brain.PICK_REVISIONS, seepickpix_r161.onnx):
                                                                       the remote's 「捡球：改版 1」 button
+  ~/.venvs/duck-policy/bin/python seepick.py --color orange --dock    dock and kneel (dockpick.py): the ball 10-50 cm in
+                                                                      front, no approach (the kneel misses in sim: see dockpick.py)
+  ~/.venvs/duck-policy/bin/python seepick.py --color orange --dock-only   find the ball and dock to it, then stand: the
+                                                                      remote's 「对位：走到球前」
   ~/.venvs/duck-policy/bin/python seepick.py --color green --dry     approach, aim and align only, no pick
   ~/.venvs/duck-policy/bin/python seepick.py --color green --observe 10   detections only, no motion
 """
@@ -538,7 +542,8 @@ class SeeTail(ap.LogTail):
                 s = ap.parse_state(row)
             except (ValueError, KeyError, TypeError):
                 continue
-            s.update(jaw_holding=bool(row.get("jaw_holding")), jaw_deg=row.get("jaw_deg"), sp_phase=row.get("sp_phase"))
+            s.update(jaw_holding=bool(row.get("jaw_holding")), jaw_deg=row.get("jaw_deg"), sp_phase=row.get("sp_phase"),
+                     dock_cmd=row.get("dock_cmd"))
             self.rows.append(s)
 
 
@@ -553,11 +558,16 @@ def main():
     p.add_argument("--hsv-hi", default=None)
     p.add_argument("--cmd", default="/tmp/duck_cmd.json")
     p.add_argument("--log", default=None, help="walk_wired log (default: the --log of the running walk_wired)")
-    p.add_argument("--tries", type=int, default=3)
+    p.add_argument("--tries", type=int, default=None, help="pick tries (default 3; with --dock 2)")
     p.add_argument("--t2", action="store_true", help="pick with T2, the picture policy (seepickpix61.onnx)")
     p.add_argument("--hold-s", type=float, default=None, metavar="S",
                    help=f"hold-on (needs --t2): T2 holds at phase {HOLD_PHASE} for S s (at most {HOLD_MAX_S}), then monitor")
     p.add_argument("--policy", default=None, help="pick revision (needs --t2): walk_brain.PICK_REVISIONS name, e.g. r1")
+    p.add_argument("--dock", action="store_true",
+                   help="dock and kneel (dockpick.py): find the ball nearby, dock to it, kneel with revision dk and hold "
+                        "--hold-s s (default 5); misses retry from where the ball went, --tries in all (default 2)")
+    p.add_argument("--dock-only", action="store_true",
+                   help="find the ball nearby and dock to it (dockpick.py), then stand; no kneel")
     p.add_argument("--dry", action="store_true", help="approach, aim and align only, no pick")
     p.add_argument("--observe", type=float, default=None, help="s; print detections only, no motion")
     p.add_argument("--max-s", type=float, default=180.0)
@@ -583,12 +593,19 @@ def main():
     tail = SeeTail(log_path)
     cam = ap.ShmCamera()
     send = ap.send_file(a.cmd)
-    ctl = SeePick(kin, cam.latest, tail.latest, tail.at, send, detect, tries=a.tries, dry=a.dry, t2=a.t2, hold_s=a.hold_s, policy=a.policy,
-                  pick_here=tuple(a.pick_here) if a.pick_here else None, track_gate=a.track_gate,
-                  make_approach=lambda: ap.Approach(kin, cam.latest, tail.latest, tail.at, send, detect,
-                                                    log=lambda s: print("  approach " + s, flush=True)),
-                  log=lambda s: print(s, flush=True))
-    print(f"log {log_path}, colour {a.color} HSV {lo}..{hi}, tries {a.tries}{', dry run' if a.dry else ''}", flush=True)
+    if a.dock or a.dock_only:
+        import dockpick
+        ctl = dockpick.DockPick(kin, cam.latest, tail.latest, tail.at, send, detect, tries=a.tries or (1 if a.dock_only else 2),
+                                hold_s=a.hold_s if a.hold_s is not None else 5.0, log=lambda s: print(s, flush=True),
+                                dock_only=a.dock_only)
+    else:
+        ctl = SeePick(kin, cam.latest, tail.latest, tail.at, send, detect, tries=a.tries or 3, dry=a.dry, t2=a.t2, hold_s=a.hold_s,
+                      policy=a.policy, pick_here=tuple(a.pick_here) if a.pick_here else None, track_gate=a.track_gate,
+                      make_approach=lambda: ap.Approach(kin, cam.latest, tail.latest, tail.at, send, detect,
+                                                        log=lambda s: print("  approach " + s, flush=True)),
+                      log=lambda s: print(s, flush=True))
+    print(f"log {log_path}, colour {a.color} HSV {lo}..{hi}, tries {ctl.tries}{', dock only' if a.dock_only else ', dock and kneel' if a.dock else ''}"
+          f"{', dry run' if a.dry else ''}", flush=True)
     try:
         if a.observe is not None:
             end = time.time() + a.observe
@@ -607,7 +624,10 @@ def main():
             ctl.step()
             time.sleep(0.05)
     except KeyboardInterrupt:
-        if a.hold_s is not None:
+        if a.dock or a.dock_only:
+            send(ctl.stop_cmd())
+            print(f"interrupted: {ctl.stop_cmd()['mode']} written")
+        elif a.hold_s is not None:
             send(MONITOR)
             print("interrupted: monitor written (hold the pose)")
         else:
