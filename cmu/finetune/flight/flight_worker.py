@@ -170,6 +170,18 @@ for _n in ("universal5", "universal5t"):
                          payload=dict(_b["payload"], weights=PAYLOAD5_WEIGHTS))
     LOOP_DELAYS[_n] = LOOP_DELAY
 fw.DELTAS["universal5t"]["anchor61"] = ANCHOR61
+# Parallel arms of the round-3 teacher (2026-11-19 19:44, RUNLOG.md "Round 3 parallel arms"): universal5t with one
+# value changed each. The anchor weight is a supervised step, not a reward, so the b arms run under universal5t's
+# recorded audit; the kp30 arm widens a randomisation and needs its own audit record before a launch.
+#   universal5t_b05   anchor weight 0.5   (is a weaker pull enough to bring the no-pack action to walk61?)
+#   universal5t_b6    anchor weight 6.0   (does a stronger pull close the distance without losing the pack?)
+#   universal5t_kp30  gain scale 0.8-3.0  (does training past twice the gain buy margin at the gain400 gates?)
+ARM_VARIANTS = {"universal5t_b05": {"anchor61": dict(ANCHOR61, beta=0.5)},
+                "universal5t_b6": {"anchor61": dict(ANCHOR61, beta=6.0)},
+                "universal5t_kp30": {"gain_dr": {"kp": [0.8, 3.0]}}}
+for _n, _v in ARM_VARIANTS.items():
+    fw.DELTAS[_n] = dict(fw.DELTAS["universal5t"], **_v)
+    LOOP_DELAYS[_n] = LOOP_DELAY
 
 
 _orig_load = fw.load_walk61_into_actor
