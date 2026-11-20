@@ -142,6 +142,9 @@ def main():
     obs = venv.get_observations()
     assert obs["actor"].shape[1] == rc.OBS, obs["actor"].shape
     teacher = tc.TorchPolicy(a.teacher_onnx).to(dev)
+    if teacher.width == rc.OBS + 8:  # a universal5tg teacher: its eighth privileged input is the env's gain scale
+        assert isinstance(delta, dict) and "gain_dr" in delta, "a gain-reading teacher needs an env with gain_dr"
+        tc.enable_gain()
     assert teacher.width == rc.OBS + tc.PRIV_N, teacher.width
     student = rc.Student(a.core, teacher.mean[:, :rc.OBS].cpu(), teacher.div[:, :rc.OBS].cpu(), d=a.hidden, layers=a.layers).to(dev)
     spec = student.spec()

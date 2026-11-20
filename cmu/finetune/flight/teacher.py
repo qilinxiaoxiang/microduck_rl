@@ -28,10 +28,27 @@ def capture_env(env, env_ids):
     _ENV["env"] = env
 
 
+GAIN_MEAN, GAIN_STD = 1.5, 0.4  # the position-gain scale is drawn uniformly 0.8 to 2.2 (flight_worker.GAIN_DR)
+
+
+def enable_gain():
+    """Round 3 (2026-11-19, delta universal5tg): an eighth privileged column, the env's position-gain scale
+    (smooth_terms.randomize_kp_scale; 1.0 = the robot's KP 200). The gates showed one behaviour for the whole 0.8 to
+    2.2 range failing at the low end with the pack (train/out/gain_split.json). Called by flight_worker.apply_delta
+    for teacher_priv n = 8 and by distill_worker for a 69-input teacher."""
+    global PRIV_N, PRIV_NAMES
+    if PRIV_N == 7:
+        PRIV_N, PRIV_NAMES = 8, PRIV_NAMES + ("kp_scale",)
+
+
 def priv_obs(env):
-    """[N, 7] privileged values, raw units (kg, m, m/s)"""
+    """[N, 7] privileged values, raw units (kg, m, m/s); [N, 8] with the gain scale after enable_gain()"""
     import payload as pl
-    return torch.cat([pl.payload_obs(env), env.scene["robot"].data.root_link_lin_vel_b], dim=1)
+    cols = [pl.payload_obs(env), env.scene["robot"].data.root_link_lin_vel_b]
+    if PRIV_N == 8:
+        ks = getattr(env, "_kp_scale", None)  # set by the first reset; 1.0 before it
+        cols.append(ks if ks is not None else torch.ones(env.num_envs, 1, device=env.device))
+    return torch.cat(cols, dim=1)
 
 
 def priv_stats():
@@ -44,8 +61,9 @@ def priv_stats():
     else:
         mean4 = po.detach().float().mean(dim=0).cpu()
         std4 = torch.maximum(po.detach().float().std(dim=0).cpu(), torch.tensor(STD_FLOOR))
-    mean = torch.cat([mean4, torch.zeros(3)]).view(1, PRIV_N)
-    std = torch.cat([std4, torch.full((3,), LIN_VEL_STD)]).view(1, PRIV_N)
+    extra = PRIV_N - 7  # 1 with the gain scale
+    mean = torch.cat([mean4, torch.zeros(3), torch.full((extra,), GAIN_MEAN)]).view(1, PRIV_N)
+    std = torch.cat([std4, torch.full((3,), LIN_VEL_STD), torch.full((extra,), GAIN_STD)]).view(1, PRIV_N)
     return mean, std
 
 

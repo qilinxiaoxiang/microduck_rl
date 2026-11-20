@@ -179,6 +179,10 @@ fw.DELTAS["universal5t"]["anchor61"] = ANCHOR61
 ARM_VARIANTS = {"universal5t_b05": {"anchor61": dict(ANCHOR61, beta=0.5)},
                 "universal5t_b6": {"anchor61": dict(ANCHOR61, beta=6.0)},
                 "universal5t_kp30": {"gain_dr": {"kp": [0.8, 3.0]}}}
+# universal5tg (2026-11-19 21:00): universal5t whose teacher also reads the position-gain scale it is trained under
+# (teacher.enable_gain). Same rewards and randomisation as universal5t, so the same audit record. Its students are
+# distilled in universal5 and have to infer the gain from their own history, as they do the load.
+ARM_VARIANTS["universal5tg"] = {"teacher_priv": {"n": 8}}
 for _n, _v in ARM_VARIANTS.items():
     fw.DELTAS[_n] = dict(fw.DELTAS["universal5t"], **_v)
     LOOP_DELAYS[_n] = LOOP_DELAY
@@ -392,6 +396,9 @@ def apply_delta(env_cfg, delta: dict):
         from mjlab.managers import EventTermCfg, ObservationTermCfg
         import teacher as tc
         n = int(delta["teacher_priv"]["n"])
+        if n == 8:  # universal5tg: the gain scale as the eighth privileged column
+            assert "gain_dr" in delta, "the gain column needs gain_dr"
+            tc.enable_gain()
         assert n == tc.PRIV_N and "payload" in env_cfg.observations["critic"].terms, "the teacher needs the payload env"
         env_cfg.observations["actor"].terms["priv"] = ObservationTermCfg(func=tc.priv_obs)
         ev["capture_env"] = EventTermCfg(func=tc.capture_env, mode="startup")
