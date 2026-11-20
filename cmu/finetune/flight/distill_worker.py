@@ -115,6 +115,21 @@ def main():
                     "optimizer when the file has it), iteration count kept; the first --warmup-iters iterations after the "
                     "resume are teacher-driven without updates (baseline), then beta is 0; the learning rate runs from "
                     "--lr at the resume iteration to --lr-final at --max-iters")
+    # Round 3 (2026-11-20): without the pack the student is walk61. On rows with payload at most 0.02 kg the label is
+    # blended towards walk61 on the same 61 inputs with the head command zeroed (weight --anchor-w; 1.0 = walk61
+    # itself): the ten leg outputs on every such row, the four head outputs on the rows --anchor-head names.
+    # --case-share: that share of the no-pack envs gets the robot walk logs' commands instead of the env's draw
+    # (--case-spec: ranges for vx, vy, turn and the four head commands), so the student sees them in training.
+    ap.add_argument("--anchor-onnx", default=None)
+    ap.add_argument("--anchor-w", type=float, default=0.0)
+    ap.add_argument("--anchor-head", choices=("zero", "small", "all"), default="all")
+    # default: the target is walk61 on the row's own inputs, head command included (walk61's own response to it; the
+    # gate compares against exactly that). --anchor-zero-head zeroes the head command first, as the teacher's anchor
+    # does (smoke a1, 2026-11-20: that leaves 0.30 rad of head pitch on the robot rows commanded above 0.3 rad)
+    ap.add_argument("--anchor-zero-head", action="store_true")
+    ap.add_argument("--case-share", type=float, default=0.0)
+    ap.add_argument("--case-spec", default='{"vx": [0.25, 0.25], "vy": [0.0, 0.0], "turn": [-1.9, 1.9], '
+                                           '"head": [[0.0, 0.0], [0.0, 0.75], [0.0, 0.0], [0.0, 0.0]]}')
     ap.add_argument("--max-hours", type=float, required=True)
     ap.add_argument("--max-dollars", type=float, default=1.0)   # accepted for the shared launcher presets; unused
     ap.add_argument("--rate-per-hour", type=float, default=0.0)
@@ -162,6 +177,53 @@ def main():
         print(f"[distill] resumed from {a.resume_pt} at iteration {it0}; optimizer state {'loaded' if 'opt' in ck else 'not in the file, fresh Adam'}", flush=True)
     robot, cm = env.scene["robot"], env.command_manager
     N, T = a.num_envs, a.bptt_steps
+    # the 61 actor inputs by the env's own observation terms: where the twist and head commands sit
+    om = env.observation_manager
+    names, dims = om.active_terms["actor"], [int(d[0]) for d in om.group_obs_term_dim["actor"]]
+    col = {n: (sum(dims[:i]), sum(dims[:i + 1])) for i, n in enumerate(names)}
+    TW, HD = col["command"], col["head_command"]
+    assert TW[1] - TW[0] == 3 and HD[1] - HD[0] == 4, (names, dims)
+    o_chk = obs["actor"].to(dev)
+    assert torch.allclose(o_chk[:, TW[0]:TW[1]], cm.get_command("twist").to(dev)), "twist command is not at its columns"
+    assert torch.allclose(o_chk[:, HD[0]:HD[1]], cm.get_command("head_pose").to(dev)), "head command is not at its columns"
+    jn = list(env.action_manager.get_term("joint_pos").target_names)
+    LEG = [i for i, n in enumerate(jn) if not ("neck" in n or "head" in n)]
+    HEAD = [i for i, n in enumerate(jn) if "neck" in n or "head" in n]
+    assert len(LEG) == 10 and len(HEAD) == 4, jn
+    print(f"[distill] actor columns: twist {TW}, head command {HD}; action legs {LEG}, head {HEAD} ({[jn[i] for i in HEAD]})", flush=True)
+    anchor = None
+    if a.anchor_onnx:  # with --anchor-w 0 it only measures the distance (baseline)
+        anchor = tc.TorchPolicy(a.anchor_onnx).to(dev)
+        assert anchor.width == rc.OBS, anchor.width
+        print(f"[distill] anchor {a.anchor_onnx}: no-pack rows (payload <= 0.02 kg) labelled {a.anchor_w} of the way to it "
+              f"({'head command zeroed' if a.anchor_zero_head else 'on the row as it is'}), legs on every such row, "
+              f"head on rows '{a.anchor_head}'", flush=True)
+    case = None
+    if a.case_share > 0:
+        cs = json.loads(a.case_spec)
+        lo = torch.tensor([cs["vx"][0], cs["vy"][0], cs["turn"][0]] + [h[0] for h in cs["head"]], device=env.device)
+        hi = torch.tensor([cs["vx"][1], cs["vy"][1], cs["turn"][1]] + [h[1] for h in cs["head"]], device=env.device)
+        every = max(1, round(1.0 / a.case_share))
+        case = dict(sel=(torch.arange(N, device=env.device) % every == 0), val=lo + torch.rand(N, 7, device=env.device) * (hi - lo))
+
+        def case_mask():
+            return case["sel"] & (tc.priv_obs(env)[:, 0] <= 0.02)
+
+        def wrap(term, sl):
+            orig = term.compute
+
+            def compute(dt):
+                orig(dt)
+                redraw = torch.rand(N, device=env.device) < 1.0 / 250.0   # a new draw about every 5 s
+                case["val"][redraw] = (lo + torch.rand(N, 7, device=env.device) * (hi - lo))[redraw]
+                m = case_mask()
+                term.command[m] = case["val"][m][:, sl]
+            term.compute = compute
+
+        wrap(cm.get_term("twist"), slice(0, 3))
+        wrap(cm.get_term("head_pose"), slice(3, 7))
+        print(f"[distill] case: every {every}th env, while it carries no pack, is commanded from {cs}", flush=True)
+    A_n = dict(nop=0, nop14=0.0, nopleg=0.0, case=0, case14=0.0, pack=0, packmse=0.0, nopmse=0.0, case_cmd_ok=0)
 
     def export(name, run_path):
         p = str(run_dir / name)
@@ -208,7 +270,23 @@ def main():
         with torch.no_grad():
             for t in range(T):
                 o = obs["actor"].to(dev)
-                lab = teacher(torch.cat([o, tc.priv_obs(env).to(dev)], dim=1))
+                pv = tc.priv_obs(env).to(dev)
+                lab = teacher(torch.cat([o, pv], dim=1))
+                nop = pv[:, 0] <= 0.02
+                lab_train, tgt = lab, None
+                if anchor is not None:
+                    o0 = o
+                    if a.anchor_zero_head:
+                        o0 = o.clone()
+                        o0[:, HD[0]:HD[1]] = 0.0
+                    tgt = anchor(o0)
+                    hc = o[:, HD[0]:HD[1]].abs()
+                    hrow = nop & ((hc == 0).all(dim=1) if a.anchor_head == "zero" else (hc < 0.02).all(dim=1)
+                                  if a.anchor_head == "small" else torch.ones_like(nop))
+                    wm = torch.zeros(N, rc.ACT, device=dev)
+                    wm[:, LEG] = a.anchor_w * nop.float().view(N, 1)
+                    wm[:, HEAD] = a.anchor_w * hrow.float().view(N, 1)
+                    lab_train = lab + wm * (tgt - lab)
                 # dropped servo reads as in the runtime (brain_sim_check --drop: each tick independently; the Brain
                 # skips the tick, the policy is not called, its state is not stepped, the servos keep the last goal;
                 # flight_eval._StatefulSession zeroes the state after more than RECURRENT_MAX_GAP = 5 skipped ticks)
@@ -220,11 +298,31 @@ def main():
                 gap = torch.where(ran, torch.zeros_like(gap), gap + 1)
                 win_err += float(((act_new - lab) ** 2).mean(dim=1)[~tmask & ran].sum())
                 win_n += int((~tmask & ran).sum())
+                # student-driven rows by load: distance to walk61 (head command zeroed) without the pack, imitation
+                # error against the teacher with and without it
+                sd = ~tmask & ran
+                ref_w = tgt if tgt is not None else None
+                e2 = ((act_new - lab) ** 2).mean(dim=1)
+                A_n["pack"] += int((sd & ~nop).sum())
+                A_n["packmse"] += float(e2[sd & ~nop].sum())
+                A_n["nop"] += int((sd & nop).sum())
+                A_n["nopmse"] += float(e2[sd & nop].sum())
+                if ref_w is not None:
+                    dw = act_new - ref_w
+                    A_n["nop14"] += float(dw.norm(dim=1)[sd & nop].sum())
+                    A_n["nopleg"] += float(dw[:, LEG].norm(dim=1)[sd & nop].sum())
+                    if case is not None:
+                        cmk = case_mask().to(dev)
+                        A_n["case"] += int((sd & cmk).sum())
+                        A_n["case14"] += float(dw.norm(dim=1)[sd & cmk].sum())
+                        want = torch.cat([case["val"][:, :3], case["val"][:, 3:]], dim=1).to(dev)
+                        got = torch.cat([o[:, TW[0]:TW[1]], o[:, HD[0]:HD[1]]], dim=1)
+                        A_n["case_cmd_ok"] += int((((got - want).abs() < 1e-5).all(dim=1) & sd & cmk).sum())
                 drop_n += int((~ran).sum())
                 tick_n += N
                 act_new = act_new + a.act_noise * torch.randn_like(act_new) * half_noise.view(N, 1)
                 act_s = torch.where(ran.view(N, 1), act_new, prev_act)
-                O[t], L[t], R[t], Z[t] = o, lab, ran, zero
+                O[t], L[t], R[t], Z[t] = o, lab_train, ran, zero
                 applied = torch.where(tmask.view(N, 1), lab, act_s)
                 obs, _, dones, extras = venv.step(applied.to(env.device))
                 d = dones.to(dev).bool()
@@ -276,6 +374,15 @@ def main():
                        loss=round(win_loss, 5), student_action_mse=round(win_err / win_n, 5) if win_n else None,
                        dropped_tick_fraction=round(drop_n / max(tick_n, 1), 4), drop_max=a.drop_max,
                        student=s_out, teacher_base=b_out, time=time.strftime("%Y-%m-%dT%H:%M:%S"))
+            q = lambda s, n: round(A_n[s] / A_n[n], 5) if A_n[n] else None  # noqa: E731
+            row["by_load"] = dict(pack_rows=A_n["pack"], pack_mse_to_teacher=q("packmse", "pack"), nopack_rows=A_n["nop"],
+                                  nopack_mse_to_teacher=q("nopmse", "nop"),
+                                  nopack_dist14_to_walk61=q("nop14", "nop") if anchor is not None else None,
+                                  nopack_legdist_to_walk61=q("nopleg", "nop") if anchor is not None else None,
+                                  case_rows=A_n["case"], case_dist14_to_walk61=q("case14", "case"),
+                                  case_command_as_forced=q("case_cmd_ok", "case"))
+            print(f"[load] it {it} {row['by_load']}", flush=True)
+            A_n = dict.fromkeys(A_n, 0)
             rows.append(row)
             torch.save(dict(student=student.state_dict(), opt=opt.state_dict(), spec=spec, iter=it, args=vars(a)), run_dir / f"model_{it}.pt")
             dx = export(f"model_{it}.onnx", str(run_dir / f"model_{it}.pt"))

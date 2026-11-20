@@ -221,6 +221,12 @@ ARM_VARIANTS["universal5tgb"] = {"teacher_priv": {"n": 8}, "reward_mods": UNIVER
 for _n, _v in ARM_VARIANTS.items():
     fw.DELTAS[_n] = dict(fw.DELTAS["universal5t"], **_v)
     LOOP_DELAYS[_n] = LOOP_DELAY
+# universal5c (2026-11-20 02:50): the student env for a teacher trained under goal_clamp (universal5tgb): universal5
+# (61 actor inputs, no privileged columns) with the same runtime joint-range cut on the position targets, so the
+# student is rolled out in the world its teacher was trained in and the runtime clamps in. Distillation only (no
+# reward is read there).
+fw.DELTAS["universal5c"] = dict(fw.DELTAS["universal5"], goal_clamp=True)
+LOOP_DELAYS["universal5c"] = LOOP_DELAY
 
 
 _orig_load = fw.load_walk61_into_actor
