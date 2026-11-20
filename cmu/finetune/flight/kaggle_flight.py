@@ -57,7 +57,11 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
                "s2c_132.pt": TRAIN / "ckpt/s2c_132/model_132.pt",
                "l2c_140.pt": TRAIN / "ckpt/l2c_140/model_140.pt",
                # the from-scratch student trained with dropped ticks, last saved state
-               "s2f_160.pt": TRAIN / "ckpt/s2f_160/model_160.pt"}.items():
+               "s2f_160.pt": TRAIN / "ckpt/s2f_160/model_160.pt",
+               # round 3: the deployed walk61, the anchor target of universal5t and its second start policy; the
+               # round-3 teacher the students are distilled from
+               "walk61.onnx": REPO / "cmu/whole/runtime-overlay/models/walk61.onnx",
+               "ts3_teacher.onnx": TRAIN / "ckpt/ts3_teacher/teacher.onnx"}.items():
     if _p.exists():
         kj.ASSETS[f"init/{_n}"] = _p
 _flags = kj.worker_flags
@@ -117,6 +121,8 @@ def _audit_gate(argv):
                                 ("universal4t", "UNIVERSAL3_MODS", "rm_universal3.json"),  # runtime loop delay
                                 ("universal4b", "UNIVERSAL3_MODS", "rm_universal3.json"),  # the longer delay setting
                                 ("universal4tb", "UNIVERSAL3_MODS", "rm_universal3.json"),
+                                ("universal5", "UNIVERSAL5_MODS", "rm_universal5.json"),   # round 3: chatter fix
+                                ("universal5t", "UNIVERSAL5_MODS", "rm_universal5.json"),
                                 ("bend4", "BEND4_MODS", "rm_bend4.json")):
         if delta in deltas:
             mods = next(ast.literal_eval(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)

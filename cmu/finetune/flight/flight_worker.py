@@ -140,6 +140,36 @@ LOOP_DELAY_B = dict(LOOP_DELAY, act_lag=[7, 12])
 LOOP_DELAYS = {"universal4": LOOP_DELAY, "universal4t": LOOP_DELAY, "universal4b": LOOP_DELAY_B, "universal4tb": LOOP_DELAY_B}
 for _n, _ld in LOOP_DELAYS.items():
     fw.DELTAS[_n] = dict(fw.DELTAS["universal3t" if "t" in _n[len("universal4"):] else "universal3"], loop_delay=_ld)
+# universal5 / universal5t (round 3, 2026-11-19; extensions/flight-20261110/train/RUNLOG.md "Round 3",
+# CHATTER-LITERATURE.md; Shawn after the s2r6_4 robot fall: "可见仿真和真机有gap 你看看怎么弥合", fix rounds without a
+# nod): universal4's env plus what the chatter gap needs (smooth_terms.py):
+#   gain_dr   one position-gain scale per env per episode, 0.8 to 2.2: the runtime simulation reproduces the robot's
+#             standstill fall only at twice the position gain (--kp-rl 400), and only walk61 survives that cell
+#   reward    universal3's, with the action-rate weight raised and an action-acceleration term (UNIVERSAL5_MODS; the
+#             weights are set from the incentive audit and compared at push with rm_universal5.json)
+#   anchor61  (teacher only) behaviour-cloning anchor to the deployed walk61 on no-pack states
+# The no-pack share of resets goes from 10 % to 20 % (full 35, batteries out 20, scaled 25): the robot's first trial of
+# any candidate is without the pack, and the anchor and three of the five gates live there.
+UNIVERSAL5_MODS = {"cmd_ranges": {"lin_vel_x": [-0.05, 0.3], "lin_vel_y": [-0.05, 0.05], "ang_vel_z": [-0.5, 0.5]},
+                   "weights": {"air_time": 6.0, "track_linear_velocity": 3.0, "upright": 0.5, "head_pose_tracking": 1.0,
+                               "action_rate_l2": -2.0},
+                   "pose_std_walking": {".*hip_yaw.*": 0.15},
+                   "foot_heading_weight": -8.0,
+                   "push_x": [-0.35, 0.35],
+                   "com_x_whole_m": 0.012,
+                   "step_width": {"limit": 0.1, "weight": -15.0},
+                   "torque_margin_weight": -20.0,
+                   "progress": {"weight": 14.0, "min_cmd": 0.1},
+                   "action_acc": {"weight": -0.6}}
+GAIN_DR = {"kp": [0.8, 2.2]}
+PAYLOAD5_WEIGHTS = {"full": 0.35, "nobatt": 0.20, "none": 0.20, "scaled": 0.25}
+ANCHOR61 = {"onnx": "/root/assets/init/walk61.onnx", "beta": 2.0, "batch": 4096, "payload_max_kg": 0.02}
+for _n in ("universal5", "universal5t"):
+    _b = fw.DELTAS["universal4t" if _n.endswith("t") else "universal4"]
+    fw.DELTAS[_n] = dict(_b, reward_mods=UNIVERSAL5_MODS, gain_dr=GAIN_DR,
+                         payload=dict(_b["payload"], weights=PAYLOAD5_WEIGHTS))
+    LOOP_DELAYS[_n] = LOOP_DELAY
+fw.DELTAS["universal5t"]["anchor61"] = ANCHOR61
 
 
 _orig_load = fw.load_walk61_into_actor
@@ -312,6 +342,9 @@ def apply_delta(env_cfg, delta: dict):
             pg = rm["progress"]
             env_cfg.rewards["progress_along_cmd"] = RewardTermCfg(func=stl.progress_along_cmd, weight=float(pg["weight"]),
                                                                   params={"min_cmd": float(pg.get("min_cmd", 0.10))})
+        if rm.get("action_acc", {}).get("weight"):  # round 3: second difference of the actions (smooth_terms.py)
+            import smooth_terms as sm
+            env_cfg.rewards["action_acc_l2"] = RewardTermCfg(func=sm.action_acc_l2, weight=float(rm["action_acc"]["weight"]))
         if "torque_margin_weight" in rm and "torque_margin" in env_cfg.rewards:
             env_cfg.rewards["torque_margin"].weight = float(rm["torque_margin_weight"])
         if "push_x" in rm and "push_robot" in ev:  # NEXT-PLAN.md universal3: forward/back push range (m/s)
@@ -354,6 +387,20 @@ def apply_delta(env_cfg, delta: dict):
         print(f"[teacher] actor obs = 61 + {n} privileged ({', '.join(tc.PRIV_NAMES)})", flush=True)
     if "loop_delay" in delta:
         apply_loop_delay(env_cfg, delta["loop_delay"])
+    if "gain_dr" in delta:  # round 3: one position-gain scale per env per episode (smooth_terms.randomize_kp_scale)
+        from mjlab.managers import EventTermCfg
+        import smooth_terms as sm
+        ev["randomize_kp_scale"] = EventTermCfg(func=sm.randomize_kp_scale, mode="reset",
+                                                params={"kp_range": tuple(float(v) for v in delta["gain_dr"]["kp"])})
+        print(f"[gain] position-gain scale per env per episode {delta['gain_dr']['kp']}", flush=True)
+    if "anchor61" in delta:  # round 3: behaviour-cloning anchor to walk61 on no-pack rows (smooth_terms.AnchorRunner)
+        import os
+        import smooth_terms as sm
+        an = dict(delta["anchor61"])
+        an["onnx"] = os.environ.get("FLIGHT_ANCHOR_ONNX", an["onnx"])
+        sm.ANCHOR.clear()
+        sm.ANCHOR.update(an)
+        sm.patch_runner_for_anchor()
     print(f"[pack] delta applied: { {k: delta[k] for k in delta if k != 'track_lin_vel'} }", flush=True)
     return env_cfg
 
@@ -471,6 +518,16 @@ def _tq_weight_from_argv():
 
 
 fw.apply_delta = apply_delta
+
+
+def _patch_runner_for_anchor():
+    """round 3: wrap the registry's runner class before any main() binds it (the worker, the smokes and the audit import
+    load_runner_cls inside their main); the wrapper returns the plain class unless a delta with anchor61 was applied"""
+    import smooth_terms as sm
+    sm.patch_runner_for_anchor()
+
+
+_patch_runner_for_anchor()
 
 if __name__ == "__main__":
     # finetune_worker commits the Modal Volume "microduck-rl" from inside save() when `import modal` works; Modal puts

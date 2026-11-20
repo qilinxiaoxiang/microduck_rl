@@ -85,6 +85,11 @@ def add_diag_terms(cfg):
         t = copy.deepcopy(cfg.rewards["torque_margin"])
         t.weight = DIAG_W
         cfg.rewards["diag_torque_margin"] = t
+    import smooth_terms as sm  # round 3: raw action-acceleration and action-rate sums, to size the smoothness weights
+    cfg.rewards["diag_action_acc"] = RewardTermCfg(func=sm.action_acc_l2, weight=DIAG_W)
+    t = copy.deepcopy(cfg.rewards["action_rate_l2"])
+    t.weight = DIAG_W
+    cfg.rewards["diag_action_rate"] = t
     for n in [k for k in cfg.rewards if k.startswith("diag_")]:
         cfg.rewards[n].func = _accumulating(n, cfg.rewards[n].func)
 
@@ -184,6 +189,9 @@ def main():
         if c in DIAG_CASES:
             for job in ("universal3", "universal3h", "universal3t", *flight_worker.LOOP_DELAYS):
                 plan[job] = plan[job] + [(f"{ld}:{c}", f"u_{ld}", a.walker, DIAG_CASES[c]) for ld in ("full", "nobatt", "none")]
+        if c.startswith("pol_"):  # round 3 diagnostics, never part of the verdict: another --policy (name after pol_)
+            for job in ("universal3", "universal3h", "universal3t", *flight_worker.LOOP_DELAYS):  # doing the intended walk
+                plan[job] = plan[job] + [(f"{ld}:{c}", f"u_{ld}", c[4:], dict(compose=c[4:], thr=RT_THR)) for ld in ("full", "nobatt", "none")]
     PIN = {"u_full": dict(full=1.0, nobatt=0.0, none=0.0, scaled=0.0), "u_none": dict(full=0.0, nobatt=0.0, none=1.0, scaled=0.0),
            "u_nobatt": dict(full=0.0, nobatt=1.0, none=0.0, scaled=0.0)}
     plan = {k: v for k, v in plan.items() if k in a.jobs.split(",")}
@@ -207,6 +215,8 @@ def main():
                 delta = dict(fw.DELTAS["universal"], loop_delay=dict(flight_worker.LOOP_DELAYS[job]))
                 if "teacher_priv" in fw.DELTAS[job]:
                     delta["teacher_priv"] = dict(flight_worker.TEACHER_PRIV)
+                if "gain_dr" in fw.DELTAS[job]:  # round 3: the audit runs under the same position-gain range
+                    delta["gain_dr"] = dict(fw.DELTAS[job]["gain_dr"])
             else:
                 delta = dict(fw.DELTAS["universal" if job in ("universal2", "universal3") else job])
             if a.reward_mods:
@@ -289,7 +299,8 @@ def main():
         checks = {}
         for case, r in res[job].items():
             grp = case.split(":")[0] + ":" if ":" in case else ""
-            if case in ("intended", "stand61_ref") or case.endswith(":intended") or case.split(":")[-1] in DIAG_CASES:
+            if (case in ("intended", "stand61_ref") or case.endswith(":intended") or case.split(":")[-1] in DIAG_CASES
+                    or case.split(":")[-1].startswith("pol_")):
                 continue
             it = res[job][grp + "intended"]
             checks[case] = dict(reward_ratio=round(r["reward_per_s"] / it["reward_per_s"], 3),
