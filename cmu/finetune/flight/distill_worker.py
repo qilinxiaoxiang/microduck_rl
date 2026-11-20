@@ -130,6 +130,16 @@ def main():
     ap.add_argument("--case-share", type=float, default=0.0)
     ap.add_argument("--case-spec", default='{"vx": [0.25, 0.25], "vy": [0.0, 0.0], "turn": [-1.9, 1.9], '
                                            '"head": [[0.0, 0.0], [0.0, 0.75], [0.0, 0.0], [0.0, 0.0]]}')
+    # walk -> stop with the pack (2026-11-20: the students fall 1.5 to 3 s after the walk command ends, at low gain)
+    ap.add_argument("--stop-share", type=float, default=0.0,
+                    help="share of the envs that, while they carry the pack, are commanded like the gate's pack walk: "
+                         "vx 0.25 with a turn command for --stop-walk-s seconds, then a zero command for 4 s, repeated")
+    ap.add_argument("--stop-walk-s", default="4,15", help="walking seconds before each stop, drawn uniformly lo,hi")
+    ap.add_argument("--stop-turn", type=float, default=1.9,
+                    help="the turn command of a stop env's walk is drawn from +-this (the heading hold of the runtime "
+                         "sits at 1.2 to 1.9 rad/s in the pack walk; the env's own range is 0.5)")
+    ap.add_argument("--stop-weight", type=float, default=1.0,
+                    help="loss weight of pack rows in the 3 s after a non-zero -> zero command change (1 = as every row)")
     ap.add_argument("--max-hours", type=float, required=True)
     ap.add_argument("--max-dollars", type=float, default=1.0)   # accepted for the shared launcher presets; unused
     ap.add_argument("--rate-per-hour", type=float, default=0.0)
@@ -223,7 +233,49 @@ def main():
         wrap(cm.get_term("twist"), slice(0, 3))
         wrap(cm.get_term("head_pose"), slice(3, 7))
         print(f"[distill] case: every {every}th env, while it carries no pack, is commanded from {cs}", flush=True)
+    if a.stop_share > 0:
+        ev2 = max(2, round(1.0 / a.stop_share))
+        w_lo, w_hi = (int(50 * float(x)) for x in a.stop_walk_s.split(","))
+        sc = dict(sel=(torch.arange(N, device=env.device) % ev2 == 1),          # offset 1: never a --case-share env
+                  left=torch.randint(1, w_hi, (N,), device=env.device),          # ticks left in the current phase
+                  walking=torch.rand(N, device=env.device) < 0.7,
+                  turn=(torch.rand(N, device=env.device) * 2 - 1) * a.stop_turn)
+        tw_term = cm.get_term("twist")
+        orig_tw = tw_term.compute
+
+        def compute_stop(dt):
+            orig_tw(dt)
+            sc["left"] -= 1
+            flip = sc["left"] <= 0
+            sc["walking"] = torch.where(flip, ~sc["walking"], sc["walking"])
+            new_walk = torch.randint(w_lo, w_hi + 1, (N,), device=env.device)
+            sc["left"] = torch.where(flip, torch.where(sc["walking"], new_walk, torch.full_like(new_walk, 200)), sc["left"])
+            # half of the walks nearly straight (the env's own turn range is 0.5), half anywhere up to --stop-turn
+            wide = torch.where(torch.rand(N, device=env.device) < 0.5, 1.0, 0.15)
+            sc["turn"] = torch.where(flip & sc["walking"], (torch.rand(N, device=env.device) * 2 - 1) * a.stop_turn * wide, sc["turn"])
+            m = sc["sel"] & (tc.priv_obs(env)[:, 0] > 0.02)
+            cmd = torch.zeros(N, 3, device=env.device)
+            cmd[:, 0] = 0.25 * sc["walking"].float()
+            cmd[:, 2] = sc["turn"] * sc["walking"].float()
+            tw_term.command[m] = cmd[m]
+        tw_term.compute = compute_stop
+        print(f"[distill] stop case: every {ev2}th env (offset 1), while it carries the pack, walks vx 0.25 with a turn "
+              f"command within +-{a.stop_turn} for {a.stop_walk_s} s, then stands 4 s on a zero command; rows in the 3 s "
+              f"after a stop weigh {a.stop_weight}", flush=True)
     A_n = dict(nop=0, nop14=0.0, nopleg=0.0, case=0, case14=0.0, pack=0, packmse=0.0, nopmse=0.0, case_cmd_ok=0)
+    # walk -> stop on pack rows (2026-11-20 03:00: the students fall 1.5 to 3 s after the walk command ends, at low
+    # gain): per env the ticks since its twist command went from non-zero to zero inside the episode (-1: not in such
+    # a phase), and how long it had been non-zero before. Counted on student-driven pack rows in the 3 s after the
+    # stop, by second and by gain band (low: scale <= 1.2, i.e. KP <= 240).
+    since_stop = torch.full((N,), -1, dtype=torch.long, device=dev)
+    moving_run = torch.zeros(N, dtype=torch.long, device=dev)
+    walked = torch.zeros(N, dtype=torch.long, device=dev)
+    prev_stu = torch.zeros(N, rc.ACT, device=dev)
+    prev_lab = torch.zeros(N, rc.ACT, device=dev)
+    # keys: <band><second after the stop>, <band>_still (zero command with no walk before it in the episode),
+    # <band>_walk (non-zero command); the same with T_ in front for teacher-driven envs (beta > 0 iterations)
+    S_keys = [f"{w}{g}{sec}" for w in ("", "T_") for g in ("low", "high") for sec in (0, 1, 2, "_still", "_walk")]
+    S_n = {k: dict(rows=0, e2=0.0, stu_step=0.0, tea_step=0.0, falls=0, walked=0.0) for k in S_keys}
 
     def export(name, run_path):
         p = str(run_dir / name)
@@ -265,6 +317,7 @@ def main():
         D = torch.empty(T, N, dtype=torch.bool, device=dev)
         R = torch.ones(T, N, dtype=torch.bool, device=dev)    # the student ran on this tick (no dropped read)
         Z = torch.zeros(T, N, dtype=torch.bool, device=dev)   # its state was zeroed before the call (gap over 5 ticks)
+        WT = torch.ones(T, N, device=dev)                     # loss weight of the row (--stop-weight)
         state0 = state.clone()
         student.eval()
         with torch.no_grad():
@@ -318,16 +371,47 @@ def main():
                         want = torch.cat([case["val"][:, :3], case["val"][:, 3:]], dim=1).to(dev)
                         got = torch.cat([o[:, TW[0]:TW[1]], o[:, HD[0]:HD[1]]], dim=1)
                         A_n["case_cmd_ok"] += int((((got - want).abs() < 1e-5).all(dim=1) & sd & cmk).sum())
+                # walk -> stop bookkeeping (see S_n)
+                zc = o[:, TW[0]:TW[1]].abs().sum(dim=1) < 1e-3
+                started = zc & (moving_run > 0)
+                walked = torch.where(started, moving_run, walked)
+                since_stop = torch.where(started, torch.zeros_like(since_stop),
+                                         torch.where(zc & (since_stop >= 0), since_stop + 1, torch.full_like(since_stop, -1)))
+                moving_run = torch.where(zc, torch.zeros_like(moving_run), moving_run + 1)
+                ks = pv[:, 7] if pv.shape[1] > 7 else torch.ones(N, device=dev)
+                st_s = (act_new - prev_stu).abs().max(dim=1).values
+                st_t = (lab - prev_lab).abs().max(dim=1).values
+                stop_masks = {}
+                for who, wm_ in (("", sd), ("T_", tmask & ran)):
+                    for gname, gm in (("low", ks <= 1.2), ("high", ks > 1.2)):
+                        b_ = wm_ & ~nop & gm & has_prev
+                        for sec in (0, 1, 2):
+                            stop_masks[f"{who}{gname}{sec}"] = b_ & (since_stop >= 50 * sec) & (since_stop < 50 * (sec + 1))
+                        # zero command without a walk before it in this episode (standing from the reset), and walking
+                        stop_masks[f"{who}{gname}_still"] = b_ & zc & (since_stop < 0)
+                        stop_masks[f"{who}{gname}_walk"] = b_ & ~zc
+                for k, mk in stop_masks.items():
+                    S_n[k]["rows"] += int(mk.sum())
+                    S_n[k]["e2"] += float(e2[mk].sum())
+                    S_n[k]["stu_step"] += float(st_s[mk].sum())
+                    S_n[k]["tea_step"] += float(st_t[mk].sum())
+                    S_n[k]["walked"] += float(walked[mk].float().sum())
+                prev_stu, prev_lab = act_new.clone(), lab.clone()
                 drop_n += int((~ran).sum())
                 tick_n += N
                 act_new = act_new + a.act_noise * torch.randn_like(act_new) * half_noise.view(N, 1)
                 act_s = torch.where(ran.view(N, 1), act_new, prev_act)
                 O[t], L[t], R[t], Z[t] = o, lab_train, ran, zero
+                WT[t] = 1.0 + (a.stop_weight - 1.0) * (~nop & (since_stop >= 0) & (since_stop < 150)).float()
                 applied = torch.where(tmask.view(N, 1), lab, act_s)
                 obs, _, dones, extras = venv.step(applied.to(env.device))
                 d = dones.to(dev).bool()
                 to = extras.get("time_outs", torch.zeros_like(d)).to(dev).bool()
                 D[t] = d
+                for k, mk in stop_masks.items():
+                    S_n[k]["falls"] += int((mk & d & ~to).sum())
+                since_stop = torch.where(d, torch.full_like(since_stop, -1), since_stop)
+                moving_run = moving_run * (~d)
                 state = state * (~d).view(N, 1)
                 prev_act, has_prev = applied, ~d
                 gap = gap * (~d)
@@ -354,7 +438,8 @@ def main():
                     s = s * (~Z[t, idx]).view(-1, 1)
                     act, s_new = student.step(O[t, idx], s)
                     s = torch.where(r.view(-1, 1), s_new, s)      # a dropped tick leaves the state as it was
-                    loss = loss + (((act - L[t, idx]) ** 2).mean(dim=1) * r).sum() / r.sum().clamp(min=1)
+                    rw = r.float() * WT[t, idx]
+                    loss = loss + (((act - L[t, idx]) ** 2).mean(dim=1) * rw).sum() / rw.sum().clamp(min=1)
                     s = s * keep[t, idx].view(-1, 1)
                 loss = loss / T
                 opt.zero_grad()
@@ -382,6 +467,15 @@ def main():
                                   case_rows=A_n["case"], case_dist14_to_walk61=q("case14", "case"),
                                   case_command_as_forced=q("case_cmd_ok", "case"))
             print(f"[load] it {it} {row['by_load']}", flush=True)
+            # per key: rows, student mse to the teacher, mean largest action step per tick of student and teacher,
+            # falls per env-minute (3000 ticks), mean seconds walked before the stop
+            row["stop"] = {k: dict(rows=v["rows"], mse=round(v["e2"] / v["rows"], 5), stu_step=round(v["stu_step"] / v["rows"], 4),
+                                   tea_step=round(v["tea_step"] / v["rows"], 4),
+                                   falls_per_env_min=round(3000.0 * v["falls"] / v["rows"], 2),
+                                   walked_s=round(0.02 * v["walked"] / v["rows"], 2)) if v["rows"] else dict(rows=0)
+                           for k, v in S_n.items()}
+            print(f"[stop] it {it} {json.dumps(row['stop'])}", flush=True)
+            S_n = {k: dict(rows=0, e2=0.0, stu_step=0.0, tea_step=0.0, falls=0, walked=0.0) for k in S_keys}
             A_n = dict.fromkeys(A_n, 0)
             rows.append(row)
             torch.save(dict(student=student.state_dict(), opt=opt.state_dict(), spec=spec, iter=it, args=vars(a)), run_dir / f"model_{it}.pt")
