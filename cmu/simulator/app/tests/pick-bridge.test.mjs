@@ -80,21 +80,20 @@ const args = () => readFileSync(argsLog, "utf8").trim().split("\n");
 writeFileSync(argsLog, "");
 
 try {
-  // the buttons' arguments: the ball dock alone, and r1 with hold-on
-  assert.equal(PICK_VARIANTS.dock, "--color orange --dock-only");
-  assert.equal(PICK_VARIANTS.baseline, undefined);
-  assert.equal(PICK_VARIANTS.r1, "--color orange --t2 --hold-s 5 --policy r1");
+  // the one button's arguments: the ball dock alone (the baseline and r1 pick buttons are gone)
+  assert.deepEqual(PICK_VARIANTS, {dock: "--color orange --dock-only"});
 
-  // unknown variant: refused before anything runs
-  assert.equal((await post("/api/a7z/pick", {op: "start", variant: "r9", client: A})).status, 400);
+  // unknown variants, the removed buttons included: refused before anything runs
+  for (const variant of ["r9", "r1", "baseline"])
+    assert.equal((await post("/api/a7z/pick", {op: "start", variant, client: A})).status, 400);
 
-  // "Pick: rev 1" runs to its result line; every page sees running, then done with the result
-  let a = await post("/api/a7z/pick", {op: "start", variant: "r1", client: A});
+  // "Dock to ball" runs to its result line; every page sees running, then done with the result
+  let a = await post("/api/a7z/pick", {op: "start", variant: "dock", client: A});
   assert.equal(a.ok, true, JSON.stringify(a));
-  await until(() => seen.some(p => p.state === "done"), "r1 done");
-  assert.deepEqual(args(), [PICK_VARIANTS.r1]);
+  await until(() => seen.some(p => p.state === "done"), "dock done");
+  assert.deepEqual(args(), [PICK_VARIANTS.dock]);
   assert.equal(seen[0].state, "running");
-  assert.equal(seen.at(-1).variant, "r1");
+  assert.equal(seen.at(-1).variant, "dock");
   assert.match(seen.at(-1).line, /Succeeded/);
   assert.ok(seen.some(p => /pick -> done/.test(p.line ?? "")), "seepick.py's log lines reach the page");
 
@@ -111,7 +110,7 @@ try {
   assert.equal(a.ok, true, JSON.stringify(a));
   await until(() => seen.some(p => /start -> aim/.test(p.line ?? "")), "dock running");
   assert.equal(args().at(-1), PICK_VARIANTS.dock);
-  assert.equal((await post("/api/a7z/pick", {op: "start", variant: "r1", client: A})).status, 409);
+  assert.equal((await post("/api/a7z/pick", {op: "start", variant: "dock", client: A})).status, 409);
   await post("/api/a7z/pick", {op: "stop", client: A});
   await until(() => seen.some(p => p.state === "stopped"), "stopped");
   assert.ok(seen.some(p => /interrupted/.test(p.line ?? "")), "seepick.py got SIGTERM and ran its own stop");

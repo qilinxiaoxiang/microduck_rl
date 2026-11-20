@@ -26,9 +26,9 @@ import { batteryPercent } from "./battery-percent.js";
 // Backpack switch: Charger pack / Battery pack tells the brain which pack is on ({"op": "supply"}): the charger pack runs without the
 // low-battery guard, the 2S pack with it from the first sample. Switching restarts an idle brain; a driving one keeps the
 // old setting until Stop. Unset (auto) the brain guesses from the voltage, which can take the charger for a battery.
-// Dock and pick (N / M): "Dock to ball" runs seepick.py --dock-only (dockpick.py: find the ball nearby, the learned dock
-// to the kneel's start spot, then stand; it replaced the baseline T2 pick button), "Pick: rev 1" revision r1 with
-// hold-on (a7z-bridge.mjs PICK_VARIANTS, POST /api/a7z/pick). Both start from Balance stand; Stop also ends the run.
+// Dock (N): "Dock to ball" runs seepick.py --dock-only (dockpick.py: find the ball nearby, the learned dock to the
+// kneel's start spot, then stand; a7z-bridge.mjs PICK_VARIANTS, POST /api/a7z/pick). It replaced the two pick buttons
+// (the baseline T2 pick and revision r1) until dock + kneel is ready. Starts from Balance stand; Stop also ends the run.
 
 import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
 
@@ -152,10 +152,9 @@ const ACTIONS = [
   {id: "sit", key: "R", label: "Sit / Stand up", hint: "Press again to stand up"},
   {id: "bend", key: "G", label: "Bend / Rise", hint: "Press again to rise"},
   {id: "pickDock", key: "N", label: "Dock to ball", hint: "Orange ball 10-50 cm in front: finds it, steps up to stop just behind it (no pick), then Balance stand (start from Balance stand)"},
-  {id: "pickR1", key: "M", label: "Pick: rev 1", hint: "rise-s1 rises by itself, holds the ball 5 s, then holds the pose (start from Balance stand)"},
 ];
-const PICK_IDS = {pickDock: "dock", pickR1: "r1"};
-const PICK_NAMES = {dock: "Dock to ball", r1: "Pick: rev 1"};
+const PICK_IDS = {pickDock: "dock"};
+const PICK_NAMES = {dock: "Dock to ball"};
 const PICK_STATES = {running: "running", done: "done", failed: "failed", stopped: "stopped"};
 // Head row: closed-loop stand or walking only.
 const HEAD_HINT = "Works in Balance stand, walking or sitting; hold to keep moving";
@@ -489,7 +488,7 @@ export function createRemote({root, state, log}) {
     }
   }
   const KEYS = {KeyT: "stand", KeyY: "stand61", KeyW: "walk", ArrowUp: "walk", KeyS: "back", ArrowDown: "back", KeyA: "left", ArrowLeft: "left",
-    KeyD: "right", ArrowRight: "right", KeyQ: "kickL", KeyE: "kickR", KeyR: "sit", KeyG: "bend", KeyN: "pickDock", KeyM: "pickR1",
+    KeyD: "right", ArrowRight: "right", KeyQ: "kickL", KeyE: "kickR", KeyR: "sit", KeyG: "bend", KeyN: "pickDock",
     KeyB: "quack", Space: "stop", KeyX: "off", KeyI: "headUp", KeyK: "headDown", KeyJ: "headLeft", KeyL: "headRight",
     KeyU: "tiltLeft", KeyO: "tiltRight", KeyH: "headReset"};
   window.addEventListener("keydown", e => {

@@ -141,6 +141,10 @@ half of all attempts end delivered, but nearly every held exit keeps the ball.
 
 ## Remote buttons (2026-11-13)
 
+**2026-11-20: both pick buttons are off the remote.** N is now "Dock to ball" (`seepick.py --color orange --dock-only`,
+`cmu/mac/dockpick.py`), and M is unassigned. The pick will come back as one full dock + kneel + rise test once the kneel
+works after the dock. The commands below still run from the A7Z shell.
+
 The robot-live page has two pick buttons. They appear in the remote card once the app files are installed from the
 simulator repo; this repo's `cmu/simulator/app` is a copy.
 

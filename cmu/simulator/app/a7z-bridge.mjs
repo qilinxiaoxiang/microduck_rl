@@ -44,12 +44,12 @@
 // when the A7Z is back.
 // MICRODUCK_PY names the Python with OpenCV (default ~/.venvs/microduck-walk/bin/python).
 //
-// Seeing pick: POST /api/a7z/pick with {"op": "start", "variant": "dock"|"r1", "client": {...}} runs
-// guide/firmware/mac/seepick.py on the A7Z in a fourth SSH session (PICK_VARIANTS: the ball dock, dockpick.py, or
-// revision r1 with hold-on, cmu/pick_rise/ROBOT-TEST.md in microduck_rl); it takes the lease like a move (409 for someone else).
+// Ball dock: POST /api/a7z/pick with {"op": "start", "variant": "dock", "client": {...}} runs
+// guide/firmware/mac/seepick.py on the A7Z in a fourth SSH session (PICK_VARIANTS: the ball dock, dockpick.py); it takes
+// the lease like a move (409 for someone else).
 // Its output lines reach every page as {"pick": {state, variant, line}}: running, then done or failed (seepick.py's
 // result line) or stopped. {"op": "stop"} ends it: the session's stdin closes, the A7Z side sends seepick.py SIGTERM,
-// which writes its own stop (monitor once a kneel or r1's hold-on has started, else stand61). One pick at a time.
+// which writes its own stop (zero-command walk during the dock). One run at a time.
 import {spawn, spawnSync} from "node:child_process";
 import {appendFile, readFileSync} from "node:fs";
 import {homedir} from "node:os";
@@ -63,9 +63,9 @@ const CAMERA_LINGER_S = 2, CAMERA_SILENT_S = 6, BOUNDARY = "duckframe";
 const CAMERA_PIPELINE = hold => "exec 3<&0; nice -n 10 ~/.venvs/duck-policy/bin/python ~/rt/microduck-sim/guide/firmware/mac/a7z_cam.py" +
   ` --mjpeg${hold ? " --hold" : ""} & g=$!; (cat <&3 >/dev/null; kill $g) >/dev/null 2>&1 & wait $g`;
 // seepick.py arguments per remote button: the ball dock alone (dockpick.py --dock-only: dock_commander.onnx over
-// nudge61.onnx, then stand61; replaced the deployed T2 baseline pick, 2026-11-20; the dk kneel after it is not ready) or
-// revision r1 (seepickpix_r161.onnx) with hold-on: 5 s held at phase 0.89, then monitor
-export const PICK_VARIANTS = {dock: "--color orange --dock-only", r1: "--color orange --t2 --hold-s 5 --policy r1"};
+// nudge61.onnx, then stand61). It replaced the T2 baseline and r1 pick buttons, 2026-11-20, until the dk kneel after the
+// dock is ready for a full pick + rise test (seepick.py --dock, not on the remote)
+export const PICK_VARIANTS = {dock: "--color orange --dock-only"};
 // (cd first: a backgrounded `cd && python` list is a subshell, and the TERM would miss python)
 const PICK_PIPELINE = args => "exec 3<&0; cd ~/rt/microduck-sim/guide/firmware/mac || exit 1; ~/.venvs/duck-policy/bin/python -u" +
   ` seepick.py ${args} 2>&1 & g=$!; (cat <&3 >/dev/null; kill -TERM $g) >/dev/null 2>&1 & wait $g`;
