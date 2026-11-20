@@ -363,3 +363,81 @@ What's left on the ball, roughly: ~20 % never bitten (swats, mostly with the bal
 ~1 % falls (the dock's). Caveats unchanged: Plugged body, kneel replayed from the dock's end offsets (no head pose /
 sway at the switch). ks-h is trained on the ball alone, so it is not a box or cylinder picker. Its end stance rms is
 0.054 rad (ks-f 0.066).
+
+## Round 7: servo noise, and a retry (2026-11-20)
+
+All numbers: ball only, Plugged body, 2048 episodes, kneel replayed from the dock's end offsets (`kr_eval
+--ball-only --dock-errors`, seed 11). The standard error is ~1 point.
+
+### The kneel plateaus at ~0.75 on the clean chain (bd-c @ 2400's ends)
+
+| Kneel | chain |
+|---|---|
+| ks-h @ 749 (round 6) | 0.722 |
+| ks-i @ 500 / 750 / 999 (`DockFitC-Ball`: ks-h continued on bd-c's end fit, 70 % dock-shaped starts) | **0.761** / 0.745 / 0.739 |
+| ks-j-lp @ 499 (`DockFitC-Ball-LowPose`: static grasp pose weight 6 → 2) | 0.758 |
+
+(ks-h reads 0.722 here against 0.738 in round 6: different seed / episode count.) Lowering the static pose pull does
+nothing, so the one-pose pull is not what limits the far side (dx +1..+3 cm), which stays the weak bin.
+
+### Servo measurement noise (`tasks/servo_noise.py`, `-SN1-` / `-SN2-` task twins, Plugged only)
+
+| level | joint_pos | joint_vel | encoder bias (per env, constant) |
+|---|---|---|---|
+| 0 (the velocity recipe) | ±0.001 rad | ±0.25 rad/s | ±0.015 rad |
+| **SN1 (train)** | ±0.004 rad (~±2.6 counts) | ±0.5 rad/s | ±0.026 rad (1.5°) |
+| SN2 (stress, not trained) | ±0.008 rad | ±1.0 rad/s | ±0.04 rad |
+
+Level 0's position noise is below the XL330's resolution (0.0015 rad), so it trained no tolerance to encoder jitter.
+From SN1 on, the dock commander's head-joint input reads the biased, noisy joint position too (it read the truth).
+Uniform and zero-centred like the recipe; critic groups keep the true state.
+
+**Clean-trained chain under noise** (wn-b → bd-c @ 2400 → ks-h @ 749): L0 0.722, SN1 0.699, SN2 **0.548**
+(kneel falls 0.8 / 2.3 / 7.7 %). The nudge barely notices. Split at SN1 (ks-i @ 500): noisy dock ends alone cost
+3 points (0.731), the noisy kneel alone 4 (0.722), both 6 (0.699).
+
+**Retrained at SN1** (each warm-started from its clean parent):
+
+| Stage | Run | Result |
+|---|---|---|
+| Nudge | wn-sn1 @ 1249 (`WalkNudge-FromWalk61-SN1`) | within 1 cm 0.966 at SN1, 0.958 at SN2, no falls |
+| Dock | bd-sn1 @ 2999 (`BallDock-Nudge-Fwd-SN1`, over wn-sn1) | within 4 cm 0.977 / 0.964 at SN1 / SN2 (clean dock 0.941 at SN2); falls 0.3 % (clean 0.9 % at SN2) |
+| Kneel | ks-sn1 @ 749 (`KneelRise-DockFitC-Ball-SN1`, from ks-i @ 500) | chain on bd-sn1's ends 0.707 at SN1 (ks-i 0.699), 0.605 at SN2 (0.595); kneel falls 0.7 % vs 2.0 % |
+| Kneel | ks-sn1b @ 250 / 500 / 749 (ks-sn1 continued) | 0.717 / 0.704 / 0.694 at SN1: no further gain |
+
+The noise-trained kneel's gain is mostly fewer falls; the hold rate moves ~1 point. Most of the SN2 loss is the
+kneel (bitten 0.70 vs 0.77 at SN1).
+
+### Retry: re-dock from where a miss left the ball
+
+~28 % of first attempts end upright without the ball, which is a retry, not a failure, if the robot docks again from
+where the ball went. `kr_eval` now records those spawns (`miss_spawns`, `upright_miss`), `dock_check --spawns`
+re-docks from them (`bd.SPAWN_OVERRIDE`), and the second kneel runs on the second dock's ends. Most missed balls
+land outside the dock's training range (10–35 cm, ±45°): swats push them to 5–10 cm or out to 75–90° bearing, where
+bd-sn1 docks only 9 % (< 5 cm) and 35 % (75–90°).
+
+**bd-wide** (`BallDock-Nudge-Fwd-Wide-SN1`, bd-sn1 @ 2999 continued 800 iterations): half the spawns from r
+4–50 cm, ±90°; ball-lost distance 0.75 m. Its first dock is unchanged (within 4 cm 0.974, falls 0.15 %).
+
+| SN1, nudge wn-sn1 | first attempt | upright miss | retry chain | two attempts |
+|---|---|---|---|---|
+| bd-sn1 @ 2999 → ks-i @ 500 | 0.696 | 0.280 | 0.284 | 0.776 |
+| bd-wide @ 3600 → ks-sn1 @ 749 | 0.700 | 0.286 | 0.348 | 0.800 |
+| **bd-wide @ 3798 → ks-sn1 @ 749** | **0.707** | 0.279 | 0.358 | **0.807** |
+
+The retry dock still falls 9 % and gets within 4 cm only ~0.51 (the far / sideways misses); that is the next lever.
+
+### Recommended set: `wn-sn1.onnx` → `bd-wide_3798.onnx` → `ks-sn1_749.onnx`
+
+| Noise at eval | first attempt | two attempts |
+|---|---|---|
+| L0 (clean) | 0.760 | 0.846 |
+| SN1 (trained) | 0.707 | 0.807 |
+| SN2 (2× SN1) | 0.619 | 0.731 |
+
+The noise-trained set loses nothing clean (0.760 vs the best clean-trained chain's 0.761).
+
+Caveats: Plugged body only (no Battery SN twins); the kneel is replayed from the dock's end offsets, not run in one
+sim with it; the retry assumes the upstream controller re-finds the ball and re-aims the head and that the dock
+starts from a standing pose; miss spawns are recorded in the robot's root frame at the end of the kneel. bd-wide
+stopped at model_3798 (the run's last save), not 3799.

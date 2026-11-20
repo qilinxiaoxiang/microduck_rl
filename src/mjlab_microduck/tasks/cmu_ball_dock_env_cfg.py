@@ -66,6 +66,11 @@ NUDGE_SN_ONNX = REPO / "cmu" / "kneel" / "policies" / "wn-sn1.onnx"    # wn-b re
 # the ball, ks-f@750 holds 0.667 as docked, 0.738 / 0.765 / 0.753 shifted +0.5 / +0.75 / +1.0 cm: the kneel's
 # ball curve peaks at dx 0..+1 cm and falls off a cliff below -1 cm, where bd-b's near tail sits (round 6).
 DOCK_TARGET_DX = 0.0075
+# bd-wide: the retry dock. A missed bite leaves the robot standing in ~20 % of episodes with the ball mostly outside
+# the dock's spawn range (ks-i @ 500: 42 % closer than 10 cm, 32 % beyond 35 cm, 73 % beyond +-45 deg, median 68 deg),
+# where bd-sn1 ends near the spot 0.09-0.54 (< 10 cm) and 0.35-0.62 (60-90 deg). Half the resets draw from there.
+WIDE_FRAC = 0.5
+WIDE_R = (0.04, 0.50)
 
 # ── Commander action: tanh-free, clipped to [-1, 1], then scaled ──
 # walk61's trained ranges. It has a dead zone: in this env it does not step below ~0.2 m/s and moves ~0.1 m/s at a
@@ -280,11 +285,16 @@ def docked_mask(env: ManagerBasedRlEnv) -> torch.Tensor:
 
 
 # ── Events ──────────────────────────────────────────────────────────────────────
+SPAWN_OVERRIDE: torch.Tensor | None = None
+
+
 def reset_ball_dock(env: ManagerBasedRlEnv, env_ids: torch.Tensor, r_max: float | None = None,
-                    start_speed: tuple = START_SPEED, look_jitter: float = LOOK_JITTER) -> None:
+                    start_speed: tuple = START_SPEED, look_jitter: float = LOOK_JITTER, wide_frac: float = 0.0,
+                    wide_r: tuple = (0.04, 0.50), wide_bearing: float = math.pi / 2) -> None:
     """Ball at range r in [R_RANGE[0], r_max] (curriculum) and bearing within +-45 deg of the foot frame, robot
     head aimed at it (pitch from the range, as the pixel pick's hand-over), residual forward speed, this episode's
-    camera draw."""
+    camera draw. wide_frac of the envs instead draw from wide_r x +-wide_bearing: where a missed bite leaves the
+    ball (a retry)."""
     if env_ids is None or len(env_ids) == 0:
         return
     env_ids = env_ids.to(env.device)
@@ -298,6 +308,13 @@ def reset_ball_dock(env: ManagerBasedRlEnv, env_ids: torch.Tensor, r_max: float 
     c, s = torch.cos(yaw), torch.sin(yaw)
     r = pix._uniform(n, R_RANGE[0], r_hi, dev)
     b = pix._uniform(n, -BEARING_MAX, BEARING_MAX, dev)
+    if SPAWN_OVERRIDE is not None:   # eval hook (dock_check --spawns): (k, 2) range, bearing drawn with replacement
+        pick = SPAWN_OVERRIDE[torch.randint(len(SPAWN_OVERRIDE), (n,), device=dev)]
+        r, b = pick[:, 0], pick[:, 1]
+    elif wide_frac > 0.0:
+        w = torch.rand(n, device=dev) < wide_frac
+        r = torch.where(w, pix._uniform(n, *wide_r, dev), r)
+        b = torch.where(w, pix._uniform(n, -wide_bearing, wide_bearing, dev), b)
     pose = torch.zeros(n, 7, device=dev)
     pose[:, 0] = root[:, 0] + c * r * torch.cos(b) - s * r * torch.sin(b)
     pose[:, 1] = root[:, 1] + s * r * torch.cos(b) + c * r * torch.sin(b)
@@ -488,7 +505,7 @@ def ball_lost(env: ManagerBasedRlEnv, max_dist: float = 0.6) -> torch.Tensor:
 
 # ── Env cfg ─────────────────────────────────────────────────────────────────────
 def make_ball_dock_env_cfg(variant: str = CURRENT, play: bool = False, walk_onnx: Path = WALK_ONNX,
-                           target_dx: float = 0.0):
+                           target_dx: float = 0.0, wide: bool = False):
     cfg = make_cmu_velocity_env_cfg(variant, play=play)
     cfg.scene.entities = {**cfg.scene.entities, "ball": BALL_CFG}
     cfg.episode_length_s = EPISODE_S
@@ -556,6 +573,9 @@ def make_ball_dock_env_cfg(variant: str = CURRENT, play: bool = False, walk_onnx
         cfg.observations["critic"].terms["ball_state"].params = {"target_dx": target_dx}
         cfg.curriculum.pop("dock_range", None)
         cfg.events["reset_ball_dock"].params["r_max"] = R_RANGE[1]
+    if wide:
+        cfg.events["reset_ball_dock"].params.update(wide_frac=WIDE_FRAC, wide_r=WIDE_R, wide_bearing=math.pi / 2)
+        cfg.terminations["ball_lost"].params = {"max_dist": 0.75}   # the wide draw reaches 0.5 m
     return cfg
 
 

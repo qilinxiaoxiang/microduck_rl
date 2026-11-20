@@ -1,0 +1,139 @@
+{
+ "onnx": "cmu/kneel/policies/ks-sn1_500.onnx",
+ "task": "Mjlab-KneelRise-Sighted-FromRise-SN1-MicroDuck-CMU-Plugged",
+ "md5": "8262c46237d26fd3b96852410a0bf907",
+ "cases": {
+  "chained": {
+   "n": 2048,
+   "fell": 0.0103,
+   "bitten": 0.7622,
+   "held_handoff": 0.7188,
+   "held_end": 0.7051,
+   "dropped_after_handoff": 0.019,
+   "end_rms_rad": 0.0596,
+   "end_tilt_deg": 3.3037,
+   "neck_peak_held_p50": 5.9518,
+   "neck_peak_held_p90": 6.8617,
+   "lost_after_bite": 0.075,
+   "neck_peak_kept_p50": 5.9518,
+   "neck_peak_lost_p50": 5.7505,
+   "retryable_miss": 0.0522,
+   "miss_upright_out_of_range": 0.2314,
+   "miss_out_of_range_where": {
+    "r_p10_p50_p90_cm": [
+     5.4208,
+     25.7518,
+     54.9646
+    ],
+    "closer_than_10cm": 0.3903,
+    "beyond_35cm": 0.3755,
+    "bearing_gt_45": 0.7511,
+    "abs_bearing_p50_deg": 68.8704
+   },
+   "by_shape": {
+    "ball": {
+     "n": 2048,
+     "held_end": 0.7051,
+     "bitten": 0.7622
+    }
+   },
+   "by_offset": {
+    "dx": [
+     [
+      -4,
+      16,
+      0.0625,
+      0.0
+     ],
+     [
+      -3,
+      59,
+      0.2034,
+      0.0
+     ],
+     [
+      -2,
+      120,
+      0.5417,
+      0.025
+     ],
+     [
+      -1,
+      364,
+      0.8269,
+      0.0055
+     ],
+     [
+      0,
+      532,
+      0.8459,
+      0.015
+     ],
+     [
+      1,
+      565,
+      0.7522,
+      0.0106
+     ],
+     [
+      2,
+      275,
+      0.6073,
+      0.0036
+     ],
+     [
+      3,
+      97,
+      0.2268,
+      0.0103
+     ]
+    ],
+    "dy": [
+     [
+      -2,
+      172,
+      0.686,
+      0.0058
+     ],
+     [
+      -1,
+      780,
+      0.6962,
+      0.009
+     ],
+     [
+      0,
+      882,
+      0.7381,
+      0.0091
+     ],
+     [
+      1,
+      185,
+      0.6973,
+      0.027
+     ]
+    ]
+   },
+   "fall_phase_hist": {
+    "0.0-0.2": 0,
+    "0.2-0.3": 4,
+    "0.3-0.4": 14,
+    "0.4-0.5": 1,
+    "0.5-0.6": 0,
+    "0.6-0.7": 1,
+    "0.7-0.8": 0,
+    "0.8-0.9": 0,
+    "0.9-1.0": 1
+   },
+   "fall_terms": {
+    "beak_on_floor": 18,
+    "fell_over": 3
+   },
+   "fell_after_bite": 0.0952,
+   "dock_ok_frac": 0.9912,
+   "chained_success": 0.6989,
+   "two_attempt_est": 0.7354
+  }
+ }
+}

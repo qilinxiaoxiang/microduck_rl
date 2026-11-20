@@ -1,0 +1,207 @@
+{
+ "onnx": "cmu/kneel/policies/ks-sn1_500.onnx",
+ "task": "Mjlab-KneelRise-Sighted-FromRise-SN1-MicroDuck-CMU-Plugged",
+ "md5": "8262c46237d26fd3b96852410a0bf907",
+ "cases": {
+  "w1": {
+   "n": 512,
+   "fell": 0.0059,
+   "bitten": 0.9199,
+   "held_handoff": 0.8965,
+   "held_end": 0.877,
+   "dropped_after_handoff": 0.0218,
+   "end_rms_rad": 0.0621,
+   "end_tilt_deg": 3.2306,
+   "neck_peak_held_p50": 6.0025,
+   "neck_peak_held_p90": 6.9352,
+   "lost_after_bite": 0.0467,
+   "neck_peak_kept_p50": 6.0025,
+   "neck_peak_lost_p50": 5.9188,
+   "retryable_miss": 0.0234,
+   "miss_upright_out_of_range": 0.0938,
+   "miss_out_of_range_where": {
+    "r_p10_p50_p90_cm": [
+     5.1601,
+     23.4432,
+     54.728
+    ],
+    "closer_than_10cm": 0.4167,
+    "beyond_35cm": 0.3333,
+    "bearing_gt_45": 0.6667,
+    "abs_bearing_p50_deg": 63.4459
+   },
+   "by_shape": {
+    "ball": {
+     "n": 512,
+     "held_end": 0.877,
+     "bitten": 0.9199
+    }
+   },
+   "by_offset": {
+    "dx": [
+     [
+      -1,
+      211,
+      0.8768,
+      0.0142
+     ],
+     [
+      0,
+      301,
+      0.8771,
+      0.0
+     ]
+    ],
+    "dy": [
+     [
+      -1,
+      235,
+      0.8809,
+      0.0085
+     ],
+     [
+      0,
+      261,
+      0.8736,
+      0.0038
+     ],
+     [
+      1,
+      9,
+      0.7778,
+      0.0
+     ]
+    ]
+   }
+  },
+  "w3": {
+   "n": 512,
+   "fell": 0.0195,
+   "bitten": 0.8691,
+   "held_handoff": 0.8262,
+   "held_end": 0.8086,
+   "dropped_after_handoff": 0.0213,
+   "end_rms_rad": 0.062,
+   "end_tilt_deg": 3.2963,
+   "neck_peak_held_p50": 5.9074,
+   "neck_peak_held_p90": 6.8201,
+   "lost_after_bite": 0.0697,
+   "neck_peak_kept_p50": 5.9074,
+   "neck_peak_lost_p50": 5.8254,
+   "retryable_miss": 0.0352,
+   "miss_upright_out_of_range": 0.1367,
+   "miss_out_of_range_where": {
+    "r_p10_p50_p90_cm": [
+     6.3391,
+     31.9962,
+     58.7192
+    ],
+    "closer_than_10cm": 0.3,
+    "beyond_35cm": 0.4143,
+    "bearing_gt_45": 0.6429,
+    "abs_bearing_p50_deg": 66.2121
+   },
+   "by_shape": {
+    "ball": {
+     "n": 512,
+     "held_end": 0.8086,
+     "bitten": 0.8691
+    }
+   },
+   "by_offset": {
+    "dx": [
+     [
+      -1,
+      113,
+      0.8319,
+      0.0088
+     ],
+     [
+      0,
+      141,
+      0.8227,
+      0.0284
+     ],
+     [
+      1,
+      141,
+      0.8014,
+      0.0355
+     ],
+     [
+      2,
+      116,
+      0.7759,
+      0.0
+     ]
+    ],
+    "dy": [
+     [
+      -4,
+      30,
+      0.8333,
+      0.0333
+     ],
+     [
+      -3,
+      54,
+      0.8333,
+      0.0185
+     ],
+     [
+      -2,
+      81,
+      0.7901,
+      0.0123
+     ],
+     [
+      -1,
+      77,
+      0.8312,
+      0.013
+     ],
+     [
+      0,
+      87,
+      0.7701,
+      0.046
+     ],
+     [
+      1,
+      80,
+      0.775,
+      0.0
+     ],
+     [
+      2,
+      78,
+      0.859,
+      0.0128
+     ],
+     [
+      3,
+      25,
+      0.8,
+      0.04
+     ]
+    ]
+   },
+   "fall_phase_hist": {
+    "0.0-0.2": 0,
+    "0.2-0.3": 3,
+    "0.3-0.4": 4,
+    "0.4-0.5": 0,
+    "0.5-0.6": 0,
+    "0.6-0.7": 0,
+    "0.7-0.8": 0,
+    "0.8-0.9": 0,
+    "0.9-1.0": 3
+   },
+   "fall_terms": {
+    "beak_on_floor": 7,
+    "fell_over": 3
+   },
+   "fell_after_bite": 0.3
+  }
+ }
+}

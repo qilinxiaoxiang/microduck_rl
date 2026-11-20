@@ -783,3 +783,14 @@ for _lvl in (1, 2):
                            experiment_name=f"kneel_rise_ball_c_sn{_lvl}", run_name=f"kneel_rise_ball_c_sn{_lvl}"),
         runner_cls=KneelRiseSightedFromRiseRunner,
     )
+
+# bd-wide: the retry dock (wide spawns, half the resets) at servo noise level 1 over wn-sn1; resume from bd-sn1
+register_mjlab_task(
+    task_id="Mjlab-BallDock-Nudge-Fwd-Wide-SN1-MicroDuck-CMU-Plugged",
+    env_cfg=_sn(make_ball_dock_env_cfg("plugged", walk_onnx=_BD_NUDGE_SN, target_dx=_BD_TARGET_DX, wide=True), 1),
+    play_env_cfg=_sn(make_ball_dock_env_cfg("plugged", play=True, walk_onnx=_BD_NUDGE_SN, target_dx=_BD_TARGET_DX,
+                                            wide=True), 1),
+    rl_cfg=_dc.replace(BallDockRlCfg, experiment_name="ball_dock_wide_sn1", run_name="ball_dock_wide_sn1",
+                       max_iterations=800),
+    runner_cls=MicroduckOnPolicyRunner,
+)

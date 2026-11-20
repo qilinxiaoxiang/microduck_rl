@@ -27,8 +27,10 @@ KNEEL_DX = (-0.02, 0.01)   # m: kr-a@500 holds 22-54 % in these dx bins, ~0 beyo
 KNEEL_DY = 0.03
 
 
-def make_env(task, n, seed, device, r_max=None, walk_onnx=None):
+def make_env(task, n, seed, device, r_max=None, walk_onnx=None, lost_dist=None):
     cfg = load_env_cfg(task, play=False)
+    if lost_dist:
+        cfg.terminations["ball_lost"].params = {"max_dist": lost_dist}
     if walk_onnx:
         cfg.actions["dock"].walk_onnx = walk_onnx
     cfg.scene.num_envs = n
@@ -138,8 +140,14 @@ def main():
     p.add_argument("--device", default="cuda:0")
     p.add_argument("--out", default=None)
     p.add_argument("--walk-onnx", default=None, help="low-level policy in place of walk61 (e.g. a nudge)")
+    p.add_argument("--spawns", default=None, help="kr_eval --out JSON: start the ball where the kneel's misses left it")
+    p.add_argument("--lost-dist", type=float, default=None, help="m: ball_lost threshold (wide spawns reach 0.5 m)")
     a = p.parse_args()
-    env = make_env(a.task, a.num_envs, 3, a.device, a.r_max, a.walk_onnx)
+    if a.spawns:
+        sp_ = [c for c in json.loads(Path(a.spawns).read_text())["cases"].values() if "miss_spawns" in c][0]
+        bd.SPAWN_OVERRIDE = torch.tensor(sp_["miss_spawns"], device=a.device)
+        print(f"spawns: {len(sp_['miss_spawns'])} upright misses", flush=True)
+    env = make_env(a.task, a.num_envs, 3, a.device, a.r_max, a.walk_onnx, a.lost_dist)
     pol = None
     if a.onnx:
         m = A.OnnxMlp.__new__(A.OnnxMlp)

@@ -132,10 +132,17 @@ def rollout(env, policy, blind_fill, clip, offsets=None):
                 a = _admission_state(env)
                 held_end = live & held
                 rms, tilt = a["rms"].clone(), a["tilt_deg"].clone()
+                # where the ball ended (a retry starts from here): foot-frame range and bearing
+                yaw = sp._yaw(robot.data.root_link_quat_w)
+                d = obj.data.root_link_pos_w[:, :2] - robot.data.root_link_pos_w[:, :2]
+                c_, s_ = torch.cos(yaw), torch.sin(yaw)
+                bx, by = c_ * d[:, 0] + s_ * d[:, 1], -s_ * d[:, 0] + c_ * d[:, 1]
+                ball_r, ball_brg = torch.hypot(bx, by), torch.atan2(by, bx)
+                upright = live & (tilt < 20.0)
             alive &= ~done
     return dict(off=off, fell=fell, held_handoff=held_handoff, held_end=held_end, ever_held=ever_held,
                 neck_peak=neck_peak, rms=rms, tilt=tilt, survived=alive | (~fell), fall_phase=fall_phase,
-                fall_term=fall_term, shape=shape)
+                fall_term=fall_term, shape=shape, ball_r=ball_r, ball_brg=ball_brg, upright=upright)
 
 
 def summarize(r):
@@ -154,6 +161,24 @@ def summarize(r):
         out.update(lost_after_bite=f(lost.float().sum() / r["ever_held"].float().sum().clamp(min=1)),
                    neck_peak_kept_p50=f(r["neck_peak"][he].median()),
                    neck_peak_lost_p50=f(r["neck_peak"][lost].median()))
+    # a retry: missed, robot alive and upright, ball on the floor where the dock spawns (10-35 cm, |bearing| <= 45 deg)
+    from mjlab_microduck.tasks import cmu_ball_dock_env_cfg as bdc
+    in_range = (r["ball_r"] >= bdc.R_RANGE[0]) & (r["ball_r"] <= bdc.R_RANGE[1]) & (r["ball_brg"].abs() <= bdc.BEARING_MAX)
+    miss = ~he
+    out["retryable_miss"] = f((miss & r["upright"] & in_range).float().mean())
+    # every upright miss, for dock_check --spawns (the retry dock's start states): range m, bearing rad
+    um = miss & r["upright"]
+    out["upright_miss"] = f(um.float().mean())
+    out["miss_spawns"] = torch.stack([r["ball_r"][um], r["ball_brg"][um]], -1).cpu().tolist()
+    out["miss_upright_out_of_range"] = f((miss & r["upright"] & ~in_range).float().mean())
+    mo = miss & r["upright"] & ~in_range
+    if mo.sum() >= 8:
+        out["miss_out_of_range_where"] = dict(
+            r_p10_p50_p90_cm=[f(100 * torch.quantile(r["ball_r"][mo], q)) for q in (0.1, 0.5, 0.9)],
+            closer_than_10cm=f((r["ball_r"][mo] < bdc.R_RANGE[0]).float().mean()),
+            beyond_35cm=f((r["ball_r"][mo] > bdc.R_RANGE[1]).float().mean()),
+            bearing_gt_45=f((r["ball_brg"][mo].abs() > bdc.BEARING_MAX).float().mean()),
+            abs_bearing_p50_deg=f(torch.rad2deg(r["ball_brg"][mo].abs()).median()))
     # by object shape: the fetch target is the ball; the seeing pick's reset also draws boxes and cylinders
     out["by_shape"] = {nm: dict(n=int((r["shape"] == k).sum()), held_end=f(he[r["shape"] == k].float().mean()),
                                 bitten=f(r["ever_held"][r["shape"] == k].float().mean()))
@@ -217,9 +242,13 @@ def main():
         env.close()
         r["dock_ok_frac"] = round(float(ok.float().mean()), 4)
         r["chained_success"] = round(r["dock_ok_frac"] * r["held_end"], 4)
+        # one retry, assuming the second attempt succeeds as often as the first (an estimate, not a rollout)
+        r["two_attempt_est"] = round(r["chained_success"] + r["retryable_miss"] * r["chained_success"], 4)
         res["chained"] = r
+        print("misses:", r.get("miss_upright_out_of_range"), r.get("miss_out_of_range_where"), flush=True)
         print(f"chained  dock ok {r['dock_ok_frac']:.3f} x kneel held@end {r['held_end']:.3f} -> "
-              f"{r['chained_success']:.3f}  (fell {r['fell']:.3f}, bitten {r['bitten']:.3f})  {r['by_shape']}", flush=True)
+              f"{r['chained_success']:.3f}  (fell {r['fell']:.3f}, bitten {r['bitten']:.3f})  retryable miss "
+              f"{r['retryable_miss']:.3f} -> 2 tries ~{r['two_attempt_est']:.3f}  {r['by_shape']}", flush=True)
         a.cases = ""
     if a.grid:
         g = torch.Generator().manual_seed(a.seed)

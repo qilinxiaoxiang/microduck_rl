@@ -87,3 +87,16 @@ def test_forward_dock_moves_only_the_target():
         assert torch.allclose(bd.target_error(e, 0.0075), torch.tensor([[0.0, 0.002]]))
     finally:
         bd.dock_error = orig
+
+
+def test_wide_retry_dock_draws_half_from_the_miss_region():
+    from mjlab.tasks.registry import list_tasks, load_env_cfg
+    from mjlab_microduck.tasks import cmu_ball_dock_env_cfg as bd
+    t = "Mjlab-BallDock-Nudge-Fwd-Wide-SN1-MicroDuck-CMU-Plugged"
+    assert t in list_tasks()
+    cfg = load_env_cfg(t, play=False)
+    p = cfg.events["reset_ball_dock"].params
+    assert p["wide_frac"] == bd.WIDE_FRAC and p["wide_r"][0] < bd.R_RANGE[0] and p["wide_r"][1] > bd.R_RANGE[1]
+    assert p["wide_r"][1] < cfg.terminations["ball_lost"].params["max_dist"]
+    assert cfg.rewards["docked"].params["target_dx"] == bd.DOCK_TARGET_DX
+    assert cfg.actions["dock"].walk_onnx.endswith("wn-sn1.onnx")

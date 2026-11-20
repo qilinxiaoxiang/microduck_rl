@@ -28,7 +28,14 @@ def main():
     p.add_argument("--num-envs", type=int, default=2048)
     p.add_argument("--device", default="cuda:0")
     p.add_argument("--out", default=None)
+    p.add_argument("--r-min", type=float, default=None, help="m: spawn range floor (retry: a missed ball lands closer)")
+    p.add_argument("--r-max", type=float, default=None)
+    p.add_argument("--bearing-max-deg", type=float, default=None)
     a = p.parse_args()
+    if a.r_min is not None or a.r_max is not None:
+        bd.R_RANGE = (a.r_min if a.r_min is not None else bd.R_RANGE[0], a.r_max or bd.R_RANGE[1])
+    if a.bearing_max_deg is not None:
+        bd.BEARING_MAX = math.radians(a.bearing_max_deg)
     cfg = load_env_cfg(a.task, play=False)
     cfg.scene.num_envs = a.num_envs
     cfg.seed = 13
@@ -78,8 +85,8 @@ def main():
            "terms": {t: why.count(t) for t in sorted(set(why)) if t}}
     print("overall", out["overall"], out["terms"])
     # by spawn range and |bearing|
-    for key, x, edges in (("range_cm", 100 * r0, [10, 15, 20, 25, 30, 36]),
-                          ("abs_bearing_deg", brg0.abs(), [0, 15, 30, 46])):
+    for key, x, edges in (("range_cm", 100 * r0, [0, 5, 10, 15, 20, 25, 30, 36, 45, 61]),
+                          ("abs_bearing_deg", brg0.abs(), [0, 15, 30, 46, 60, 75, 91])):
         rows = {}
         for lo, hi in zip(edges[:-1], edges[1:]):
             m = (x >= lo) & (x < hi)
