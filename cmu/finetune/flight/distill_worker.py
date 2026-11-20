@@ -130,6 +130,11 @@ def main():
     ap.add_argument("--case-share", type=float, default=0.0)
     ap.add_argument("--case-spec", default='{"vx": [0.25, 0.25], "vy": [0.0, 0.0], "turn": [-1.9, 1.9], '
                                            '"head": [[0.0, 0.0], [0.0, 0.75], [0.0, 0.0], [0.0, 0.0]]}')
+    # experiment only (2026-11-20, is the student failing at inferring the load from history): --pack-flag-col <c>
+    # writes 1.0 (payload over 0.02 kg) or 0.0 into actor column c of the STUDENT's input (60 = the last body-pose
+    # slot, disabled in this family); the teacher and the walk61 anchor read the unchanged inputs. The eval side is
+    # flight_eval's FLIGHT_OBS_SET="60:1.0".
+    ap.add_argument("--pack-flag-col", type=int, default=-1)
     # walk -> stop with the pack (2026-11-20: the students fall 1.5 to 3 s after the walk command ends, at low gain)
     ap.add_argument("--stop-share", type=float, default=0.0,
                     help="share of the envs that, while they carry the pack, are commanded like the gate's pack walk: "
@@ -346,7 +351,11 @@ def main():
                 ran = ~((torch.rand(N, device=dev) < p_drop) & has_prev)
                 zero = ran & (gap > 5)
                 state = state * (~zero).view(N, 1)
-                act_new, state_new = student.step(o, state)
+                o_s = o
+                if a.pack_flag_col >= 0:
+                    o_s = o.clone()
+                    o_s[:, a.pack_flag_col] = (~nop).float()
+                act_new, state_new = student.step(o_s, state)
                 state = torch.where(ran.view(N, 1), state_new, state)
                 gap = torch.where(ran, torch.zeros_like(gap), gap + 1)
                 win_err += float(((act_new - lab) ** 2).mean(dim=1)[~tmask & ran].sum())
@@ -401,7 +410,7 @@ def main():
                 tick_n += N
                 act_new = act_new + a.act_noise * torch.randn_like(act_new) * half_noise.view(N, 1)
                 act_s = torch.where(ran.view(N, 1), act_new, prev_act)
-                O[t], L[t], R[t], Z[t] = o, lab_train, ran, zero
+                O[t], L[t], R[t], Z[t] = o_s, lab_train, ran, zero
                 WT[t] = 1.0 + (a.stop_weight - 1.0) * (~nop & (since_stop >= 0) & (since_stop < 150)).float()
                 applied = torch.where(tmask.view(N, 1), lab, act_s)
                 obs, _, dones, extras = venv.step(applied.to(env.device))
