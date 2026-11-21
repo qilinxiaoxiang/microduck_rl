@@ -127,7 +127,12 @@ def payload_flags(path):
     """brain_sim_check.py flags for the robot as it is now carrying a payload (the flight pack): a signed-part manifest
     built on the current variant, which says so at the start of its "build" string ("battery-20261104 + flight pack
     ..."). brain_sim_check treats such a manifest as the current robot (cmu/model/visual.py visual_variant_for_manifest);
-    a manifest built on another robot is refused here, before any case runs."""
+    a manifest built on another robot is refused here, before any case runs.
+    The policy runs from the first tick (--stand-s 0): the opening second of open-loop stand is not a property of any
+    policy, and the open-loop pose cannot carry a payload on the back (microduck-sim/CURRENT-STATE.json
+    open_loop_stand_pose: it rests only within about a millimetre of COM shift). On 2026-11-21 the deployed set and the
+    candidate both went over backward at 0.54 s under the 955 g flight pack, before the first policy tick. On the robot
+    a hand holds it through fixed stand; here the policy takes over at rest, feet flat, with no hand."""
     if not os.path.isfile(path):
         sys.exit(f"sim_suite: payload manifest {path} not found")
     build = str(json.load(open(path)).get("build", ""))
@@ -135,7 +140,7 @@ def payload_flags(path):
     if not (build.startswith(cur + " ") or build.startswith(cur + ":")):
         sys.exit(f"sim_suite: payload manifest {path} is built on '{build[:60]}', not on the robot as it is now ({cur}); "
                  f"rebuild the payload manifest on {cur}")
-    return ["--manifest", os.path.abspath(path)]
+    return ["--manifest", os.path.abspath(path), "--stand-s", "0"]
 
 
 def run_case(models, walk_s, base, cls, name, extra, err, variant="current", payload=None):
@@ -168,13 +173,18 @@ def load_rows(path):
 def judge(row, ref):
     """Return (ok, reasons) for one real case against its reference row."""
     reasons = []
-    if ref.get("fell_at") is None and row.get("fell_at") is not None:
-        reasons.append(f"fell at {row['fell_at']} s, reference did not fall")
-    if row.get("max_tilt", 0) > ref.get("max_tilt", 0) + TILT_SLACK_DEG:
+    ref_fell = ref.get("fell_at") is not None
+    if row.get("fell_at") is not None:
+        # a fall is never "as good as the reference": where the deployed set falls too (a payload it was not trained
+        # for), a candidate that also falls has shown nothing and is not let through
+        return False, [f"fell at {row['fell_at']} s, " + ("reference fell too" if ref_fell else "reference did not fall")]
+    if ref_fell:
+        return True, []  # the candidate stood where the reference fell; a fallen run sets no tilt, distance or jump bar
+    if (row.get("max_tilt") or 0) > (ref.get("max_tilt") or 0) + TILT_SLACK_DEG:
         reasons.append(f"max_tilt {row.get('max_tilt')} > reference {ref.get('max_tilt')} + {TILT_SLACK_DEG}")
-    if ref.get("dist_x", 0) > 0 and row.get("dist_x", 0) < DIST_FRACTION * ref["dist_x"]:
+    if (ref.get("dist_x") or 0) > 0 and (row.get("dist_x") or 0) < DIST_FRACTION * ref["dist_x"]:
         reasons.append(f"dist_x {row.get('dist_x')} < {DIST_FRACTION} x reference {ref['dist_x']}")
-    if row.get("action_jumps", 0) > ref.get("action_jumps", 0) + JUMP_SLACK:
+    if (row.get("action_jumps") or 0) > (ref.get("action_jumps") or 0) + JUMP_SLACK:
         reasons.append(f"action_jumps {row.get('action_jumps')} > reference {ref.get('action_jumps')} + {JUMP_SLACK}")
     return not reasons, reasons
 

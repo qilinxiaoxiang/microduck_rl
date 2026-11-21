@@ -25,9 +25,23 @@ def manifest(tmp_path, build, name="flightpack-nominal.json"):
 
 def test_a_payload_built_on_the_current_robot_is_passed_to_the_sim_as_its_manifest(tmp_path):
     p = manifest(tmp_path, f"{CURRENT} + flight pack (nominal) from somewhere")
-    assert sim_suite.payload_flags(p) == ["--manifest", os.path.abspath(p)]
+    assert sim_suite.payload_flags(p) == ["--manifest", os.path.abspath(p), "--stand-s", "0"]
     assert "--historical-model" not in sim_suite.payload_flags(p)
     assert sim_suite.payload_label(p) == f"{CURRENT}+flightpack-nominal"
+
+
+def test_a_fall_is_worse_whatever_the_reference_did_and_a_fallen_reference_sets_no_other_bar():
+    fell = {"fell_at": 0.54, "max_tilt": 49.3, "dist_x": None, "action_jumps": 0}
+    stood = {"fell_at": None, "max_tilt": 9.0, "dist_x": 1.1, "action_jumps": 20}
+    ok, reasons = sim_suite.judge(dict(fell), dict(fell))  # 2026-11-21: both sides fell and the judge raised TypeError on dist_x None
+    assert not ok and "fell at 0.54 s" in reasons[0] and "reference fell too" in reasons[0]
+    ok, reasons = sim_suite.judge(dict(stood), dict(fell))  # the candidate stands where the deployed set cannot
+    assert ok and reasons == []
+    ok, reasons = sim_suite.judge(dict(fell), dict(stood))
+    assert not ok and "reference did not fall" in reasons[0]
+    ok, reasons = sim_suite.judge(dict(stood, dist_x=0.5), dict(stood))  # the bare gate's own bars are unchanged
+    assert not ok and "dist_x 0.5" in reasons[0]
+    assert sim_suite.judge(dict(stood), dict(stood)) == (True, [])
 
 
 def test_a_payload_built_on_another_robot_is_refused_before_any_case_runs(tmp_path):
