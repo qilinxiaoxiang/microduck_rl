@@ -11,6 +11,61 @@ work on the duck:
 The "Pick: baseline" (N) and "Pick: rev 1" (M) buttons are gone; M has nothing assigned. Background is in
 `cmu/kneel/RESULTS.md` (rounds 5–7); `cmu/mac/dockpick.py` and the `walk_brain.py` header describe the runtime.
 
+## Update 2026-11-21: camera hand-off fixes (after the first robot test)
+
+The first robot test (`DOCK-ROBOT-TEST-20261120.md`: 0 of 3, one fall) found the dock blind. The fixes are in
+`DOCK-RUNTIME-FIX-20261120.md`. On the duck, **four files change** and the brain must be restarted:
+
+| File | What changed | Needs a brain restart |
+|---|---|---|
+| `cmu/mac/seepick.py` | `seen` = the newest processed frame had the ball; late sightings in find/aim/dock; colour track reseeded where the last sighting projects; callable gate | no |
+| `cmu/mac/ball_detect.py` | `BallDetect.reseed()` (applied after a finished pass is booked) | no |
+| `cmu/mac/dockpick.py` | the 9-pose `DOCK_SCAN`, find holds on a pending candidate, odometry carry (`DockOdom`), blind start, capture-time gate, docked only after a sighting, `DOCK_ONLY_TRIES` 2, and a dock-only run now **ends in the small step's hold** (`DOCK_ONLY_END` "step": the nudge keeps the feet where the dock stopped) instead of a zero-command walk | no |
+| `cmu/mac/walk_brain.py` | dock → walk and dock → step: the head command starts at the head's present pose and eases back (it snapped to the default, and the sim fell after good docks) | **yes** (the preflight's "brain runs this checkout's walk_brain.py" fails until it is) |
+| `cmu/simulator/app/src/robot-remote.js` | N's hint; N may start from the small step's hold (where a dock ends), as F does | page (restart the app / reload) |
+
+No new policy files. The page shows the run's last output line as it is, and `--max-s 180` is far above a dock-only run's
+worst case (about 50 s with a retry). Stop during a dock goes through the brain's dock → walk switch, so it gets the head
+fix too. **Behaviour change:** after "docked (...)" the brain stays in mode `step` (the nudge holding position, as after F),
+not walk; press Balance stand (Y) to go back to walk61.
+
+**In the robotics tree (A in the checklist below), also port the sim side:** `brain_sim_check.py` (new flags
+`--sp-runtime`, `--sp-runtime-kneel`, `--sp-runtime-set`, `--sp-pix-nominal`, `--sp-dock-settle`), the new
+`dock_runtime_sim.py` (it needs OpenCV; `brain_sim_check.py` imports it only for `--sp-runtime`), and the tests
+(`test_dockpick.py`, `test_seepick.py`). Add `dockpick.py`, `test_dockpick.py` and `dock_runtime_sim.py` to the `mac`
+list in `cmu/sync_from_robotics.py`, so a sync does not leave them stale. A robot-like sim check:
+
+```bash
+python3 brain_sim_check.py --model asbuilt --manifest current --volt 7.0 --drop 0.04 --wired-guards --imu-pitch 4 \
+  --sp-at 2 --sp-dock 0.30 0 --sp-runtime --sp-pix-nominal --sp-after 0.5 --sp-runtime-extra 40
+```
+
+**On the A7Z (the staging copy from 2026-11-20).** `~/dock-stage/` holds the A7Z's own files with the first dock patch
+applied, which differ from this repo. Patch them rather than copying files over:
+
+```bash
+git -C <microduck_rl> diff a7a1b9d5..origin/pick-and-rise -- cmu/mac/seepick.py cmu/mac/ball_detect.py \
+  cmu/mac/dockpick.py cmu/mac/walk_brain.py > /tmp/dock-fix.patch
+scp /tmp/dock-fix.patch a7z:
+ssh a7z 'cd ~/dock-stage/microduck-sim/guide/firmware/mac && patch -p3 --dry-run < ~/dock-fix.patch'   # then without --dry-run
+```
+
+Resolve any `*.rej` by hand. `walk_brain.py`'s hunk is small (one block in the `walk` branch of the mode switch). Then
+restart the staging brain (`~/dock-stage/run.sh stage<MMDD-HHMMSS>`), run the preflight from `~/dock-stage/.../mac`, and
+point the app at the staging folder as before (`MICRODUCK_A7Z_MAC=~/dock-stage/microduck-sim/guide/firmware/mac`).
+
+**The page.** On 2026-11-20 the app ran from this repo's `cmu/simulator/app` (with `MICRODUCK_A7Z_MAC` set): pull the
+branch and restart the app. If it runs from the `microduck-simulator` checkout instead, apply
+`git diff a7a1b9d5..origin/pick-and-rise -- cmu/simulator/app/src/robot-remote.js` there with `patch -p4`.
+
+**First checks, in this order, spotted:**
+
+1. Duck held off the ground, ball in view, press N: the brain log's `dock_cam[4]` (visible) should read 1 most of the
+   time while the ball is in the picture (the first test read 0 throughout).
+2. On the floor, ball 25–30 cm straight ahead. Expect find (up to 9 head poses), aim, the dock, then "docked (...)" and
+   the duck standing still at the ball in the small step's hold (mode `step`), the head easing back up.
+3. Then 20 cm and 30° to each side. Keep balls at 15 cm beside the feet for later: the sim's falls were there.
+
 ## Why this is needed
 
 Pressing a button does nothing on the duck until all three copies below have the new code:

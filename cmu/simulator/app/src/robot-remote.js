@@ -29,7 +29,7 @@ import { batteryPercent } from "./battery-percent.js";
 // Small step (F): {"mode": "step", "dx": STEP_DX, "id": "new"}, the nudge policy steps STEP_DX forward from where the feet
 // stand (walk_brain leg odometry) and stands still there; from Balance stand only; Stop hands back to walk61 at zero.
 // Dock (N): "Dock to ball" runs seepick.py --dock-only (dockpick.py: find the ball nearby, the learned dock to the
-// kneel's start spot, then stand; a7z-bridge.mjs PICK_VARIANTS, POST /api/a7z/pick). It replaced the two pick buttons
+// kneel's start spot, then hold there in the small step's mode; a7z-bridge.mjs PICK_VARIANTS, POST /api/a7z/pick). It replaced the two pick buttons
 // (the baseline T2 pick and revision r1) until dock + kneel is ready. Starts from Balance stand; Stop also ends the run.
 
 import {thermalGate, POLICY_ACTS} from "./robot-thermal.js";
@@ -157,7 +157,7 @@ const ACTIONS = [
   {id: "sit", key: "R", label: "Sit / Stand up", hint: "Press again to stand up"},
   {id: "bend", key: "G", label: "Bend / Rise", hint: "Press again to rise"},
   {id: "stepFwd", key: "F", label: "Small step", hint: "Steps about 3 cm forward with the small-step policy and stands still there (start from Balance stand)"},
-  {id: "pickDock", key: "N", label: "Dock to ball", hint: "Orange ball 10-50 cm in front: finds it, steps up to stop just behind it (no pick), then Balance stand (start from Balance stand)"},
+  {id: "pickDock", key: "N", label: "Dock to ball", hint: "Orange ball 10-50 cm in front: finds it, steps up to stop just behind it (no pick) and stands still there, like Small step (start from Balance stand)"},
 ];
 const PICK_IDS = {pickDock: "dock"};
 const PICK_NAMES = {dock: "Dock to ball"};
@@ -255,7 +255,8 @@ export function createRemote({root, state, log}) {
   async function pickStart(variant) {
     const name = PICK_NAMES[variant], {online, brain} = state();
     if (!online) { last.textContent = `Did not send "${name}": A7Z is offline`; return; }
-    if (!brain?.running || brain.mode !== "walk" || !brain.torque) {
+    // a dock ends in the small step's hold (dockpick.DOCK_ONLY_END), so another press can start from there, as F does
+    if (!brain?.running || (brain.mode !== "walk" && brain.mode !== "step") || !brain.torque) {
       last.textContent = `"${name}" starts from standing: press "Balance stand", then "${name}" once it stands steady`; return;
     }
     if (pick?.state === "running") { last.textContent = `"${PICK_NAMES[pick.variant]}" is already running: press "Stop" first`; return; }

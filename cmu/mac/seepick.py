@@ -119,7 +119,12 @@ TRACK_GATE = 0.04          # m: a detection further than this from the estimate 
 TRACK_GATE_HERE = 0.08     # m: the gate on a --pick-here try, whose estimate is a person's guess (robot 2026-10-30: the
 #                            guess was 11 cm off and three true sightings during the bend were gated away)
 PIX_W, PIX_H = 640, 360    # the picture T2 reads
-PIX_SEEN_S = 0.15          # s: a detection this recent counts as the newest frame's (the camera runs about 15-30 fps)
+PIX_STALL_S = 0.5          # s: no new frame processed for this long and the box no longer reads seen (a camera stall)
+#                            "seen" is whether the newest processed frame had the object, as in training (T2-PIXEL.md,
+#                            cmu_ball_dock_env_cfg: visible = the newest arrived frame's hit); staleness is the age slot's.
+#                            It was "captured under 0.15 s ago": robot 2026-11-20 (DOCK-ROBOT-TEST-20261120.md) sightings
+#                            reach measure() 0.16-0.18 s after capture, so the dock commander read visible 0 throughout
+RESEED_PHASES = ("find", "aim", "dock")   # dockpick's phases: the colour track follows the head (measure)
 PIX_BLIND_W = 16.0         # px: the width of the ball at about 10 cm when it has no detection (12 mm ball, robot frames)
 CMD_PERIOD = 0.1           # s: the pick command is rewritten at least this often while the camera sees the object
 PICK_MAX_S = 6.0           # the seeing pick takes 3.6 s to the hand-back (phase 0.9 x 4 s)
@@ -177,9 +182,11 @@ class SeePick:
         self.aim_gate = None      # T2: the last sighting of the creep, which the next aim is gated on
         self.look_n = 0           # body turns made while looking for the object
         self.sight = None         # (x, y) of the last sighting (measure, or the approach's arrival) since the last search
+        self.sight_t = None       # its capture time (measure only)
         self.lost_backs = 0       # step-backs made for a ball lost at the feet since it was last seen
         self.pick_late = False    # the pick ran past PICK_MAX_S and has not handed back yet
         self.rock_t, self.step_t = -1e9, None   # last time |trunk gyro| > ap.STILL_GYRO; the previous step's time
+        self.pix_seen, self.pix_frame_t = False, None   # the newest processed frame had the object; when it was processed
 
     # --- helpers -----------------------------------------------------------------------------------------------
     def enter(self, phase, why=""):
@@ -208,10 +215,22 @@ class SeePick:
         if idx == self.last_idx or self.now() - t_cap > ap.FRAME_MAX_AGE_S:
             return None
         self.last_idx = idx
+        self.pix_seen, self.pix_frame_t = False, self.now()
         sc = self.state_at(t_cap) or st
         h, w = frame.shape[:2]
-        # while the robot moves or bites, only a box from this very frame counts: a background box is about a second old
-        det = self.helper.detect_at(frame, sc, w, h, late_ok=self.phase == "aim")
+        if self.phase in RESEED_PHASES and self.sight is not None and hasattr(self.detect, "reseed"):
+            # the head moves (scan poses, the aim, the commander): carry the colour track to where the last sighting is
+            # in this frame, or every head move puts the ball past ball_detect.TRACK_PX and only the slow learned pass
+            # finds it again, by when the head has moved on
+            sx, sy = self.sight_in(sc)
+            uv = self.kin.ground_to_pixel(sx, sy, sc["q"], sc["gb"], w, h, z=self.helper.obj_radius)
+            if uv is not None:
+                self.detect.reseed(float(uv[0]), float(uv[1]))
+        # while the robot bites, only a box from this very frame counts: a background box is about a second old. The
+        # aim, the dock and the dock's find take it with the state of its own frame (its capture time is the box's age).
+        # The dock's find needs it: a scan pose looks for 1.0 s and a learned pass takes 1.1-1.25 s, so the confirmation
+        # comes after the head has moved on (robot 2026-11-20: the A7Z's find took sightings 1.2 s old)
+        det = self.helper.detect_at(frame, sc, w, h, late_ok=self.phase in ("aim", "dock", "find"))
         if det is None:
             return None
         if det.get("ctx") is not None and det["ctx"] is not sc:
@@ -230,6 +249,8 @@ class SeePick:
         gate_m = gate_given if gate_given is not None else gate_m
         if self.track_gate is not None:
             gate_m = self.track_gate   # --track-gate; 0 keeps the given estimate and only records what the camera saw
+        if callable(gate):   # the estimate in the foot frame of this frame's capture time (dockpick: carried by odometry)
+            gate = gate(float(t_cap))
         if gate is not None and math.hypot(p[0] - gate[0], p[1] - gate[1]) > gate_m:
             if self.phase == "pick":
                 self.seen_elsewhere = (float(p[0]), float(p[1]), float(t_cap))   # the bite may have knocked it there
@@ -240,8 +261,13 @@ class SeePick:
         m = dict(x=float(p[0]), y=float(p[1]), size=size, t=float(t_cap), cut=bool(p[2]), frame=idx,
                  u=float(x0 + bw / 2), v=float(y0 + bh / 2), w=float(bw))
         self.trace.append(dict(t=self.now(), phase=self.phase, meas=m))
-        self.sight = (m["x"], m["y"])
+        self.sight, self.sight_t = (m["x"], m["y"]), m["t"]
+        self.pix_seen = True
         return m
+
+    def sight_in(self, sc):
+        """The last sighting in the foot frame of state sc (a standing robot: where it was seen)."""
+        return self.sight
 
     def pick_cmd(self):
         o = self.obj
@@ -256,12 +282,13 @@ class SeePick:
         return cmd
 
     def pix_box(self, o):
-        """T2's picture slots: the last detection's box, seen while that detection is the newest frame. A ball under the
-        picture (blind zone, no detection) reads as its projection clamped to the edge, the hand-over of training
-        (T2-PIXEL.md, brain_sim_check.PixCamera.start)."""
+        """T2's picture slots: the last detection's box, seen while the newest processed frame had it (PIX_STALL_S). A
+        ball under the picture (blind zone, no detection) reads as its projection clamped to the edge, the hand-over of
+        training (T2-PIXEL.md, brain_sim_check.PixCamera.start)."""
         now = self.now()
         if "u" in o:
-            return {"u": round(o["u"], 2), "v": round(o["v"], 2), "w": round(o["w"], 2), "seen": now - o["t"] < PIX_SEEN_S}
+            seen = self.pix_seen and self.pix_frame_t is not None and now - self.pix_frame_t < PIX_STALL_S
+            return {"u": round(o["u"], 2), "v": round(o["v"], 2), "w": round(o["w"], 2), "seen": seen}
         st = self.state_fn()
         p = self.kin.ground_to_pixel(o["x"], o["y"], st["q"], st["gb"], PIX_W, PIX_H, z=0.0) if st else None
         u, v = (PIX_W / 2, PIX_H - 1) if p is None else (min(max(p[0], 0.0), PIX_W - 1), min(max(p[1], 0.0), PIX_H - 1))
@@ -725,7 +752,7 @@ def main():
     send = ap.send_file(a.cmd)
     if a.dock or a.dock_only:
         import dockpick
-        ctl = dockpick.DockPick(kin, cam.latest, tail.latest, tail.at, send, detect, tries=a.tries or (1 if a.dock_only else 2),
+        ctl = dockpick.DockPick(kin, cam.latest, tail.latest, tail.at, send, detect, tries=a.tries or (dockpick.DOCK_ONLY_TRIES if a.dock_only else 2),
                                 hold_s=a.hold_s if a.hold_s is not None else 5.0, log=lambda s: print(s, flush=True),
                                 dock_only=a.dock_only)
     else:

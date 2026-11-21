@@ -13,6 +13,7 @@ import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import approach as apc  # noqa: E402
+import ball_detect as bd  # noqa: E402
 import dockpick as dp  # noqa: E402
 import seepick as sp  # noqa: E402
 import walk_brain as wb  # noqa: E402
@@ -259,8 +260,102 @@ def test_dock_only_stops_at_the_ball_and_stands():
     duck = DockDuck((0.25, 0.06), [])
     ctl = run_dock_only(duck)
     assert ctl.result["ok"], ctl.result
-    assert not duck.kneels and duck.sent[-1][1]["mode"] == "walk"
+    assert not duck.kneels and duck.sent[-1][1]["mode"] == "step"   # held there by the nudge (DOCK_ONLY_END)
     assert max(abs(v) for v in ctl.attempts[-1]["err_cm"]) < 2.0
+
+
+# --- the camera hand-off (robot 2026-11-20, ../kneel/DOCK-ROBOT-TEST-20261120.md) -----------------------------------
+def test_the_dock_box_reads_seen_at_the_robots_camera_latency():
+    """Sightings reach measure() 0.16-0.18 s after capture on the A7Z. The commander read visible 0 for whole docks
+    when seen meant "captured under 0.15 s ago"."""
+    duck = DockDuck((0.25, 0.06), [])
+    duck.frame_age = 0.17
+    ctl = run_dock_only(duck)
+    assert ctl.result["ok"], ctl.result
+    docks = [c["object"] for _, c in duck.sent if c.get("mode") == "dock"]
+    assert len(docks) > 10 and sum(o["seen"] for o in docks) / len(docks) > 0.9
+
+
+def manual_detector(duck, colour):
+    """ball_detect.BallDetect with its job queue but no worker thread: a test hands in finished learned passes."""
+    det = bd.BallDetect((0, 0, 0), (180, 255, 255), 1, now=lambda: duck.t, learned=lambda f, accept=None: None,
+                        colour=colour, threaded=False)
+    det.threaded = True
+    return det
+
+
+def aim(duck, dyaw=0.0):
+    """The head on the ball as the dock starts (dock_head), turned dyaw rad further."""
+    duck.q.update({k: v for k, v in dp.dock_head(*duck.obj_robot()).items() if k != "neck_pitch"})
+    duck.q["head_yaw"] += dyaw
+
+
+def docking(duck, det):
+    """A DockPick in the dock phase on the duck's present view of the ball, the frame it came from already consumed."""
+    ctl = dp.DockPick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, det, tries=1,
+                      now=lambda: duck.t, log=lambda s: None, dock_only=True)
+    x, y = duck.obj_robot()
+    ctl.obj = dict(x=x, y=y, size=sp.DEFAULT_SIZE, t=duck.t - 0.5, u=320.0, v=300.0, w=20.0)
+    ctl.sight = (x, y)   # measure() sets both from the same sighting
+    ctl.phase, ctl.last_idx = "dock", duck.frame[2]
+    ctl.judge, ctl.attempts, ctl.cmd_t = dp.DockedJudge(duck.t), [dict(try_n=1)], duck.t
+    return ctl
+
+
+def test_a_late_learned_sighting_updates_the_dock_box():
+    """In dock, the learned pass's slower confirmation (about 1 s on the A7Z) counts, with its own frame's state and
+    capture time; a bite still takes only boxes from the newest frame."""
+    duck = DockDuck((0.25, 0.06), [])
+    duck.frame_age = 0.17
+    aim(duck)
+    while duck.frame is None:
+        duck.advance()
+    ctx = duck.state()
+    hit = duck.detect(None)
+    for _ in range(5):   # the pass ran on that frame while the head turned on
+        duck.advance()
+    aim(duck, 0.3)
+    for phase, want in (("dock", True), ("pick", False)):
+        det = manual_detector(duck, colour=lambda *a, **k: None)   # the colour filter misses the ball this frame
+        ctl = docking(duck, det)
+        ctl.phase, ctl.last_idx = phase, None
+        det._res = (hit, ctx, True)
+        m = ctl.measure(duck.state())
+        assert (m is not None) == want, phase
+        assert ctl.pix_seen == want
+    assert m is None
+    det = manual_detector(duck, colour=lambda *a, **k: None)
+    ctl = docking(duck, det)
+    duck.advance(0.125)
+    det._res = (hit, ctx, True)
+    ctl.p_dock(duck.state(), duck.t)
+    assert ctl.obj["t"] == pytest.approx(ctx["t"]) and ctl.pix_box(ctl.obj)["seen"]
+    old = dict(ctl.obj)
+    duck.advance(0.125)
+    det._res = (hit, dict(ctx, t=ctx["t"] - 1.0), True)   # a pass on a frame older than the box already held
+    ctl.p_dock(duck.state(), duck.t)
+    assert ctl.obj["t"] == old["t"]
+
+
+def test_the_dock_keeps_the_colour_track_while_the_head_turns():
+    """The track centre follows the head: a colour box where the last sighting projects in this frame is the ball at
+    camera rate, even TRACK_PX or more from where the ball was in the picture before the head moved."""
+    duck = DockDuck((0.22, 0.04), [])
+    while duck.frame is None:
+        duck.advance()
+    for phase, want in (("dock", True), ("pick", False)):
+        aim(duck)
+        det = manual_detector(duck, colour=lambda f, lo, hi, a, accept=None: duck.detect(f))
+        ctl = docking(duck, det)
+        before = duck.detect(None)
+        det.track = (before["cx"], before["cy"], duck.t)
+        aim(duck, 0.25)   # the commander swings the head: the ball moves more than TRACK_PX in the picture
+        assert abs(duck.detect(None)["cx"] - before["cx"]) > bd.TRACK_PX
+        duck.advance(0.125)
+        ctl.phase = phase
+        m = ctl.measure(duck.state())
+        assert (m is not None) == want, phase
+        assert det.stats["tracked"] == (1 if want else 0)
 
 
 
@@ -333,3 +428,267 @@ def test_dock_only_does_not_need_the_jaw():
     duck = DockDuck((0.25, 0.0), ["hold"])
     duck.state = lambda _s=duck.state: dict(_s(), jaw_deg=None)
     assert "jaw" in run(duck).result["why"]
+
+
+def test_the_runtime_sim_runs_the_learned_pass_in_sim_time():
+    """brain_sim_check --sp-runtime: BallDetect's newest job finishes learned_s later, and its box comes back late with
+    the ctx of its own frame."""
+    import dock_runtime_sim as drs
+    t = [0.0]
+    frame = drs.SimFrame({"u": 300.0, "v": 200.0, "w": 16.0}, drs.PIX_W, drs.PIX_H)
+    det = bd.BallDetect((0, 0, 0), (180, 255, 255), 1, now=lambda: t[0], learned=lambda f, accept=None: drs.box_det(f),
+                        colour=lambda f, lo, hi, a, accept=None: drs.box_det(f), threaded=False)
+    det.threaded = True
+    worker = drs.SimWorker(det, np.random.default_rng(0), learned_s=(1.0, 1.0))
+    assert det(frame, ctx="f1", late_ok=True) is None and det.pending   # a colour candidate nothing confirmed yet
+    worker.pump(t[0])
+    t[0] = 0.9
+    worker.pump(t[0])
+    assert det(frame, ctx="f2", late_ok=True) is None                  # still running
+    t[0] = 1.0
+    worker.pump(t[0])
+    late = det(drs.SimFrame(None, drs.PIX_W, drs.PIX_H), ctx="f3", late_ok=True)   # no colour box in this frame
+    assert late is not None and late["ctx"] == "f1" and worker.n == {"passes": 1, "hits": 1}
+    assert det(frame, ctx="f4", late_ok=True)["ctx"] == "f4"           # now tracked: this frame's box at camera rate
+
+
+def test_finds_and_docks_with_the_a7zs_slow_learned_pass():
+    """The detector as on the robot: colour boxes are trusted only near a learned confirmation, which takes 1.2 s
+    (longer than a scan pose's look); frames arrive 0.17 s after capture."""
+    import dock_runtime_sim as drs
+    duck = DockDuck((0.25, 0.06), [])
+    duck.frame_age = 0.17
+    det = bd.BallDetect((0, 0, 0), (180, 255, 255), 1, now=lambda: duck.t, learned=lambda f, accept=None: duck.detect(f),
+                        colour=lambda f, lo, hi, a, accept=None: duck.detect(f), threaded=False)
+    det.threaded = True
+    worker = drs.SimWorker(det, np.random.default_rng(0), learned_s=(1.2, 1.2))
+    ctl = dp.DockPick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, det, tries=1,
+                      now=lambda: duck.t, log=lambda s: None, dock_only=True)
+    while ctl.phase not in ("done", "failed") and duck.t < 60:
+        worker.pump(duck.t)
+        ctl.step()
+        duck.advance()
+    assert ctl.result["ok"], ctl.result
+    docks = [c["object"] for _, c in duck.sent if c.get("mode") == "dock"]
+    assert sum(o["seen"] for o in docks) / len(docks) > 0.9
+
+
+def test_dock_odometry_carries_a_sighting_through_a_turn_in_place():
+    """IMU yaw +90 deg with the joints still: LegOdometry keeps the planted foot put, so the body turns about it and a
+    sighting turns -90 deg about that foot in the new foot frame, at the same distance from it."""
+    rows = [dict(t=k * 0.02, q=dict(apc_stand()), gb=(0.0, 0.0, -1.0), yaw=min(1.0, k / 50) * math.pi / 2) for k in range(80)]
+    odom = dp.DockOdom()
+    odom.feed(lambda t: min(rows, key=lambda r: abs(r["t"] - t)), rows[-1]["t"])
+    f = odom.odom.feet(rows[0]["q"], rows[0]["gb"])[odom.odom.stance][0]
+    ball = np.array([0.3, 0.0])
+    carried = np.array(odom.carry(tuple(ball), 0.0, rows[-1]["t"]))
+    a, b = ball - f, carried - f
+    assert np.linalg.norm(b) == pytest.approx(np.linalg.norm(a), abs=1e-6)
+    assert math.atan2(b[1], b[0]) - math.atan2(a[1], a[0]) == pytest.approx(-math.pi / 2, abs=1e-6)
+    assert odom.carry((0.3, 0.0), 0.5, 0.5) == pytest.approx((0.3, 0.0))
+
+
+def apc_stand():
+    from test_approach import STAND
+    return STAND
+
+
+class ShuffleDuck(DockDuck):
+    """The ball goes under the picture (x < 0.13 m) as the dock arrives, and the commander keeps shuffling at the stop
+    for SHUFFLE_S before it stands still (sim 2026-11-20: such docks ended 1.9-2.4 cm from the stop as "lost")."""
+    SHUFFLE_S = 4.0
+
+    def __init__(self, obj):
+        super().__init__(obj, [])
+        self.arrived = None
+
+    def advance(self, dt=0.05):
+        super().advance(dt)
+        if self.mode == "dock" and self.dock_cmd == [0.0, 0.0, 0.0]:
+            self.arrived = self.arrived if self.arrived is not None else self.t
+            if self.t - self.arrived < self.SHUFFLE_S:
+                self.dock_cmd = [0.1, 0.0, 0.0]
+
+    def detect(self, frame, accept=None):
+        return None if self.obj_robot()[0] < 0.13 else super().detect(frame, accept)
+
+
+def test_an_unseen_ball_at_the_stop_is_docked_not_lost():
+    duck = ShuffleDuck((0.25, 0.04))
+    ctl = run_dock_only(duck)
+    assert ctl.result["ok"], ctl.result
+    assert not ctl.attempts[-1].get("lost") and "docked" in ctl.result["why"]
+
+
+@pytest.mark.parametrize("pitch_off", [0.0, 4.4])   # duck_kin, and the T2 sim camera (about 4.4 deg further down)
+@pytest.mark.parametrize("neck", [0.22, 0.35])        # the robot's neck for a 0.35 command, and the sim's
+def test_the_dock_scan_covers_10_to_50_cm_without_gaps(pitch_off, neck):
+    import duck_kin
+    from test_approach import STAND
+    k = duck_kin.DuckKin(pitch_offset_deg=pitch_off)
+    bands = []
+    for p in dp.DOCK_SCAN_PITCH:
+        q = dict(STAND, head_pitch=p, head_yaw=0.0, neck_pitch=neck)
+        near = k.pixel_to_ground(320, 345, q, (0, 0, -1), 640, 360, z=0.0065)
+        far = k.pixel_to_ground(320, 20, q, (0, 0, -1), 640, 360, z=0.0065)
+        bands.append((near[0], far[0] if far is not None else 9.0))
+    bands.sort()
+    assert bands[0][0] <= 0.115 and max(b[1] for b in bands) >= dp.DOCK_R_MAX
+    for (a0, a1), (b0, b1) in zip(bands, bands[1:]):
+        assert b0 < a1 - 0.02, bands   # each band overlaps the next by 2 cm or more
+
+
+@pytest.mark.parametrize("bearing", [-60, 60])
+def test_a_ball_to_the_side_is_found_and_docked(bearing):
+    b = math.radians(bearing)
+    duck = DockDuck((0.30 * math.cos(b), 0.30 * math.sin(b)), [])
+    ctl = run_dock_only(duck)
+    assert ctl.result["ok"], ctl.result
+
+
+def realised(pose, body):
+    """A scan command as the joints read it: robot (head pitch tops out at 1.30, neck 0.22 + 0.164 x (cmd - 0.35),
+    robot 2026-10-30 / 2026-11-12) or sim (head to 1.41, neck to 0.0 for -0.75, the battery body in brain_sim_check)."""
+    neck_cmd = pose.get("neck_pitch", 0.35)
+    if body == "robot":
+        return dict(head_pitch=min(pose["head_pitch"], 1.30), neck_pitch=0.22 + 0.164 * (neck_cmd - 0.35),
+                    head_yaw=pose["head_yaw"])
+    return dict(head_pitch=min(pose["head_pitch"], 1.41), neck_pitch=0.0 if neck_cmd < 0 else 0.35, head_yaw=pose["head_yaw"])
+
+
+@pytest.mark.parametrize("body", ["robot", "sim"])
+def test_the_dock_scan_sees_a_ball_beside_the_feet(body):
+    """Sim 2026-11-20: balls at 15 cm and 30-60 deg (about 7 cm ahead of the toes, 13 cm to the side) were never found."""
+    import duck_kin
+    from test_approach import STAND
+    k = duck_kin.DuckKin()
+    for r in (0.12, 0.15, 0.18):
+        for b in (-60, -45, -30, 30, 45, 60):
+            x, y = r * math.cos(math.radians(b)), r * math.sin(math.radians(b))
+            ok = False
+            for pose in dp.DOCK_SCAN:
+                uv = k.ground_to_pixel(x, y, dict(STAND, **realised(pose, body)), (0, 0, -1), 640, 360, z=0.0065)
+                ok = ok or (uv is not None and 15 <= uv[0] < 625 and 15 <= uv[1] < 345)
+            assert ok, (r, b)
+
+
+def test_a_ball_beside_the_feet_is_found_and_docked():
+    duck = DockDuck((0.15 * math.cos(math.radians(60)), 0.15 * math.sin(math.radians(60))), [])
+    ctl = run_dock_only(duck)
+    assert ctl.result["ok"], ctl.result
+
+
+def test_the_dock_gates_a_sighting_in_its_own_capture_frame():
+    """The commander turns up to ~2 rad/s: a 0.2 s-old sighting is gated against the estimate carried to its capture
+    time, not to now (sim: at 0.4 m the now-estimate sat 15+ cm away and the gate threw the real ball out)."""
+    duck = DockDuck((0.25, 0.06), [])
+    duck.frame_age = 0.17
+    aim(duck)
+    while duck.frame is None:
+        duck.advance()
+    ctl = docking(duck, duck.detect)
+    asked = []
+    ctl.est = lambda t: asked.append(t) or (ctl.obj["x"], ctl.obj["y"])
+    duck.advance(0.125)
+    ctl.p_dock(duck.state(), duck.t)
+    assert asked and asked[0] == pytest.approx(duck.frame[1], abs=0.03)
+
+
+def test_the_aim_does_not_start_the_dock_on_a_find_frame():
+    duck = DockDuck((0.25, 0.06), [])
+    ctl = dp.DockPick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect, tries=1,
+                      now=lambda: duck.t, log=lambda s: None, dock_only=True)
+    ctl.phase, ctl.t_phase, ctl.head = "aim", 10.0, dp.dock_head(0.25, 0.06)
+    ctl.obj = dict(x=0.25, y=0.06, size=sp.DEFAULT_SIZE, t=9.0)
+    ctl.measure = lambda st, gate=None, gate_m=None: dict(x=0.25, y=0.06, size=0.013, t=9.5, u=300.0, v=200.0, w=20.0)
+    ctl.p_aim(duck.state(), 10.0 + dp.DOCK_AIM_S + 0.1)   # a late learned pass on a frame from before the aim
+    assert ctl.phase == "aim"
+    ctl.measure = lambda st, gate=None, gate_m=None: dict(x=0.25, y=0.06, size=0.013, t=10.9, u=300.0, v=200.0, w=20.0)
+    ctl.p_aim(duck.state(), 10.0 + dp.DOCK_AIM_S + 0.2)
+    assert ctl.phase == "dock"
+
+
+def test_every_dock_gets_its_full_lost_time():
+    """A dock that starts on an old sighting (a blind start, a slow aim) is not lost on its first step."""
+    duck = DockDuck((0.25, 0.06), [], lose=True)
+    while duck.frame is None:
+        duck.advance()
+    ctl = docking(duck, duck.detect)
+    ctl.obj["t"] = duck.t - dp.DOCK_LOST_S - 0.5
+    ctl.p_dock(duck.state(), duck.t)
+    assert ctl.phase == "dock"
+    ctl.p_dock(duck.state(), duck.t + dp.DOCK_LOST_S + 0.1)
+    assert ctl.phase != "dock"
+
+
+def test_dock_only_finds_the_ball_again_after_a_lost_dock():
+    duck = DockDuck((0.25, 0.06), [], lose=True)
+    ctl = dp.DockPick(KIN, lambda: duck.frame, duck.state, lambda t: duck.state(), duck.send, duck.detect,
+                      tries=dp.DOCK_ONLY_TRIES, now=lambda: duck.t, log=lambda s: None, dock_only=True)
+    while ctl.phase not in ("done", "failed") and duck.t < 90:
+        ctl.step()
+        duck.advance()
+    assert dp.DOCK_ONLY_TRIES == 2 and len(ctl.attempts) == 2 and all(a.get("lost") for a in ctl.attempts)
+
+
+def test_a_dock_that_never_saw_the_ball_is_not_docked():
+    """A blind start whose dock never sees the ball does not end as docked on the carried estimate alone."""
+    duck = DockDuck((0.25, 0.06), [], lose=True)
+    while duck.frame is None:
+        duck.advance()
+    ctl = docking(duck, duck.detect)
+    ctl.dock_seen = False
+    x, y = dp.DOCK_STOP
+    ctl.obj.update(x=x, y=y, t=duck.t)   # the estimate already at the stop
+    ctl.judge = dp.DockedJudge(duck.t - dp.DOCK_MAX_S)   # and the dock's time is up
+    ctl.p_dock(duck.state(), duck.t)
+    assert ctl.phase != "dock" and ctl.attempts[-1].get("lost") and not (ctl.result or {}).get("ok")
+
+
+def test_a_walk_after_the_dock_eases_the_head_back_from_where_it_is():
+    """Dock -> walk at zero command: walk61's head command starts at the head's present offset and eases to the
+    default (HEAD_ALPHA); snapped to the default, walk61 whipped the head back and the sim fell after good docks."""
+    brain = wb.Brain(MODELS)
+    pose = dict(wb.STAND, neck_pitch=wb.STAND["neck_pitch"] - 0.6, head_pitch=wb.STAND["head_pitch"] + 0.5)
+    pos = [wb.to_tick(n, pose[n]) for n in wb.NAMES]
+    infos = []
+    for k, want in enumerate([WALK0] * 10 + [{"mode": "dock", "object": PIX_OBJ}] * 10 + [WALK0] * 3):
+        _, _, info = brain.tick(want, 100 + k * 0.02, pos, [0] * 14, UPRIGHT_SENSOR_QUAT, (0.0, 0.0, 0.0), True, 0.004, 0.006)
+        infos.append(info)
+    walk = [i for i in infos[20:] if "head_cmd" in i]
+    assert walk, "no head_cmd in the walk ticks"
+    neck, head = walk[0]["head_cmd"][0], walk[0]["head_cmd"][1]
+    off = {n: brain.q[n] - brain.default[n] for n in ("neck_pitch", "head_pitch")}
+    assert neck == pytest.approx((1 - wb.HEAD_ALPHA) * off["neck_pitch"], abs=0.05)
+    assert head == pytest.approx((1 - wb.HEAD_ALPHA) * off["head_pitch"], abs=0.05)
+    assert abs(walk[-1]["head_cmd"][0]) < abs(neck)   # easing toward the default
+
+
+def test_dock_only_ends_in_the_small_step_where_it_stands():
+    """DOCK_ONLY_END step: the nudge holds the feet where the dock stopped (sim: all 66 of 66 docks still at the ball at
+    the end of the run; walk61 at zero command walked 30-35 cm off every one)."""
+    duck = DockDuck((0.25, 0.06), [])
+    ctl = run_dock_only(duck)
+    assert ctl.result["ok"], ctl.result
+    assert dp.DOCK_ONLY_END == "step"
+    last = duck.sent[-1][1]
+    assert last["mode"] == "step" and (last["dx"], last["dy"], last["dyaw"]) == (0.0, 0.0, 0.0) and last["id"]
+
+
+def test_the_small_step_after_the_dock_eases_the_head_back():
+    brain = wb.Brain(MODELS)
+    pose = dict(wb.STAND, neck_pitch=wb.STAND["neck_pitch"] - 0.6)
+    pos = [wb.to_tick(n, pose[n]) for n in wb.NAMES]
+    step = {"mode": "step", "dx": 0.0, "dy": 0.0, "dyaw": 0.0, "id": "dock-1"}
+    for k, want in enumerate([WALK0] * 10 + [{"mode": "dock", "object": PIX_OBJ}] * 10 + [step]):
+        _, _, info = brain.tick(want, 100 + k * 0.02, pos, [0] * 14, UPRIGHT_SENSOR_QUAT, (0.0, 0.0, 0.0), True, 0.004, 0.006)
+    off = brain.q["neck_pitch"] - brain.default["neck_pitch"]
+    assert brain.mode == "step" and brain.head_cmd[0] == pytest.approx((1 - wb.HEAD_ALPHA) * off, abs=0.05)
+
+
+def test_brain_sim_check_runtime_defaults_match_the_harness():
+    """brain_sim_check keeps the A7Z timings as literals (it imports dock_runtime_sim only for --sp-runtime)."""
+    import dock_runtime_sim as drs
+    src = open(os.path.join(HERE, "brain_sim_check.py")).read()
+    assert f"default={tuple(drs.LEARNED_S)}" in src and f"default={tuple(drs.FRAME_LAT_S)}" in src
+    assert "\\nimport dock_runtime_sim" not in src

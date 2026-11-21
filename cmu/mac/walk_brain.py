@@ -725,6 +725,10 @@ class Brain:
                 out[k] = float(np.clip(float(head[n]) - self.default[n], -HEAD_RANGE[k], HEAD_RANGE[k]))
         return out
 
+    def present_head_offset(self, q):
+        """The head's measured pose as a head command (offsets from the default, clipped to HEAD_RANGE)."""
+        return [float(np.clip(q[n] - self.default[n], -HEAD_RANGE[k], HEAD_RANGE[k])) for k, n in enumerate(HEAD_JOINTS)]
+
     def hold_head(self):
         """Called on a sit or ground-pick guard trip: once the Brain is in monitor mode the head joints get their
         present positions as goals instead of the runaway goal; the legs keep the last goals."""
@@ -908,6 +912,8 @@ class Brain:
                 self.ramp, self.goal = None, dict(start)
                 self.step = None
                 self.head_cmd[:] = 0
+                if prev_mode == "dock":   # as dock -> walk below: ease the head back from where the commander left it
+                    self.head_cmd[:] = self.present_head_offset(q)
                 if not was_policy:
                     self.last_action[:] = 0
             elif self.mode == "sit" and not was_policy and self.seated():
@@ -931,6 +937,12 @@ class Brain:
                 if prev_mode == "seepick" and self.sp_blend_s:
                     self.hand_blend = (now, self.sp_blend_s, dict(self.goal))
                 self.head_cmd[:] = 0
+                if prev_mode == "dock":
+                    # the dock ends with the head where the commander put it (bowed, turned): a head command snapped
+                    # to the default made walk61 whip the head back, actions to 1.8 rad, and the as-built sim fell
+                    # 1.2 s after 4 of 21 good docks (DOCK-RUNTIME-FIX-20261120.md round 6). Start the EMA at the
+                    # present head offset so HEAD_ALPHA eases it back.
+                    self.head_cmd[:] = self.present_head_offset(q)
                 if self.walk_ramp > 0:
                     # legacy open-loop ramp to the policy pose: tips the real robot forward before the policy
                     # acts (realgap-20261014 README section 1; the as-built sim falls at 0.58 s with it)

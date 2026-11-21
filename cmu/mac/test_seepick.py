@@ -295,9 +295,14 @@ def test_t2_pick_command_carries_the_box_and_the_blind_zone_clamps_to_the_edge()
 
     c = sp.SeePick.__new__(sp.SeePick)
     c.t2, c.kin, c.now, c.state_fn = True, Kin(), lambda: 10.0, lambda: {"q": {}, "gb": [0, 0, -1]}
-    c.obj = dict(x=0.09, y=0.0, size=0.012, t=9.95, u=330.0, v=200.0, w=20.0)
+    c.pix_seen, c.pix_frame_t = True, 9.98
+    c.obj = dict(x=0.09, y=0.0, size=0.012, t=9.83, u=330.0, v=200.0, w=20.0)   # captured 0.17 s ago, as on the robot
     o = c.pick_cmd()["object"]
     assert walk_brain.is_pix_object(o) and o["u"] == 330.0 and o["seen"] is True
+    c.pix_seen = False   # the newest processed frame did not have it
+    assert c.pick_cmd()["object"]["seen"] is False
+    c.pix_seen, c.pix_frame_t = True, 10.0 - sp.PIX_STALL_S - 0.01   # no frame processed since: a camera stall
+    assert c.pick_cmd()["object"]["seen"] is False
     c.obj = dict(x=0.09, y=0.0, size=0.012, t=9.0)
     o = c.pick_cmd()["object"]
     assert o["v"] == 359 and o["seen"] is False and walk_brain.is_pix_object(o)

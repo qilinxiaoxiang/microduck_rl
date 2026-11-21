@@ -17,6 +17,7 @@ went back to turning the body. Shawn: "球都出现在视野里面了，还是�
     a finished learned pass that found the ball                    -> a confirmed sighting; the box itself is
                                                                        returned with the ctx of ITS frame when late_ok
   pending: a colour candidate is in the picture and no confirmed sighting covers it yet (the search waits on this).
+  reseed(cx, cy): the caller moves the track where the head motion puts the object (seepick.measure while docking).
 """
 import math
 import threading
@@ -41,12 +42,19 @@ class BallDetect:
         self._cv = threading.Condition()
         self._job = None         # newest (frame, accept, ctx, had_colour) for the worker
         self._res = None         # a finished pass the caller has not taken yet: (hit or None, ctx, had_colour)
+        self._expect = None      # reseed(): (cx, cy) for the track at the next call
         if threaded:
             threading.Thread(target=self._run, daemon=True).start()
 
     def _near(self, c, t):
         return (self.track is not None and t - self.track[2] <= TRACK_S
                 and math.hypot(c["cx"] - self.track[0], c["cy"] - self.track[1]) <= TRACK_PX)
+
+    def reseed(self, cx, cy):
+        """Where the caller expects the object in the next frame (the head turned since it was seen): the next call
+        moves the track there, after it has booked a finished pass (whose box is where the object was in ITS frame).
+        The track's time stays that of the last sighting, so TRACK_S still ends a track nothing confirms."""
+        self._expect = (cx, cy)
 
     def _pass(self, job):
         try:
@@ -84,6 +92,10 @@ class BallDetect:
             res, self._res = self._res, None
         if res is not None:
             late = self._take(res, t)
+        if self._expect is not None:
+            if self.track is not None:
+                self.track = (self._expect[0], self._expect[1], self.track[2])
+            self._expect = None
         if c is not None:
             self.stats["colour"] += 1
             if self._near(c, t):

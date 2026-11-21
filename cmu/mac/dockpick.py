@@ -2,7 +2,7 @@
 somewhere in front of a standing duck. Replaces the baseline pick button (seepick.py --dock, the remote's 「捡球：对位+叼起」).
 
 Runs on the A7Z beside walk_wired.py, through seepick.py (its camera, detector, log tail and control file). Phases:
-  find   standing, the head steps through approach.SCAN until the ball is detected FIND_N times
+  find   standing, the head steps through DOCK_SCAN until the ball is detected FIND_N times
   aim    the head aimed at it as the dock's training reset does (dock_head), DOCK_AIM_S to settle, one fresh detection
   dock   {"mode": "dock", "object": box} to walk_wired (walk_brain: the commander over the nudge); every new frame that
          sees the ball near the last sighting rewrites the box. Docked (DockedJudge) when the commander has asked for
@@ -10,8 +10,8 @@ Runs on the A7Z beside walk_wired.py, through seepick.py (its camera, detector, 
   pick   the kneel, a seepick command with "policy": "dk" (seepickpix_dk61.onnx) and hold-on (phase HOLD_PHASE, the
          kneel's own rise); at the hold phase the jaw decides: holding -> hold hold_s s, then monitor (done); not holding
          -> walk at zero command (stand61), and another try from find while tries remain
-dock_only=True (seepick.py --dock-only, the remote's 「对位：走到球前」) ends after the dock: zero-command walk (walk61 brings
-the steps to rest), and the result reports where the camera last put the ball against the trained stop.
+dock_only=True (seepick.py --dock-only, the remote's 「对位：走到球前」) ends after the dock in the small step to where it stands
+(DOCK_ONLY_END: the nudge holds the feet there), and the result reports where the ball is estimated against the trained stop.
 Lost the ball for DOCK_LOST_S during the dock, or a dock start beyond the trained range: another try from find. A
 walk_wired guard trip (stand or monitor mode) ends the run, as in seepick.py.
 
@@ -33,17 +33,47 @@ import numpy as np
 
 import approach as ap
 import seepick as sp
+from walk_brain import LegOdometry
 
 POLICY = "dk"              # walk_brain.PICK_REVISIONS: seepickpix_dk61.onnx (ks-sn1 @ 749)
+# The dock's head scan. approach.SCAN (the near look, pitch 0.9, 0.5, all at yaw 0) left a floor gap at about 13-20 cm
+# between the near look and 0.9, and a picture sees only about +-35 deg to the side, so in sim (DOCK-RUNTIME-FIX-20261120.md)
+# no ball at +-60 deg and no ball at 15 cm was found. Straight ahead, pitch 1.3 / 0.85 / 0.6 cover about 0.10-0.21 (0.11-0.25
+# at the sim's neck 0.35), 0.19-0.6 and 0.26 m out (duck_kin, standing, neck 0.22 as the robot reads a 0.35 command). To the
+# sides, pitch 0.85 / 0.6 at yaw +-0.75 reach about +-80 deg from 0.2 m out; nearer, beside the feet, the low look
+# (approach.NEAR_HEAD's neck -0.75 and head 1.45, which the robot reads as about 0.04 / 1.30) at yaw +-0.6 covers 0.10-0.21 m
+# at 30-60 deg. Pitch 1.3 at yaw 0.75 saw only 0.12-0.21 at 30-45 deg there (a 15 cm ball at 60 deg was never found in
+# sim), and more yaw at a high pitch swings the view out beside the head, not down beside the feet. Snake order.
+DOCK_SCAN_PITCH = (1.3, 0.85, 0.6)
+DOCK_SCAN_YAW = 0.75
+DOCK_NEAR_SIDE = {"neck_pitch": -0.75, "head_pitch": 1.45}
+DOCK_NEAR_SIDE_YAW = 0.6
+DOCK_SCAN = (tuple({"head_pitch": p, "head_yaw": 0.0} for p in DOCK_SCAN_PITCH)
+             + tuple({"head_pitch": p, "head_yaw": DOCK_SCAN_YAW} for p in DOCK_SCAN_PITCH[:0:-1])
+             + (dict(DOCK_NEAR_SIDE, head_yaw=DOCK_NEAR_SIDE_YAW), dict(DOCK_NEAR_SIDE, head_yaw=-DOCK_NEAR_SIDE_YAW))
+             + tuple({"head_pitch": p, "head_yaw": -DOCK_SCAN_YAW} for p in DOCK_SCAN_PITCH[1:]))
 FIND_N = 2                 # detections that agree within FIND_AGREE_M before the aim
 FIND_AGREE_M = 0.06
 FIND_DWELL_S = 0.6 + ap.SCAN_DWELL_S   # per scan pose: the head moves, then looks
+FIND_PENDING_S = 0.5       # s: a colour candidate this recent keeps the scan pose up to ap.SCAN_HOLD_S more (a learned
+#                            pass takes 1.1-1.25 s on the A7Z, longer than the dwell; a dropped frame does not end the wait)
 DOCK_AIM_S = 1.0           # standing with the head on the ball before the dock starts
 AIM_WAIT_S = 2.0           # then this long for a fresh detection near the estimate
 AIM_GATE_M = 0.08
+DOCK_ONLY_END = "step"     # how a dock-only run ends. "step": the small step to where it stands ({"mode": "step"}, dx 0):
+#                            the nudge, which balanced the docked pose, holds the feet there by leg odometry and eases the
+#                            head back (the F button leaves the duck the same way). "walk": walk61 at zero command, which
+#                            walks off: the as-built sim, 80 starts each (DOCK-RUNTIME-FIX-20261120.md round 6): "step"
+#                            66 docked, all 66 still at the ball at the end of the run, no fall after a dock; "walk" 66
+#                            docked, none still there (the ball 30-35 cm off though it never moved), 5 falls after docks;
+#                            walk61 with the head held, then ramped to the default, 1 fall, none still there; holding the
+#                            pose (monitor) 52 falls: the docked pose is balanced by the nudge, not statically stable
+DOCK_ONLY_TRIES = 2        # seepick.py --dock-only: a ball lost while docking is usually still in reach, so find it again
+#                            once (was 1: the robot's run 1 on 2026-11-20 ended after one lost dock with the ball 27 cm away)
+AIM_BLIND_AGE_S = 0.65     # s: the age of a blind hand-over (the dock's reset draws 0.3-1.0 s for a hidden ball)
 DOCK_R_MAX = 0.50          # m: the wide dock's spawn range (bd-wide: 4-50 cm, +-90 deg); further is no dock start
 DOCK_GATE_M = 0.10         # m: a detection further than this from the last sighting during the dock is another object
-DOCK_CMD_PERIOD = 0.1      # s: the box is rewritten at least this often (its "seen" flag goes false after PIX_SEEN_S)
+DOCK_CMD_PERIOD = 0.1      # s: the box is rewritten at least this often (its "seen" flag follows every processed frame)
 DOCK_LOST_S = 3.0          # s without a sighting while docking: stand and find it again
 DOCK_MIN_S = 1.5           # s: never docked earlier (the commander starts at zero)
 DOCK_MAX_S = 8.0           # s: the dock's training episode; kneel from wherever it is then
@@ -53,6 +83,11 @@ DOCK_STILL_W = 0.15        # rad/s
 DOCK_NEAR_M = 0.05         # m: still only counts as docked with the ball estimated this near the trained stop. Without
 #                            it 2 of 16 battery-body sims "docked" 10-15 cm off when the commander paused (35 cm / -45 deg,
 #                            30 cm / 80 deg); brain_sim_check --sp-dock passes the true position
+DOCK_BLIND_M = 0.05        # m: carried this near the trained stop, an unseen ball is under the beak (docked), not lost.
+#                            Sim (DOCK-RUNTIME-FIX-20261120.md): docks that ended 1.9-2.4 cm from the stop were ended as
+#                            "not seen for 3.0 s" because the ball goes under the picture at the stop
+ODOM_DT = 0.02             # s: walk_wired's rows are fed to the odometry at the brain's tick
+ODOM_KEEP = 400            # poses kept (8 s at the tick)
 DOCK_STOP = (0.0945, 0.0)  # m, foot frame: the landing spot (seepick.SPOT) + the dock's target_dx 0.75 cm
 SETTLE_AFTER_MISS_S = 1.5  # stand61 after a missed kneel before looking again
 # the dock's training reset aims the head at the ball (cmu_ball_dock_env_cfg.reset_ball_dock): pitch from the range,
@@ -128,6 +163,44 @@ class DockedJudge:
         return None
 
 
+class DockOdom:
+    """Where the robot's foot frame is on the floor, from walk_wired's rows (joints, gravity, IMU yaw): walk_brain's
+    LegOdometry (the planted foot stays put; the small step's odometry). carry() moves a sighting from the foot frame
+    at its capture time into the foot frame of a later time, so the estimate follows the walk and the turn while the
+    ball is out of the picture (the commander walks 0.2-0.4 m/s and turns while docking)."""
+
+    def __init__(self):
+        self.odom, self.poses, self.t = LegOdometry(), [], None   # poses: (t, origin xy, yaw), oldest first
+
+    def feed(self, state_at, t_to):
+        """Rows up to t_to at ODOM_DT (state_at returns the nearest row; a row seen already is skipped)."""
+        t = t_to - ODOM_DT * 100 if self.t is None else self.t + ODOM_DT   # first feed: back to the aim's sighting
+        while t <= t_to + 1e-9:
+            r = state_at(t)
+            t += ODOM_DT
+            if r is None or (self.poses and r["t"] <= self.poses[-1][0]) or r.get("q") is None:
+                continue
+            yaw = float(r.get("yaw") or 0.0)
+            self.odom.update(r["q"], r["gb"], yaw)
+            f = self.odom.feet(r["q"], r["gb"])[self.odom.stance][0]
+            c, s = math.cos(yaw), math.sin(yaw)
+            origin = self.odom.stance_xy - np.array([c * f[0] - s * f[1], s * f[0] + c * f[1]])
+            self.poses = (self.poses + [(r["t"], origin, yaw)])[-ODOM_KEEP:]
+        self.t = t - ODOM_DT
+
+    def pose(self, t):
+        return min(self.poses, key=lambda p: abs(p[0] - t)) if self.poses else None
+
+    def carry(self, xy, t_from, t_to):
+        a, b = self.pose(t_from), self.pose(t_to)
+        if a is None or b is None:
+            return tuple(xy)
+        ca, sa, cb, sb = math.cos(a[2]), math.sin(a[2]), math.cos(b[2]), math.sin(b[2])
+        w = a[1] + np.array([ca * xy[0] - sa * xy[1], sa * xy[0] + ca * xy[1]])
+        d = w - b[1]
+        return (float(cb * d[0] + sb * d[1]), float(-sb * d[0] + cb * d[1]))
+
+
 class DockPick(sp.SeePick):
     """The coordinator. Camera, state, commands as seepick.SeePick (its measure() and pix_box()); state rows also carry
     dock_cmd (seepick.SeeTail)."""
@@ -139,6 +212,18 @@ class DockPick(sp.SeePick):
                          t2=True, hold_s=hold_s, policy=POLICY, **kw)
         self.scan_i, self.found, self.judge = 0, [], None
         self.dock_only = dock_only
+        self.pending_t = -1e9     # the last step the detector had an unruled colour candidate
+        self.odom = DockOdom()    # fed while docking
+        self.dock_seen = False    # a sighting accepted during the present dock (start_dock resets it)
+
+    def sight_in(self, sc):
+        if self.phase != "dock" or self.sight_t is None:
+            return self.sight
+        return self.odom.carry(self.sight, self.sight_t, sc["t"])
+
+    def est(self, now):
+        """The ball (obj) carried into the foot frame at now."""
+        return self.odom.carry((self.obj["x"], self.obj["y"]), self.obj["t"], now)
 
     # --- commands ----------------------------------------------------------------------------------------------
     def dock_cmd(self):
@@ -169,10 +254,10 @@ class DockPick(sp.SeePick):
         self.enter("find", f"try {self.try_n}: {why}")
 
     def p_find(self, st, now):
-        if self.scan_i >= len(ap.SCAN):
+        if self.scan_i >= len(DOCK_SCAN):
             self.finish(False, "ball not found by the head scan (put it 10-50 cm in front of the duck)")
             return
-        self.stand(dict(ap.SCAN[self.scan_i]))
+        self.stand(dict(DOCK_SCAN[self.scan_i]))
         if now - self.t_phase < 0.6:
             return
         m = self.measure(st)
@@ -189,7 +274,11 @@ class DockPick(sp.SeePick):
             self.enter("aim", f"ball x {med['x']:.3f} y {med['y']:.3f} (r {r:.2f} m, "
                               f"bearing {math.degrees(math.atan2(med['y'], med['x'])):+.0f} deg)")
             return
+        if getattr(self.detect, "pending", False):
+            self.pending_t = now
         if now - self.t_phase >= FIND_DWELL_S:
+            if now - self.pending_t < FIND_PENDING_S and now - self.t_phase < FIND_DWELL_S + ap.SCAN_HOLD_S:
+                return   # a colour candidate the learned pass has not ruled on yet (one pass is longer than the dwell)
             self.scan_i, self.found = self.scan_i + 1, []
             self.t_phase = now
 
@@ -198,44 +287,77 @@ class DockPick(sp.SeePick):
         if now - self.t_phase < DOCK_AIM_S:
             return
         m = self.measure(st, gate=(self.obj["x"], self.obj["y"]), gate_m=AIM_GATE_M)
+        if m is not None and m["t"] < self.t_phase:
+            m = None   # a learned pass on a find frame, finished late: another head pose, and 2-3 s old at the dock start
         if m is not None:
             self.obj = m
-            self.attempts.append(dict(try_n=self.try_n, start_x=round(m["x"], 3), start_y=round(m["y"], 3)))
-            self.judge = DockedJudge(now)
-            self.send_fn(self.dock_cmd())
-            self.cmd_t = now
-            self.enter("dock", f"from x {m['x']:.3f} y {m['y']:.3f}")
+            self.start_dock(now, f"from x {m['x']:.3f} y {m['y']:.3f}")
         elif now - self.t_phase > DOCK_AIM_S + AIM_WAIT_S:
-            self.next_try("ball not seen after the aim")
+            # The training reset's aim does not show a ball beside the feet (15 cm at 60 deg: head pitch tops out near
+            # 1.3, yaw at 0.8). Training starts such a dock blind: the hand-over is the ball's projection clamped to the
+            # picture edge, seen false, aged AIM_BLIND_AGE_S (pix_box without a box; brain_sim_check.PixCamera.start).
+            self.obj = {"x": self.obj["x"], "y": self.obj["y"], "size": self.obj.get("size", sp.DEFAULT_SIZE),
+                        "t": now - AIM_BLIND_AGE_S}
+            self.sight_t = self.obj["t"]
+            self.start_dock(now, f"blind from the find, x {self.obj['x']:.3f} y {self.obj['y']:.3f} (not in the aim's picture)")
+
+    def start_dock(self, now, why):
+        self.attempts.append(dict(try_n=self.try_n, start_x=round(self.obj["x"], 3), start_y=round(self.obj["y"], 3),
+                                  blind="u" not in self.obj))
+        self.judge = DockedJudge(now)
+        self.dock_seen = False   # a sighting accepted during this dock (a blind start has none yet)
+        self.send_fn(self.dock_cmd())
+        self.cmd_t = now
+        self.enter("dock", why)
 
     def p_dock(self, st, now):
-        m = self.measure(st, gate=(self.obj["x"], self.obj["y"]), gate_m=DOCK_GATE_M)
+        self.odom.feed(self.state_at, st["t"])
+        # gate in the capture-time frame: the commander turns up to ~2 rad/s, so the estimate carried to now sat 15+ cm
+        # from a true sighting 0.2 s old at 0.4 m, and the gate threw the ball away (sim, DOCK-RUNTIME-FIX round 5)
+        m = self.measure(st, gate=lambda t: self.est(t), gate_m=DOCK_GATE_M)
+        if m is not None and m["t"] < self.obj["t"]:
+            m = None   # a learned pass that finished late, on a frame older than the box the commander already has
         if m is not None:
-            self.obj = m
-        if now - self.obj["t"] > DOCK_LOST_S:
+            self.obj, self.dock_seen = m, True
+        est = self.est(now)
+        # under the beak only once the dock has seen the ball itself: a blind start's estimate is the find's, carried
+        # through the whole dock by odometry (sim: one ended "docked" 29 cm from the ball)
+        blind = self.dock_seen and math.hypot(est[0] - DOCK_STOP[0], est[1] - DOCK_STOP[1]) < DOCK_BLIND_M
+        if now - max(self.obj["t"], self.judge.t0) > DOCK_LOST_S and not blind:
             self.stand()
             self.attempts[-1]["lost"] = True
             self.next_try(f"ball not seen for {DOCK_LOST_S} s while docking")
             return
-        why = self.judge.update(now, st.get("dock_cmd") if st["mode"] == "dock" else None, (self.obj["x"], self.obj["y"]))
+        why = self.judge.update(now, st.get("dock_cmd") if st["mode"] == "dock" else None, est)
+        if why is not None and not self.dock_seen:
+            self.stand()
+            self.attempts[-1].update(lost=True, docked=why)
+            self.next_try(f"docked ({why}) without seeing the ball while docking")
+            return
         if why is not None:
-            self.attempts[-1].update(docked=why, x=round(self.obj["x"], 3), y=round(self.obj["y"], 3))
+            self.attempts[-1].update(docked=why, x=round(est[0], 3), y=round(est[1], 3))
             if self.dock_only:
-                dx, dy = self.obj["x"] - DOCK_STOP[0], self.obj["y"] - DOCK_STOP[1]
+                dx, dy = est[0] - DOCK_STOP[0], est[1] - DOCK_STOP[1]
+                if DOCK_ONLY_END == "step":
+                    self.send_fn({"mode": "step", "dx": 0.0, "dy": 0.0, "dyaw": 0.0, "id": f"dock-{now:.3f}"})
                 near = math.hypot(dx, dy) < DOCK_NEAR_M
                 self.attempts[-1].update(err_cm=[round(dx * 100, 1), round(dy * 100, 1)])
-                self.finish(near, f"docked ({why}): ball last seen {dx * 100:+.1f} / {dy * 100:+.1f} cm from the trained "
-                                  f"stop{'' if near else ', too far for the kneel'}")
+                self.finish(near, f"docked ({why}): ball estimated {dx * 100:+.1f} / {dy * 100:+.1f} cm from the trained "
+                                  f"stop{'' if near else ', too far for the kneel'}", stop=DOCK_ONLY_END != "step")
                 return
-            self.seen_pick, self.hold_t = False, None
-            self.send_fn(self.pick_cmd())
-            self.cmd_t = now
-            self.enter("pick", f"docked ({why}): ball last seen x {self.obj['x']:.3f} y {self.obj['y']:.3f} "
-                               f"(trained stop x {sp.SPOT[0] + 0.0075:.3f} y 0)")
+            why = (f"docked ({why}): ball last seen x {self.obj['x']:.3f} y {self.obj['y']:.3f} "
+                   f"(trained stop x {sp.SPOT[0] + 0.0075:.3f} y 0)")
+            self.start_kneel(now, why)
             return
         if m is not None or now - self.cmd_t >= DOCK_CMD_PERIOD:
             self.send_fn(self.dock_cmd())
             self.cmd_t = now
+
+    def start_kneel(self, now, why):
+        self.seen_pick, self.hold_t = False, None
+        self.send_fn(self.pick_cmd())
+        self.cmd_t = now
+        self.enter("pick", why)
 
     def p_pick(self, st, now):
         if st["mode"] == "seepick":

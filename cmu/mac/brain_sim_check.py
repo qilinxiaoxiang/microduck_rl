@@ -540,6 +540,11 @@ class SeePick:
                             bias_m=[round(float(b), 4) for b in bias], noise_m=args.sp_camera_noise, stalls=not args.sp_no_stalls,
                             half_fov_deg=[round(math.degrees(x), 1) for x in SP_CAM_HALF_FOV], min_depth_m=SP_CAM_MIN_DEPTH)
         self.pix = PixCamera(m, d, rng, delay, drop, stalls=not args.sp_no_stalls) if args.sp_pix else None
+        if self.pix is not None and args.sp_pix_nominal:   # the fitted mount exactly: its head_pitch_gain, no pitch draw,
+            #                                                shift, pivot or box bias
+            self.pix.draw.update(dpitch=0.0, gain=float(duck_kin.load_mount().get("head_pitch_gain", 1.0)), shift=[0.0] * 3,
+                                 pivot=[0.0] * 3, bias=[0.0, 0.0])
+            self.pix.off = duck_kin.offset_rotation(*PIX_OFFSETS_DEG)
         if self.pix is not None:
             self.cam_cfg = dict(self.pix.draw, period_ticks=self.pix.period, stalls=not args.sp_no_stalls, picture=True)
             self.cam = self.pix
@@ -556,6 +561,8 @@ class SeePick:
                        # window (phase 0.34 -> 0.40); the jaw command when --sp-close-on-contact started the close
                        first_contact=None, push_contact_to_pinch_mm=None, close_window=None, contact_close=None)
         self.dock, self.judge, self.dock_cmd, self.pick_t = None, None, None, None   # --sp-dock
+        self.rt = None   # --sp-runtime: dock_runtime_sim.RuntimeDock
+        self.settle_until = None   # --sp-dock: end of the stand between the docked verdict and the kneel
         self.close_shift = 0.0  # --sp-close-on-contact: phase advance of the jaw timeline after the first touch
         self.holding_now = False
         self.state = {}
@@ -630,6 +637,8 @@ class SeePick:
         """--sp-dock, as dockpick.DockPick on the robot: stand with the head aimed at the ball (dockpick.dock_head) for
         dockpick.DOCK_AIM_S, then {"mode": "dock"} with the picture box until dockpick.DockedJudge says docked, then the
         kneel (seepick, revision --sp-policy, hold-on phase). None once the kneel runs (want() takes over)."""
+        if self.a.sp_runtime:
+            return self.runtime_want(t)
         if self.spawn is None:
             self.place()
             xy = self.foot_xy(self.d.xpos[self.body])
@@ -645,18 +654,73 @@ class SeePick:
             return None
         self.k = int(round((t - self.switched) / 0.02))
         last = self.pix.step(self.k, t, self.d.xpos[self.body], max(self.obj["half"][:2]), self.d.site_xpos[self.site["lip_up"]])
-        why = self.judge.update(t, self.dock_cmd, self.foot_xy(self.d.xpos[self.body]))
-        if why is None:
-            return {"mode": "dock", "object": last}
+        if self.settle_until is None:
+            why = self.judge.update(t, self.dock_cmd, self.foot_xy(self.d.xpos[self.body]))
+            if why is None:
+                return {"mode": "dock", "object": last}
+            xy = self.foot_xy(self.d.xpos[self.body])
+            self.dock.update(docked=why, dock_s=round(t - self.switched, 2), end_foot_xy=[round(float(v), 4) for v in xy],
+                             end_err_cm=[round(float(xy[0] - SP_LANDING_XY[0]) * 100, 2), round(float(xy[1]) * 100, 2)],
+                             end_head={n: round(float(self.d.qpos[self.m.jnt_qposadr[self.m.joint(n).id]]), 3)
+                                       for n in ("neck_pitch", "head_pitch", "head_yaw")})
+            self.settle_until = t + self.a.sp_dock_settle
+        if t < self.settle_until:   # --sp-dock-settle: stand at zero command before the kneel
+            return {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
         self.pick_t = t
         p, yaw = self.trunk_frame()
         self.root0 = (p.copy(), yaw)
         xy = self.foot_xy(self.d.xpos[self.body])
-        self.dock.update(docked=why, dock_s=round(t - self.switched, 2), end_foot_xy=[round(float(v), 4) for v in xy],
-                         end_err_cm=[round(float(xy[0] - SP_LANDING_XY[0]) * 100, 2), round(float(xy[1]) * 100, 2)],
-                         end_head={n: round(float(self.d.qpos[self.m.jnt_qposadr[self.m.joint(n).id]]), 3)
-                                   for n in ("neck_pitch", "head_pitch", "head_yaw")})
+        self.dock.update(kneel_start_foot_xy=[round(float(v), 4) for v in xy],
+                         kneel_start_head={n: round(float(self.d.qpos[self.m.jnt_qposadr[self.m.joint(n).id]]), 3)
+                                           for n in ("neck_pitch", "head_pitch", "head_yaw")})
         return None
+
+    def sim_state(self):
+        """The sim's own joints (model rad) and trunk gravity, for --sp-runtime-trace's camera check."""
+        q = {n: float(self.d.qpos[self.m.jnt_qposadr[self.m.joint(n).id]]) for n in NAMES}
+        R = self.d.xmat[self.trunk].reshape(3, 3)
+        cp, cR = self.pix.pose()
+        xy = self.foot_xy(cp)
+        _, yaw = self.trunk_frame()
+        c, s = math.cos(yaw), math.sin(yaw)
+        Ryaw = np.array([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]])
+        return dict(q=q, gb=R.T @ np.array([0.0, 0.0, -1.0]), cam=[float(xy[0]), float(xy[1]), float(cp[2])],
+                    cam_axis=(Ryaw.T @ cR[:, 0]).tolist())
+
+    def runtime_want(self, t):
+        """--sp-runtime: dockpick.DockPick (find, aim, dock; dock_only) through seepick's camera path, from the start of
+        active() to the end of the run (dock_runtime_sim.py). The dock numbers are the true ball at the dock's end."""
+        if self.spawn is None:
+            self.place()
+            xy = self.foot_xy(self.d.xpos[self.body])
+            self.dock = dict(spawn_foot_xy=[round(float(v), 4) for v in xy], runtime=True)
+            import dock_runtime_sim   # --sp-runtime only: it imports ball_detect, which needs OpenCV
+            self.rt = dock_runtime_sim.RuntimeDock(self.pix, self.rng, 0.0 if self.a.sp_no_stalls else SP_CAM_STALL_PROB,
+                                                   SP_CAM_STALL_S, learned_s=tuple(self.a.sp_runtime_learned_s),
+                                                   frame_lat_s=tuple(self.a.sp_runtime_frame_lat),
+                                                   kneel=self.a.sp_runtime_kneel, hold_s=self.a.sp_after)
+        w = self.rt.want(t, self.d.xpos[self.body], max(self.obj["half"][:2]), self.d.site_xpos[self.site["lip_up"]],
+                         true_xy=self.foot_xy(self.d.xpos[self.body]), sim_state=self.sim_state() if self.a.sp_runtime_trace else None)
+        if self.switched is None and self.rt.dock_t0 is not None:
+            self.switched = t
+        if self.rt.done and self.pick_t is None:
+            self.pick_t = t
+            xy = self.foot_xy(self.d.xpos[self.body])
+            self.dock.update(dock_s=None if self.switched is None else round(t - self.switched, 2),
+                             end_foot_xy=[round(float(v), 4) for v in xy],
+                             end_err_cm=[round(float(xy[0] - dockpick.DOCK_STOP[0]) * 100, 2), round(float(xy[1]) * 100, 2)])
+        if self.rt is not None and self.rt.done:   # where the ball is at the end of the run (does the robot stay?)
+            xy = self.foot_xy(self.d.xpos[self.body])
+            self.dock["late_err_cm"] = [round(float(xy[0] - dockpick.DOCK_STOP[0]) * 100, 2), round(float(xy[1]) * 100, 2)]
+            self.dock["late_t"] = round(t, 2)
+        if self.rt is not None:
+            self.dock["runtime"] = self.rt.report()
+            # written when the dock ends and every second before (a run a guard ends never reaches done)
+            if self.a.sp_runtime_trace and not getattr(self, "_rt_traced", False) and (self.rt.done or int(t / 0.02) % 50 == 0):
+                with open(self.a.sp_runtime_trace, "w") as f:
+                    f.writelines(json.dumps(r) + "\n" for r in self.rt.trace)
+                self._rt_traced = self.rt.done
+        return w
 
     def want(self, t):
         """The control-file command while the seeing pick runs: mode, the newest delivered detection, holding bit."""
@@ -706,6 +770,9 @@ class SeePick:
         the same tick jaw.write(link, brain.goal or measured_head, measured_head) through jaw_limits."""
         phase = info.get("sp_phase")
         self.dock_cmd = info.get("dock_cmd") if brain.mode == "dock" else None
+        if self.rt is not None:
+            self.rt.after_tick(t, brain, info, yaw=self.trunk_frame()[1], jaw_deg=round(self.opening_deg()[0], 2),
+                               holding=self.holding())
         if brain.mode == "seepick" and "sp_jaw" in info:
             self.goal_deg = info["sp_jaw"]
             if self.a.sp_close_on_contact and phase is not None:
@@ -1217,6 +1284,9 @@ def run(args):
         if args.sp_dock is not None:   # the dock (at most DOCK_MAX_S), the kneel to its hold phase, then --sp-after held
             T = max(T, args.sp_at + dockpick.DOCK_MAX_S + walk_brain.SP_PERIOD * args.sp_phase / (1.0 - args.drop) + 0.5
                     + args.sp_after)
+        T += args.sp_dock_settle
+        if args.sp_runtime:   # find and aim come first; no kneel (dock_only)
+            T = max(T, args.sp_at + dockpick.DOCK_MAX_S + args.sp_runtime_extra + args.sp_after)
     sp_trace = SpTrace(brain, args.sp_trace, "seepickpix" if args.sp_pix else "seepick") if args.sp_trace and sp is not None else None
     mouth = m.site("mouth_tip").id
     feet = [m.geom(g).id for g in ("left_foot_collision", "right_foot_collision")]
@@ -1964,6 +2034,24 @@ def main():
     sp.add_argument("--sp-dock", type=float, nargs=2, default=None, metavar=("R", "BEARING_DEG"),
                     help="dock first (dockpick.py): the ball R m from the root at BEARING_DEG; aim, dock mode until docked, "
                          "then the kneel (--sp-policy, --sp-phase); implies --sp-pix")
+    sp.add_argument("--sp-pix-nominal", action="store_true",
+                    help="T2 camera at the fitted mount (its head_pitch_gain, no per-run mount draw): what duck_kin assumes")
+    sp.add_argument("--sp-runtime", action="store_true",
+                    help="with --sp-dock: run dockpick.DockPick (find, aim, dock; dock_only) through seepick.measure, "
+                         "ball_detect.BallDetect (slow learned pass in sim time) and pix_box, with the A7Z's frame "
+                         "latency (dock_runtime_sim.py); no kneel")
+    sp.add_argument("--sp-runtime-learned-s", type=float, nargs=2, default=(1.1, 1.25), metavar=("LO", "HI"),
+                    help="s per learned pass in sim time (default: the A7Z's, dock_runtime_sim.LEARNED_S)")
+    sp.add_argument("--sp-runtime-frame-lat", type=float, nargs=2, default=(0.16, 0.18), metavar=("LO", "HI"),
+                    help="s capture -> measure() (default: the A7Z's, dock_runtime_sim.FRAME_LAT_S)")
+    sp.add_argument("--sp-runtime-set", action="append", default=[], metavar="NAME=VALUE",
+                    help="override a dockpick constant for this run (A/B), e.g. DOCK_LOST_S=4")
+    sp.add_argument("--sp-runtime-trace", default=None, help="JSONL: the runtime dock's coordinator steps")
+    sp.add_argument("--sp-runtime-kneel", action="store_true",
+                    help="with --sp-runtime: the whole dockpick run, dock then the kneel (hold-on for --sp-after s), not dock_only")
+    sp.add_argument("--sp-runtime-extra", type=float, default=16.0, help="s simulated beyond DOCK_MAX_S for find and aim")
+    sp.add_argument("--sp-dock-settle", type=float, default=0.0, metavar="S",
+                    help="with --sp-dock: stand at zero command S s between the docked verdict and the kneel")
     sp.add_argument("--sp-policy", default=None, help="pick revision (walk_brain.PICK_REVISIONS); --sp-dock default dk")
     sp.add_argument("--sp-phase", type=float, default=None, help="pick phase target; --sp-dock default seepick.HOLD_PHASE (hold-on)")
     sp.add_argument("--sp-shape", choices=("ball", "box", "cylinder"), default="ball")
@@ -2012,6 +2100,16 @@ def main():
         args.sp_phase = seepick.HOLD_PHASE if args.sp_phase is None else args.sp_phase
     elif args.sp_policy is not None or args.sp_phase is not None:
         ap.error("--sp-policy and --sp-phase go with --sp-dock")
+    if args.sp_runtime and args.sp_dock is None:
+        ap.error("--sp-runtime goes with --sp-dock")
+    for kv in args.sp_runtime_set:
+        name, value = kv.split("=", 1)
+        if not hasattr(dockpick, name):
+            ap.error(f"--sp-runtime-set: dockpick has no {name}")
+        kind = type(getattr(dockpick, name))
+        if kind is bool and value not in ("True", "False"):
+            ap.error(f"--sp-runtime-set {name}: True or False")
+        setattr(dockpick, name, value == "True" if kind is bool else kind(value))
     global tick_log
     tick_log = open(args.tick_log, "w") if args.tick_log else None
     if args.volt is None:
