@@ -118,8 +118,29 @@ def variant_flags(variant):
     return ["--manifest", path] + historical
 
 
-def run_case(models, walk_s, base, cls, name, extra, err, variant="current"):
-    cmd = [sys.executable, CHECK, "--model", "asbuilt", "--walk-s", str(walk_s), "--models", models] + variant_flags(variant) + base + extra
+def payload_label(path):
+    """Name of the robot configuration 'current robot + this payload manifest', e.g. battery-20261104+flightpack-nominal."""
+    return f"{resolve_variant('current')}+{os.path.splitext(os.path.basename(path))[0]}"
+
+
+def payload_flags(path):
+    """brain_sim_check.py flags for the robot as it is now carrying a payload (the flight pack): a signed-part manifest
+    built on the current variant, which says so at the start of its "build" string ("battery-20261104 + flight pack
+    ..."). brain_sim_check treats such a manifest as the current robot (cmu/model/visual.py visual_variant_for_manifest);
+    a manifest built on another robot is refused here, before any case runs."""
+    if not os.path.isfile(path):
+        sys.exit(f"sim_suite: payload manifest {path} not found")
+    build = str(json.load(open(path)).get("build", ""))
+    cur = resolve_variant("current")
+    if not (build.startswith(cur + " ") or build.startswith(cur + ":")):
+        sys.exit(f"sim_suite: payload manifest {path} is built on '{build[:60]}', not on the robot as it is now ({cur}); "
+                 f"rebuild the payload manifest on {cur}")
+    return ["--manifest", os.path.abspath(path)]
+
+
+def run_case(models, walk_s, base, cls, name, extra, err, variant="current", payload=None):
+    model = payload_flags(payload) if payload else variant_flags(variant)
+    cmd = [sys.executable, CHECK, "--model", "asbuilt", "--walk-s", str(walk_s), "--models", models] + model + base + extra
     err.write(f"== {name} ({cls}): {' '.join(cmd)}\n")
     err.flush()
     p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=err, text=True)
@@ -128,7 +149,7 @@ def run_case(models, walk_s, base, cls, name, extra, err, variant="current"):
     if p.returncode != 0 or not last.startswith("{"):
         sys.exit(f"sim_suite: case {name} produced no result row (exit {p.returncode}); see {err.name}")
     row = json.loads(last)
-    return {"case": name, "class": cls, "variant": resolve_variant(variant), **row}
+    return {"case": name, "class": cls, "variant": payload_label(payload) if payload else resolve_variant(variant), **row}
 
 
 def fmt(row):
@@ -170,18 +191,29 @@ def main():
     ap.add_argument("--reference", default=None,
                     help="reference rows the real cases are judged against (default reference-walk61[-<variant>].jsonl)")
     ap.add_argument("--compare", default=None, help="print this JSONL side by side with the new rows, per case")
+    ap.add_argument("--payload-manifest", default=None,
+                    help="the robot as it is now carrying a payload: a signed-part manifest built on the current variant "
+                         "(the flight pack: flightpack-nominal.json). Only with --variant current; no stored reference "
+                         "exists for a payload, so pass --reference (cmu/deploy/deploy_policy.py does)")
     a = ap.parse_args()
     if not os.path.isdir(a.models):
         sys.exit(f"sim_suite: {a.models} is not a directory")
+    if a.payload_manifest and a.variant != "current":
+        sys.exit("sim_suite: --payload-manifest goes on the robot as it is now; do not combine it with a historical --variant")
+    if a.payload_manifest:
+        payload_flags(a.payload_manifest)  # refuse a payload built on another robot before any case runs
     if a.reference is None:
-        a.reference = default_reference(a.variant)
+        a.reference = os.path.join(HERE, f"reference-walk61-{payload_label(a.payload_manifest)}.jsonl") if a.payload_manifest \
+            else default_reference(a.variant)
     base = base_flags(a.condition)
     shown = f"current = {resolve_variant('current')}" if a.variant == "current" else f"{a.variant} (historical)"
+    if a.payload_manifest:
+        shown = f"{payload_label(a.payload_manifest)} (current robot + payload {a.payload_manifest})"
     print(f"sim_suite: models {a.models}, variant {shown}, walk {a.walk_s} s, base flags from {a.condition}: {' '.join(base)}")
     rows = []
     with open(a.out, "w") as out, open(a.out + ".err", "w") as err:
         for cls, name, extra in CASES + floor_mu_cases(a.condition):
-            row = run_case(a.models, a.walk_s, base, cls, name, extra, err, a.variant)
+            row = run_case(a.models, a.walk_s, base, cls, name, extra, err, a.variant, a.payload_manifest)
             out.write(json.dumps(row) + "\n")
             out.flush()
             rows.append(row)
