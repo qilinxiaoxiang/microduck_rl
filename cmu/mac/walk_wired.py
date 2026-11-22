@@ -11,16 +11,19 @@ with a latched hardware error (overload, overheating) gets the Reboot instructio
 power cycle; the control file then reads monitor, and the next stand or walk command enables torque as above.
 Stopping this process leaves the servos holding their last goals.
 
-Battery guard (pi/battery.py), --supply auto by default: once the servos read 7.2 V or more (only the 2S pack does),
-Present Input Voltage is read once a second; under 7.0 V it warns, at 6.6 V it replaces the control file: walking gets
+Battery guard (pi/battery.py, thresholds and their measured capacity there), --supply auto by default: once the servos
+read 7.5 V or more (only the 2S pack does), Present Input Voltage is read once a second; under 7.4 V it warns, at
+7.2 V it replaces the control file: walking gets
 zero velocity, so walk61 stops its own steps and keeps the robot balanced (no open-loop ramp to STAND, which falls in
 the simulation), stand mode returns to plain STAND, torque stays on, and once that pose is held (1.5 s at zero command)
 /tmp/duck_battery_stop.json is written. With torque still off it stays in monitor. While that marker exists torque is
-not switched on until the servos read 7.6 V or more (a charged or swapped pack), which deletes it. --supply battery
-applies the guard from the start; --supply bench switches it off (the bench rail sags under 6.6 V while walking,
+not switched on until the servos read 7.8 V or more (a charged or swapped pack), which deletes it. --supply battery
+applies the guard from the start; --supply bench switches it off (the bench rail sags under 7.2 V while walking,
 which the guard reads as an empty pack) but keeps the Alert-bit packets and the hardware-error watch. A failed voltage read is a skipped sample and never
-releases torque. After the stop, 6.2 V on three samples (no walking load left to sag) sits the robot down and turns torque
-off, by 6 s at the latest. --supply-file (the phone's backpack switch) changes the guard while running, also while driving. Armed, the loop also reads Hardware Error Status once a second; a fault other than the battery's
+releases torque. After the stop, 7.1 V on three samples (about 9 % of the pack left) sits the robot down and turns torque
+off, by 6 s at the latest; 3 s after that torque off the brain fsyncs its log and powers the A7Z off cleanly
+(systemctl poweroff, then sudo -n), so the camera and name call stop draining the pack (--no-floor-poweroff keeps it
+running). --supply-file (the phone's backpack switch) changes the guard while running, also while driving. Armed, the loop also reads Hardware Error Status once a second; a fault other than the battery's
 input-voltage flag freezes the policy on its last goals, as a dropped status packet does on the bench.
 
 Pickup additions (2026-10-16, walk_brain.py and jaw_ctl.py have the details):
@@ -99,6 +102,7 @@ import json
 import math
 import os
 import struct
+import subprocess
 import sys
 import threading
 import time
@@ -116,9 +120,9 @@ from duck_sound import Voice  # noqa: E402
 from hold import DOWN_RATE, HOLD_FILE, KP_STEP, UP_RATE, HoldEstimator, legs_current_ma, read_hold_file  # noqa: E402
 from jaw_ctl import GOAL_CURRENT_MA, JAW_ID, POSE_JOINTS, JawCtl  # noqa: E402
 from dxl_fast import _packet, crc16  # noqa: E402
-from battery import (ADDR_HW_ERROR, ADDR_PRESENT_VOLTAGE, ADDR_SHUTDOWN, ALARM_S, INPUT_VOLTAGE_BIT, STOP_MARKER,  # noqa: E402
-                     BatteryGuard, apply_supply_switch, floor_command, status_ok, stop_command, stop_settled,
-                     voltage_alert_only)
+from battery import (ADDR_HW_ERROR, ADDR_PRESENT_VOLTAGE, ADDR_SHUTDOWN, ALARM_S, ARM_ABOVE_DV, INPUT_VOLTAGE_BIT,  # noqa: E402
+                     STOP_MARKER, WARN_BELOW_DV, BatteryGuard, apply_supply_switch, floor_command, status_ok,
+                     stop_command, stop_settled, voltage_alert_only)
 
 ADDR_TORQUE, ADDR_P_GAIN, ADDR_GOAL, ADDR_VEL = 64, 84, 116, 128
 # The per-tick state read: Present Current (126, 2 B signed, 1 mA; the XL330 measures it at its supply input), Present
@@ -199,17 +203,53 @@ class LogWriter:
     def fileno(self):
         return self.f.fileno()
 
+    def sync(self, timeout: float = 2.0) -> bool:
+        """Block until every line queued so far is written and fsynced (before a poweroff). False on a timeout."""
+        done = threading.Event()
+        self.q.put(done)
+        ok = done.wait(timeout)
+        try:
+            os.fsync(self.fileno())
+        except (OSError, ValueError):
+            return False
+        return ok
+
     def _run(self):
         import queue
         while True:
-            lines = [self.q.get()]
+            items = [self.q.get()]
             try:
-                while len(lines) < 200:
-                    lines.append(self.q.get_nowait())
+                while len(items) < 200:
+                    items.append(self.q.get_nowait())
             except queue.Empty:
                 pass
-            self.f.write("".join(lines))
+            self.f.write("".join(x for x in items if isinstance(x, str)))
             self.f.flush()
+            for x in items:
+                if isinstance(x, threading.Event):
+                    x.set()
+
+
+# BATTERY FLOOR poweroff (FAULTS.json a7z-power-loss T3, H1): after the floor's torque off the A7Z, camera and name call
+# still draw about 1 A from the pack, which fell 6.5 -> 4.5 V in 30 s until the DFR1202 dropped the A7Z (three times on
+# 2026-11-20, over-discharging the pack). So the brain powers the board off cleanly a few seconds after torque off.
+# With the power V2 backpack the systemd-shutdown hook (a7z/power-off-20261120) then pulses the Pololu off as well.
+FLOOR_POWEROFF_WAIT_S = 3.0
+
+
+def request_poweroff(run=subprocess.run):
+    """Ask systemd for a clean poweroff, never waiting for a password. Returns (ok, what happened)."""
+    tried = []
+    for cmd in (["systemctl", "--no-ask-password", "poweroff"], ["sudo", "-n", "systemctl", "poweroff"]):
+        try:
+            r = run(cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=15)
+        except (OSError, subprocess.SubprocessError) as e:
+            tried.append(f"{' '.join(cmd)}: {e}")
+            continue
+        if r.returncode == 0:
+            return True, " ".join(cmd)
+        tried.append(f"{' '.join(cmd)}: exit {r.returncode} {(r.stderr or '').strip()[:200]}")
+    return False, "; ".join(tried)
 
 
 class Link:
@@ -786,11 +826,21 @@ def write_run_meta(args):
                 [os.path.abspath(__file__), _wb.__file__] + [os.path.join(HERE, n) for n in ("hold.py", "jaw_ctl.py")]
                 if p and os.path.exists(p)}
         models = {n: sha(os.path.join(args.models, n)) for n in sorted(os.listdir(args.models)) if n.endswith(".onnx")}
+
+        def trial_file(name):  # trial zero and goal shifts, {"joint": deg}; None when the file is absent
+            try:
+                with open(os.path.expanduser(name)) as f:
+                    return json.load(f)
+            except (OSError, ValueError):
+                return None
         meta = dict(t=round(time.time(), 3), when=time.strftime("%Y-%m-%d %H:%M:%S"), host=os.uname().nodename,
                     log=os.path.abspath(args.log), argv=sys.argv[1:], models_dir=os.path.abspath(args.models),
                     code_sha=code, model_sha=models, kp_rl=_wb.KP_RL, kp_stand=_wb.KP_DEFAULT,
                     max_action=args.max_action, max_walk_action=args.max_walk_action, max_tilt=args.max_tilt,
-                    supply=args.supply)
+                    supply=args.supply, imu_pitch_trim_deg=getattr(_wb, "IMU_PITCH_TRIM_DEG", None),
+                    imu_roll_trim_deg=getattr(_wb, "IMU_ROLL_TRIM_DEG", None),
+                    zero_offset_deg=trial_file("~/duck-zero-offset.json"),
+                    goal_offset_deg=trial_file("~/duck-goal-offset.json"))
         path = (args.log[:-6] if args.log.endswith(".jsonl") else args.log) + ".meta.jsonl"
         with open(path, "a") as f:
             f.write(json.dumps(meta) + "\n")
@@ -814,9 +864,12 @@ def main():
                     help="walk_brain's learned straight-walk yaw trim, read at start and updated after each forward walk")
     ap.add_argument("--log", default="/tmp/duck_wired_log.jsonl")
     ap.add_argument("--supply", choices=("auto", "bench", "battery"), default="auto",
-                    help="battery guard: auto arms at 7.2 V (2S pack), battery from the start, bench off")
+                    help=f"battery guard: auto arms at {ARM_ABOVE_DV / 10} V (2S pack), battery from the start, bench off")
     ap.add_argument("--battery-marker", default=STOP_MARKER)
     ap.add_argument("--supply-file", help="backpack switch file (bench or battery), read once a second; it overrides --supply")
+    ap.add_argument("--no-floor-poweroff", action="store_true",
+                    help="at BATTERY FLOOR keep the A7Z running after torque off (default: clean poweroff "
+                         f"{FLOOR_POWEROFF_WAIT_S:.0f} s after torque off, only with the battery guard armed)")
     ap.add_argument("--max-action", type=float, default=MAX_ACTION, help="walk stops into stand above this |action|, rad")
     ap.add_argument("--max-walk-action", type=float, default=MAX_WALK_ACTION,
                     help="the same limit while a walking speed is commanded, rad")
@@ -936,6 +989,7 @@ def main():
     hw_faults, next_hw, last_block = [], time.perf_counter() + 0.5, float("-inf")
     hw_bits = {}  # joint -> Hardware Error Status of a latched fault, for the log
     leash = StandLeash()
+    poweroff_at, poweroff_done = None, False  # BATTERY FLOOR poweroff: due time, and whether it was requested
     while True:
         t0 = time.perf_counter()
         got = link.sync_read(ADDR_CUR, STATE_SIZE, IDS + [JAW_ID], timeout=0.018)  # USB adds a few ms; median 6-11 ms measured
@@ -1337,7 +1391,7 @@ def main():
                 print(f"battery guard not armed: the servos read {guard.dv / 10:.1f} V, a bench rail; on the 2S pack "
                       "restart with --supply battery", flush=True)
             elif event == "warn":
-                print(f"BATTERY LOW: {guard.dv / 10:.1f} V, under 7.0 V; stop walking soon and charge the pack",
+                print(f"BATTERY LOW: {guard.dv / 10:.1f} V, under {WARN_BELOW_DV / 10} V; stop walking soon and charge the pack",
                       flush=True)
             elif event == "stop":
                 print(f"BATTERY STOP: {guard.dv / 10:.1f} V; walking stops and the robot keeps standing", flush=True)
@@ -1357,6 +1411,24 @@ def main():
                       "robot and press the remote's torque-off key, which clears it" if faults
                       else "hardware errors cleared", flush=True)
                 hw_faults = faults
+        # the floor (three samples, never one read) with torque off and the guard armed (a 2S pack, never the bench)
+        if not poweroff_done and not args.no_floor_poweroff:
+            if guard and guard.armed and guard.state == "floor" and not torque_on:
+                if poweroff_at is None:
+                    print(f"BATTERY FLOOR: powering the A7Z off in {FLOOR_POWEROFF_WAIT_S:.0f} s (torque off, "
+                          f"{guard.dv / 10:.1f} V)", flush=True)
+                    log.sync()
+                    poweroff_at = now + FLOOR_POWEROFF_WAIT_S
+                elif now >= poweroff_at:
+                    poweroff_done = True
+                    print("BATTERY FLOOR: powering the A7Z off now", flush=True)
+                    log.sync()
+                    ok, what = request_poweroff()
+                    print(f"BATTERY FLOOR: poweroff requested ({what})" if ok else
+                          f"BATTERY FLOOR: poweroff FAILED ({what}); switch the robot off and charge the pack", flush=True)
+            elif poweroff_at is not None:
+                poweroff_at = None  # torque came back on or the guard was switched off: no poweroff
+                print("BATTERY FLOOR: poweroff cancelled", flush=True)
         if (imu_age > IMU_LOST_S) != imu_lost:
             imu_lost = imu_age > IMU_LOST_S
             print(f"IMU LOST: no IMU sample for {imu_age:.2f} s, the policy holds its last goals; hold the robot. "

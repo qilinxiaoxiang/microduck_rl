@@ -1,0 +1,299 @@
+{
+ "rev": "M5",
+ "frame": "guide/trunk frame, mm",
+ "printer_fits": "H2S",
+ "features_built": [
+  "F1-lower-tier",
+  "F1-chamfer",
+  "F1-chamfer-left",
+  "upper-tier",
+  "F3-lead-bay",
+  "F2-column-right-wall",
+  "F2-left-rib",
+  "F5-dfr-rib",
+  "F2-front-stop",
+  "F2-front-top-pillars",
+  "F11-bosses",
+  "F11-low-columns",
+  "F16-lead-slot-rim",
+  "F11-pilots",
+  "fixing-holes",
+  "F10-lead-slot",
+  "F15-lead-window",
+  "shell-keepout",
+  "flight-keepout",
+  "F16-lead-slot-roof",
+  "F11-cap-plate",
+  "F2-cap-ribs",
+  "F2-cap-top-tabs",
+  "F13-switch-panel-pads",
+  "F11-cap-holes",
+  "F13-switch-cutout",
+  "F16-lead-slot-cap"
+ ],
+ "params": {
+  "SW_PART": "Swann 39 (RoboClub, on the robot)",
+  "SW_YC": 13.8,
+  "SW_ZC": 35.6,
+  "SW_CUT": [
+   27.5,
+   12.3
+  ],
+  "SW_PANEL": 3.0,
+  "SW_PAD": 1.3,
+  "LEAD_SLOT": {
+   "x": [
+    -76.55,
+    -63.0
+   ],
+   "y": [
+    -24.0,
+    -4.8
+   ],
+   "cap_z": 37.0,
+   "chamfer": 0.6
+  },
+  "GROW": 0.0,
+  "FLOOR": 1.4,
+  "ROOF": 1.4,
+  "COL_PILOT": 10.0,
+  "LOW_Y_LEFT": 21.8,
+  "CLEAR_D": 2.5,
+  "PILOT_D": 1.95
+ },
+ "outline": {
+  "UP": [
+   [
+    -75.55,
+    -32.05,
+    -15.2
+   ],
+   [
+    -45.0,
+    32.05,
+    43.0
+   ]
+  ],
+  "LOW": [
+   [
+    -75.55,
+    -25.3,
+    -46.0
+   ],
+   [
+    -45.0,
+    21.8,
+    -15.2
+   ]
+  ],
+  "SPLIT_X": -73.85,
+  "X_IN": -47.0,
+  "ROOF_IN": 41.6
+ },
+ "battery": [
+  [
+   -69.3,
+   -23.3,
+   -44.6
+  ],
+  [
+   -49.3,
+   10.7,
+   29.4
+  ]
+ ],
+ "screws": [
+  [
+   16.1,
+   26.0
+  ],
+  [
+   -16.1,
+   26.0
+  ],
+  [
+   16.1,
+   -36.5
+  ],
+  [
+   -16.1,
+   -36.5
+  ]
+ ],
+ "cap_screws": [
+  {
+   "id": "cap-high-left",
+   "yz": [
+    29.0,
+    26.5
+   ],
+   "L": 8,
+   "boss": 5.0,
+   "pilot": "through",
+   "column": null
+  },
+  {
+   "id": "cap-high-right",
+   "yz": [
+    -29.0,
+    39.0
+   ],
+   "L": 8,
+   "boss": 5.0,
+   "pilot": "through",
+   "column": null
+  },
+  {
+   "id": "cap-low-left",
+   "yz": [
+    17.6,
+    -28.0
+   ],
+   "L": 6,
+   "boss": null,
+   "pilot": 10.0,
+   "column": [
+    [
+     15.1,
+     -30.5
+    ],
+    [
+     20.150000000000002,
+     -25.5
+    ]
+   ]
+  },
+  {
+   "id": "cap-low-right",
+   "yz": [
+    -27.825,
+    -8.0
+   ],
+   "L": 6,
+   "boss": null,
+   "pilot": 10.0,
+   "column": [
+    [
+     -30.4,
+     -13.55
+    ],
+    [
+     -25.25,
+     -4.5
+    ]
+   ]
+  }
+ ],
+ "parts": {
+  "battery_v2_frame": {
+   "bodies": 1,
+   "status": "Error.NoError",
+   "volume_cm3": 26.05,
+   "mass_g_solid": 32.3,
+   "bounds": [
+    [
+     -73.85,
+     -32.05,
+     -46.0
+    ],
+    [
+     -45.0,
+     32.05,
+     43.0
+    ]
+   ],
+   "watertight": true,
+   "source_to_print": [
+    [
+     0.0,
+     1.0,
+     0.0,
+     32.049999
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     43.0
+    ],
+    [
+     -1.0,
+     0.0,
+     0.0,
+     -45.0
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_height_mm": 28.85,
+   "bed_contact_mm2": 3750.5,
+   "overhang_over_45deg_mm2": 328.0
+  },
+  "battery_v2_cap": {
+   "bodies": 1,
+   "status": "Error.NoError",
+   "volume_cm3": 9.53,
+   "mass_g_solid": 11.8,
+   "bounds": [
+    [
+     -75.55,
+     -32.05,
+     -46.0
+    ],
+    [
+     -66.0,
+     32.05,
+     43.0
+    ]
+   ],
+   "watertight": true,
+   "source_to_print": [
+    [
+     0.0,
+     1.0,
+     0.0,
+     32.049999
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     46.0
+    ],
+    [
+     1.0,
+     0.0,
+     0.0,
+     75.550003
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "print_height_mm": 9.55,
+   "bed_contact_mm2": 4693.7,
+   "overhang_over_45deg_mm2": 0.5
+  }
+ },
+ "bought_parts": [
+  "DC5_5_plug-world.stl",
+  "DFR1202-world.stl",
+  "DFR1202_leads-world.stl",
+  "DFR1202_solder_joints-world.stl",
+  "DFR1202_tape-world.stl",
+  "Swann_39_snap_wings-world.stl",
+  "Swann_39_switch-world.stl",
+  "balance_plug-world.stl",
+  "battery_2S_3000-world.stl",
+  "battery_foam_pad-world.stl",
+  "plug_1-world.stl",
+  "plug_2-world.stl"
+ ]
+}

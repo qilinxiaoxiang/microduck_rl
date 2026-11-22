@@ -32,7 +32,7 @@ def add(src_dir, dst_dir, names):
 
 
 add(MAC, "mac", [
-    "walk_brain.py", "walk_wired.py", "brain_sim_check.py", "brain_sim_batch.py", "jaw_ctl.py", "fake_pi.py",
+    "walk_brain.py", "walk_wired.py", "brain_sim_check.py", "lead_model.py", "brain_sim_batch.py", "jaw_ctl.py", "fake_pi.py",
     "pickup.py", "pickup_sim.py", "target_ground.py", "orange_target.py", "duck_cam.py", "stance_switch.py",
     "sim_walk_check.py", "measure_gap.py", "walk_trial.py", "pose_snapshot.py", "sim_host_guard.py", "cam_calib.py",
     "test_pickup.py", "test_pickup_modes.py", "test_stance_switch.py", "test_target_ground.py", "test_walk_wired_battery.py",
@@ -84,6 +84,7 @@ add(f"{WHOLE}/delay-repair-20260912", "whole/delay-repair-20260912", ["evaluate_
 add(f"{WHOLE}/runtime-overlay", "whole/runtime-overlay", ["source-lock.json"])  # README.md is a Pi-install note for the old community runtime, not copied
 add(f"{WHOLE}/runtime-overlay/models", "whole/runtime-overlay/models", ["walk61.onnx", "stand61.onnx", "groundpick61.onnx",
     "sitstand61.onnx", "kick_left61.onnx", "kick_right61.onnx"])  # the remote-control policies (Pollen's, source-lock.json)
+add(f"{WHOLE}/runtime-overlay/models", "whole/runtime-overlay/models", ["seepick61.onnx"])  # our see-and-pick policy (walk_brain seepick mode, 2026-10-27)
 add(f"{WHOLE}/runtime-overlay/models-ft3-it999", "whole/runtime-overlay/models-ft3-it999", [])
 add(f"{WHOLE}/electrical", "whole/electrical", ["existing-model-mass-audit.json"])
 add("build-pack-20260913/procurement/feet-sole-20261018", "model/sole", ["README.md", "sole_thickness_sim.py", "sole_template.py"])
@@ -133,6 +134,41 @@ add("guide/print/world", f"{HWB}/mating", ["rear_pack.stl", "rear_frame.stl", "r
                                            "openrb-board-upright.stl"])
 add(PIPE, f"{HWP}/scripts", ["release_pipeline_v2.py", "verify_release_v2.py", "review_brim.py",
                              "wall_check.py", "verify_release.py", "release_pipeline.py"])  # the last three: imported by the v2 scripts
+# cmu/hardware/battery-backpack-3000mah: the battery backpack for the Crazepony 2S 3000 mAh battery (frame and cap rev M5,
+# print release V1.47, current robot from 2026-11-22; Shawn: "推到GitHub repo，这样其他同学可以拿到新的背包以及文件").
+# Ready print files for four printer setups, the STLs with each printer's holes, the bought-part envelopes, the Chinese
+# assembly page, BOM, design contract, checks and the CAD script. The hand-written page is its README.md.
+BV2 = "guide/print/battery-v2-cad-20261120"
+HW3 = "hardware/battery-backpack-3000mah"
+FILES += [
+    ("guide/print/release-V1.46/delivery-h2s/zhengxia_V1.46_Orange_Bambu-H2S_1h39m.gcode.3mf",
+     f"{HW3}/print/H2S/zhengxia_V1.46_Orange_Bambu-H2S_1h39m.gcode.3mf"),
+    ("guide/print/release-V1.47/run/delivery/zhengxia_V1.47_Orange_Bambu-X1C_1h33m.gcode.3mf",
+     f"{HW3}/print/X1C-TexturedPEI/zhengxia_V1.47_Orange_Bambu-X1C_1h33m.gcode.3mf"),
+    ("guide/print/release-V1.47/delivery-x1c-cool/zhengxia_V1.47_Orange_Bambu-X1C-CoolPlate_1h32m.gcode.3mf",
+     f"{HW3}/print/X1C-CoolPlate/zhengxia_V1.47_Orange_Bambu-X1C-CoolPlate_1h32m.gcode.3mf"),
+    ("guide/print/release-V1.47/run/delivery/zhengxia_V1.47_Orange_Elegoo-Centauri-Carbon_1h40m.gcode",
+     f"{HW3}/print/Elegoo/zhengxia_V1.47_Orange_Elegoo-Centauri-Carbon_1h40m.gcode"),
+    ("guide/print/release-V1.47/run/four-files.json", f"{HW3}/print/four-files.json"),
+    (f"{BV2}/guide/dist/BATTERY-PACK-BUILD.html", f"{HW3}/BATTERY-PACK-BUILD.html"),
+    ("../cad-practice/coupons/pilot-coupon.stl", f"{HW3}/stl/pilot-coupon.stl"),
+    ("../cad-practice/coupons/build_pilot_coupon.py", f"{HW3}/cad-source/build_pilot_coupon.py"),
+    ("../cad-practice/PRINT-FIT.md", f"{HW3}/PRINT-FIT.md"),
+]
+_BV2_STL = ["battery_v2_frame-world.stl", "battery_v2_frame-print.stl", "battery_v2_cap-world.stl", "battery_v2_cap-print.stl",
+            "build.json"]
+add(f"{BV2}/build", f"{HW3}/stl/H2S-holes", _BV2_STL)
+add(f"{BV2}/build-X1C", f"{HW3}/stl/X1C-Elegoo-holes", _BV2_STL)
+add(f"{BV2}/build/parts", f"{HW3}/envelopes", ["DC5_5_plug-world.stl", "DFR1202-world.stl", "DFR1202_leads-world.stl",
+                                               "DFR1202_solder_joints-world.stl", "DFR1202_tape-world.stl",
+                                               "Swann_39_snap_wings-world.stl", "Swann_39_switch-world.stl",
+                                               "balance_plug-world.stl", "battery_2S_3000-world.stl",
+                                               "battery_foam_pad-world.stl", "plug_1-world.stl", "plug_2-world.stl"])
+add(BV2, HW3, ["BOM.json", "DESIGN-CONTRACT.json", "FITS.json", "SCREWS.json"])
+add(f"{BV2}/checks", f"{HW3}/checks", ["checks.json", "fit_check_H2S.json", "fit_check_X1C.json", "FITS-X1C.json",
+                                        "mass_com.json", "access.json"])
+add(BV2, f"{HW3}/cad-source", ["build_v2.py", "mass_com.py", "checks.py"])
+
 # (3mf, member, destination): a JSON member of a project archive written out as a readable profile
 EXTRACTS = [
     (f"{REL}/run/Orange_Bambu_editable.3mf", "Metadata/project_settings.config", f"{HWP}/profiles/x1c-orange-project_settings.json"),
@@ -223,6 +259,10 @@ RULES = {
     "whole/dynamics/asbuilt-20261015/asbuilt-mass-manifest.json": [("str", ABS_SIM, f"{SIM_REL}/", 1)],
     "whole/dynamics/v19-20261014/v19-mass-manifest.json": [("str", ABS_SIM, f"{SIM_REL}/", 0)],
     "whole/dynamics/asbuilt-20261015/build_asbuilt_manifest.py": [("str", "/private/tmp/claude-501/", "/private/tmp/", 0)],
+    # battery-backpack-3000mah: Mac mini absolute paths and the local Downloads folder (written by its checks and release)
+    f"{HW3}/SCREWS.json": [("re", re.compile(r"/Users/[^/]+/code/robotics/microduck-sim/microduck_rl/"), "", 4)],
+    f"{HW3}/checks/checks.json": [("re", re.compile(r"/Users/[^/]+/code/robotics/microduck-sim/"), f"{SIM_REL}/", 1)],
+    f"{HW3}/print/four-files.json": [("str", os.path.expanduser("~/Downloads/zhengxia_MicroDuck_V1.47"), "print", 1)],
     # cmu/hardware copies: private absolute paths become paths relative to the robotics checkout; scratch paths are named.
     "hardware/battery-backpack/checks/release-rows-orange.json": [("str", ABS_SIM, f"{SIM_REL}/", 12)],
     "hardware/battery-backpack/cad-source/bp_checks.py": [("str", ABS_SIM, f"{SIM_REL}/", 1)],

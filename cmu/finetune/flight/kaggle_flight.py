@@ -42,11 +42,42 @@ for _n, _p in {"fq2_1999.onnx": TRAIN / "ckpt/fq2_1999/walk61.onnx",
                "groundpick61.onnx": TRAIN / "ckpt/bend_spec/groundpick61.onnx",
                "seepick61.onnx": TRAIN / "ckpt/bend_spec/seepick61.onnx",
                # NEXT-PLAN.md: universal3 starts from run A final; bend4's in-episode hand-back stander
-               "uni_a.onnx": TRAIN / "ckpt/uni_a/walk61.onnx"}.items():
+               "uni_a.onnx": TRAIN / "ckpt/uni_a/walk61.onnx",
+               # TEACHER-STUDENT-PLAN.md: the one-frame start of the teacher and the control arm, the iteration-0
+               # teacher (bench only) and the trained teacher the students are distilled from
+               "ts_start.onnx": TRAIN / "ckpt/ts_start/walk61.onnx",
+               "ts_teacher_m0.onnx": TRAIN / "ckpt/ts_teacher_m0/teacher.onnx",
+               "ts_teacher.onnx": TRAIN / "ckpt/ts_teacher/teacher.onnx",
+               # round 2: the teacher trained with the runtime loop delay (delta universal4t)
+               "ts2_teacher.onnx": TRAIN / "ckpt/ts2_teacher/teacher.onnx",
+               "ts2b_teacher.onnx": TRAIN / "ckpt/ts2b_teacher/teacher.onnx",
+               # teacher A at its last iteration (0 falls of 100 in the runtime selection cases)
+               "ts2a999_teacher.onnx": TRAIN / "ckpt/ts2a999_teacher/teacher.onnx",
+               # its students' last saved states, continued with --resume-pt
+               "s2c_132.pt": TRAIN / "ckpt/s2c_132/model_132.pt",
+               "l2c_140.pt": TRAIN / "ckpt/l2c_140/model_140.pt",
+               # the from-scratch student trained with dropped ticks, last saved state
+               "s2f_160.pt": TRAIN / "ckpt/s2f_160/model_160.pt",
+               # round 3 run AB's save 140: the start of PPO on the distilled student (--resume-pt)
+               "s3AB_140.pt": TRAIN / "ckpt/s3AB_140/model_140.pt",
+               # round 3: the deployed walk61, the anchor target of universal5t and its second start policy; the
+               # round-3 teacher the students are distilled from
+               "walk61.onnx": REPO / "cmu/whole/runtime-overlay/models/walk61.onnx",
+               "ts3_teacher.onnx": TRAIN / "ckpt/ts3_teacher/teacher.onnx"}.items():
     if _p.exists():
         kj.ASSETS[f"init/{_n}"] = _p
+# round 3: every teacher save that passed the chatter gates (train/ts3_distill_trigger.py copies it to train/init/)
+for _p in sorted((TRAIN / "init").glob("ts3t_*.onnx")):
+    kj.ASSETS[f"init/{_p.name}"] = _p
 _flags = kj.worker_flags
-kj.worker_flags = lambda: _flags() | {"--scratch", "--task", "--history-step-scale"}
+# --distill jobs run distill_worker.py through flight_worker.py (TEACHER-STUDENT-PLAN.md)
+DISTILL_FLAGS = {"--distill", "--teacher-onnx", "--core", "--hidden", "--layers", "--bptt-steps", "--beta-iters", "--act-noise",
+                 "--epochs", "--mb-envs", "--lr", "--lr-final", "--stop-after", "--device", "--resume-pt", "--drop-max",
+                 # 2026-11-20: run AB's recipe (anchor, case and stop shares, gain flag) and the PPO term on the student
+                 "--anchor-onnx", "--anchor-w", "--anchor-head", "--case-share", "--stop-share", "--gain-flag-col",
+                 "--rl-w", "--bc-w", "--bc-w-final", "--rl-clip", "--rl-gamma", "--rl-lam", "--rl-std", "--rl-vf",
+                 "--rl-critic-lr", "--rl-critic-warmup"}
+kj.worker_flags = lambda: _flags() | {"--scratch", "--task", "--history-step-scale"} | DISTILL_FLAGS
 
 
 def _audit_gate(argv):
@@ -58,7 +89,7 @@ def _audit_gate(argv):
     if "push" not in argv or "run" not in argv:
         return
     for i, a in enumerate(argv):  # every /root/assets path a job names must be a shipped asset the entry copies
-        if a in ("--onnx", "--manifest") and i + 1 < len(argv) and argv[i + 1].startswith("/root/assets/"):
+        if a in ("--onnx", "--manifest", "--teacher-onnx", "--resume-pt") and i + 1 < len(argv) and argv[i + 1].startswith("/root/assets/"):
             if argv[i + 1][len("/root/assets/"):] not in kj.ASSETS:
                 sys.exit(f"asset check: {argv[i + 1]} is not in the shipped assets")
     deltas = [argv[i + 1] for i, a in enumerate(argv) if a == "--delta" and i + 1 < len(argv)]
@@ -82,6 +113,10 @@ def _audit_gate(argv):
         tg = float(job[job.index("--track-guard") + 1]) if "--track-guard" in job else 0.0
         if d.endswith("h") and d.startswith("universal") and "--history-step-scale" not in job:  # HISTORY-PLAN.md section 8
             sys.exit(f"history job with delta {d!r} has no --history-step-scale; the unscaled update broke the walker")
+        if "--distill" in job:  # distill_worker.py stops on the student's low-command speed and falls against the teacher's
+            if "--teacher-onnx" not in job or "--core" not in job:
+                sys.exit("distill job needs --teacher-onnx and --core")
+            continue
         if d not in ("bend4",) and tg <= 0:
             sys.exit(f"task-metric stop: job with delta {d!r} has no --track-guard; refusing a run that cannot stop itself")
     tree = ast.parse((HERE / "flight_worker.py").read_text())
@@ -90,6 +125,16 @@ def _audit_gate(argv):
                                 ("bend3", "BEND_MODS_CHOSEN", "rm_bend_chosen.json"),
                                 ("universal3", "UNIVERSAL3_MODS", "rm_universal3.json"),  # NEXT-PLAN.md
                                 ("universal3h", "UNIVERSAL3_MODS", "rm_universal3.json"),  # HISTORY-PLAN.md
+                                ("universal3t", "UNIVERSAL3_MODS", "rm_universal3.json"),  # TEACHER-STUDENT-PLAN.md
+                                ("universal4", "UNIVERSAL3_MODS", "rm_universal3.json"),   # round 2: same reward,
+                                ("universal4t", "UNIVERSAL3_MODS", "rm_universal3.json"),  # runtime loop delay
+                                ("universal4b", "UNIVERSAL3_MODS", "rm_universal3.json"),  # the longer delay setting
+                                ("universal4tb", "UNIVERSAL3_MODS", "rm_universal3.json"),
+                                ("universal5", "UNIVERSAL5_MODS", "rm_universal5.json"),   # round 3: chatter fix
+                                ("universal5t", "UNIVERSAL5_MODS", "rm_universal5.json"),
+                                ("universal5tg", "UNIVERSAL5_MODS", "rm_universal5.json"),  # + gain scale as teacher input
+                                ("universal5tgs", "UNIVERSAL5S_MODS", "rm_universal5s.json"),  # smoothness weights doubled
+                                ("universal5tgb", "UNIVERSAL5B_MODS", "rm_universal5b.json"),  # leg big-step term + goal clamp
                                 ("bend4", "BEND4_MODS", "rm_bend4.json")):
         if delta in deltas:
             mods = next(ast.literal_eval(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)

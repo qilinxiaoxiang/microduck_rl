@@ -25,6 +25,12 @@ def apply_visual_to_spec(spec: mujoco.MjSpec, variant: str = "", visual: dict | 
     """Replace the official visual geoms in `spec` with today's robot, or with `variant` (e.g. "battery": the backpack
     in place of the bench converter box); returns the number of geoms added."""
     visual_dir = VISUAL_DIR
+    # battery-v2m5-20261121 (the battery backpack with the 2S 3000 mAh battery, current since 2026-11-22) is drawn by
+    # visual-20261122 (fitted-20261122.json: the 11-04 robot with the new backpack in place of the old one).
+    if variant == "battery-v2m5-20261121":
+        visual_dir = VISUAL_DIR.with_name("visual-20261122")
+        visual = visual or json.loads((visual_dir / "visual.json").read_text())
+        variant = ""
     if variant == "battery-20261104":
         visual_dir = VISUAL_DIR.with_name("visual-20261104")
         visual = visual or json.loads((visual_dir / "visual.json").read_text())
@@ -55,7 +61,9 @@ def apply_visual_to_spec(spec: mujoco.MjSpec, variant: str = "", visual: dict | 
 CURRENT_FILE = Path(__file__).resolve().parent / "current.json"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # mass manifest file stem -> the visual layer that draws the same robot ("" = the legacy charger-pack look)
-_VISUAL_BY_STEM = {"asbuilt-mass-manifest": "", "plugged": "", "battery": "battery", "battery-20261104": "battery-20261104"}
+_VISUAL_BY_STEM = {"asbuilt-mass-manifest": "", "plugged": "", "battery": "battery", "battery-20261104": "battery-20261104",
+                   # the new battery backpack (current since 2026-11-22), drawn by visual-20261122
+                   "battery-v2m5-20261121": "battery-v2m5-20261121"}
 
 
 def current_model() -> dict:

@@ -1,12 +1,13 @@
 {
- "about": "The one pointer to the model of the robot as it is now. Every simulator, rehearsal, video and new training task loads this variant unless it states a historical model on purpose. Change it in the same commit that adds a newer dated variant, and update the robotics checkout's CURRENT-STATE.json fact battery_sim_model_20261104 (or its successor) to the same manifest hash.",
- "variant": "battery-20261104",
- "mass_manifest": "cmu/model/manifests/battery-20261104.json",
- "mass_manifest_sha256": "232708646e618ee45eaf6d14311856573e8969d4d397277dad8b7e6e23c7cb79",
- "visual": "cmu/model/visual-20261104/visual.json",
- "since": "2026-11-04",
- "describes": "battery backpack (V1.40 frame, V1.41 cap and hatch, battery on the cap), A7Z on the orange V1.35 roof saddle without lid, U20CAM head with microphones and touch board; charger box removed",
+ "about": "The one pointer to the model of the robot as it is now. Every simulator, rehearsal, video and new training task loads this variant unless it states a historical model on purpose. Change it in the same commit that adds a newer dated variant, and update the robotics checkout's CURRENT-STATE.json fact battery_sim_model_20261104 (the key keeps its first name; its value is always the current model) to the same manifest hash.",
+ "variant": "battery-v2m5-20261121",
+ "mass_manifest": "cmu/model/manifests/battery-v2m5-20261121.json",
+ "mass_manifest_sha256": "534b61351a215894a937c11c701a60fd976c487f8375c7a9d0bc52719774a0cb",
+ "visual": "cmu/model/visual-20261122/visual.json",
+ "since": "2026-11-22",
+ "describes": "battery backpack with the Crazepony 2S 3000 mAh battery (frame and cap rev M5, print V1.47, screwed to the OpenRB box), old switch, DFR1202 and plug leads reused; A7Z on the orange V1.35 roof saddle without lid; U20CAM head with microphones and touch board. Masses estimated (CAD volume and listing), not weighed.",
  "historical": {
+  "battery-20261104": "2026-11-04 to 11-22: V1.40/V1.41 battery backpack with the Tattu 2S 650 mAh on the cap",
   "asbuilt": "2026-10-15 bench box, Pi Zero W head",
   "plugged": "charger pack on the bench supply (A7Z saddle drawn white, rear converter box); retired 2026-11-03",
   "battery": "2026-10-15 battery backpack plan, superseded by battery-20261104"

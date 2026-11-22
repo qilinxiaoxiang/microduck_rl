@@ -41,6 +41,8 @@ for _p in sorted(FLIGHT.glob("flightpack-*.json")):
     ASSETS[f"manifests/{_p.name}"] = str(_p)
 for _p in sorted((FLIGHT.parent / "init").glob("*.onnx")):  # round-2 init and audit policies (round-1 checkpoints)
     ASSETS[f"init/{_p.name}"] = str(_p)
+for _p in sorted((FLIGHT.parent / "init").glob("*.pt")):  # 2026-11-20: a student save to continue (--resume-pt)
+    ASSETS[f"init/{_p.name}"] = str(_p)
 IGNORE = ["**/.venv/**", "**/logs/**", "**/wandb/**", "**/__pycache__/**", "**/.git/**", "**/*.pt", "**/*.onnx", "**/outputs/**", "**/runs/**",
           "**/cmu/real-logs/**", "**/cmu/whole/runtime-overlay/models-ft*/**", "**/kaggle/out/**", "**/*.gz", "**/cmu/simulator/**",
           "**/cmu/hardware/**", "**/cmu/model/scans/**"]

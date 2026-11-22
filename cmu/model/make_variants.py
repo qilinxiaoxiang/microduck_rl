@@ -27,7 +27,7 @@ import apply_masses  # noqa: E402
 MODEL_DIR = apply_masses.MODEL_DIR
 VARIANT_DIR = MODEL_DIR / "variants"
 MANIFEST_DIR = apply_masses.MANIFEST_DIR
-GENERATED = ("plugged", "battery", "battery-20261104")
+GENERATED = ("plugged", "battery", "battery-20261104", "battery-v2m5-20261121")
 
 
 def resolve_variant(path: Path) -> tuple[dict, list[dict], list[dict], list[dict], list[str]]:

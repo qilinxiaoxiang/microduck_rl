@@ -126,6 +126,11 @@ def trunk_payload(env, env_ids, ranges, asset_cfg, payload: dict):
         m_rest = env.sim.get_default_field("body_mass").sum() - dm.sum()  # every body but trunk_base
         whole = (m.view(k) + m_rest) / m.view(k)
         delta[:, 0] = (torch.rand(k, device=dev) * 2 - 1) * float(cx) * whole
+    fx = payload.get("com_x_fixed_whole_m")
+    if fx is not None:  # diagnostics only (cold-start study 2026-11-18, default absent): one whole-robot x offset, no y/z offset
+        m_rest = env.sim.get_default_field("body_mass").sum() - dm.sum()
+        delta = torch.zeros(k, 3, device=dev)
+        delta[:, 0] = float(fx) * (m.view(k) + m_rest) / m.view(k)
     c = c + delta
     J2 = _reconstruct_pseudo_inertia_J(m, c, inert, q)  # same inertia about the moved COM
     m, c, inert, q = _decompose_pseudo_inertia_J(J2)

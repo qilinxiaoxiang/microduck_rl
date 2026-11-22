@@ -117,6 +117,116 @@ fw.DELTAS["bend4"] = dict(fw.DELTAS["bend3"], reward_mods=BEND4_MODS, handback=B
 # uni_a exactly. The ONNX keeps obs [1, 61] as its first input and carries the history as hist_in / hist_out.
 HISTORY_A = {"k": 25, "p": 48}
 fw.DELTAS["universal3h"] = dict(fw.DELTAS["universal3"], history=HISTORY_A)
+# universal3t (extensions/flight-20261110/train/TEACHER-STUDENT-PLAN.md; approved 2026-11-18): universal3's env and
+# reward unchanged, plus seven privileged simulator values appended to the actor observation (teacher.py: payload kg,
+# loaded trunk COM, trunk linear velocity). This is the PPO teacher of the teacher-student pair; it never runs on the
+# robot. Start from the best one-frame policy with zero weights on the seven columns (iteration 0 equals it).
+TEACHER_PRIV = {"n": 7}
+fw.DELTAS["universal3t"] = dict(fw.DELTAS["universal3"], teacher_priv=TEACHER_PRIV)
+# universal4 / universal4t (TEACHER-STUDENT-PLAN.md "Round 2", approved 2026-11-18): universal3's reward and payload
+# unchanged, with the control loop timed as the runtime simulation (brain_sim_check.py --sensor-delay 1 --action-delay 1:
+# readings one 20 ms tick old, action applied 20 ms late, 40 ms from measurement to servo). RUNLOG 2026-11-18: the
+# universal3 env has 15-30 ms (fresh joint positions, command lag 3-6 physics steps) and its policies fall in the
+# runtime simulation from that difference alone. Lags: act in 5 ms physics steps, observations in 20 ms control ticks
+# (joint_vel 2 = its own one-tick lag in the base recipe plus the stale reading). act_period: physics steps one env
+# keeps its drawn command lag (the base recipe redraws every step; the runtime's delay is constant).
+# Two settings, trained side by side because the training env does not reproduce the runtime simulation's falls at
+# equal dead time (RUNLOG 2026-11-18: its cliff sits about 20 ms later, and with pushes off tsc_999 at 45 ms falls
+# 0.19 per env-minute where the runtime simulation drops it 19 of 20 at 44 ms):
+#   universal4 / universal4t    command lag 4-9 steps: dead time 40-65 ms (the runtime's nominal 40 ms at its low end)
+#   universal4b / universal4tb  command lag 7-12 steps: dead time 55-80 ms (about 15 ms longer)
+LOOP_DELAY = {"act_lag": [4, 9], "act_period": 400, "joint_pos_lag": [1, 1], "joint_vel_lag": [2, 2], "imu_lag": [1, 1]}
+LOOP_DELAY_B = dict(LOOP_DELAY, act_lag=[7, 12])
+LOOP_DELAYS = {"universal4": LOOP_DELAY, "universal4t": LOOP_DELAY, "universal4b": LOOP_DELAY_B, "universal4tb": LOOP_DELAY_B}
+for _n, _ld in LOOP_DELAYS.items():
+    fw.DELTAS[_n] = dict(fw.DELTAS["universal3t" if "t" in _n[len("universal4"):] else "universal3"], loop_delay=_ld)
+# universal5 / universal5t (round 3, 2026-11-19; extensions/flight-20261110/train/RUNLOG.md "Round 3",
+# CHATTER-LITERATURE.md; Shawn after the s2r6_4 robot fall: "可见仿真和真机有gap 你看看怎么弥合", fix rounds without a
+# nod): universal4's env plus what the chatter gap needs (smooth_terms.py):
+#   gain_dr   one position-gain scale per env per episode, 0.8 to 2.2: the runtime simulation reproduces the robot's
+#             standstill fall only at twice the position gain (--kp-rl 400), and only walk61 survives that cell
+#   reward    universal3's, with the action-rate weight raised and an action-acceleration term (UNIVERSAL5_MODS; the
+#             weights are set from the incentive audit and compared at push with rm_universal5.json)
+#   anchor61  (teacher only) behaviour-cloning anchor to the deployed walk61 on no-pack states
+# The no-pack share of resets goes from 10 % to 20 % (full 35, batteries out 20, scaled 25): the robot's first trial of
+# any candidate is without the pack, and the anchor and three of the five gates live there.
+UNIVERSAL5_MODS = {"cmd_ranges": {"lin_vel_x": [-0.05, 0.3], "lin_vel_y": [-0.05, 0.05], "ang_vel_z": [-0.5, 0.5]},
+                   "weights": {"air_time": 6.0, "track_linear_velocity": 3.0, "upright": 0.5, "head_pose_tracking": 1.0,
+                               "action_rate_l2": -2.0},
+                   "pose_std_walking": {".*hip_yaw.*": 0.15},
+                   "foot_heading_weight": -8.0,
+                   "push_x": [-0.35, 0.35],
+                   "com_x_whole_m": 0.012,
+                   "step_width": {"limit": 0.1, "weight": -15.0},
+                   "torque_margin_weight": -20.0,
+                   "progress": {"weight": 14.0, "min_cmd": 0.1},
+                   "action_acc": {"weight": -0.6}}
+GAIN_DR = {"kp": [0.8, 2.2]}
+PAYLOAD5_WEIGHTS = {"full": 0.35, "nobatt": 0.20, "none": 0.20, "scaled": 0.25}
+ANCHOR61 = {"onnx": "/root/assets/init/walk61.onnx", "beta": 2.0, "batch": 4096, "payload_max_kg": 0.02}
+for _n in ("universal5", "universal5t"):
+    _b = fw.DELTAS["universal4t" if _n.endswith("t") else "universal4"]
+    fw.DELTAS[_n] = dict(_b, reward_mods=UNIVERSAL5_MODS, gain_dr=GAIN_DR,
+                         payload=dict(_b["payload"], weights=PAYLOAD5_WEIGHTS))
+    LOOP_DELAYS[_n] = LOOP_DELAY
+fw.DELTAS["universal5t"]["anchor61"] = ANCHOR61
+# Parallel arms of the round-3 teacher (2026-11-19 19:44, RUNLOG.md "Round 3 parallel arms"): universal5t with one
+# value changed each. The anchor weight is a supervised step, not a reward, so the b arms run under universal5t's
+# recorded audit; the kp30 arm widens a randomisation and needs its own audit record before a launch.
+#   universal5t_b05   anchor weight 0.5   (is a weaker pull enough to bring the no-pack action to walk61?)
+#   universal5t_b6    anchor weight 6.0   (does a stronger pull close the distance without losing the pack?)
+#   universal5t_kp30  gain scale 0.8-3.0  (does training past twice the gain buy margin at the gain400 gates?)
+ARM_VARIANTS = {"universal5t_b05": {"anchor61": dict(ANCHOR61, beta=0.5)},
+                "universal5t_b6": {"anchor61": dict(ANCHOR61, beta=6.0)},
+                "universal5t_kp30": {"gain_dr": {"kp": [0.8, 3.0]}}}
+# universal5tg (2026-11-19 21:00): universal5t whose teacher also reads the position-gain scale it is trained under
+# (teacher.enable_gain). Same rewards and randomisation as universal5t, so the same audit record. Its students are
+# distilled in universal5 and have to infer the gain from their own history, as they do the load.
+ARM_VARIANTS["universal5tg"] = {"teacher_priv": {"n": 8}}
+# universal5tgs (2026-11-19 23:10): universal5tg with both action-smoothness weights doubled. In ts3-teach-h the
+# pack-walk speed and the action jumps rose together from save 750 on (0.07 m/s and 5 jumps, 0.14 and 41, 0.20 and
+# 158 per 17 s episode) while the action-rate cost only went from -0.39 to -0.62 per episode: at -2.0 / -0.6 the
+# speed terms pay more than jumps cost. A reward change, so it has its own audit record (rm_universal5s.json).
+UNIVERSAL5S_MODS = {"cmd_ranges": {"lin_vel_x": [-0.05, 0.3], "lin_vel_y": [-0.05, 0.05], "ang_vel_z": [-0.5, 0.5]},
+                    "weights": {"air_time": 6.0, "track_linear_velocity": 3.0, "upright": 0.5, "head_pose_tracking": 1.0,
+                                "action_rate_l2": -4.0},
+                    "pose_std_walking": {".*hip_yaw.*": 0.15},
+                    "foot_heading_weight": -8.0,
+                    "push_x": [-0.35, 0.35],
+                    "com_x_whole_m": 0.012,
+                    "step_width": {"limit": 0.1, "weight": -15.0},
+                    "torque_margin_weight": -20.0,
+                    "progress": {"weight": 14.0, "min_cmd": 0.1},
+                    "action_acc": {"weight": -1.2}}
+ARM_VARIANTS["universal5tgs"] = {"teacher_priv": {"n": 8}, "reward_mods": UNIVERSAL5S_MODS}
+# universal5tgb (2026-11-20 00:20): universal5tg (the -2.0 / -0.6 smoothness weights; doubling them did nothing in
+# ts3m-k625) plus leg_step_over: only the part of a per-tick leg action change above 0.3 rad, squared, weight -200,
+# so one 0.65 rad knee step costs 0.35^2 x 200 x 0.02 s = 0.49 reward (0.034 under action_rate_l2 at -4). The
+# pack-walk jumps are knee torque reversals at low gain (RUNLOG.md 00:15). goal_clamp: the runtime's joint-range cut
+# on the position targets, which the training env lacked (hip roll and head roll goals beyond range on 20 to 40 %
+# of pack-walk ticks). A reward change: own audit record (rm_universal5b.json).
+UNIVERSAL5B_MODS = {"cmd_ranges": {"lin_vel_x": [-0.05, 0.3], "lin_vel_y": [-0.05, 0.05], "ang_vel_z": [-0.5, 0.5]},
+                    "weights": {"air_time": 6.0, "track_linear_velocity": 3.0, "upright": 0.5, "head_pose_tracking": 1.0,
+                                "action_rate_l2": -2.0},
+                    "pose_std_walking": {".*hip_yaw.*": 0.15},
+                    "foot_heading_weight": -8.0,
+                    "push_x": [-0.35, 0.35],
+                    "com_x_whole_m": 0.012,
+                    "step_width": {"limit": 0.1, "weight": -15.0},
+                    "torque_margin_weight": -20.0,
+                    "progress": {"weight": 14.0, "min_cmd": 0.1},
+                    "action_acc": {"weight": -0.6},
+                    "leg_step": {"limit": 0.3, "weight": -200.0}}
+ARM_VARIANTS["universal5tgb"] = {"teacher_priv": {"n": 8}, "reward_mods": UNIVERSAL5B_MODS, "goal_clamp": True}
+for _n, _v in ARM_VARIANTS.items():
+    fw.DELTAS[_n] = dict(fw.DELTAS["universal5t"], **_v)
+    LOOP_DELAYS[_n] = LOOP_DELAY
+# universal5c (2026-11-20 02:50): the student env for a teacher trained under goal_clamp (universal5tgb): universal5
+# (61 actor inputs, no privileged columns) with the same runtime joint-range cut on the position targets, so the
+# student is rolled out in the world its teacher was trained in and the runtime clamps in. Distillation only (no
+# reward is read there).
+fw.DELTAS["universal5c"] = dict(fw.DELTAS["universal5"], goal_clamp=True)
+LOOP_DELAYS["universal5c"] = LOOP_DELAY
 
 
 _orig_load = fw.load_walk61_into_actor
@@ -167,11 +277,15 @@ def load_any_into_actor(actor, onnx_path: str, init_std: float):
     width = int(actor.state_dict()["mlp.0.weight"].shape[1])
     if width == 61:
         return load_onnx_into_actor(actor, onnx_path, init_std)
+    if width in _PRIV_WIDTH:  # the privileged teacher (universal3t)
+        import teacher as tc
+        return tc.load_padded_priv(actor, onnx_path, init_std, _PRIV_WIDTH[width])
     import history as hi
     return hi.load_padded(actor, onnx_path, init_std, *_HISTORY_KP[width])
 
 
 _HISTORY_KP = {}  # actor input width -> (k, p), filled by apply_delta for each history delta built in this process
+_PRIV_WIDTH = {}  # actor input width -> number of privileged columns, filled by apply_delta for the teacher delta
 fw.load_walk61_into_actor = load_any_into_actor
 _orig_compare = fw.compare_onnx
 
@@ -179,9 +293,13 @@ _orig_compare = fw.compare_onnx
 def compare_any_onnx(a: str, b: str, n: int = 256, seed: int = 0) -> float:
     """fw.compare_onnx, or history.compare_stateful when b carries a history state input"""
     import onnxruntime as ort
-    if len(ort.InferenceSession(b).get_inputs()) > 1:
+    ins = ort.InferenceSession(b).get_inputs()
+    if len(ins) > 1:
         import history as hi
         return hi.compare_stateful(a, b, n, seed)
+    if int(ins[0].shape[1]) != 61:  # a teacher ONNX: random privileged columns too
+        import teacher as tc
+        return tc.compare_priv(a, b, n, seed)
     return _orig_compare(a, b, n, seed)
 
 
@@ -281,6 +399,13 @@ def apply_delta(env_cfg, delta: dict):
             pg = rm["progress"]
             env_cfg.rewards["progress_along_cmd"] = RewardTermCfg(func=stl.progress_along_cmd, weight=float(pg["weight"]),
                                                                   params={"min_cmd": float(pg.get("min_cmd", 0.10))})
+        if rm.get("action_acc", {}).get("weight"):  # round 3: second difference of the actions (smooth_terms.py)
+            import smooth_terms as sm
+            env_cfg.rewards["action_acc_l2"] = RewardTermCfg(func=sm.action_acc_l2, weight=float(rm["action_acc"]["weight"]))
+        if rm.get("leg_step", {}).get("weight"):  # round 3: only the part of a leg action step above the limit
+            import smooth_terms as sm
+            env_cfg.rewards["leg_step_over"] = RewardTermCfg(func=sm.leg_step_over, weight=float(rm["leg_step"]["weight"]),
+                                                             params={"limit": float(rm["leg_step"]["limit"])})
         if "torque_margin_weight" in rm and "torque_margin" in env_cfg.rewards:
             env_cfg.rewards["torque_margin"].weight = float(rm["torque_margin_weight"])
         if "push_x" in rm and "push_robot" in ev:  # NEXT-PLAN.md universal3: forward/back push range (m/s)
@@ -312,8 +437,72 @@ def apply_delta(env_cfg, delta: dict):
         print(f"[payload] pack rest {cfg['rest_kg']:.4f} kg + batteries {cfg['batt_kg']:.4f} kg from {d}; "
               f"weights {cfg['weights']}, smax {cfg['smax']}", flush=True)
         delta = {k: v for k, v in delta.items() if k != "payload"}
+    if "teacher_priv" in delta:  # TEACHER-STUDENT-PLAN.md: privileged columns after the 61 actor inputs
+        from mjlab.managers import EventTermCfg, ObservationTermCfg
+        import teacher as tc
+        n = int(delta["teacher_priv"]["n"])
+        if n == 8:  # universal5tg: the gain scale as the eighth privileged column
+            assert "gain_dr" in delta, "the gain column needs gain_dr"
+            tc.enable_gain()
+        assert n == tc.PRIV_N and "payload" in env_cfg.observations["critic"].terms, "the teacher needs the payload env"
+        env_cfg.observations["actor"].terms["priv"] = ObservationTermCfg(func=tc.priv_obs)
+        ev["capture_env"] = EventTermCfg(func=tc.capture_env, mode="startup")
+        _PRIV_WIDTH[61 + n] = n
+        print(f"[teacher] actor obs = 61 + {n} privileged ({', '.join(tc.PRIV_NAMES)})", flush=True)
+    if delta.get("goal_clamp"):  # round 3: the runtime's clamp_goal on every position target (walk_brain.JOINT_RANGE)
+        import smooth_terms as sm
+        env_cfg.actions["joint_pos"].clip = dict(sm.RUNTIME_JOINT_RANGE)
+        print(f"[clamp] position targets cut to the runtime joint ranges ({len(sm.RUNTIME_JOINT_RANGE)} joints)", flush=True)
+    if "loop_delay" in delta:
+        apply_loop_delay(env_cfg, delta["loop_delay"])
+    if "gain_dr" in delta:  # round 3: one position-gain scale per env per episode (smooth_terms.randomize_kp_scale)
+        from mjlab.managers import EventTermCfg
+        import smooth_terms as sm
+        ev["randomize_kp_scale"] = EventTermCfg(func=sm.randomize_kp_scale, mode="reset",
+                                                params={"kp_range": tuple(float(v) for v in delta["gain_dr"]["kp"])})
+        print(f"[gain] position-gain scale per env per episode {delta['gain_dr']['kp']}", flush=True)
+    if "anchor61" in delta:  # round 3: behaviour-cloning anchor to walk61 on no-pack rows (smooth_terms.AnchorRunner)
+        import os
+        import smooth_terms as sm
+        an = dict(delta["anchor61"])
+        an["onnx"] = os.environ.get("FLIGHT_ANCHOR_ONNX", an["onnx"])
+        sm.ANCHOR.clear()
+        sm.ANCHOR.update(an)
+        sm.patch_runner_for_anchor()
     print(f"[pack] delta applied: { {k: delta[k] for k in delta if k != 'track_lin_vel'} }", flush=True)
     return env_cfg
+
+
+def apply_loop_delay(env_cfg, ld: dict):
+    """Round 2: the control loop's delays (LOOP_DELAY above; also flight_audit.py --delay-mods). Any of act_lag
+    [min, max] (command delay, 5 ms physics steps), act_period (physics steps a drawn command lag is kept),
+    joint_pos_lag / joint_vel_lag / imu_lag [min, max] (actor observation delay, 20 ms control ticks), max_current (A).
+    The robot cfg is copied: apply_asbuilt_masses, which runs after the delta, keeps its actuators."""
+    import copy
+    if any(k in ld for k in ("act_lag", "act_period", "max_current")):
+        rob = copy.deepcopy(env_cfg.scene.entities["robot"])
+        for act in rob.articulation.actuators:
+            if "act_lag" in ld:
+                act.delay_min_lag, act.delay_max_lag = int(ld["act_lag"][0]), int(ld["act_lag"][1])
+            if "act_period" in ld:
+                act.delay_update_period = int(ld["act_period"])
+            if "max_current" in ld:  # the runtime simulation's servo current limit is 1.47 A (0.538 N m)
+                assert hasattr(act, "max_current"), type(act)
+                act.max_current = float(ld["max_current"])
+        env_cfg.scene.entities["robot"] = rob
+    terms = env_cfg.observations["actor"].terms
+    grav = "projected_gravity" if "projected_gravity" in terms else "raw_accelerometer"
+    for key, names in (("joint_pos_lag", ("joint_pos",)), ("joint_vel_lag", ("joint_vel",)),
+                       ("imu_lag", ("base_ang_vel", grav))):
+        if key in ld:
+            for n in names:
+                terms[n] = copy.deepcopy(terms[n])
+                terms[n].delay_min_lag, terms[n].delay_max_lag = int(ld[key][0]), int(ld[key][1])
+    acts = env_cfg.scene.entities["robot"].articulation.actuators
+    print(f"[delay] loop delay {ld}: command lag "
+          f"{[(x.delay_min_lag, x.delay_max_lag, x.delay_update_period, getattr(x, 'max_current', None)) for x in acts]}, "
+          + ", ".join(f"{n} {(terms[n].delay_min_lag, terms[n].delay_max_lag)}" for n in ("joint_pos", "joint_vel", "base_ang_vel", grav)),
+          flush=True)
 
 
 def _patch_metadata():
@@ -398,11 +587,29 @@ def _tq_weight_from_argv():
 
 fw.apply_delta = apply_delta
 
+
+def _patch_runner_for_anchor():
+    """round 3: wrap the registry's runner class before any main() binds it (the worker, the smokes and the audit import
+    load_runner_cls inside their main); the wrapper returns the plain class unless a delta with anchor61 was applied"""
+    import smooth_terms as sm
+    sm.patch_runner_for_anchor()
+
+
+_patch_runner_for_anchor()
+
 if __name__ == "__main__":
     # finetune_worker commits the Modal Volume "microduck-rl" from inside save() when `import modal` works; Modal puts
     # its client on the subprocess path, but these runs mount their own Volume (flight_modal.py commits it), so the
     # worker must not find modal: its own try/except then skips the in-worker commit
     sys.modules["modal"] = None
+    # --distill: the DAgger distillation of the teacher into a recurrent student (distill_worker.py) instead of PPO.
+    # The Kaggle entry always starts this file; the deltas registered above are shared through sys.modules.
+    if "--distill" in sys.argv:
+        sys.argv.remove("--distill")
+        sys.modules["flight_worker"] = sys.modules["__main__"]
+        import distill_worker
+        distill_worker.main()
+        sys.exit(0)
     _tq_weight_from_argv()
     _history_step_scale_from_argv()
     _patch_runner_for_history()

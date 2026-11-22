@@ -93,6 +93,7 @@ using the sample age the Pi measures for every applied command.
   ~/.venvs/microduck-walk/bin/python walk_brain.py --pi DUCK_IP
 """
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -306,6 +307,41 @@ TURN_MAX = 2.0
 # and both spin falls (runs 8, 10) at the 1.55 the heading term reached. Wind-up from a stall may feed that bin, so the clamp is a test. Partial: no retrain.
 SPIN_TURN_MAX = 1.25
 ARC_LEAD = 0.35
+# Spin boost, a hack on Shawn's word 2026-11-21 ("加大右转力度 ... 看看什么方法可以快速hack"): with the charger pack and
+# its lead the right turn in place stalls at the -1.25 clamp while the left turn runs. Two levers for a turn in place, per
+# side: "spin_max" replaces SPIN_TURN_MAX, and "yaw_gain" multiplies both hip yaw goals about their default after the
+# policy (its readings and last action are untouched, like GOAL_OFFSET). A walk command may carry either key; without
+# them the side's entry in ~/duck-spin-boost.json applies ({"right": {"spin_max": 1.6, "yaw_gain": 1.5}}); no file and
+# no keys = the behaviour before this hack. Robot results: charger-pack-20261121/HANDOFF.md.
+SPIN_BOOST_FILE = os.path.expanduser("~/duck-spin-boost.json")
+SPIN_GAIN_SLEW = 0.05  # yaw_gain change per tick: 0.2 s for 0.5, so a release does not jump the hip yaw goals
+
+
+def load_spin_boost(path=SPIN_BOOST_FILE):
+    try:
+        with open(path) as f:
+            d = json.load(f)
+        return {s: {k: float(v) for k, v in d.get(s, {}).items() if k in ("spin_max", "yaw_gain", "spin_vx")}
+                for s in ("left", "right")}
+    except (OSError, ValueError, TypeError, AttributeError):
+        return {"left": {}, "right": {}}
+
+
+SPIN_BOOST = load_spin_boost()
+
+
+def spin_boost(want, vth):
+    """(turn clamp, hip yaw gain, forward speed command m/s) for a turn in place at vth: command keys first, then the
+    side's file entry. "spin_vx" is the forward speed the policy is given while it turns in place (Shawn 2026-11-21:
+    "右转会朝前走"): a negative value holds the robot back, so it does not walk into its lead."""
+    side = SPIN_BOOST["right" if vth < 0 else "left"]
+    try:
+        smax = float(want.get("spin_max", side.get("spin_max", SPIN_TURN_MAX)))
+        gain = float(want.get("yaw_gain", side.get("yaw_gain", 1.0)))
+        svx = float(want.get("spin_vx", side.get("spin_vx", 0.0)))
+    except (TypeError, ValueError):
+        smax, gain, svx = SPIN_TURN_MAX, 1.0, 0.0
+    return min(TURN_MAX, max(0.5, smax)), min(3.0, max(1.0, gain)), min(0.3, max(-0.3, svx))
 # Gains 2026-10-23: with KP 2, KI 1 and the integral capped at 0.5 rad s the integral could not cover a steady drift, so
 # the heading settled left of the start (robot: +40 deg in 3 s, then +10 deg in 8 s). As-built sim, yaw torque 0.020 N m,
 # 8 s walks, mean heading over seconds 3-7: KP 2 / KI 1 / cap 0.5 +16.9 and +6.1 deg (trim -0.47 / -0.96); KP 3 / KI 2 /
@@ -336,6 +372,11 @@ FALL_LOOKAHEAD_S = 0.30
 FALL_DEBOUNCE_S = 0.06  # three 50 Hz ticks
 FALLEN_Z = -0.5  # robotd safety fall_gravity_z: lying (60 deg); held FALLEN_DEBOUNCE_S starts the sequence too
 FALLEN_DEBOUNCE_S = 0.2
+# A recurrent policy (second ONNX input named state_in, second output state_out; flight-20261110 TEACHER-STUDENT-PLAN.md)
+# keeps its state over this many control ticks without a call (dropped servo reads skip the policy tick); after a
+# longer gap the next call is an entry into the policy and starts from a zero state, as in its evaluation
+# (extensions/flight-20261110/train/flight_eval.py RECURRENT_MAX_GAP, parity: train/ts2_runtime_parity.py)
+RECURRENT_MAX_GAP = 5
 KP_LIMP = 50  # robotd gain_limp
 LIMP_STILL_RATE = 1.0  # rad/s, |gyro| under this for LIMP_STILL_S ends the limp (robotd limp_fall_still_*)
 LIMP_STILL_S = 0.2
@@ -363,7 +404,29 @@ MOUNT_FIX = (0.7071068, 0.7071068, 0.0, 0.0)
 # stand61 on the as-built mass model, the real joints matched the simulation within 2.4 deg while body gravity read
 # x +0.070 against the model's +0.001; with a 4 deg sensor pitch the model reads +0.058 and the ankles match within
 # 0.6 deg. IMU_PITCH_TRIM rotates the body frame back by that much (brain_sim_check.py --imu-pitch is the same angle).
+# 2026-11-21, charger pack back on (lighter and further forward than the battery backpack): right turns in place stalled
+# (-1 deg/s against -22 on 11-20) with the body at x +0.04 and the left hip pitch / knee carrying 62 / 186 mA against
+# 33 / 131 on 11-20, i.e. the weight on the toes. The trim drops 3 deg so the policy sees the trunk 3 deg further forward
+# and balances that much further back.
 IMU_PITCH_TRIM_DEG = 4.0
+
+
+def _pack_pitch_trim(default):
+    """Pitch trim for the pack on the robot (Shawn 2026-11-21, charger pack, no tape for a counterweight: "自己调整重心").
+    ~/duck-pitch-trim.json holds {"bench": deg, "battery": deg}, keyed by ~/duck-supply (bench = charger pack, written by
+    the phone remote's backpack switch); MICRODUCK_IMU_PITCH_TRIM overrides both. No file or no entry = the default."""
+    try:
+        if os.environ.get("MICRODUCK_IMU_PITCH_TRIM"):
+            return float(os.environ["MICRODUCK_IMU_PITCH_TRIM"])
+        with open(os.path.expanduser("~/duck-supply")) as f:
+            pack = f.read().strip()
+        with open(os.path.expanduser("~/duck-pitch-trim.json")) as f:
+            return float(json.load(f)[pack])
+    except (OSError, ValueError, KeyError, TypeError):
+        return default
+
+
+IMU_PITCH_TRIM_DEG = _pack_pitch_trim(IMU_PITCH_TRIM_DEG)
 # Roll was never trimmed. 2026-11-12 (play-locate-20261112/README.md): at quiet stand the robot reads +2 to +3 deg of
 # roll in every log since 11-02 (the sim 0), and a sim sensor rolled by brain_sim_check.py --imu-roll -3 reproduces the
 # robot's stand reading, its walking roll and its left-leg-heavy gait. IMU_ROLL_TRIM_DEG uses the sim's sign (-3 undoes
@@ -556,6 +619,15 @@ class Brain:
         self.dk_act = np.zeros(6, dtype=np.float32)    # dock: the commander's last action (clipped)
         self.dk_twist, self.dk_head = np.zeros(3, dtype=np.float32), np.zeros(4, dtype=np.float32)  # the nudge's command
         self.step = None   # small step: {"id", "target" (world xy), "yaw" (target), "odom"}; set on the first policy tick
+        # recurrent policies: slot -> (file hash, state input name, state shape). Slots loaded from the same file
+        # (walk61 and stand61 of one universal policy) share one state, so the stand/walk switch keeps it.
+        self.rec, self.rec_state, self.rec_last, self.rec_tick, self.rec_reset_id = {}, {}, {}, 0, None
+        for k, sess in self.sessions.items():
+            ins = sess.get_inputs()
+            if len(ins) > 1 and ins[1].name == "state_in":
+                assert sess.get_outputs()[1].name == "state_out", k
+                with open(os.path.join(models, k + "61.onnx"), "rb") as f:
+                    self.rec[k] = (hashlib.sha256(f.read()).hexdigest()[:16], ins[1].name, tuple(ins[1].shape))
         self.comp_cfg = {"delay_compensation": "constant_velocity" if compensation else "none",
                          "prediction_fraction": 1.0, "predict_heading": True}
         self.walk_ramp = walk_ramp
@@ -587,6 +659,30 @@ class Brain:
         self.q = None  # the newest joint positions (model rad)
         self.head_hold = None  # head joint goals to write once in monitor mode after a guard trip
         self._refused = None  # last refusal printed, so a refused command re-read every tick prints once
+
+    def run_policy(self, policy, obs):
+        """One call of the policy in slot policy on the 61 inputs obs; a recurrent policy's state is fed back here."""
+        sess = self.sessions[policy]
+        feed = {sess.get_inputs()[0].name: obs[None]}
+        rec = self.rec.get(policy)
+        if rec is None:
+            return sess.run(None, feed)[0][0]
+        group, name, shape = rec
+        st = self.rec_state.get(group)
+        if st is None or self.rec_tick - self.rec_last.get(group, -10 ** 9) > RECURRENT_MAX_GAP:
+            st = np.zeros(shape, dtype=np.float32)
+        res = sess.run(None, dict(feed, **{name: st}))
+        self.rec_state[group], self.rec_last[group] = res[1], self.rec_tick
+        return res[0][0]
+
+    def reset_policy_state(self, why=""):
+        """Forget every recurrent policy's state: the next call starts from zero. For a changed load (pack swapped,
+        robot picked up and put down): a state from another load fell 20 of 20 in simulation (flight-20261110
+        RUNLOG.md). From the command file: {"policy_reset": <a new value each time>} next to the mode."""
+        if self.rec_state:
+            print(f"recurrent policy state reset{': ' + why if why else ''}", flush=True)
+        self.rec_state.clear()
+        self.rec_last.clear()
 
     def _refuse(self, what, why):
         if self._refused != (what, why):
@@ -814,6 +910,11 @@ class Brain:
 
     def tick(self, want, now, pos_t, vel_t, quat, gyro, imu_valid, joint_age, imu_age):
         """joint_age / imu_age: predicted sample ages (s) at the moment the returned goals reach the servos."""
+        self.rec_tick += 1
+        if self.rec and want.get("policy_reset") != self.rec_reset_id:
+            self.rec_reset_id = want.get("policy_reset")
+            if self.rec_reset_id is not None:
+                self.reset_policy_state(f"command id {self.rec_reset_id!r}")
         q = {n: to_model(n, t) for n, t in zip(NAMES, pos_t)}
         self.q = q
         dq = {n: v * VEL_UNIT * SIGN[n] for n, v in zip(NAMES, vel_t)}
@@ -1098,6 +1199,7 @@ class Brain:
                     info["sit_up"] = up
             else:
                 vx, vy, vth = float(want.get("vx", 0)), float(want.get("vy", 0)), float(want.get("vtheta", 0))
+                self._spin_gain_want, spin_vx = 1.0, 0.0  # set by a turn in place below (spin boost)
                 dt = 0.02 if self.turn_t is None else min(0.1, max(0.0, now - self.turn_t))
                 self.turn_t = now
                 moving = math.hypot(vx, vy) > 1e-3
@@ -1120,7 +1222,9 @@ class Brain:
                         turn = float(np.clip(self.yaw_trim + vth + HEADING_KP * err + HEADING_KI * self.heading_i,
                                              -TURN_MAX, TURN_MAX))
                     else:  # turning in place: the straight-walk trim and integral do not apply (SPIN_TURN_MAX note)
-                        turn = float(np.clip(vth + HEADING_KP * err, -SPIN_TURN_MAX, SPIN_TURN_MAX))
+                        smax, self._spin_gain_want, spin_vx = spin_boost(want, vth)
+                        turn = float(np.clip(vth + HEADING_KP * err, -smax, smax))
+                        info["spin_max"], info["spin_vx"] = smax, spin_vx
                 else:
                     turn, self.heading, self.turning = 0.0, None, False
                 if moving or abs(vth) > 1e-3:
@@ -1131,7 +1235,7 @@ class Brain:
                     self.learn_yaw_trim(self.walk_seg)
                     self.walk_seg = None
                 info["turn"], info["yaw_trim"] = round(turn, 3), round(self.yaw_trim, 3)
-                command = [vx, vy, turn]
+                command = [vx + spin_vx, vy, turn]
                 self.head_cmd += HEAD_ALPHA * (self.head_target(want) - self.head_cmd)
                 head = self.head_cmd
                 # a zero command after stepping stays on walk61: it brings its own stride to rest (Pollen's simulator
@@ -1148,9 +1252,8 @@ class Brain:
                 state = state.copy()
                 state[6 + OBSERVATION_DOF_ORDER.index("head_yaw")] -= yaw_off
             obs = np.concatenate([state, self.last_action, command, head, body]).astype(np.float32)
-            sess = self.sessions[policy]
             info["policy"] = policy
-            action = sess.run(None, {sess.get_inputs()[0].name: obs[None]})[0][0]
+            action = self.run_policy(policy, obs)
             if hold is not None:
                 # goal = default + s * action: the held robot eases toward the default stance instead of fighting the
                 # hand; the observed last action is the applied one, so the policy sees what the servos were given
@@ -1160,6 +1263,14 @@ class Brain:
             self.last_action = action.astype(np.float32)
             self.goal = clamp_goal({n: self.default[n] + float(action[k]) if n in self.default else self.goal[n]
                                     for k, n in enumerate(OBSERVATION_DOF_ORDER)})
+            # spin boost: both hip yaw goals scaled about their default while turning in place (SPIN_BOOST note)
+            g_want = getattr(self, "_spin_gain_want", 1.0) if self.mode == "walk" and policy == "walk" else 1.0
+            g = getattr(self, "_spin_gain", 1.0)
+            g = self._spin_gain = g + float(np.clip(g_want - g, -SPIN_GAIN_SLEW, SPIN_GAIN_SLEW))
+            if g > 1.0:
+                self.goal = clamp_goal(dict(self.goal, **{n: self.default[n] + g * (self.goal[n] - self.default[n])
+                                                          for n in ("left_hip_yaw", "right_hip_yaw")}))
+                info["yaw_gain"] = round(g, 3)
             if GOAL_OFFSET and self.mode == "walk":
                 # trial 2026-11-12 (Shawn: "把这个偏差放到模型外面 不要送进模型", "左髋从前面看 逆时针转几度"): added to
                 # the servo goal after the policy; the policy's readings and its last action are untouched

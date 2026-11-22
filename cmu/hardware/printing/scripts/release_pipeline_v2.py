@@ -228,6 +228,13 @@ def arrange(parts,margin=30,gap=12):
   for row in placements:row['translation'][:2]=(np.array(row['translation'][:2])+shift).tolist()
  return placements
 
+def footprint(mesh,translation):
+ """True bed footprint (shapely) of a print-frame mesh placed at translation: every triangle projected to z=0, unioned."""
+ from shapely.geometry import Polygon
+ from shapely.ops import unary_union
+ tri=mesh.triangles[:,:,:2]+np.asarray(translation,dtype=float)[:2]
+ return unary_union([p for p in (Polygon(t).buffer(0)for t in tri)if p.area>1e-6])
+
 def matrix_text(T):return ' '.join(format(float(x),'.15g')for x in T[:3,:].T.flatten())
 def mesh_object(resources,oid,name,mesh):
  obj=ET.SubElement(resources,Q+'object',{'id':str(oid),'type':'model','name':name});el=ET.SubElement(obj,Q+'mesh');ve=ET.SubElement(el,Q+'vertices');fa=ET.SubElement(el,Q+'triangles')
@@ -282,7 +289,7 @@ def prepare(manifest_path,out):
    app=ET.SubElement(model,Q+'metadata',{'name':'Application'});app.text='BambuStudio-02.08.02.61'if machine=='Bambu'else'OrcaSlicer-2.4.2'
    resources=ET.SubElement(model,Q+'resources');build=ET.SubElement(model,Q+'build');settings=ET.Element('config');plate=ET.SubElement(settings,'plate')
    for k,v in [('plater_id','1'),('plater_name',color),('locked','false'),('bed_type',cfg['curr_bed_type'])]:ET.SubElement(plate,'metadata',{'key':k,'value':v})
-   oid=1;boxes=[];modrefs=[]
+   oid=1;boxes=[];meshes_placed=[];modrefs=[]
    for placement in placements:
     key=placement['key'];s=sources[key];r=next(r for r in parts if r['key']==key);name=key+'_'+str(placement['copy']);T=np.array(r['sourceToPrint']);T[2,3]+=r['dropToBedMm'];mesh=load_mesh(s['path'],T);parent_id=oid;oid+=1
     modifiers=[v for v in s.get('supportBlockers',[])if machine in v.get('machines',list(MACHINES))]
@@ -297,9 +304,15 @@ def prepare(manifest_path,out):
      part=ET.SubElement(st,'part',{'id':str(idx),'subtype':'support_blocker'});ET.SubElement(part,'metadata',{'key':'name','value':name+'_support_blocker'})
     translation=np.array(placement['translation'],dtype=float);assert translation.shape==(3,) and abs(translation[2])<1e-9
     b=mesh.bounds+translation;assert np.min(b[0,:2])>=18 and np.max(b[1,:2])<=238 and b[1,2]<250 and abs(b[0,2])<1e-6,'Bed/exclusion violation'
-    for oldb in boxes:
-     assert b[0,0]>=oldb[1,0]+4 or oldb[0,0]>=b[1,0]+4 or b[0,1]>=oldb[1,1]+4 or oldb[0,1]>=b[1,1]+4,'Model separation under 4 mm'
-    boxes.append(b);B=np.eye(4);B[:3,3]=translation;ET.SubElement(build,Q+'item',{'objectid':str(parent_id),'transform':matrix_text(B),'printable':'1'})
+    fp_new=None
+    for oldb,(oldmesh,oldt) in zip(boxes,meshes_placed):
+     if b[0,0]>=oldb[1,0]+4 or oldb[0,0]>=b[1,0]+4 or b[0,1]>=oldb[1,1]+4 or oldb[0,1]>=b[1,1]+4:continue
+     # Bounding boxes closer than 4 mm: nested non-rectangular parts (FlightPack-D2-OnePlate, 2026-11-21). The requirement is
+     # the true bed footprints 4 mm apart, so measure those (every triangle projected to the bed, unioned).
+     if fp_new is None:fp_new=footprint(mesh,translation)
+     gap=fp_new.distance(footprint(oldmesh,oldt))
+     assert gap>=4,f'Model separation under 4 mm ({name}: {gap:.2f} mm footprint to footprint)'
+    meshes_placed.append((mesh,translation));boxes.append(b);B=np.eye(4);B[:3,3]=translation;ET.SubElement(build,Q+'item',{'objectid':str(parent_id),'transform':matrix_text(B),'printable':'1'})
     ins=ET.SubElement(plate,'model_instance')
     for k,v in [('object_id',str(parent_id)),('instance_id','0'),('identify_id',str(2000+parent_id))]:ET.SubElement(ins,'metadata',{'key':k,'value':v})
    # Centred plate (Shawn 2026-10-15: the printed V1.18 plate sat 38 mm left and 63 mm forward of centre). arrange() centres

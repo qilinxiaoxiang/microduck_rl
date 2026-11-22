@@ -31,6 +31,8 @@ EXPECTED_TASKS = (
     "Mjlab-Velocity-Rough-MicroDuck-CMU-Battery",
     "Mjlab-Velocity-Flat-MicroDuck-CMU-Battery-20261104",
     "Mjlab-Velocity-Rough-MicroDuck-CMU-Battery-20261104",
+    "Mjlab-Velocity-Flat-MicroDuck-CMU-Battery-v2m5-20261121",
+    "Mjlab-Velocity-Rough-MicroDuck-CMU-Battery-v2m5-20261121",
 )
 
 
@@ -40,7 +42,8 @@ def _total_g(model: mujoco.MjModel) -> float:
 
 @pytest.fixture(scope="module")
 def measured():
-    return {v: make_variants.measure(v) for v in ("official", "asbuilt", "plugged", "battery", "battery-20261104", "current")}
+    return {v: make_variants.measure(v) for v in ("official", "asbuilt", "plugged", "battery", "battery-20261104",
+                                              "battery-v2m5-20261121", "current")}
 
 
 # ── (a) registry ─────────────────────────────────────────────────────────────

@@ -16,4 +16,12 @@ STAND_POSE = dict(NEUTRAL_POSE)
 # (cmu plugged manifest, COM calibrated to the robot's fall: NEUTRAL falls back at 2.5 s with the COM 3 mm further back
 # than the model) neck 0.25 holds over COM offsets -1 to -4 mm, 0.1 m/s pushes both ways and friction 0.4, rests at
 # 1.4 deg, and stand61 takes over at max action 0.27 rad (guide/firmware/mac/stand-saddle-20261026/).
+# 2026-11-21, charger pack back on (V1.35 saddle, working loose): at neck 0.25 the robot leaned about 8 deg forward in the open-loop
+# stand (brain log stage1121-135557, gravity x +0.13..+0.22) and tipped forward. Neck 0.35 and 0.50 gained only about
+# 1 deg and the neck then pressed on the saddle (Shawn: "脖子已经顶到saddle了 不要调脖子了 甚至要往前一点 先调脚踝"),
+# so the neck stays at 0.25 and both ankles tilt the whole body back by ANKLE_BACK rad (right ankle more negative, left
+# mirrored), tuned on the robot from the stand gravity reading.
+ANKLE_BACK = 0.060
 STAND_POSE["neck_pitch"] = 0.25
+STAND_POSE["right_ankle"] = NEUTRAL_POSE["right_ankle"] - ANKLE_BACK
+STAND_POSE["left_ankle"] = NEUTRAL_POSE["left_ankle"] + ANKLE_BACK

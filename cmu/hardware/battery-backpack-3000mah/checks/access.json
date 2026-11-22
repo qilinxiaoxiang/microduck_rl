@@ -1,0 +1,1054 @@
+{
+ "rule": {
+  "r_shaft": 4.0,
+  "shaft_zone": 60.0,
+  "r_handle": 15.0,
+  "handle_zone": [
+   60.0,
+   120.0
+  ],
+  "finger_r": 8.0,
+  "finger_h": 10.0,
+  "skip": 0.5,
+  "contact": 0.25,
+  "tilt_max": {
+   "hex": 10.0,
+   "phillips": 5.0
+  },
+  "lkey_sector_deg": 60.0
+ },
+ "tools": {
+  "T1 2 mm hex precision driver (3 x 60 shaft, 20 x 60 handle)": [
+   [
+    0,
+    60,
+    1.5
+   ],
+   [
+    60,
+    120,
+    10.0
+   ]
+  ],
+  "T2 precision screwdriver (3 x 100 shaft, 10 x 90 handle)": [
+   [
+    0,
+    100,
+    1.5
+   ],
+   [
+    100,
+    190,
+    5.0
+   ]
+  ],
+  "T3 PH0 precision driver (3 x 50 shaft, 10 x 90 handle)": [
+   [
+    0,
+    50,
+    1.5
+   ],
+   [
+    50,
+    140,
+    5.0
+   ]
+  ],
+  "T5 stubby / ratchet driver (3 x 25 shaft, 25 x 40 handle)": [
+   [
+    0,
+    25,
+    1.5
+   ],
+   [
+    25,
+    65,
+    12.5
+   ]
+  ],
+  "T4a L-key short arm in (2 x 50, 100 lever)": [
+   1.0,
+   50.0,
+   100.0
+  ],
+  "T4b L-key long arm in (2 x 100, 50 lever)": [
+   1.0,
+   100.0,
+   50.0
+  ]
+ },
+ "counts": {
+  "OK": 3,
+  "awkward": 5,
+  "blocked": 0
+ },
+ "screws": [
+  {
+   "id": "fix y+16.1 z+26.0",
+   "step": "screw the frame onto the OpenRB pack (empty frame)",
+   "spec": "M2 x 6",
+   "where": "inside the frame, through the front wall into the pack post",
+   "head_top": [
+    -48.6,
+    16.1,
+    26.0
+   ],
+   "approach": [
+    -1.0,
+    -0.0,
+    -0.0
+   ],
+   "r_free_60": 7.91,
+   "h_r4": 200.0,
+   "r_handle": null,
+   "finger_r": 7.92,
+   "finger_start": false,
+   "head_room": 6.02,
+   "limit_60": {
+    "part": "frame",
+    "r": 7.91,
+    "at_t": 24.8,
+    "point": [
+     -73.4,
+     13.6,
+     18.5
+    ]
+   },
+   "limit_r4": null,
+   "limit_finger": {
+    "part": "frame",
+    "r": 7.92,
+    "at_t": 7.9,
+    "point": [
+     -56.5,
+     13.6,
+     18.5
+    ]
+   },
+   "limit_handle": null,
+   "tools": {
+    "T1 2 mm hex precision driver (3 x 60 shaft, 20 x 60 handle)": {
+     "ok": true,
+     "clearance": 6.41,
+     "limit": {
+      "part": "frame",
+      "at_t": 24.8,
+      "point": [
+       -73.4,
+       13.6,
+       18.5
+      ]
+     }
+    },
+    "T2 precision screwdriver (3 x 100 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 6.41,
+     "limit": {
+      "part": "frame",
+      "at_t": 24.8,
+      "point": [
+       -73.4,
+       13.6,
+       18.5
+      ]
+     }
+    },
+    "T3 PH0 precision driver (3 x 50 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 6.41,
+     "limit": {
+      "part": "frame",
+      "at_t": 24.8,
+      "point": [
+       -73.4,
+       13.6,
+       18.5
+      ]
+     }
+    },
+    "T5 stubby / ratchet driver (3 x 25 shaft, 25 x 40 handle)": {
+     "ok": false,
+     "clearance": -2.09,
+     "limit": {
+      "part": "frame",
+      "at_t": 25.2,
+      "point": [
+       -73.8,
+       26.5,
+       26.5
+      ]
+     }
+    },
+    "T4a L-key short arm in (2 x 50, 100 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    },
+    "T4b L-key long arm in (2 x 100, 50 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    }
+   },
+   "straight": [
+    "T1",
+    "T2",
+    "T3",
+    "T4a",
+    "T4b"
+   ],
+   "t1_tilt_deg": 0.0,
+   "t1_tilt_azimuth": null,
+   "movable": {},
+   "fails": [
+    "needs the screw started on the driver tip"
+   ],
+   "verdict": "awkward",
+   "note": "robot held on the bench, back up; the frame is empty when these are driven"
+  },
+  {
+   "id": "fix y-16.1 z+26.0",
+   "step": "screw the frame onto the OpenRB pack (empty frame)",
+   "spec": "M2 x 6",
+   "where": "inside the frame, through the front wall into the pack post",
+   "head_top": [
+    -48.6,
+    -16.1,
+    26.0
+   ],
+   "approach": [
+    -1.0,
+    -0.0,
+    -0.0
+   ],
+   "r_free_60": 4.25,
+   "h_r4": 200.0,
+   "r_handle": null,
+   "finger_r": 4.25,
+   "finger_start": false,
+   "head_room": 12.35,
+   "limit_60": {
+    "part": "frame",
+    "r": 4.25,
+    "at_t": 3.7,
+    "point": [
+     -52.3,
+     -14.0,
+     29.7
+    ]
+   },
+   "limit_r4": null,
+   "limit_finger": {
+    "part": "frame",
+    "r": 4.25,
+    "at_t": 3.7,
+    "point": [
+     -52.3,
+     -14.0,
+     29.7
+    ]
+   },
+   "limit_handle": null,
+   "tools": {
+    "T1 2 mm hex precision driver (3 x 60 shaft, 20 x 60 handle)": {
+     "ok": true,
+     "clearance": 2.75,
+     "limit": {
+      "part": "frame",
+      "at_t": 3.7,
+      "point": [
+       -52.3,
+       -14.0,
+       29.7
+      ]
+     }
+    },
+    "T2 precision screwdriver (3 x 100 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 2.75,
+     "limit": {
+      "part": "frame",
+      "at_t": 3.7,
+      "point": [
+       -52.3,
+       -14.0,
+       29.7
+      ]
+     }
+    },
+    "T3 PH0 precision driver (3 x 50 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 2.75,
+     "limit": {
+      "part": "frame",
+      "at_t": 3.7,
+      "point": [
+       -52.3,
+       -14.0,
+       29.7
+      ]
+     }
+    },
+    "T5 stubby / ratchet driver (3 x 25 shaft, 25 x 40 handle)": {
+     "ok": true,
+     "clearance": 1.75,
+     "limit": {
+      "part": "frame",
+      "at_t": 25.2,
+      "point": [
+       -73.8,
+       -30.4,
+       26.3
+      ]
+     }
+    },
+    "T4a L-key short arm in (2 x 50, 100 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    },
+    "T4b L-key long arm in (2 x 100, 50 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    }
+   },
+   "straight": [
+    "T1",
+    "T2",
+    "T3",
+    "T5",
+    "T4a",
+    "T4b"
+   ],
+   "t1_tilt_deg": 0.0,
+   "t1_tilt_azimuth": null,
+   "movable": {},
+   "fails": [
+    "needs the screw started on the driver tip"
+   ],
+   "verdict": "awkward",
+   "note": "robot held on the bench, back up; the frame is empty when these are driven"
+  },
+  {
+   "id": "fix y+16.1 z-36.5",
+   "step": "screw the frame onto the OpenRB pack (empty frame)",
+   "spec": "M2 x 6",
+   "where": "inside the frame, through the front wall into the pack post",
+   "head_top": [
+    -48.6,
+    16.1,
+    -36.5
+   ],
+   "approach": [
+    -1.0,
+    -0.0,
+    -0.0
+   ],
+   "r_free_60": 4.0,
+   "h_r4": 200.0,
+   "r_handle": null,
+   "finger_r": 4.0,
+   "finger_start": false,
+   "head_room": 2.1,
+   "limit_60": {
+    "part": "frame",
+    "r": 4.0,
+    "at_t": 22.6,
+    "point": [
+     -71.2,
+     20.1,
+     -36.5
+    ]
+   },
+   "limit_r4": null,
+   "limit_finger": {
+    "part": "frame",
+    "r": 4.0,
+    "at_t": 2.4,
+    "point": [
+     -51.0,
+     20.1,
+     -36.5
+    ]
+   },
+   "limit_handle": null,
+   "tools": {
+    "T1 2 mm hex precision driver (3 x 60 shaft, 20 x 60 handle)": {
+     "ok": true,
+     "clearance": 2.5,
+     "limit": {
+      "part": "frame",
+      "at_t": 22.6,
+      "point": [
+       -71.2,
+       20.1,
+       -36.5
+      ]
+     }
+    },
+    "T2 precision screwdriver (3 x 100 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 2.5,
+     "limit": {
+      "part": "frame",
+      "at_t": 22.6,
+      "point": [
+       -71.2,
+       20.1,
+       -36.5
+      ]
+     }
+    },
+    "T3 PH0 precision driver (3 x 50 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 2.5,
+     "limit": {
+      "part": "frame",
+      "at_t": 22.6,
+      "point": [
+       -71.2,
+       20.1,
+       -36.5
+      ]
+     }
+    },
+    "T5 stubby / ratchet driver (3 x 25 shaft, 25 x 40 handle)": {
+     "ok": false,
+     "clearance": -8.42,
+     "limit": {
+      "part": "frame",
+      "at_t": 25.2,
+      "point": [
+       -73.8,
+       20.1,
+       -36.0
+      ]
+     }
+    },
+    "T4a L-key short arm in (2 x 50, 100 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    },
+    "T4b L-key long arm in (2 x 100, 50 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    }
+   },
+   "straight": [
+    "T1",
+    "T2",
+    "T3",
+    "T4a",
+    "T4b"
+   ],
+   "t1_tilt_deg": 0.0,
+   "t1_tilt_azimuth": null,
+   "movable": {},
+   "fails": [
+    "needs the screw started on the driver tip"
+   ],
+   "verdict": "awkward",
+   "note": "robot held on the bench, back up; the frame is empty when these are driven"
+  },
+  {
+   "id": "fix y-16.1 z-36.5",
+   "step": "screw the frame onto the OpenRB pack (empty frame)",
+   "spec": "M2 x 6",
+   "where": "inside the frame, through the front wall into the pack post",
+   "head_top": [
+    -48.6,
+    -16.1,
+    -36.5
+   ],
+   "approach": [
+    -1.0,
+    -0.0,
+    -0.0
+   ],
+   "r_free_60": 6.09,
+   "h_r4": 200.0,
+   "r_handle": null,
+   "finger_r": 7.5,
+   "finger_start": false,
+   "head_room": 3.41,
+   "limit_60": {
+    "part": "frame",
+    "r": 6.09,
+    "at_t": 0.7,
+    "point": [
+     -49.3,
+     -12.0,
+     -41.0
+    ]
+   },
+   "limit_r4": null,
+   "limit_finger": {
+    "part": "frame",
+    "r": 7.5,
+    "at_t": 3.3,
+    "point": [
+     -51.9,
+     -23.6,
+     -36.5
+    ]
+   },
+   "limit_handle": null,
+   "tools": {
+    "T1 2 mm hex precision driver (3 x 60 shaft, 20 x 60 handle)": {
+     "ok": true,
+     "clearance": 4.59,
+     "limit": {
+      "part": "frame",
+      "at_t": 0.7,
+      "point": [
+       -49.3,
+       -12.0,
+       -41.0
+      ]
+     }
+    },
+    "T2 precision screwdriver (3 x 100 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 4.59,
+     "limit": {
+      "part": "frame",
+      "at_t": 0.7,
+      "point": [
+       -49.3,
+       -12.0,
+       -41.0
+      ]
+     }
+    },
+    "T3 PH0 precision driver (3 x 50 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 4.59,
+     "limit": {
+      "part": "frame",
+      "at_t": 0.7,
+      "point": [
+       -49.3,
+       -12.0,
+       -41.0
+      ]
+     }
+    },
+    "T5 stubby / ratchet driver (3 x 25 shaft, 25 x 40 handle)": {
+     "ok": false,
+     "clearance": -4.96,
+     "limit": {
+      "part": "frame",
+      "at_t": 25.0,
+      "point": [
+       -73.6,
+       -23.6,
+       -37.3
+      ]
+     }
+    },
+    "T4a L-key short arm in (2 x 50, 100 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    },
+    "T4b L-key long arm in (2 x 100, 50 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    }
+   },
+   "straight": [
+    "T1",
+    "T2",
+    "T3",
+    "T4a",
+    "T4b"
+   ],
+   "t1_tilt_deg": 0.0,
+   "t1_tilt_azimuth": null,
+   "movable": {},
+   "fails": [
+    "needs the screw started on the driver tip"
+   ],
+   "verdict": "awkward",
+   "note": "robot held on the bench, back up; the frame is empty when these are driven"
+  },
+  {
+   "id": "cap-high-left",
+   "step": "close the cap (everything fitted)",
+   "spec": "M2 x 8",
+   "where": "from behind into the frame boss",
+   "head_top": [
+    -77.15,
+    29.0,
+    26.5
+   ],
+   "approach": [
+    -1.0,
+    -0.0,
+    -0.0
+   ],
+   "r_free_60": 4.91,
+   "h_r4": 200.0,
+   "r_handle": null,
+   "finger_r": 4.91,
+   "finger_start": false,
+   "head_room": 0.34,
+   "limit_60": {
+    "part": "Swann_39_switch",
+    "r": 4.91,
+    "at_t": 6.5,
+    "point": [
+     -83.6,
+     26.3,
+     30.6
+    ]
+   },
+   "limit_r4": null,
+   "limit_finger": {
+    "part": "Swann_39_switch",
+    "r": 4.91,
+    "at_t": 6.5,
+    "point": [
+     -83.6,
+     26.3,
+     30.6
+    ]
+   },
+   "limit_handle": null,
+   "tools": {
+    "T1 2 mm hex precision driver (3 x 60 shaft, 20 x 60 handle)": {
+     "ok": true,
+     "clearance": 0.71,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.5,
+      "point": [
+       -77.6,
+       28.8,
+       28.7
+      ]
+     }
+    },
+    "T2 precision screwdriver (3 x 100 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 0.71,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.5,
+      "point": [
+       -77.6,
+       28.8,
+       28.7
+      ]
+     }
+    },
+    "T3 PH0 precision driver (3 x 50 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 0.71,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.5,
+      "point": [
+       -77.6,
+       28.8,
+       28.7
+      ]
+     }
+    },
+    "T5 stubby / ratchet driver (3 x 25 shaft, 25 x 40 handle)": {
+     "ok": true,
+     "clearance": 0.71,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.5,
+      "point": [
+       -77.6,
+       28.8,
+       28.7
+      ]
+     }
+    },
+    "T4a L-key short arm in (2 x 50, 100 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    },
+    "T4b L-key long arm in (2 x 100, 50 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    }
+   },
+   "straight": [
+    "T1",
+    "T2",
+    "T3",
+    "T5",
+    "T4a",
+    "T4b"
+   ],
+   "t1_tilt_deg": 0.0,
+   "t1_tilt_azimuth": null,
+   "movable": {},
+   "fails": [
+    "needs the screw started on the driver tip"
+   ],
+   "verdict": "awkward",
+   "note": ""
+  },
+  {
+   "id": "cap-high-right",
+   "step": "close the cap (everything fitted)",
+   "spec": "M2 x 8",
+   "where": "from behind into the frame boss",
+   "head_top": [
+    -77.15,
+    -29.0,
+    39.0
+   ],
+   "approach": [
+    -1.0,
+    -0.0,
+    -0.0
+   ],
+   "r_free_60": 30.3,
+   "h_r4": 200.0,
+   "r_handle": null,
+   "finger_r": 30.3,
+   "finger_start": true,
+   "head_room": 3.9,
+   "limit_60": {
+    "part": "Swann_39_switch",
+    "r": 30.3,
+    "at_t": 3.0,
+    "point": [
+     -80.1,
+     1.3,
+     39.0
+    ]
+   },
+   "limit_r4": null,
+   "limit_finger": {
+    "part": "Swann_39_switch",
+    "r": 30.3,
+    "at_t": 5.0,
+    "point": [
+     -82.2,
+     1.3,
+     39.0
+    ]
+   },
+   "limit_handle": null,
+   "tools": {
+    "T1 2 mm hex precision driver (3 x 60 shaft, 20 x 60 handle)": {
+     "ok": true,
+     "clearance": 26.3,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.1,
+      "point": [
+       -77.3,
+       -1.2,
+       38.7
+      ]
+     }
+    },
+    "T2 precision screwdriver (3 x 100 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 26.3,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.1,
+      "point": [
+       -77.3,
+       -1.2,
+       38.7
+      ]
+     }
+    },
+    "T3 PH0 precision driver (3 x 50 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 26.3,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.1,
+      "point": [
+       -77.3,
+       -1.2,
+       38.7
+      ]
+     }
+    },
+    "T5 stubby / ratchet driver (3 x 25 shaft, 25 x 40 handle)": {
+     "ok": true,
+     "clearance": 26.3,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.1,
+      "point": [
+       -77.3,
+       -1.2,
+       38.7
+      ]
+     }
+    },
+    "T4a L-key short arm in (2 x 50, 100 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    },
+    "T4b L-key long arm in (2 x 100, 50 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    }
+   },
+   "straight": [
+    "T1",
+    "T2",
+    "T3",
+    "T5",
+    "T4a",
+    "T4b"
+   ],
+   "t1_tilt_deg": 0.0,
+   "t1_tilt_azimuth": null,
+   "movable": {},
+   "fails": [],
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "id": "cap-low-left",
+   "step": "close the cap (everything fitted)",
+   "spec": "M2 x 6",
+   "where": "from behind into the frame boss",
+   "head_top": [
+    -77.15,
+    17.6,
+    -28.0
+   ],
+   "approach": [
+    -1.0,
+    -0.0,
+    -0.0
+   ],
+   "r_free_60": 58.6,
+   "h_r4": 200.0,
+   "r_handle": null,
+   "finger_r": 58.6,
+   "finger_start": true,
+   "head_room": 54.8,
+   "limit_60": {
+    "part": "Swann_39_switch",
+    "r": 58.6,
+    "at_t": 5.6,
+    "point": [
+     -82.8,
+     17.6,
+     30.6
+    ]
+   },
+   "limit_r4": null,
+   "limit_finger": {
+    "part": "Swann_39_switch",
+    "r": 58.6,
+    "at_t": 5.6,
+    "point": [
+     -82.8,
+     17.6,
+     30.6
+    ]
+   },
+   "limit_handle": null,
+   "tools": {
+    "T1 2 mm hex precision driver (3 x 60 shaft, 20 x 60 handle)": {
+     "ok": true,
+     "clearance": 55.21,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.4,
+      "point": [
+       -77.6,
+       16.8,
+       28.7
+      ]
+     }
+    },
+    "T2 precision screwdriver (3 x 100 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 55.21,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.4,
+      "point": [
+       -77.6,
+       16.8,
+       28.7
+      ]
+     }
+    },
+    "T3 PH0 precision driver (3 x 50 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 55.21,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.4,
+      "point": [
+       -77.6,
+       16.8,
+       28.7
+      ]
+     }
+    },
+    "T5 stubby / ratchet driver (3 x 25 shaft, 25 x 40 handle)": {
+     "ok": true,
+     "clearance": 55.21,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.4,
+      "point": [
+       -77.6,
+       16.8,
+       28.7
+      ]
+     }
+    },
+    "T4a L-key short arm in (2 x 50, 100 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    },
+    "T4b L-key long arm in (2 x 100, 50 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    }
+   },
+   "straight": [
+    "T1",
+    "T2",
+    "T3",
+    "T5",
+    "T4a",
+    "T4b"
+   ],
+   "t1_tilt_deg": 0.0,
+   "t1_tilt_azimuth": null,
+   "movable": {},
+   "fails": [],
+   "verdict": "OK",
+   "note": ""
+  },
+  {
+   "id": "cap-low-right",
+   "step": "close the cap (everything fitted)",
+   "spec": "M2 x 6",
+   "where": "from behind into the frame boss",
+   "head_top": [
+    -77.15,
+    -27.82,
+    -8.0
+   ],
+   "approach": [
+    -1.0,
+    -0.0,
+    -0.0
+   ],
+   "r_free_60": 48.36,
+   "h_r4": 200.0,
+   "r_handle": null,
+   "finger_r": 48.36,
+   "finger_start": true,
+   "head_room": 43.48,
+   "limit_60": {
+    "part": "Swann_39_switch",
+    "r": 48.36,
+    "at_t": 6.5,
+    "point": [
+     -83.6,
+     1.3,
+     30.6
+    ]
+   },
+   "limit_r4": null,
+   "limit_finger": {
+    "part": "Swann_39_switch",
+    "r": 48.36,
+    "at_t": 6.5,
+    "point": [
+     -83.6,
+     1.3,
+     30.6
+    ]
+   },
+   "limit_handle": null,
+   "tools": {
+    "T1 2 mm hex precision driver (3 x 60 shaft, 20 x 60 handle)": {
+     "ok": true,
+     "clearance": 43.84,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.5,
+      "point": [
+       -77.6,
+       -1.2,
+       28.7
+      ]
+     }
+    },
+    "T2 precision screwdriver (3 x 100 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 43.84,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.5,
+      "point": [
+       -77.6,
+       -1.2,
+       28.7
+      ]
+     }
+    },
+    "T3 PH0 precision driver (3 x 50 shaft, 10 x 90 handle)": {
+     "ok": true,
+     "clearance": 43.84,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.5,
+      "point": [
+       -77.6,
+       -1.2,
+       28.7
+      ]
+     }
+    },
+    "T5 stubby / ratchet driver (3 x 25 shaft, 25 x 40 handle)": {
+     "ok": true,
+     "clearance": 43.84,
+     "limit": {
+      "part": "Swann_39_switch",
+      "at_t": 0.5,
+      "point": [
+       -77.6,
+       -1.2,
+       28.7
+      ]
+     }
+    },
+    "T4a L-key short arm in (2 x 50, 100 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    },
+    "T4b L-key long arm in (2 x 100, 50 lever)": {
+     "ok": true,
+     "free_swing_deg": 360.0
+    }
+   },
+   "straight": [
+    "T1",
+    "T2",
+    "T3",
+    "T5",
+    "T4a",
+    "T4b"
+   ],
+   "t1_tilt_deg": 0.0,
+   "t1_tilt_azimuth": null,
+   "movable": {},
+   "fails": [],
+   "verdict": "OK",
+   "note": ""
+  }
+ ]
+}

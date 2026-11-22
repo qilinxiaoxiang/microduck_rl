@@ -1,14 +1,15 @@
 """CMU as-built mass variants of the velocity task (Pollen's recipe on the measured robot masses).
 
 Which model to use: the `-CMU-Current` tasks (`Mjlab-Velocity-Flat-MicroDuck-CMU-Current`, `...-Rough-...`). They
-resolve `cmu/model/current.json`, the one pointer to the robot as it is now (battery-20261104 on 2026-11-11), when
-this module is imported. The dated ids (`-CMU-Plugged`, `-CMU-Battery`, `-CMU-Battery-20261104`) are historical:
+resolve `cmu/model/current.json`, the one pointer to the robot as it is now (battery-v2m5-20261121 since 2026-11-22: the
+battery backpack with the 2S 3000 mAh battery), when this module is imported. The dated ids (`-CMU-Plugged`,
+`-CMU-Battery`, `-CMU-Battery-20261104`, `-CMU-Battery-v2m5-20261121`) name a fixed robot; all but the current one are historical:
 kept so old runs reproduce, never the default for new training.
 
 `make_cmu_velocity_env_cfg(variant)` is `make_microduck_velocity_env_cfg` with the robot's `spec_fn` wrapped so
 that the signed mass parts of `cmu/model` (`variant_parts(variant)`) are applied to the MJCF bodies as explicit
-inertials before mjlab compiles the scene, and (for battery-20261104, which the current variant resolves to) the
-robot's own visual layer is drawn. Everything else (observations, 61-D contract, rewards, DR, BAM actuators, HOME
+inertials before mjlab compiles the scene, and (for battery-20261104 and battery-v2m5-20261121, which the current
+variant resolves to) the robot's own visual layer is drawn. Everything else (observations, 61-D contract, rewards, DR, BAM actuators, HOME
 frame) is Pollen's. `cmu/model/apply_masses.py` is loaded by file path from the repository root; `cmu/` is not an
 installed package.
 """
@@ -28,9 +29,9 @@ _VISUAL = _REPO_ROOT / "cmu" / "model" / "visual.py"
 
 CURRENT = "current"
 # Dated variants that have their own visual layer. Older variants keep the legacy look they were trained with.
-_VISUAL_VARIANTS = ("battery-20261104",)
+_VISUAL_VARIANTS = ("battery-20261104", "battery-v2m5-20261121")
 # "current" first: the robot as it is now. The dated ones are historical.
-CMU_VARIANTS = (CURRENT, "plugged", "battery", "battery-20261104")
+CMU_VARIANTS = (CURRENT, "plugged", "battery", "battery-20261104", "battery-v2m5-20261121")
 HISTORICAL_VARIANTS = ("plugged", "battery", "battery-20261104")
 # (task id, variant, rough)
 CMU_VELOCITY_TASKS = tuple(

@@ -27,7 +27,8 @@ import finetune_worker as fw  # noqa: E402
 CMD = slice(48, 51)  # twist command slots in the 61-D actor observation (48 proprioception first)
 LEAN = 0.2  # rad: lean-and-hold hip-pitch action offset (both hips), added to the stander's output
 DIAG_W = 1e-6
-RT_THR = 0.05  # universal2 intended: largest |twist command| below which the stander runs (walk_brain's split)
+DIAG_CASES = {"walk025": (0.25, 0.0, 0.0), "walk020": (0.20, 0.0, 0.0)}  # --cases only; twist the policy reads
+RT_THR = 0.05 # universal2 intended: largest |twist command| below which the stander runs (walk_brain's split)
 
 
 def track_from_ema(env, std: float, command_name: str):
@@ -84,6 +85,11 @@ def add_diag_terms(cfg):
         t = copy.deepcopy(cfg.rewards["torque_margin"])
         t.weight = DIAG_W
         cfg.rewards["diag_torque_margin"] = t
+    import smooth_terms as sm  # round 3: raw action-acceleration and action-rate sums, to size the smoothness weights
+    cfg.rewards["diag_action_acc"] = RewardTermCfg(func=sm.action_acc_l2, weight=DIAG_W)
+    t = copy.deepcopy(cfg.rewards["action_rate_l2"])
+    t.weight = DIAG_W
+    cfg.rewards["diag_action_rate"] = t
     for n in [k for k in cfg.rewards if k.startswith("diag_")]:
         cfg.rewards[n].func = _accumulating(n, cfg.rewards[n].func)
 
@@ -108,6 +114,10 @@ def main():
     ap.add_argument("--diag", action="store_true",
                     help="add candidate reward terms at weight 1e-6 (diag_*): their raw per-second values let a design be "
                          "priced offline from the same deterministic rollouts (rewards do not change the dynamics)")
+    ap.add_argument("--delay-mods", default="",
+                    help="diagnostics (RUNLOG 2026-11-18, training env against runtime simulation): JSON with any of "
+                         "act_lag [min, max] (command delay, 5 ms physics steps), act_period, max_current, joint_pos_lag, joint_vel_lag, imu_lag "
+                         "[min, max] (actor observation delay, 20 ms control steps); unset: the delays as trained")
     a = ap.parse_args()
     import torch
     import mjlab.tasks  # noqa: F401
@@ -170,6 +180,18 @@ def main():
                                     ("lean_back", dict(cmd=(0.0, 0.0, 0.0), lean=-LEAN)))],
     }
     plan["universal3h"] = list(plan["universal3"])  # HISTORY-PLAN.md: the same cases in the history env
+    plan["universal3t"] = list(plan["universal3"])  # TEACHER-STUDENT-PLAN.md: the same cases in the teacher env
+    for j4 in flight_worker.LOOP_DELAYS:  # round 2: the same cases with the loop delay (t = the teacher env)
+        plan[j4] = list(plan["universal3"])
+    # diagnostics (RUNLOG 2026-11-18), only when named in --cases and never part of the verdict: the runtime acceptance
+    # walk's command held for the whole episode (the policy reads it; the env's own sampled command is ignored)
+    for c in a.cases.split(","):
+        if c in DIAG_CASES:
+            for job in ("universal3", "universal3h", "universal3t", *flight_worker.LOOP_DELAYS):
+                plan[job] = plan[job] + [(f"{ld}:{c}", f"u_{ld}", a.walker, DIAG_CASES[c]) for ld in ("full", "nobatt", "none")]
+        if c.startswith("pol_"):  # round 3 diagnostics, never part of the verdict: another --policy (name after pol_)
+            for job in ("universal3", "universal3h", "universal3t", *flight_worker.LOOP_DELAYS):  # doing the intended walk
+                plan[job] = plan[job] + [(f"{ld}:{c}", f"u_{ld}", c[4:], dict(compose=c[4:], thr=RT_THR)) for ld in ("full", "nobatt", "none")]
     PIN = {"u_full": dict(full=1.0, nobatt=0.0, none=0.0, scaled=0.0), "u_none": dict(full=0.0, nobatt=0.0, none=1.0, scaled=0.0),
            "u_nobatt": dict(full=0.0, nobatt=1.0, none=0.0, scaled=0.0)}
     plan = {k: v for k, v in plan.items() if k in a.jobs.split(",")}
@@ -187,6 +209,18 @@ def main():
             cfg = load_env_cfg(fw.TASK, play=False)
             if job == "universal3h":  # HISTORY-PLAN.md: universal3's env with the actor history (policies load padded)
                 delta = dict(fw.DELTAS["universal"], history=dict(flight_worker.HISTORY_A))
+            elif job == "universal3t":  # universal3's env with the privileged actor columns (policies load padded)
+                delta = dict(fw.DELTAS["universal"], teacher_priv=dict(flight_worker.TEACHER_PRIV))
+            elif job in flight_worker.LOOP_DELAYS:  # round 2: universal3 / universal3t plus the loop delay
+                delta = dict(fw.DELTAS["universal"], loop_delay=dict(flight_worker.LOOP_DELAYS[job]))
+                if "teacher_priv" in fw.DELTAS[job]:
+                    # the job's own privileged columns (8 with the gain input), so a gain-input teacher loads as the
+                    # intended walk; a 61-input policy still loads padded
+                    delta["teacher_priv"] = dict(fw.DELTAS[job]["teacher_priv"])
+                if fw.DELTAS[job].get("goal_clamp"):  # the runtime's joint-range clamp on the targets (universal5tgb)
+                    delta["goal_clamp"] = True
+                if "gain_dr" in fw.DELTAS[job]:  # round 3: the audit runs under the same position-gain range
+                    delta["gain_dr"] = dict(fw.DELTAS[job]["gain_dr"])
             else:
                 delta = dict(fw.DELTAS["universal" if job in ("universal2", "universal3") else job])
             if a.reward_mods:
@@ -202,6 +236,12 @@ def main():
             cfg.scene.entities["robot"] = fw.apply_asbuilt_masses(cfg.scene.entities["robot"],
                                                                   man["nopack" if model in PIN else model],
                                                                   str(A / "existing-model-mass-audit.json"), 0.09)
+            if a.delay_mods:  # after the delta's own loop delay, so a named key overrides it
+                dm = json.loads(a.delay_mods)
+                if dm.pop("no_push", False):  # diagnostics: random pushes off (the runtime acceptance walk has none)
+                    cfg.events["push_robot"].interval_range_s = (1e6, 1e6 + 1.0)
+                    print("[audit] random pushes off", flush=True)
+                flight_worker.apply_loop_delay(cfg, dm)
             cfg.scene.num_envs = a.num_envs
             cfg.seed = 1
             env = RslRlVecEnvWrapper(ManagerBasedRlEnv(cfg=cfg, device=a.device), clip_actions=load_rl_cfg(fw.TASK).clip_actions)
@@ -263,7 +303,8 @@ def main():
         checks = {}
         for case, r in res[job].items():
             grp = case.split(":")[0] + ":" if ":" in case else ""
-            if case in ("intended", "stand61_ref") or case.endswith(":intended"):
+            if (case in ("intended", "stand61_ref") or case.endswith(":intended") or case.split(":")[-1] in DIAG_CASES
+                    or case.split(":")[-1].startswith("pol_")):
                 continue
             it = res[job][grp + "intended"]
             checks[case] = dict(reward_ratio=round(r["reward_per_s"] / it["reward_per_s"], 3),
@@ -276,7 +317,7 @@ def main():
             ok = ok and checks["stand"]["reward_ratio"] <= 0.80
         if job == "universal":  # the stand gate at both loads
             ok = ok and checks["full:stand"]["reward_ratio"] <= 0.80 and checks["none:stand"]["reward_ratio"] <= 0.80
-        if job in ("universal2", "universal3", "universal3h"):  # every degenerate policy at every load
+        if job in ("universal2", "universal3", "universal3h", "universal3t", *flight_worker.LOOP_DELAYS):  # every degenerate policy at every load
             ok = ok and all(c["reward_ratio"] <= 0.80 for k, c in checks.items() if ":splay" not in k)
         res[job]["verdict"] = dict(checks=checks, max_stand_ratio=0.80 if job in ("packwalk", "packwalk_tq", "universal", "universal2", "universal3") else None,
                                    verdict="PASS" if ok else "FAIL")

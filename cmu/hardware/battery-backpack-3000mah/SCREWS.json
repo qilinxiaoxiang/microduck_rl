@@ -1,0 +1,321 @@
+{
+ "mesh_dir": "build",
+ "meshes": {
+  "frame": "battery_v2_frame-world.stl",
+  "cap": "battery_v2_cap-world.stl",
+  "openrb-board-upright": "cmu/hardware/battery-backpack/mating/openrb-board-upright.stl",
+  "rear_pack": "cmu/hardware/battery-backpack/mating/rear_pack.stl",
+  "shell_left": "cmu/hardware/battery-backpack/mating/shell_left.stl",
+  "shell_right": "cmu/hardware/battery-backpack/mating/shell_right.stl",
+  "DC5_5_plug": "parts/DC5_5_plug-world.stl",
+  "DFR1202": "parts/DFR1202-world.stl",
+  "DFR1202_leads": "parts/DFR1202_leads-world.stl",
+  "DFR1202_solder_joints": "parts/DFR1202_solder_joints-world.stl",
+  "DFR1202_tape": "parts/DFR1202_tape-world.stl",
+  "Swann_39_snap_wings": "parts/Swann_39_snap_wings-world.stl",
+  "Swann_39_switch": "parts/Swann_39_switch-world.stl",
+  "balance_plug": "parts/balance_plug-world.stl",
+  "battery_2S_3000": "parts/battery_2S_3000-world.stl",
+  "battery_foam_pad": "parts/battery_foam_pad-world.stl",
+  "plug_1": "parts/plug_1-world.stl",
+  "plug_2": "parts/plug_2-world.stl"
+ },
+ "screws": [
+  {
+   "id": "fix y+16.1 z+26.0",
+   "step": "screw the frame onto the OpenRB pack (empty frame)",
+   "spec": "M2 x 6",
+   "where": "inside the frame, through the front wall into the pack post",
+   "seat": [
+    -47.0,
+    16.1,
+    26.0
+   ],
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "head_d": 3.8,
+   "head_h": 1.6,
+   "length": 6,
+   "through_mm": 2.0,
+   "drive": "phillips",
+   "present": [
+    "frame",
+    "openrb-board-upright",
+    "rear_pack",
+    "shell_left",
+    "shell_right"
+   ],
+   "movable": [],
+   "table_z": null,
+   "note": "robot held on the bench, back up; the frame is empty when these are driven"
+  },
+  {
+   "id": "fix y-16.1 z+26.0",
+   "step": "screw the frame onto the OpenRB pack (empty frame)",
+   "spec": "M2 x 6",
+   "where": "inside the frame, through the front wall into the pack post",
+   "seat": [
+    -47.0,
+    -16.1,
+    26.0
+   ],
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "head_d": 3.8,
+   "head_h": 1.6,
+   "length": 6,
+   "through_mm": 2.0,
+   "drive": "phillips",
+   "present": [
+    "frame",
+    "openrb-board-upright",
+    "rear_pack",
+    "shell_left",
+    "shell_right"
+   ],
+   "movable": [],
+   "table_z": null,
+   "note": "robot held on the bench, back up; the frame is empty when these are driven"
+  },
+  {
+   "id": "fix y+16.1 z-36.5",
+   "step": "screw the frame onto the OpenRB pack (empty frame)",
+   "spec": "M2 x 6",
+   "where": "inside the frame, through the front wall into the pack post",
+   "seat": [
+    -47.0,
+    16.1,
+    -36.5
+   ],
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "head_d": 3.8,
+   "head_h": 1.6,
+   "length": 6,
+   "through_mm": 2.0,
+   "drive": "phillips",
+   "present": [
+    "frame",
+    "openrb-board-upright",
+    "rear_pack",
+    "shell_left",
+    "shell_right"
+   ],
+   "movable": [],
+   "table_z": null,
+   "note": "robot held on the bench, back up; the frame is empty when these are driven"
+  },
+  {
+   "id": "fix y-16.1 z-36.5",
+   "step": "screw the frame onto the OpenRB pack (empty frame)",
+   "spec": "M2 x 6",
+   "where": "inside the frame, through the front wall into the pack post",
+   "seat": [
+    -47.0,
+    -16.1,
+    -36.5
+   ],
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "head_d": 3.8,
+   "head_h": 1.6,
+   "length": 6,
+   "through_mm": 2.0,
+   "drive": "phillips",
+   "present": [
+    "frame",
+    "openrb-board-upright",
+    "rear_pack",
+    "shell_left",
+    "shell_right"
+   ],
+   "movable": [],
+   "table_z": null,
+   "note": "robot held on the bench, back up; the frame is empty when these are driven"
+  },
+  {
+   "id": "cap-high-left",
+   "step": "close the cap (everything fitted)",
+   "spec": "M2 x 8",
+   "where": "from behind into the frame boss",
+   "seat": [
+    -75.55,
+    29.0,
+    26.5
+   ],
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "head_d": 3.8,
+   "head_h": 1.6,
+   "length": 8,
+   "through_mm": 1.7,
+   "drive": "phillips",
+   "present": [
+    "frame",
+    "cap",
+    "openrb-board-upright",
+    "rear_pack",
+    "shell_left",
+    "shell_right",
+    "DC5_5_plug",
+    "DFR1202",
+    "DFR1202_leads",
+    "DFR1202_solder_joints",
+    "DFR1202_tape",
+    "Swann_39_snap_wings",
+    "Swann_39_switch",
+    "balance_plug",
+    "battery_2S_3000",
+    "battery_foam_pad",
+    "plug_1",
+    "plug_2"
+   ],
+   "movable": [],
+   "table_z": null
+  },
+  {
+   "id": "cap-high-right",
+   "step": "close the cap (everything fitted)",
+   "spec": "M2 x 8",
+   "where": "from behind into the frame boss",
+   "seat": [
+    -75.55,
+    -29.0,
+    39.0
+   ],
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "head_d": 3.8,
+   "head_h": 1.6,
+   "length": 8,
+   "through_mm": 1.7,
+   "drive": "phillips",
+   "present": [
+    "frame",
+    "cap",
+    "openrb-board-upright",
+    "rear_pack",
+    "shell_left",
+    "shell_right",
+    "DC5_5_plug",
+    "DFR1202",
+    "DFR1202_leads",
+    "DFR1202_solder_joints",
+    "DFR1202_tape",
+    "Swann_39_snap_wings",
+    "Swann_39_switch",
+    "balance_plug",
+    "battery_2S_3000",
+    "battery_foam_pad",
+    "plug_1",
+    "plug_2"
+   ],
+   "movable": [],
+   "table_z": null
+  },
+  {
+   "id": "cap-low-left",
+   "step": "close the cap (everything fitted)",
+   "spec": "M2 x 6",
+   "where": "from behind into the frame boss",
+   "seat": [
+    -75.55,
+    17.6,
+    -28.0
+   ],
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "head_d": 3.8,
+   "head_h": 1.6,
+   "length": 6,
+   "through_mm": 1.7,
+   "drive": "phillips",
+   "present": [
+    "frame",
+    "cap",
+    "openrb-board-upright",
+    "rear_pack",
+    "shell_left",
+    "shell_right",
+    "DC5_5_plug",
+    "DFR1202",
+    "DFR1202_leads",
+    "DFR1202_solder_joints",
+    "DFR1202_tape",
+    "Swann_39_snap_wings",
+    "Swann_39_switch",
+    "balance_plug",
+    "battery_2S_3000",
+    "battery_foam_pad",
+    "plug_1",
+    "plug_2"
+   ],
+   "movable": [],
+   "table_z": null
+  },
+  {
+   "id": "cap-low-right",
+   "step": "close the cap (everything fitted)",
+   "spec": "M2 x 6",
+   "where": "from behind into the frame boss",
+   "seat": [
+    -75.55,
+    -27.825,
+    -8.0
+   ],
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "head_d": 3.8,
+   "head_h": 1.6,
+   "length": 6,
+   "through_mm": 1.7,
+   "drive": "phillips",
+   "present": [
+    "frame",
+    "cap",
+    "openrb-board-upright",
+    "rear_pack",
+    "shell_left",
+    "shell_right",
+    "DC5_5_plug",
+    "DFR1202",
+    "DFR1202_leads",
+    "DFR1202_solder_joints",
+    "DFR1202_tape",
+    "Swann_39_snap_wings",
+    "Swann_39_switch",
+    "balance_plug",
+    "battery_2S_3000",
+    "battery_foam_pad",
+    "plug_1",
+    "plug_2"
+   ],
+   "movable": [],
+   "table_z": null
+  }
+ ]
+}

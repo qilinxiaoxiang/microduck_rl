@@ -29,7 +29,7 @@ left on. Switch the robot off when it is not in use.
 
 ## Fix
 
-1. Stop the brain (it holds the bus). Torque goes off, so lay the robot down first.
+1. Stop the brain (it holds the bus). The servos keep their torque and last goals; a stopped or restarted brain never turns torque off (only {"mode": "off"} or cutting servo power does), so the robot needs no holding.
 
    ```bash
    ssh a7z 'pkill -f "^/home/radxa/.venvs/duck-policy/bin/python walk_wired.py"'
