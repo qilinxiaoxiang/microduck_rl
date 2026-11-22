@@ -20,8 +20,15 @@ STAND_POSE = dict(NEUTRAL_POSE)
 # stand (brain log stage1121-135557, gravity x +0.13..+0.22) and tipped forward. Neck 0.35 and 0.50 gained only about
 # 1 deg and the neck then pressed on the saddle (Shawn: "脖子已经顶到saddle了 不要调脖子了 甚至要往前一点 先调脚踝"),
 # so the neck stays at 0.25 and both ankles tilt the whole body back by ANKLE_BACK rad (right ankle more negative, left
-# mirrored), tuned on the robot from the stand gravity reading.
-ANKLE_BACK = 0.060
+# mirrored), tuned on the robot from the stand gravity reading: 0.060 for the charger pack.
+# 2026-11-22, new battery backpack (2S 3000 mAh, 177.5 g behind the hips; Shawn: "那你调一下fix stand呗"): 0.060 tips
+# backward at 0.7 s in the sim. ANKLE_BACK -0.045 (the body tilts forward 2.6 deg against NEUTRAL) is the centre of
+# the widest standing band in the as-built sim (cmu battery-v2m5-20261121, robot set down in the pose): it stands over
+# COM offsets 0 to +2 mm (lean 0.7 to 7 deg), at friction 0.4, under 0.1 m/s forward and 0.05 m/s backward pushes;
+# a 0.1 m/s backward push tips every pose tried. The COM offset +1 mm is where the sim reproduces the 650 mAh pack's
+# stand at ankle 0 on 11-02/11-04 (gravity x -0.01..-0.11). On the robot from the day the new backpack is fitted;
+# until then the A7Z keeps 0.060 (guide/firmware/mac/stand-ankle-20261122/).
+ANKLE_BACK = -0.045
 STAND_POSE["neck_pitch"] = 0.25
 STAND_POSE["right_ankle"] = NEUTRAL_POSE["right_ankle"] - ANKLE_BACK
 STAND_POSE["left_ankle"] = NEUTRAL_POSE["left_ankle"] + ANKLE_BACK
