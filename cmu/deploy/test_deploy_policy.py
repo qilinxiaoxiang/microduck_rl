@@ -52,6 +52,94 @@ def test_a_payload_built_on_another_robot_is_refused_before_any_case_runs(tmp_pa
         sim_suite.payload_flags(str(tmp_path / "missing.json"))
 
 
+PLANNED = "battery-v2m5-20261121"
+
+
+def test_current_with_a_payload_built_on_a_planned_robot_is_still_refused(tmp_path):
+    p = manifest(tmp_path, f"{PLANNED} + flight pack (nominal) from somewhere")
+    with pytest.raises(SystemExit) as e:
+        sim_suite.payload_flags(p)  # default --variant current
+    assert "not on the robot as it is now" in str(e.value)
+
+
+def test_a_planned_variant_takes_a_payload_built_on_it_and_says_it_is_not_the_robot(tmp_path):
+    assert sim_suite.is_planned(PLANNED) and not sim_suite.is_planned("current") and not sim_suite.is_planned("plugged")
+    p = manifest(tmp_path, f"{PLANNED} + flight pack (nominal) from somewhere")
+    flags = sim_suite.payload_flags(p, PLANNED)
+    assert flags[:4] == ["--manifest", os.path.abspath(p), "--stand-s", "0"]
+    assert flags[flags.index("--historical-model") + 1] == f"sim_suite --variant {PLANNED} (planned robot, not fitted)"
+    label = sim_suite.payload_label(p, PLANNED)
+    assert label == f"planned-{PLANNED}+flightpack-nominal" and label != sim_suite.payload_label(p)
+    head = sim_suite.row_prefix(PLANNED, p)
+    assert head["current_robot"] is False and "NOT the robot as it is now" in head["robot"]
+    assert sim_suite.row_prefix("current", p) == {"variant": sim_suite.payload_label(p)}  # current rows unchanged
+    assert os.path.basename(sim_suite.default_reference(PLANNED)) == f"reference-walk61-planned-{PLANNED}.jsonl"
+    bare = sim_suite.variant_flags(PLANNED)
+    assert bare[bare.index("--historical-model") + 1].endswith("(planned robot, not fitted)")
+    # a payload built on the current robot, or on another plan, is refused for the planned variant
+    for build in (f"{CURRENT} + flight pack", "flightpack-d2-nominal.json (sha256 x) with the battery backpack V2"):
+        with pytest.raises(SystemExit) as e:
+            sim_suite.payload_flags(manifest(tmp_path, build, name="other.json"), PLANNED)
+        assert f"not on the planned robot {PLANNED}" in str(e.value)
+
+
+def test_planned_gate_names_never_meet_the_current_robots(tmp_path, monkeypatch):
+    p = manifest(tmp_path, f"{PLANNED} + flight pack")
+    assert deploy_policy.gate_label(PLANNED, p).startswith(f"planned-{PLANNED}+flightpack-nominal-")
+    assert deploy_policy.planned_suffix("current") == "" and deploy_policy.planned_suffix("plugged") == ""
+    monkeypatch.setattr(deploy_policy, "RUNS", str(tmp_path))
+    cand = tmp_path / "cand.onnx"
+    cand.write_bytes(b"candidate")
+    run, _ = deploy_policy.build_set(str(cand), "pack-walk", ("walk61",), PLANNED)
+    assert os.path.basename(run) == f"pack-walk--planned-{PLANNED}"
+    assert os.path.basename(deploy_policy.build_set(str(cand), "pack-walk")[0]) == "pack-walk"
+
+
+@pytest.mark.parametrize("action", ("deploy", "rollback", "status"))
+def test_only_check_takes_a_planned_variant(action, monkeypatch, tmp_path):
+    monkeypatch.setattr(deploy_policy, "ssh", lambda *a, **k: pytest.fail("no ssh before the refusal"))
+    monkeypatch.setattr(sys, "argv", ["deploy_policy.py", action, str(tmp_path / "w.onnx"), "--name", "x",
+                                      "--variant", PLANNED])
+    with pytest.raises(SystemExit) as e:
+        deploy_policy.main()
+    assert "planned robot is checked with `check`, never deployed" in str(e.value)
+
+
+def test_check_refuses_a_variant_that_is_not_planned(monkeypatch, tmp_path):
+    monkeypatch.setattr(sys, "argv", ["deploy_policy.py", "check", str(tmp_path / "w.onnx"), "--name", "x",
+                                      "--variant", "plugged"])
+    with pytest.raises(SystemExit) as e:
+        deploy_policy.main()
+    assert "not a planned robot" in str(e.value)
+
+
+def test_a_planned_gate_runs_both_sides_on_the_planned_payload(tmp_path, monkeypatch):
+    monkeypatch.setattr(deploy_policy, "RUNS", str(tmp_path))
+    monkeypatch.setattr(deploy_policy, "sim_hash", lambda: "testhash")
+    p = manifest(tmp_path, f"{PLANNED} + flight pack")
+    calls = []
+
+    class Done:
+        returncode, stderr = 0, ""
+
+        def __init__(self, out):
+            self.stdout = out
+
+    def fake_suite(models, out, variant, reference=None, payload=None):
+        calls.append((variant, payload, out))
+        open(out, "w").write("{}\n")
+        return Done(deploy_policy.PASS + "\n" if reference else "")
+
+    monkeypatch.setattr(deploy_policy, "suite", fake_suite)
+    run = tmp_path / "cand"
+    run.mkdir()
+    got = deploy_policy.gate(str(run), str(run / "models"), payload=p, variant=PLANNED)
+    label = deploy_policy.gate_label(PLANNED, p)
+    assert got["gate"] == {label: deploy_policy.PASS}
+    assert [c[:2] for c in calls] == [(PLANNED, p), (PLANNED, p)]
+    assert os.path.basename(os.path.dirname(calls[0][2])) == f"_walk61-testhash--planned-{PLANNED}"
+
+
 def test_the_bare_gate_keeps_its_label_and_a_payload_gate_names_the_manifest_and_its_hash(tmp_path):
     assert deploy_policy.gate_label("current") == "current"
     p = manifest(tmp_path, f"{CURRENT} + flight pack")

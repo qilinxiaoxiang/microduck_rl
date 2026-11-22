@@ -45,6 +45,17 @@ set the candidate replaces (default walk61; a policy trained to stand and walk a
 since walk_brain runs the stand61 slot for a zero command before the first step). Until the runtime selects a policy
 set by the payload it detects, the robot runs whichever set ~/duck-policy names: deploy a payload set only with the
 payload fitted, and roll back before taking it off.
+
+A robot that is planned but not built yet (cmu/simcheck/sim_suite.py PLANNED, e.g. battery-v2m5-20261121, the battery
+backpack V2 rev M5) can be checked before the trial, never deployed:
+
+  uv run --no-sync python cmu/deploy/deploy_policy.py check path/to/walk.onnx --name my-pack-walk \
+      --variant battery-v2m5-20261121 --payload-manifest path/to/flightpack-d2-on-battery-v2m5.json --slots walk61,stand61
+
+The payload manifest must then be built on that variant. Its runs go to cmu/deploy/runs/<name>--planned-<variant>/ and
+its deployed-set baseline to cmu/deploy/runs/_walk61-<hash>--planned-<variant>/, so neither can be reused for the
+current robot; the MANIFEST records the planned variant and says it is not the robot as it is now. `deploy` and
+`rollback` refuse any --variant other than current.
 """
 import argparse
 import datetime
@@ -65,6 +76,8 @@ HISTORICAL_VARIANTS = ("plugged", "battery", "asbuilt")  # --also: report-only e
 PASS = "verdict: candidate matches or beats the reference on every real case"
 BRAIN = "'^/home/radxa/.venvs/duck-policy/bin/python walk_wired.py'"  # duck-run.sh's own pattern, never this ssh shell
 SSH = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", HOST]
+sys.path.insert(0, os.path.join(ROOT, "cmu", "simcheck"))
+from sim_suite import PLANNED, is_planned  # noqa: E402  (planned robots: check only, never deploy)
 
 
 def fail(msg):
@@ -96,8 +109,13 @@ def parse_slots(text):
     return slots
 
 
-def build_set(onnx, name, slots=("walk61",)):
-    run = os.path.join(RUNS, name)
+def planned_suffix(variant):
+    """'' for the current robot (names unchanged); '--planned-<variant>' for a planned robot's run and cache dirs."""
+    return f"--planned-{variant}" if is_planned(variant) else ""
+
+
+def build_set(onnx, name, slots=("walk61",), variant="current"):
+    run = os.path.join(RUNS, name + planned_suffix(variant))
     models = os.path.join(run, "models")
     os.makedirs(models, exist_ok=True)
     for f in sorted(os.listdir(BASE)):
@@ -111,9 +129,10 @@ def build_set(onnx, name, slots=("walk61",)):
 def gate_label(variant, payload=None):
     """Name of the gate model in file names and verdicts: the variant, or the variant plus the payload manifest's stem
     and the first 8 hex digits of its hash (a regenerated payload manifest gets its own baseline)."""
+    name = f"planned-{variant}" if is_planned(variant) else variant
     if not payload:
-        return variant
-    return f"{variant}+{os.path.splitext(os.path.basename(payload))[0]}-{sha256(payload)[:8]}"
+        return name
+    return f"{name}+{os.path.splitext(os.path.basename(payload))[0]}-{sha256(payload)[:8]}"
 
 
 def sim_hash():
@@ -140,7 +159,7 @@ def suite(models, out, variant, reference=None, payload=None):
 def baseline(variant, payload=None):
     """The deployed set's rows on this gate model at the current code, run once per sim_hash() and payload manifest."""
     label = gate_label(variant, payload)
-    base = os.path.join(RUNS, f"_walk61-{sim_hash()}")
+    base = os.path.join(RUNS, f"_walk61-{sim_hash()}{planned_suffix(variant)}")
     out = os.path.join(base, f"suite-{label}.jsonl")
     if os.path.isfile(out) and os.path.getsize(out):
         return out
@@ -153,11 +172,12 @@ def baseline(variant, payload=None):
     return out
 
 
-def gate(run, models, extras=(), payload=None):
-    """Gate on GATE_VARIANTS, carrying `payload` when one is given; `extras` (historical variants, never with the
-    payload) are run and reported but never fail the gate."""
+def gate(run, models, extras=(), payload=None, variant="current"):
+    """Gate on GATE_VARIANTS (or on the planned robot `variant`, check only), carrying `payload` when one is given;
+    `extras` (historical variants, never with the payload) are run and reported but never fail the gate."""
     verdicts = {}
-    gates = [(v, payload) for v in GATE_VARIANTS]
+    gate_variants = GATE_VARIANTS if variant == "current" else (variant,)
+    gates = [(v, payload) for v in gate_variants]
     for v, pl in gates + [(v, None) for v in extras]:
         label = gate_label(v, pl)
         ref = baseline(v, pl)
@@ -175,7 +195,7 @@ def gate(run, models, extras=(), payload=None):
     labels = [gate_label(v, pl) for v, pl in gates]
     if any(verdicts[l] != PASS for l in labels):
         fail(f"the candidate is worse than the deployed set in at least one real case on {', '.join(labels)}; rows in "
-             f"{run}, the deployed set's in {os.path.dirname(baseline(GATE_VARIANTS[0], payload))}")
+             f"{run}, the deployed set's in {os.path.dirname(baseline(gate_variants[0], payload))}")
     return {"gate": {l: verdicts[l] for l in labels},
             "historical_extras": {v: verdicts[v] for v in extras}}
 
@@ -217,7 +237,17 @@ def main():
                          "current variant, e.g. the flight pack's flightpack-nominal.json) instead of the bare robot")
     ap.add_argument("--slots", default="walk61",
                     help=f"comma list of the deployed set's files the candidate replaces ({', '.join(SLOTS)}; default walk61)")
+    ap.add_argument("--variant", default="current",
+                    help=f"check only: gate on a planned robot that is not built yet ({', '.join(PLANNED)}) instead of "
+                         "the robot as it is now (default current); deploy and rollback refuse it")
     a = ap.parse_args()
+    if a.variant != "current":
+        if a.action != "check":
+            fail(f"--variant {a.variant}: {a.action} works on the robot as it is now only (cmu/model/current.json); a "
+                 "planned robot is checked with `check`, never deployed or rolled back")
+        if not is_planned(a.variant):
+            fail(f"--variant {a.variant}: not a planned robot ({', '.join(PLANNED) or 'none'}); historical models go "
+                 "to --also, the current robot is the default")
     slots = parse_slots(a.slots)
     payload = os.path.abspath(a.payload_manifest) if a.payload_manifest else None
     if payload and not os.path.isfile(payload):
@@ -252,11 +282,16 @@ def main():
         fail("~/duck-run.sh on the A7Z predates policy deployment and would ignore ~/duck-policy: rerun "
              "guide/firmware/a7z/install_teleop.sh from the robot's MacBook first")
     check_contract(a.onnx)
-    run, models = build_set(os.path.abspath(a.onnx), a.name, slots)
-    verdicts = gate(run, models, extras, payload)
+    run, models = build_set(os.path.abspath(a.onnx), a.name, slots, a.variant)
+    verdicts = gate(run, models, extras, payload, a.variant)
     with open(os.path.join(ROOT, "cmu", "model", "current.json")) as f:
         current = json.load(f)
     gate_model = {"variant": current["variant"], "mass_manifest_sha256": current["mass_manifest_sha256"]}
+    if a.variant != "current":
+        planned_manifest = os.path.join(ROOT, "cmu", "model", "manifests", f"{a.variant}.json")
+        gate_model = {"variant": a.variant, "mass_manifest_sha256": sha256(planned_manifest), "planned": True,
+                      "robot": f"PLANNED, not fitted: NOT the robot as it is now ({current['variant']}); check only, "
+                               "never deploy this set from this gate"}
     if payload:
         gate_model["payload_manifest"] = {"file": os.path.basename(payload), "sha256": sha256(payload)}
         gate_model["note"] = "gated with this payload on the robot only; load it only with the payload fitted"
@@ -266,7 +301,12 @@ def main():
                 "files": {f: sha256(os.path.join(models, f)) for f in sorted(os.listdir(models)) if f != "MANIFEST.json"}}
     with open(os.path.join(models, "MANIFEST.json"), "w") as f:
         json.dump(manifest, f, indent=1)
-    on = f"{current['variant']} carrying {os.path.basename(payload)}" if payload else current["variant"]
+    robot = gate_model["variant"]
+    on = f"{robot} carrying {os.path.basename(payload)}" if payload else robot
+    if a.variant != "current":
+        print(f"gate passed on the PLANNED robot ({on}), NOT the robot as it is now ({current['variant']}); "
+              f"slots {', '.join(slots)}; policy set in {models}")
+        return
     print(f"gate passed on the current robot ({on}); slots {', '.join(slots)}; policy set in {models}")
     if a.action == "check":
         print("send that directory (or the ONNX and this name) to whoever runs `deploy` on the robot's MacBook")

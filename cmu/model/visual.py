@@ -25,7 +25,9 @@ def apply_visual_to_spec(spec: mujoco.MjSpec, variant: str = "", visual: dict | 
     """Replace the official visual geoms in `spec` with today's robot, or with `variant` (e.g. "battery": the backpack
     in place of the bench converter box); returns the number of geoms added."""
     visual_dir = VISUAL_DIR
-    if variant == "battery-20261104":
+    # battery-v2m5-20261121 (planned backpack V2 rev M5, not fitted) has no visual layer of its own: it is drawn with the
+    # battery-20261104 layer, which still shows the OLD backpack. Visual geoms carry no mass, so physics does not use it.
+    if variant in ("battery-20261104", "battery-v2m5-20261121"):
         visual_dir = VISUAL_DIR.with_name("visual-20261104")
         visual = visual or json.loads((visual_dir / "visual.json").read_text())
         variant = "battery"
@@ -55,7 +57,10 @@ def apply_visual_to_spec(spec: mujoco.MjSpec, variant: str = "", visual: dict | 
 CURRENT_FILE = Path(__file__).resolve().parent / "current.json"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # mass manifest file stem -> the visual layer that draws the same robot ("" = the legacy charger-pack look)
-_VISUAL_BY_STEM = {"asbuilt-mass-manifest": "", "plugged": "", "battery": "battery", "battery-20261104": "battery-20261104"}
+_VISUAL_BY_STEM = {"asbuilt-mass-manifest": "", "plugged": "", "battery": "battery", "battery-20261104": "battery-20261104",
+                   # planned robot (not fitted): its own name, so brain_sim_check never takes it for the current robot;
+                   # apply_visual_to_spec draws it with the battery-20261104 layer (old backpack shown)
+                   "battery-v2m5-20261121": "battery-v2m5-20261121"}
 
 
 def current_model() -> dict:

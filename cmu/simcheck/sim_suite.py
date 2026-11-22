@@ -12,6 +12,12 @@ the one current.json names runs with --historical-model "sim_suite --variant X".
 reference-walk61-<variant>.jsonl otherwise (none is stored for the current robot: cmu/deploy/deploy_policy.py runs
 walk61 at the current code as its reference).
 
+A planned robot (PLANNED: battery-v2m5-20261121, the battery backpack V2 rev M5, not fitted) is checked on purpose
+before a trial with --variant X, alone or with a --payload-manifest whose "build" string starts with X. Its rows carry
+"robot": "PLANNED, not fitted: NOT the robot as it is now" and current_robot false, the printed header and rows say
+PLANNED, brain_sim_check gets --historical-model "sim_suite --variant X (planned robot, not fitted)", and its default
+reference is reference-walk61-planned-<X>[+<payload stem>].jsonl, a name no current-robot reference can take.
+
 Replaces the private sim_suite.sh. Every case runs cmu/mac/brain_sim_check.py (the Mac-side Brain in the as-built
 MuJoCo model) with the base flags derived from robot-condition.json, then the case's own flags, which override:
 
@@ -43,7 +49,11 @@ CHECK = os.path.join(CMU, "mac", "brain_sim_check.py")
 DEFAULT_CONDITION = os.path.join(CMU, "robot-condition.json")
 # current = cmu/model/current.json (the robot as it is now). The rest are history: asbuilt = the model's own
 # 2026-10-15 manifest; the others are cmu/model/manifests/<variant>.json.
-VARIANTS = ("current", "battery-20261104", "asbuilt", "plugged", "battery")
+VARIANTS = ("current", "battery-20261104", "asbuilt", "plugged", "battery", "battery-v2m5-20261121")
+# Planned robots: dated variants of a robot that is NOT built yet (cmu/model/manifests/<variant>.json). They are checked
+# on purpose before a trial, never taken for the robot as it is now: rows and the header say so, their reference files
+# are named reference-walk61-planned-<variant>[...].jsonl, and brain_sim_check gets a "planned robot" --historical-model.
+PLANNED = {"battery-v2m5-20261121": "battery backpack V2 rev M5 (Crazepony 2S 3000) in place of today's, not fitted"}
 MANIFESTS = os.path.join(CMU, "model", "manifests")
 CURRENT_FILE = os.path.join(CMU, "model", "current.json")
 
@@ -53,8 +63,20 @@ def resolve_variant(variant):
     return json.load(open(CURRENT_FILE))["variant"] if variant == "current" else variant
 
 
+def is_planned(variant):
+    """True for a planned robot variant that current.json does not (yet) name."""
+    v = resolve_variant(variant)
+    return v in PLANNED and v != resolve_variant("current")
+
+
+def planned_reason(variant):
+    return f"sim_suite --variant {resolve_variant(variant)} (planned robot, not fitted)"
+
+
 def default_reference(variant):
     variant = resolve_variant(variant)
+    if is_planned(variant):
+        return os.path.join(HERE, f"reference-walk61-planned-{variant}.jsonl")
     return os.path.join(HERE, "reference-walk61.jsonl" if variant == "asbuilt" else f"reference-walk61-{variant}.jsonl")
 
 CASES = [  # (class, name, extra flags)
@@ -109,7 +131,7 @@ def variant_flags(variant):
     names its manifest and says why it runs (brain_sim_check refuses an old model without --historical-model)."""
     if variant == "current" or variant == resolve_variant("current"):
         return ["--manifest", "current"]
-    historical = ["--historical-model", f"sim_suite --variant {variant}"]
+    historical = ["--historical-model", planned_reason(variant) if is_planned(variant) else f"sim_suite --variant {variant}"]
     if variant == "asbuilt":
         return historical
     path = os.path.join(MANIFESTS, f"{variant}.json")
@@ -118,12 +140,14 @@ def variant_flags(variant):
     return ["--manifest", path] + historical
 
 
-def payload_label(path):
-    """Name of the robot configuration 'current robot + this payload manifest', e.g. battery-20261104+flightpack-nominal."""
-    return f"{resolve_variant('current')}+{os.path.splitext(os.path.basename(path))[0]}"
+def payload_label(path, variant="current"):
+    """Name of the robot configuration 'robot + this payload manifest', e.g. battery-20261104+flightpack-nominal for the
+    current robot; a planned robot's label starts with "planned-" so it never equals a current-robot label."""
+    label = f"{resolve_variant(variant)}+{os.path.splitext(os.path.basename(path))[0]}"
+    return f"planned-{label}" if is_planned(variant) else label
 
 
-def payload_flags(path):
+def payload_flags(path, variant="current"):
     """brain_sim_check.py flags for the robot as it is now carrying a payload (the flight pack): a signed-part manifest
     built on the current variant, which says so at the start of its "build" string ("battery-20261104 + flight pack
     ..."). brain_sim_check treats such a manifest as the current robot (cmu/model/visual.py visual_variant_for_manifest);
@@ -132,19 +156,36 @@ def payload_flags(path):
     policy, and the open-loop pose cannot carry a payload on the back (microduck-sim/CURRENT-STATE.json
     open_loop_stand_pose: it rests only within about a millimetre of COM shift). On 2026-11-21 the deployed set and the
     candidate both went over backward at 0.54 s under the 955 g flight pack, before the first policy tick. On the robot
-    a hand holds it through fixed stand; here the policy takes over at rest, feet flat, with no hand."""
+    a hand holds it through fixed stand; here the policy takes over at rest, feet flat, with no hand.
+    variant: a planned robot (PLANNED) instead of the current one; the manifest must then be built on that variant, and
+    brain_sim_check runs it with a "planned robot" --historical-model reason."""
     if not os.path.isfile(path):
         sys.exit(f"sim_suite: payload manifest {path} not found")
     build = str(json.load(open(path)).get("build", ""))
     cur = resolve_variant("current")
+    if is_planned(variant):
+        want = resolve_variant(variant)
+        if not (build.startswith(want + " ") or build.startswith(want + ":")):
+            sys.exit(f"sim_suite: payload manifest {path} is built on '{build[:60]}', not on the planned robot {want} "
+                     f"named by --variant; rebuild the payload manifest on {want}")
+        return ["--manifest", os.path.abspath(path), "--stand-s", "0", "--historical-model", planned_reason(variant)]
     if not (build.startswith(cur + " ") or build.startswith(cur + ":")):
         sys.exit(f"sim_suite: payload manifest {path} is built on '{build[:60]}', not on the robot as it is now ({cur}); "
                  f"rebuild the payload manifest on {cur}")
     return ["--manifest", os.path.abspath(path), "--stand-s", "0"]
 
 
+def row_prefix(variant, payload):
+    """The keys every output row starts with. A planned robot's rows also say it is not the robot as it is now."""
+    head = {"variant": payload_label(payload, variant) if payload else resolve_variant(variant)}
+    if is_planned(variant):
+        head.update(robot="PLANNED, not fitted: NOT the robot as it is now", current_robot=False,
+                    current_variant=resolve_variant("current"))
+    return head
+
+
 def run_case(models, walk_s, base, cls, name, extra, err, variant="current", payload=None):
-    model = payload_flags(payload) if payload else variant_flags(variant)
+    model = payload_flags(payload, variant) if payload else variant_flags(variant)
     cmd = [sys.executable, CHECK, "--model", "asbuilt", "--walk-s", str(walk_s), "--models", models] + model + base + extra
     err.write(f"== {name} ({cls}): {' '.join(cmd)}\n")
     err.flush()
@@ -154,7 +195,7 @@ def run_case(models, walk_s, base, cls, name, extra, err, variant="current", pay
     if p.returncode != 0 or not last.startswith("{"):
         sys.exit(f"sim_suite: case {name} produced no result row (exit {p.returncode}); see {err.name}")
     row = json.loads(last)
-    return {"case": name, "class": cls, "variant": payload_label(payload) if payload else resolve_variant(variant), **row}
+    return {"case": name, "class": cls, **row_prefix(variant, payload), **row}
 
 
 def fmt(row):
@@ -197,29 +238,37 @@ def main():
     ap.add_argument("--condition", default=DEFAULT_CONDITION, help="robot-condition.json (default cmu/robot-condition.json)")
     ap.add_argument("--variant", choices=VARIANTS, default="current",
                     help="mass model: current (default, cmu/model/current.json, the robot as it is now); the dated "
-                         "variants are history (asbuilt = the 2026-10-15 manifest, others cmu/model/manifests/<variant>.json)")
+                         "variants are history (asbuilt = the 2026-10-15 manifest, others cmu/model/manifests/<variant>.json); "
+                         f"planned robots, not fitted: {', '.join(PLANNED)}")
     ap.add_argument("--reference", default=None,
                     help="reference rows the real cases are judged against (default reference-walk61[-<variant>].jsonl)")
     ap.add_argument("--compare", default=None, help="print this JSONL side by side with the new rows, per case")
     ap.add_argument("--payload-manifest", default=None,
                     help="the robot as it is now carrying a payload: a signed-part manifest built on the current variant "
-                         "(the flight pack: flightpack-nominal.json). Only with --variant current; no stored reference "
+                         "(the flight pack: flightpack-nominal.json). With --variant current, or with a planned --variant X "
+                         "and a manifest built on X (never a historical variant); no stored reference "
                          "exists for a payload, so pass --reference (cmu/deploy/deploy_policy.py does)")
     a = ap.parse_args()
     if not os.path.isdir(a.models):
         sys.exit(f"sim_suite: {a.models} is not a directory")
-    if a.payload_manifest and a.variant != "current":
+    planned = is_planned(a.variant)
+    if a.payload_manifest and a.variant != "current" and not planned:
         sys.exit("sim_suite: --payload-manifest goes on the robot as it is now; do not combine it with a historical --variant")
     if a.payload_manifest:
-        payload_flags(a.payload_manifest)  # refuse a payload built on another robot before any case runs
+        payload_flags(a.payload_manifest, a.variant)  # refuse a payload built on another robot before any case runs
     if a.reference is None:
-        a.reference = os.path.join(HERE, f"reference-walk61-{payload_label(a.payload_manifest)}.jsonl") if a.payload_manifest \
-            else default_reference(a.variant)
+        a.reference = os.path.join(HERE, f"reference-walk61-{payload_label(a.payload_manifest, a.variant)}.jsonl") \
+            if a.payload_manifest else default_reference(a.variant)
     base = base_flags(a.condition)
     shown = f"current = {resolve_variant('current')}" if a.variant == "current" else f"{a.variant} (historical)"
     if a.payload_manifest:
         shown = f"{payload_label(a.payload_manifest)} (current robot + payload {a.payload_manifest})"
+    if planned:
+        shown = (f"{payload_label(a.payload_manifest, a.variant) if a.payload_manifest else a.variant} "
+                 f"(PLANNED robot, not fitted: {PLANNED[a.variant]}; NOT the robot as it is now, which is "
+                 f"{resolve_variant('current')}" + (f"; payload {a.payload_manifest})" if a.payload_manifest else ")"))
     print(f"sim_suite: models {a.models}, variant {shown}, walk {a.walk_s} s, base flags from {a.condition}: {' '.join(base)}")
+    tag = "PLANNED " if planned else ""  # every printed row of a planned robot says so
     rows = []
     with open(a.out, "w") as out, open(a.out + ".err", "w") as err:
         for cls, name, extra in CASES + floor_mu_cases(a.condition):
@@ -227,7 +276,7 @@ def main():
             out.write(json.dumps(row) + "\n")
             out.flush()
             rows.append(row)
-            print(f"{cls:6s} {name:15s} {fmt(row)}")
+            print(f"{tag}{cls:6s} {name:15s} {fmt(row)}")
     if a.compare:
         other = load_rows(a.compare)
         print(f"\nside by side with {a.compare}:")
@@ -237,7 +286,8 @@ def main():
             print(f"{'':6s} {'':15s} ref  {fmt(o) if o else '(no row)'}")
     if os.path.exists(a.reference):
         ref = load_rows(a.reference)
-        print(f"\nverdict against {a.reference} (real cases only):")
+        print(f"\n{tag}verdict against {a.reference} (real cases only"
+              + (f"; PLANNED robot {a.variant}, not the robot as it is now):" if planned else "):"))
         verdict = True
         for row in rows:
             if row["class"] != "real":
@@ -251,6 +301,7 @@ def main():
             ok, reasons = judge(row, r)
             verdict &= ok
             print(f"  {row['case']:15s} {'matches or beats the reference' if ok else 'worse: ' + '; '.join(reasons)}")
+        # the verdict line keeps its exact wording (cmu/deploy/deploy_policy.py matches it); the header above names a plan
         print("verdict: " + ("candidate matches or beats the reference on every real case" if verdict
                             else "candidate is worse than the reference on at least one real case"))
     else:
