@@ -493,6 +493,26 @@ def sp_install_model_hook(args, obj):
     return report
 
 
+def lead_install_model_hook(args):
+    """--lead: the USB-C lead and power bank as bodies (lead_model.py), added the way sp_install_model_hook adds the
+    seeing-pick object: by wrapping visual.apply_visual_to_spec, so evaluate_delay.py stays unchanged."""
+    import lead_model
+    sys.path.insert(0, str(ev.MODEL_DIR.parents[3] / "cmu" / "model"))
+    import visual  # noqa: E402
+    lead = dict(p=lead_model.parse(args.lead), h=None)
+    orig = visual.apply_visual_to_spec
+
+    def hooked(spec, *a, **kw):
+        n = orig(spec, *a, **kw)
+        lead["h"] = lead_model.add_lead(spec, lead["p"])
+        for k in list(spec.keys):  # the MJCF keyframes do not list the new joints; nothing here uses them
+            spec.delete(k)
+        return n
+
+    visual.apply_visual_to_spec = hooked
+    return lead
+
+
 class SeePick:
     """--sp-at: the object, the camera stand-in, the jaw as walk_wired.py drives it, and the run's numbers."""
 
@@ -1054,6 +1074,7 @@ def run(args):
     sp_rng = np.random.default_rng([args.seed, 7]) if args.sp_at is not None else None
     sp_obj = sp_object_draw(args, sp_rng) if args.sp_at is not None else None
     sp_model = sp_install_model_hook(args, sp_obj) if args.sp_at is not None else None
+    lead = lead_install_model_hook(args) if args.lead is not None else None
     m, d, c, names, bam = ev.load(c0)
     if args.bvh_refit:  # no-op since ev.load refits (2026-10-29); a second refit must find nothing to change
         print("bvh refit:", json.dumps(refit_body_bvh(m)), flush=True)
@@ -1102,6 +1123,11 @@ def run(args):
     zmin = np.vstack(sole_points(m, d))[:, 2].min()
     d.qpos[2] -= zmin - 0.0005
     mujoco.mj_forward(m, d)
+    if lead is not None:  # lay the lead and bank out from the standing robot; they settle during the stand before --walk-at
+        import lead_model
+        lead["info"] = lead_model.after_compile(m, d, lead["h"], lead["p"])
+        lead.update(ticks=[], bank_walk0=None, bank_walk1=None)
+        print("lead", json.dumps({k: v for k, v in lead["info"].items() if not k.startswith("qpos")}), flush=True)
     qa, va = m.jnt_qposadr[ji], m.jnt_dofadr[ji]
     trunk = m.body("trunk_base").id
     gyro_adr = m.sensor("imu_ang_vel").adr[0]
@@ -1189,7 +1215,8 @@ def run(args):
     foot_bodies = {m.body(b).id for b in ("ankle_left", "ankle_right") if m.body(b) is not None}
     foot_bodies |= {i for i in range(m.nbody) if m.body(i).name.startswith("foot_play_")}
     foot_geoms = {g for g in range(m.ngeom) if m.geom_bodyid[g] in foot_bodies}
-    mg = float(m.body_subtreemass[0]) * 9.81
+    mg = (float(m.body_subtreemass[0]) if lead is None else  # the lead (in the robot's tree) and the bank are not robot weight
+          lead_model.robot_mass(m, lead["h"])) * 9.81
     act_id = {n: m.actuator(n).id for n in names}
     leg_names = [n for n in names if n not in ("neck_pitch", "head_pitch", "head_yaw", "head_roll")]
     hrows = []  # per tick: t, load, est record, raw/applied action, neck torques, leg q, tilt, gyro, hand force, feet z
@@ -1452,6 +1479,12 @@ def run(args):
             if sp is not None:
                 sp.substep()
             mujoco.mj_step(m, d)
+        if lead is not None and args.walk_at <= t < args.walk_at + args.walk_s:  # sampled once per 20 ms tick (last substep)
+            lr = lead_model.readback(m, d, lead["h"])
+            lead["ticks"].append((lr["tension"], lr["moment_z"], lr["robot_contacts"]))
+            lead["bank_walk1"] = lr["bank_xy"]
+            if lead["bank_walk0"] is None:
+                lead["bank_walk0"] = lr["bank_xy"]
         load_now = min(1.0, max(0.0, foot_load(m, d, floor, foot_geoms) / mg))
         tau_legs = float(sum(abs(d.actuator_force[act_id[n]]) for n in leg_names))
         if scen:
@@ -1625,7 +1658,21 @@ def run(args):
                 yaw_walk_deg=None if x0 is None else round(math.degrees(yaw_walk), 1),
                 path_m=None if x0 is None else round(path_m, 3),
                 turn_mean=round(float(np.mean(turns)), 3) if turns else None, yaw_trim=round(brain.yaw_trim, 3),
-                trace=rows)
+                trace=rows, **({} if lead is None else dict(lead=lead_summary(lead))))
+
+
+def lead_summary(lead):
+    """--lead numbers over the walk window (one sample per 20 ms tick)."""
+    tk = np.array(lead["ticks"]) if lead["ticks"] else np.zeros((0, 3))
+    b0, b1 = lead["bank_walk0"], lead["bank_walk1"]
+    return dict(params={k: v for k, v in lead["p"].items()}, start=lead["info"] and
+                {k: v for k, v in lead["info"].items() if not k.startswith("qpos")},
+                lead_tension_mean=round(float(tk[:, 0].mean()), 4) if len(tk) else None,
+                lead_tension_max=round(float(tk[:, 0].max()), 4) if len(tk) else None,
+                lead_moment_z_mean=round(float(tk[:, 1].mean()), 5) if len(tk) else None,
+                lead_moment_z_peak=round(float(tk[np.argmax(np.abs(tk[:, 1])), 1]), 5) if len(tk) else None,
+                bank_moved_m=None if b0 is None else round(math.hypot(b1[0] - b0[0], b1[1] - b0[1]), 4),
+                lead_leg_contacts=int((tk[:, 2] > 0).sum()) if len(tk) else 0)
 
 
 def hold_summary(args, rows, hand, guard, stable_after, leg_names):
@@ -1778,6 +1825,9 @@ def main():
     ap.add_argument("--yaw-torque", type=float, default=0.0, help="N m about world up on the trunk while walking (+ = left)")
     ap.add_argument("--tether", nargs="*", default=None, metavar="KEY=VALUE", help="charger lead on the trunk (tether.py), parameters drawn from --seed; KEY=VALUE pins one (e.g. k_twist=0.01, exit_b=-0.06,0.015,-0.03)")
     ap.add_argument("--yaw-spring", type=float, default=0.0, help="N m per rad of heading change since the walk began, against it (twisted cable)")
+    ap.add_argument("--lead", nargs="?", const="", default=None, metavar="KEY=VALUE[,KEY=VALUE...]",
+                    help="the USB-C lead and power bank as physical bodies (lead_model.py DEFAULTS; e.g. type=rubber,memory=0.5,"
+                         "layout=photo); absent = model unchanged. Not with --tether, --yaw-spring or --yaw-torque")
     ap.add_argument("--yaw-trim-file", default=None, help="walk_brain yaw trim file, read at start and updated after the walk")
     ap.add_argument("--sensor-delay", type=int, default=1)
     ap.add_argument("--action-delay", type=int, default=1)
@@ -1920,6 +1970,8 @@ def main():
     sp.add_argument("--sp-after", type=float, default=3.0, help="s simulated after the hand-back to stand61")
     sp.add_argument("--sp-log", default=None, help="JSONL: per tick jaw goal/written/measured, cap, head pose, body slots")
     args = ap.parse_args()
+    if args.lead is not None and (args.tether is not None or args.yaw_spring or args.yaw_torque):
+        ap.error("--lead models the lead itself; it cannot combine with --tether, --yaw-spring or --yaw-torque")
     global tick_log
     tick_log = open(args.tick_log, "w") if args.tick_log else None
     if args.volt is None:

@@ -105,41 +105,45 @@ def test_visual_variant_for_manifest(tmp_path):
     stand_in = tmp_path / "flightpack-nominal.json"
     stand_in.write_text(json.dumps({"build": "battery-20261104 + flight pack (stand-in)", "parts": []}))
     flight = [stand_in] + sorted(REPO_ROOT.parent.glob("extensions/flight-*/train/manifests/flightpack-*.json"))
-    planned = "battery-v2m5-20261121"  # planned robot (backpack V2 rev M5, not fitted): drawn with the 20261104 layer
+    v2 = "battery-v2m5-20261121"  # the new battery backpack, current since 2026-11-22, drawn by visual-20261122
     for path in flight:
         build = json.loads(path.read_text()).get("build", "")
         if build.startswith("flightpack-"):  # hand-spliced on another payload manifest (flightpack-d2-bv2-nominal.json):
             with pytest.raises(ValueError):    # no robot named, so no sim may load it
                 visual.visual_variant_for_manifest(path)
             continue
-        want = planned if build.startswith(planned + " ") else "battery-20261104"
+        want = v2 if build.startswith(v2 + " ") else "battery-20261104"
         assert visual.visual_variant_for_manifest(path) == want, path
-    # the planned robot keeps its own name (never the current variant) and is drawn with the battery-20261104 meshes
-    assert visual.visual_variant_for_manifest(manifests / f"{planned}.json") == planned
-    plan_in = tmp_path / "flightpack-on-plan.json"
-    plan_in.write_text(json.dumps({"build": f"{planned} + flight pack (stand-in)", "parts": []}))
-    assert visual.visual_variant_for_manifest(plan_in) == planned != visual.current_model()["variant"]
+    assert visual.visual_variant_for_manifest(manifests / f"{v2}.json") == v2 == visual.current_model()["variant"]
+    on_v2 = tmp_path / "flightpack-on-v2.json"
+    on_v2.write_text(json.dumps({"build": f"{v2} + flight pack (stand-in)", "parts": []}))
+    assert visual.visual_variant_for_manifest(on_v2) == v2
 
 
-def test_planned_backpack_v2_variant():
+def test_backpack_v2_variant():
     """battery-v2m5-20261121: battery-20261104 with its 18 add-bp-* parts replaced by the 11 add-bv2-* parts; the
-    committed manifest is what make_variants writes from the variant file; current.json does not name it; its visual
-    layer loads (the battery-20261104 meshes) without touching the physics."""
+    committed manifest is what make_variants writes from the variant file; current.json names it; its visual layer
+    (visual-20261122) draws the new backpack and not the old one, without touching the physics."""
     import mujoco
     import apply_masses
     import make_variants
     name = "battery-v2m5-20261121"
-    assert visual.current_model()["variant"] != name
+    assert visual.current_model()["variant"] == name
     on_disk = apply_masses.load_manifest(apply_masses.MANIFEST_DIR / f"{name}.json")
     _, regenerated, removed, added, chain = make_variants.resolve_variant(make_variants.VARIANT_DIR / f"{name}.json")
-    assert on_disk["parts"] == regenerated and on_disk["build"].startswith(name + " (PLANNED robot, not on the robot")
+    assert on_disk["parts"] == regenerated and on_disk["build"].startswith(name + " (the robot from 2026-11-22")
     assert len(removed) == 18 and all(p["id"].startswith("add-bp-") for p in removed)
     assert len(added) == 11 and all(p["id"].startswith("add-bv2-") for p in added)
     assert not any(p["id"].startswith("add-bp-") for p in on_disk["parts"])
     assert sum(p["mass_kg"] for p in added) * 1000 == pytest.approx(177.45, abs=0.01)
     assert chain[-1].endswith("variants/battery-20261104.json")
+    drawn = {p["key"] for p in json.loads((REPO_ROOT / visual.current_model()["visual"]).read_text())["parts"]}
+    assert {"bv2_frame", "bv2_cap", "bv2_battery", "bv2_switch", "bv2_dfr1202"} <= drawn
+    assert not drawn & {"battery_backpack_frame", "battery_backpack_cap", "battery_hatch", "bp_battery"}
+    assert not any(k.startswith("fp_") for k in drawn) and "roof_plate" not in drawn
     spec = mujoco.MjSpec.from_file(str(apply_masses.SCENE_XML))
     m0 = spec.compile()
     assert visual.apply_visual_to_spec(spec, name) > 0
     m1 = spec.compile()
     assert abs(m1.body_mass.sum() - m0.body_mass.sum()) < 1e-12
+

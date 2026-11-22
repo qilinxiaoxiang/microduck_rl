@@ -8,10 +8,10 @@ The jaw (ID15) stays torque-off. ID5 is checked first (hip_yaw_check.py).
   python3 stand.py --port /dev/cu.usbmodemXXXX            # torque on, ramp, hold, torque off
 Holds until Ctrl-C or SIGTERM (or --hold seconds). Hold the robot when it stops: torque off drops it.
 
-Battery guard (battery.py), --supply auto by default: once the servos read 7.2 V or more (only the 2S pack does), it
-reads Present Input Voltage once a second, warns under 7.0 V and at 6.6 V ramps back to STAND_POSE without the
+Battery guard (battery.py), --supply auto by default: once the servos read 7.5 V or more (only the 2S pack does), it
+reads Present Input Voltage once a second, warns under 7.4 V and at 7.2 V ramps back to STAND_POSE without the
 --targets overrides, keeps holding with torque on and writes /tmp/duck_battery_stop.json. While that marker exists
-torque is not switched on until the servos read 7.6 V or more (a charged or swapped pack), which deletes it.
+torque is not switched on until the servos read 7.8 V or more (a charged or swapped pack), which deletes it.
 --supply battery applies it from the start; --supply bench switches it off. A failed voltage read is a skipped sample
 and never ends the hold.
 """
@@ -26,7 +26,7 @@ import time
 from dynamixel_sdk import COMM_SUCCESS, GroupSyncRead, GroupSyncWrite, PacketHandler, PortHandler
 
 from battery import (ADDR_HW_ERROR as ADDR_HW_ERROR_STATUS, ADDR_PRESENT_VOLTAGE, ADDR_SHUTDOWN, ALERT_BIT,
-                     STOP_MARKER, BatteryGuard, voltage_alert_only)
+                     ARM_ABOVE_DV, STOP_MARKER, WARN_BELOW_DV, BatteryGuard, voltage_alert_only)
 from scan_bus import ROLES
 from hip_yaw_check import check_hip_yaw
 
@@ -149,7 +149,7 @@ def battery_event(guard, event):
         print(f"battery guard not armed: the servos read {guard.dv / 10:.1f} V, a bench rail; on the 2S "
               "pack restart with --supply battery", flush=True)
     elif event == "warn":
-        print(f"BATTERY LOW: {guard.dv / 10:.1f} V, under 7.0 V; finish and charge the pack", flush=True)
+        print(f"BATTERY LOW: {guard.dv / 10:.1f} V, under {WARN_BELOW_DV / 10} V; finish and charge the pack", flush=True)
     elif event == "stop":
         print(f"BATTERY STOP: {guard.dv / 10:.1f} V; ramping to the stand pose and holding", flush=True)
 
@@ -165,7 +165,7 @@ def main():
     ap.add_argument("--targets", default="", help="JSON {joint: model rad} overrides, re-read live while holding")
     ap.add_argument("--state-out", default="", help="write present joint angles (model deg) here every second")
     ap.add_argument("--supply", choices=("auto", "bench", "battery"), default="auto",
-                    help="battery guard: auto arms at 7.2 V (2S pack), battery from the start, bench off")
+                    help=f"battery guard: auto arms at {ARM_ABOVE_DV / 10} V (2S pack), battery from the start, bench off")
     ap.add_argument("--battery-marker", default=STOP_MARKER)
     args = ap.parse_args()
     guard = None if args.supply == "bench" else BatteryGuard(args.supply)

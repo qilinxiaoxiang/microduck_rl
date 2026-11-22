@@ -119,10 +119,18 @@ class Thresholds(unittest.TestCase):
     def test_values_from_the_plan(self):
         self.assertEqual((bt.SHUTDOWN_FACTORY, bt.SHUTDOWN_BATTERY), (53, 52))
         self.assertEqual(bt.SHUTDOWN_FACTORY & ~bt.INPUT_VOLTAGE_BIT, bt.SHUTDOWN_BATTERY)  # only bit 0 differs
-        self.assertEqual((bt.WARN_BELOW_DV, bt.STOP_AT_DV), (70, 66))
+        self.assertEqual((bt.WARN_BELOW_DV, bt.STOP_AT_DV, bt.FLOOR_AT_DV), (74, 72, 71))
+        self.assertGreater(bt.WARN_BELOW_DV, bt.STOP_AT_DV)
+        self.assertGreater(bt.STOP_AT_DV, bt.FLOOR_AT_DV)
+        self.assertGreater(bt.FLOOR_AT_DV, 63)  # above the power V2 XIAO hardware cut (6.3 V)
+        self.assertGreaterEqual(bt.FLOOR_AT_DV, 60 + 10)  # >= 3.5 V per cell, never near 3.0 V per cell under load
         self.assertEqual(bt.BATTERY_WINDOW_DV, (64, 84))
         self.assertEqual(bt.ADDR_PRESENT_VOLTAGE, 144)
         self.assertGreater(bt.ARM_ABOVE_DV, 70)  # the bench 7 V rail (6.80 V, window up to 7.0 V) never arms
+        self.assertGreater(bt.ARM_ABOVE_DV, 74)  # nor the charger backpack's XL4015 rail (7.2 V idle, 7.32 V no-load)
+        self.assertLessEqual(bt.ARM_ABOVE_DV, 81)  # a freshly charged pack (8.1-8.4 V) arms
+        self.assertGreater(bt.FRESH_PACK_DV, bt.WARN_BELOW_DV)  # a pack that stopped and rested does not clear the marker
+        self.assertLessEqual(bt.FRESH_PACK_DV, 81)  # a freshly charged pack does
 
     def test_status_ok_lets_only_the_alert_bit_through(self):
         self.assertTrue(bt.status_ok(0x00))
@@ -148,22 +156,33 @@ def feed(guard, values, t0=0.0):
 
 
 class Guard(unittest.TestCase):
-    def test_warn_needs_two_samples_under_7v(self):
+    def test_warn_needs_two_samples_under_7_4v(self):
         g = bt.BatteryGuard("battery")
-        self.assertEqual(feed(g, [8.2, 7.0, 6.9]), [None, None, None])
+        self.assertEqual(feed(g, [8.2, 7.4, 7.3]), [None, None, None])
         self.assertEqual(g.state, "ok")
-        self.assertEqual(g.update(3.0, {i: 69 for i in range(1, 16)}), "warn")
+        self.assertEqual(g.update(3.0, {i: 73 for i in range(1, 16)}), "warn")
         self.assertEqual(g.state, "warn")
 
-    def test_stop_needs_three_samples_at_or_under_6_6v_and_latches(self):
+    def test_stop_needs_three_samples_at_or_under_7_2v_and_latches(self):
         g = bt.BatteryGuard("battery")
-        events = feed(g, [6.7, 6.7, 6.6, 6.6, 6.6, 7.4, 8.0])
+        events = feed(g, [7.3, 7.3, 7.2, 7.2, 7.2, 7.4, 8.0])
         self.assertEqual(events, [None, "warn", None, None, "stop", None, None])
         self.assertEqual((g.state, g.stop_t), ("stop", 4.0))
 
+    def test_floor_is_7_1v_well_above_the_xiao_hardware_cut(self):
+        # 7.1 V leaves about 9 % of the pack for the standby drain after the A7Z poweroff (battery.py); the power V2
+        # XIAO (PS-2/PV-2) cuts at 6.3 V held 3 s, far below
+        self.assertEqual(bt.FLOOR_AT_DV, 71)
+        g = bt.BatteryGuard("battery")
+        feed(g, [7.2, 7.2, 7.2])
+        self.assertEqual(g.state, "stop")
+        self.assertEqual(feed(g, [7.2, 7.2, 7.2], t0=3.0), [None, None, None])  # 7.2 V is above the floor
+        self.assertEqual(feed(g, [7.1, 7.1, 7.1], t0=6.0), [None, None, "floor"])
+        self.assertEqual(g.floor_t, 8.0)
+
     def test_a_good_sample_restarts_the_count(self):
         g = bt.BatteryGuard("battery")
-        events = feed(g, [6.6, 6.6, 7.1, 6.6, 6.6, 6.6])
+        events = feed(g, [7.2, 7.2, 7.3, 7.2, 7.2, 7.2])
         self.assertEqual(events.count("stop"), 1)
         self.assertEqual(events.index("stop"), 5)
 
@@ -188,6 +207,13 @@ class Guard(unittest.TestCase):
         self.assertEqual(g.update(10.0, {i: 81 for i in range(1, 16)}), "armed")
         self.assertEqual(feed(g, [6.6, 6.6, 6.6], t0=11.0), [None, "warn", "stop"])
 
+    def test_auto_never_arms_on_the_charger_backpack_rail(self):
+        # XL4015 rail behind the 5991: 7.32 V no-load, 7.2 V idle, about 7.0 V walking; the 7.2 V stop must not fire
+        g = bt.BatteryGuard("auto")
+        events = feed(g, [7.3, 7.4, 7.2, 7.2, 7.0, 7.0, 7.0, 7.2])
+        self.assertEqual(events, ["unarmed"] + [None] * 7)
+        self.assertEqual((g.armed, g.state), (False, "ok"))
+
     def test_bench_has_no_guard(self):
         with self.assertRaises(ValueError):
             bt.BatteryGuard("bench")
@@ -210,7 +236,7 @@ class Guard(unittest.TestCase):
             self.assertIsNone(g.signal(path, "again"))
             with open(path) as fh:
                 marker = json.load(fh)
-            self.assertEqual((marker["volts"], marker["stop_at_v"], marker["holding"]), (6.5, 6.6, "stand pose, torque on"))
+            self.assertEqual((marker["volts"], marker["stop_at_v"], marker["holding"]), (6.5, 7.2, "stand pose, torque on"))
 
 
 class GuardSafety(unittest.TestCase):
@@ -235,15 +261,15 @@ class GuardSafety(unittest.TestCase):
             self.assertIsNone(g.torque_block(marker))
             with open(marker, "w") as fh:
                 fh.write("{}")
-            feed(g, [7.0, 7.5])  # a drained pack recovers at rest
+            feed(g, [7.0, 7.7])  # a drained pack recovers at rest, but not to a charged pack's voltage
             self.assertIn("records a battery stop", g.torque_block(marker))
             self.assertTrue(os.path.exists(marker))
-            feed(g, [7.6])  # a charged or swapped pack clears the marker
+            feed(g, [7.8])  # a charged or swapped pack clears the marker
             self.assertIsNone(g.torque_block(marker))
             self.assertFalse(os.path.exists(marker))
             empty = bt.BatteryGuard("battery")
-            feed(empty, [6.6])
-            self.assertIn("at or under the 6.6 V battery stop", empty.torque_block(marker))
+            feed(empty, [7.2])
+            self.assertIn("at or under the 7.2 V battery stop", empty.torque_block(marker))
             usb = bt.BatteryGuard("auto")  # unarmed 5 V supply: only a marker blocks
             feed(usb, [5.0])
             self.assertIsNone(usb.torque_block(marker))
@@ -414,9 +440,9 @@ class Assess(unittest.TestCase):
         self.assertIn("expected the factory 7.0 V", cvl.assess(1, 65, 52, 0, 7.4, "battery")[0][0])
 
     def test_battery_warnings(self):
-        self.assertEqual(cvl.assess(1, 70, 52, 0, 7.0, "battery"), ([], []))
-        self.assertIn("charge the pack before walking", cvl.assess(1, 70, 52, 0, 6.9, "battery")[1][0])
-        self.assertIn("battery stop", cvl.assess(1, 70, 52, 0, 6.6, "battery")[1][0])
+        self.assertEqual(cvl.assess(1, 70, 52, 0, 7.4, "battery"), ([], []))
+        self.assertIn("charge the pack before walking", cvl.assess(1, 70, 52, 0, 7.3, "battery")[1][0])
+        self.assertIn("battery stop", cvl.assess(1, 70, 52, 0, 7.2, "battery")[1][0])
 
 
 def run_check(world, rail):

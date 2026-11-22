@@ -1,0 +1,223 @@
+{
+ "printer": "H2S",
+ "poses": {
+  "battery_v2_frame": [
+   [
+    [
+     0.57735,
+     0.57735,
+     -0.57735
+    ],
+    120.0
+   ]
+  ],
+  "battery_v2_cap": [
+   [
+    [
+     -0.57735,
+     -0.57735,
+     -0.57735
+    ],
+    120.0
+   ]
+  ]
+ },
+ "fits": [
+  {
+   "id": "fix-clear y+16.1 z+26.0",
+   "type": "clear",
+   "part": "battery_v2_frame",
+   "screw": "M2",
+   "d": 2.5,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": true,
+   "chamfer": 0.4
+  },
+  {
+   "id": "fix-clear y-16.1 z+26.0",
+   "type": "clear",
+   "part": "battery_v2_frame",
+   "screw": "M2",
+   "d": 2.5,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": true,
+   "chamfer": 0.4
+  },
+  {
+   "id": "fix-clear y+16.1 z-36.5",
+   "type": "clear",
+   "part": "battery_v2_frame",
+   "screw": "M2",
+   "d": 2.5,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": true,
+   "chamfer": 0.4
+  },
+  {
+   "id": "fix-clear y-16.1 z-36.5",
+   "type": "clear",
+   "part": "battery_v2_frame",
+   "screw": "M2",
+   "d": 2.5,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": true,
+   "chamfer": 0.4
+  },
+  {
+   "id": "cap-high-left-clear",
+   "type": "clear",
+   "part": "battery_v2_cap",
+   "screw": "M2",
+   "d": 2.5,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": true,
+   "chamfer": 0.4
+  },
+  {
+   "id": "cap-high-left-pilot",
+   "type": "pilot",
+   "part": "battery_v2_frame",
+   "screw": "M2",
+   "kind": "any",
+   "d": 1.95,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": false,
+   "chamfer": 0.4,
+   "engagement": 5.0,
+   "depth": "through",
+   "clamped": 1.7
+  },
+  {
+   "id": "cap-high-right-clear",
+   "type": "clear",
+   "part": "battery_v2_cap",
+   "screw": "M2",
+   "d": 2.5,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": true,
+   "chamfer": 0.4
+  },
+  {
+   "id": "cap-high-right-pilot",
+   "type": "pilot",
+   "part": "battery_v2_frame",
+   "screw": "M2",
+   "kind": "any",
+   "d": 1.95,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": false,
+   "chamfer": 0.4,
+   "engagement": 5.0,
+   "depth": "through",
+   "clamped": 1.7
+  },
+  {
+   "id": "cap-low-left-clear",
+   "type": "clear",
+   "part": "battery_v2_cap",
+   "screw": "M2",
+   "d": 2.5,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": true,
+   "chamfer": 0.4
+  },
+  {
+   "id": "cap-low-left-pilot",
+   "type": "pilot",
+   "part": "battery_v2_frame",
+   "screw": "M2",
+   "kind": "any",
+   "d": 1.95,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": false,
+   "chamfer": 0.4,
+   "engagement": 4.3,
+   "depth": 10.0,
+   "clamped": 1.7
+  },
+  {
+   "id": "cap-low-right-clear",
+   "type": "clear",
+   "part": "battery_v2_cap",
+   "screw": "M2",
+   "d": 2.5,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": true,
+   "chamfer": 0.4
+  },
+  {
+   "id": "cap-low-right-pilot",
+   "type": "pilot",
+   "part": "battery_v2_frame",
+   "screw": "M2",
+   "kind": "any",
+   "d": 1.95,
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "teardrop": null,
+   "at_bed": false,
+   "chamfer": 0.4,
+   "engagement": 4.3,
+   "depth": 10.0,
+   "clamped": 1.7
+  }
+ ]
+}

@@ -1,0 +1,110 @@
+[
+ {
+  "id": "fix-clear y+16.1 z+26.0",
+  "type": "clear",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 2.5,
+  "verdict": "OK"
+ },
+ {
+  "id": "fix-clear y-16.1 z+26.0",
+  "type": "clear",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 2.5,
+  "verdict": "OK"
+ },
+ {
+  "id": "fix-clear y+16.1 z-36.5",
+  "type": "clear",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 2.5,
+  "verdict": "OK"
+ },
+ {
+  "id": "fix-clear y-16.1 z-36.5",
+  "type": "clear",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 2.5,
+  "verdict": "OK"
+ },
+ {
+  "id": "cap-high-left-clear",
+  "type": "clear",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 2.5,
+  "verdict": "OK"
+ },
+ {
+  "id": "cap-high-left-pilot",
+  "type": "pilot",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 1.95,
+  "verdict": "OK"
+ },
+ {
+  "id": "cap-high-right-clear",
+  "type": "clear",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 2.5,
+  "verdict": "OK"
+ },
+ {
+  "id": "cap-high-right-pilot",
+  "type": "pilot",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 1.95,
+  "verdict": "OK"
+ },
+ {
+  "id": "cap-low-left-clear",
+  "type": "clear",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 2.5,
+  "verdict": "OK"
+ },
+ {
+  "id": "cap-low-left-pilot",
+  "type": "pilot",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 1.95,
+  "verdict": "OK"
+ },
+ {
+  "id": "cap-low-right-clear",
+  "type": "clear",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 2.5,
+  "verdict": "OK"
+ },
+ {
+  "id": "cap-low-right-pilot",
+  "type": "pilot",
+  "fails": [],
+  "warns": [],
+  "orientation": "vertical",
+  "required": 1.95,
+  "verdict": "OK"
+ }
+]

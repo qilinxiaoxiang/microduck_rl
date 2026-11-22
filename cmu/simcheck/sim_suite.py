@@ -12,7 +12,7 @@ the one current.json names runs with --historical-model "sim_suite --variant X".
 reference-walk61-<variant>.jsonl otherwise (none is stored for the current robot: cmu/deploy/deploy_policy.py runs
 walk61 at the current code as its reference).
 
-A planned robot (PLANNED: battery-v2m5-20261121, the battery backpack V2 rev M5, not fitted) is checked on purpose
+A planned robot (PLANNED; none since 2026-11-22, when battery-v2m5-20261121 became current) is checked on purpose
 before a trial with --variant X, alone or with a --payload-manifest whose "build" string starts with X. Its rows carry
 "robot": "PLANNED, not fitted: NOT the robot as it is now" and current_robot false, the printed header and rows say
 PLANNED, brain_sim_check gets --historical-model "sim_suite --variant X (planned robot, not fitted)", and its default
@@ -53,7 +53,8 @@ VARIANTS = ("current", "battery-20261104", "asbuilt", "plugged", "battery", "bat
 # Planned robots: dated variants of a robot that is NOT built yet (cmu/model/manifests/<variant>.json). They are checked
 # on purpose before a trial, never taken for the robot as it is now: rows and the header say so, their reference files
 # are named reference-walk61-planned-<variant>[...].jsonl, and brain_sim_check gets a "planned robot" --historical-model.
-PLANNED = {"battery-v2m5-20261121": "battery backpack V2 rev M5 (Crazepony 2S 3000) in place of today's, not fitted"}
+# battery-v2m5-20261121 was planned from 2026-11-21 and became the current robot on 2026-11-22: none is planned now.
+PLANNED = {}
 MANIFESTS = os.path.join(CMU, "model", "manifests")
 CURRENT_FILE = os.path.join(CMU, "model", "current.json")
 

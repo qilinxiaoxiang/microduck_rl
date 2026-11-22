@@ -1,0 +1,169 @@
+{
+ "schema": "design-contract/1",
+ "design": "Battery backpack V2 rev M (minimal), printable frame and cap, both Orange. Only the battery is new: the 2S 3000 mAh pack (74 x 34 x 20 envelope) stands upright, leads up, 6.3 mm right of centre in the rev B column; the lower tier ends at z -46 so the seated robot keeps 10 mm or more under the backpack; nothing grows above z 43 or wider than |y| 32.05. What the robot has today moves in unchanged: the Swann 39 rocker switch on its switch lead (plug 1 takes the battery's XT30), the DFR1202 as it is wired today (pad edge down, its three soldered leads hanging into the lower-left corridor and out through a window under the step) taped by its bare back face to the column's left rib, and the servo XT30 and A7Z MR30 swap leads out of the lower left. The switch sits in the cap's upper left with its rocker facing back (8 mm behind the cap, above the flight harness). The battery's three leads (XT30, white balance, DC5.5) leave through one wide slot over the pack's lead end in the roof and the cap's top edge, behind the camera's USB-C plug; plug 1, the balance plug and the DC5.5 plug sit outside on top. Charging is switch off and the balance plug into the HTRC B3, with nothing opened or unplugged. No Pololu, XIAO, LED button, contact pads, diode or dock. The cap is a back plate over both tiers held by two M2 x 8 (high) and two M2 x 6 (low); the frame screws onto the OpenRB pack posts with the four M2 x 6 as today. No snaps, hooks, flexures or latches of ours.",
+ "approved": {
+  "by": "Shawn",
+  "date": "2026-11-21",
+  "quotes": [
+   "就是把电池换大 然后重做背包 充电用电池的3针头直接插在充电器上充 这样也不用拆包 最小改造",
+   "感恩节后肯定不可接受的",
+   "重做背包",
+   "新电池包的3D打印件和拼装指南也单独出一份吧",
+   "可以，加购物车",
+   "降压板这样肯定装不上的 现在上面焊着线呢",
+   "无所谓 不行就重新焊一个xt30的头 你看合适就可以试试 我没见到讲压板位置有变更啊 看着还是很逼仄 电池的充放电线翘在上面就行 不用设置这么规整的出口",
+   "那直接按这个做电池包呗",
+   "美国下单",
+   "改做 M3"
+  ],
+  "history": "2026-11-20: rev B (outline approved with '可以，加购物车', 05:46) carried a Pololu power switch, XIAO cutoff, LED button and dock pads. Shawn then deferred the dock ('对准以后再说'), corrected that the white plug meant the battery's own 3-pin balance plug ('不是不是 你完全误解了 我说的把白色头是电池上的3针头'), and asked for the minimal change above; the coordinator relayed '重做背包' with the scope: rev B frame and cap, new electronics left out, the switch and DFR1202 moved in, the balance plug reachable through the cap. Rev M follows that; its changes from rev B are in build_v2.py's docstring and features.json (removed features with reasons). The rocker standing 8 mm behind the cap replaces rev B's 'nothing grows behind x -75.55' (P-ENV rev 2): the switch has no other place in this outline. M2 (2026-11-20) drew the DFR1202 as it is wired ('降压板这样肯定装不上的 现在上面焊着线呢'). M3 (2026-11-20, '无所谓 不行就重新焊一个xt30的头 你看合适就可以试试 我没见到讲压板位置有变更啊 看着还是很逼仄 电池的充放电线翘在上面就行 不用设置这么规整的出口'; 讲压板 = 降压板): the battery's three leads leave through one wide slot in the roof and the cap's top edge and their plugs (plug 1, balance, DC5.5) sit outside on top; the balance notch and the lead-bay plug places are gone; the DFR1202 is raised 4 mm, centred in the depth and moved 0.4 mm outboard with plug 2 against the left wall. A deeper box for more room at the board's ends overlaps the flight cross harness (1393 mm3), so the depth stays.",
+  "m3_return": "2026-11-21: after the M4 guide (Pololu 2813 + XIAO cutoff, button retainer bar, about 25 bench solder joints) Shawn judged M4 impossible before his 2026-12-05 departure ('你的M4，我觉得按你做的这个方案的复杂程度，完全不可能在12月5号之前完成') and chose '改做 M3'. The design is M3 again (rocker switch in the cap, no new electronics); M4 (commits abe1e65d, 8d89a9a7, 598ad40a; concept-m4/) is kept as history, its source changes reversed. The Pololu order was asked to be cancelled ('那什么电子开关能不能帮我退了')."
+ },
+ "concept_render": "../battery-v2-concept-20261119/concept-sheet.png",
+ "geometry": [
+  {
+   "part": "battery_v2_frame",
+   "says": "sits down: lowest point z -46.0 or higher (10 mm seated)",
+   "bounds": {
+    "z_min": {
+     "gt": -46.05
+    }
+   }
+  },
+  {
+   "part": "battery_v2_cap",
+   "says": "sits down: lowest point z -46.0 or higher",
+   "bounds": {
+    "z_min": {
+     "gt": -46.05
+    }
+   }
+  },
+  {
+   "part": "battery_v2_frame",
+   "says": "front face on the OpenRB pack at x -45, unchanged",
+   "bounds": {
+    "x_max": {
+     "gt": -45.05,
+     "lt": -44.95
+    }
+   }
+  },
+  {
+   "part": "battery_v2_cap",
+   "says": "printed back at today's x -75.55",
+   "bounds": {
+    "x_min": {
+     "gt": -75.6,
+     "lt": -75.5
+    }
+   }
+  },
+  {
+   "part": "battery_v2_frame",
+   "says": "no depth added: frame inside the cap",
+   "bounds": {
+    "x_min": {
+     "gt": -75.6
+    }
+   }
+  },
+  {
+   "part": "battery_v2_frame",
+   "says": "upper tier |y| <= 32.05, top z <= 43",
+   "bounds": {
+    "y_min": {
+     "gt": -32.1
+    },
+    "y_max": {
+     "lt": 32.1
+    },
+    "z_max": {
+     "lt": 43.05
+    }
+   }
+  },
+  {
+   "part": "battery_v2_cap",
+   "says": "upper tier |y| <= 32.05, top z <= 43",
+   "bounds": {
+    "y_min": {
+     "gt": -32.1
+    },
+    "y_max": {
+     "lt": 32.1
+    },
+    "z_max": {
+     "lt": 43.05
+    }
+   }
+  },
+  {
+   "part": "parts/Swann_39_switch",
+   "says": "the switch moved in from today's backpack sits in the cap's upper left, above the flight harness (z 28), rocker at most 8.1 mm behind the cap",
+   "bounds": {
+    "z_min": {
+     "gt": 28.3
+    },
+    "z_max": {
+     "lt": 43.0
+    },
+    "x_min": {
+     "gt": -83.7
+    },
+    "y_min": {
+     "gt": -2.0
+    }
+   }
+  },
+  {
+   "part": "parts/DFR1202",
+   "says": "the DFR1202 sits raised in the left wing (pad edge at z -9.5 or higher) with its leads hanging free above the lower-left corridor (Shawn: '看着还是很逼仄')",
+   "bounds": {
+    "z_min": {
+     "gt": -9.6
+    },
+    "y_min": {
+     "gt": 14.5
+    }
+   }
+  },
+  {
+   "part": "parts/plug_1",
+   "says": "plug 1 sits outside on top of the backpack ('电池的充放电线翘在上面就行')",
+   "bounds": {
+    "z_min": {
+     "gt": 43.0
+    }
+   }
+  },
+  {
+   "part": "parts/balance_plug",
+   "says": "the balance plug sits outside on top",
+   "bounds": {
+    "z_min": {
+     "gt": 43.0
+    }
+   }
+  },
+  {
+   "part": "parts/DC5_5_plug",
+   "says": "the DC5.5 plug sits outside on top",
+   "bounds": {
+    "z_min": {
+     "gt": 43.0
+    }
+   }
+  }
+ ],
+ "forbidden_parts": [
+  "battery_hatch",
+  "battery_backpack_bar",
+  "parts/Pololu_2813",
+  "parts/XIAO_SAMD21",
+  "parts/16_mm_LED_button",
+  "parts/contact_pad_plus",
+  "parts/contact_pad_minus",
+  "parts/Schottky_1N5822"
+ ]
+}

@@ -1,0 +1,178 @@
+{
+ "chapter": "backpack",
+ "generated_from": "guide/data/guide-data.json",
+ "guide_data_sha256": "e4cd0cf11e46b3359de39eefda84b41bcc1fe9c15804ae1a8a09b9638cc923cf",
+ "items": [
+  {
+   "part": "机器人背后现在装的旧电池背包（V1.40 框架、V1.41 后盖）",
+   "kind": "other",
+   "source": "owned: on the robot now (CURRENT-STATE backpack_swap_plugs)",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-strip"
+   ],
+   "note": "要留下的东西：船型开关（连着它的开关线，两头各一个 XT30）、DFR1202（连着它的输入线和插头 3、插头 4 两根线）和固定框架的四颗 M2 × 6。旧框架、旧后盖、两根压条和舱盖不再装回；Tattu 650 电池留作备用。"
+  },
+  {
+   "part": "细杆螺丝刀（杆径不超过 4 mm）",
+   "kind": "tool",
+   "source": "chapter 1 tools: Phillips #0 and #1 screwdrivers",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-strip",
+    "bv2-frame",
+    "bv2-cap"
+   ]
+  },
+  {
+   "part": "电池背包框架（BatteryV2-M3 打印件，橙色）",
+   "kind": "printed",
+   "source": "print: BatteryV2-M3 Orange plate (battery-v2-cad-20261120/slices/release-BatteryV2-M3)",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-frame"
+   ]
+  },
+  {
+   "part": "DFR1202 5 V 降压板（上一步拆下来的，三根线还焊在上面，不剪不焊）",
+   "kind": "electronic",
+   "source": "owned: on the robot now, kept from the old backpack",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-dfr"
+   ]
+  },
+  {
+   "part": "3M 泡沫双面胶（Shawn 的库存）",
+   "kind": "other",
+   "source": "Shawn's stock 3M foam tape",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-dfr"
+   ],
+   "note": "剪一块约 22 × 22 mm，贴在板子背面中间：离焊线那一边至少 3 mm，不碰任何焊点。"
+  },
+  {
+   "part": "异丙醇和布",
+   "kind": "other",
+   "source": "consumable already used in earlier guide chapters (Isopropyl alcohol and a tissue)",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-dfr"
+   ]
+  },
+  {
+   "part": "Crazepony 2S 3000 mAh 锂电池（Amazon B08LZ8L4YD）",
+   "kind": "electronic",
+   "source": "Amazon B08LZ8L4YD (purchase-decision-20261120.json)",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-battery"
+   ],
+   "note": "带三根线：红黑粗线上的 XT30 母头（主电源）、白色 3 针平衡插头（充电用）、一根 DC5.5 圆头线（不用）。到货先用万用表量 XT30：7.0 到 8.4 V。"
+  },
+  {
+   "part": "3M 泡沫胶 1 mm，剪成电池背面大小",
+   "kind": "other",
+   "source": "Shawn's stock 3M foam tape",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-battery"
+   ],
+   "note": "贴在电池背面，外面一层离型纸不撕。"
+  },
+  {
+   "part": "胶布",
+   "kind": "other",
+   "source": "chapter 1 tools: electrical tape",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-battery"
+   ],
+   "note": "把电池的 DC5.5 圆头包起来，免得金属头碰到别的东西。"
+  },
+  {
+   "part": "电池背包后盖（BatteryV2-M3 打印件，橙色）",
+   "kind": "printed",
+   "source": "print: BatteryV2-M3 Orange plate (battery-v2-cad-20261120/slices/release-BatteryV2-M3)",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-switch"
+   ]
+  },
+  {
+   "part": "船型开关（Swann 39，旧背包上拆下来的，连着开关线）",
+   "kind": "electronic",
+   "source": "owned: the Swann 39 rocker switch on the robot now (RoboClub), moved over from the old backpack",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-switch"
+   ]
+  },
+  {
+   "part": "万用表（直流电压档）",
+   "kind": "tool",
+   "source": "chapter 1 tools: multimeter with continuity beep",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-power-up"
+   ]
+  },
+  {
+   "part": "HTRC B3 平衡充电器（Shawn 已有）",
+   "kind": "electronic",
+   "source": "owned: Shawn's HTRC B3 balance charger",
+   "qty": 1,
+   "used_in_step": [
+    "bv2-charge"
+   ],
+   "note": "用它的 3 针（2S）口。"
+  },
+  {
+   "part": "M2 × 6 self-tapping screw (TAP)",
+   "kind": "fastener",
+   "source": "reused: the four M2 x 6 of the old backpack plus two from the M2 screw stock (even lengths 4/6/8/10)",
+   "qty": 6,
+   "used_in_step": [
+    "bv2-frame",
+    "bv2-cap"
+   ]
+  },
+  {
+   "part": "M2 × 8 self-tapping screw (TAP)",
+   "kind": "fastener",
+   "source": "M2 screw stock (even lengths 4/6/8/10)",
+   "qty": 2,
+   "used_in_step": [
+    "bv2-cap"
+   ]
+  }
+ ],
+ "later_dock": [
+  {
+   "part": "Keystone 615 contact pad",
+   "qty": 2,
+   "source": "DigiKey 36-615-ND (purchase-decision-20261120-charging.json)"
+  },
+  {
+   "part": "Keystone 5209 contact leaf",
+   "qty": 2,
+   "source": "DigiKey 36-5209-ND (purchase-decision-20261120-charging.json)"
+  },
+  {
+   "part": "Same Sky PJ-005A DC jack",
+   "qty": 1,
+   "source": "DigiKey CP-5-ND (purchase-decision-20261120-charging.json)"
+  },
+  {
+   "part": "Sortfle 8.4 V 1 A charger",
+   "qty": 1,
+   "source": "Amazon B07J4CLKZ7 (purchase-decision-20261120-charging.json)"
+  },
+  {
+   "part": "dock base print",
+   "qty": 1,
+   "source": "print: battery-dock-20261120 (deferred, not released)"
+  }
+ ]
+}

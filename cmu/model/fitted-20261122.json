@@ -1,0 +1,300 @@
+{
+ "about": "Dated 2026-11-22 visual configuration for battery-v2m5-20261121: the 2026-11-04 battery robot with the battery backpack V2 rev M5 (frame, cap, Crazepony 2S 3000 mAh, switch, DFR1202, plugs; guide chapter 12, guide-20261121-battery-m5-v147) in place of the V1.40/V1.41 backpack. Appearance only; physics comes from the mass manifest.",
+ "checked": "2026-11-22",
+ "not_fitted": [
+  "saddle_lid",
+  "sd_usb_c_plug",
+  "camera_cable_stub",
+  "camera_splice_stub",
+  "exit_clamp_*",
+  "clip_*",
+  "rear_frame",
+  "rear_lid",
+  "xl4015_top",
+  "xl4015_mid",
+  "pd5991",
+  "duallock_plate",
+  "duallock_strips",
+  "roof_plate",
+  "fp_*",
+  "fc_bracket",
+  "nacelle_*",
+  "tray_*",
+  "wing_plate",
+  "sd_usb_a_plug",
+  "sd_usb_adapter"
+ ],
+ "colour_overrides": {
+  "thigh": "white",
+  "right_thigh": "white",
+  "smallring": "black",
+  "right_smallring": "black",
+  "saddle_body": "orange"
+ },
+ "body_overrides": {
+  "amplifier": "jaw_soft",
+  "idler12": "trunk_base",
+  "idler_cap12": "trunk_base",
+  "saddle_body": "trunk_base",
+  "jaw_support": "jaw_soft",
+  "jaw_frame": "jaw_soft",
+  "eye_trim": "jaw_soft",
+  "head_bottom": "jaw_soft",
+  "face_panel": "jaw_soft",
+  "head_cap": "jaw_soft",
+  "mouth_sliding_ring": "jaw_soft",
+  "speaker": "jaw_soft",
+  "sd_a7z_pcb": "trunk_base",
+  "sd_soc_a733": "trunk_base",
+  "sd_ram": "trunk_base",
+  "sd_pmic_area": "trunk_base",
+  "sd_wifi_module_fcu760k": "trunk_base",
+  "sd_usb_c_otg_dp": "trunk_base",
+  "sd_usb_c_power": "trunk_base",
+  "sd_micro_hdmi": "trunk_base",
+  "sd_fan_connector": "trunk_base",
+  "sd_ipex_socket": "trunk_base",
+  "sd_microsd_socket": "trunk_base",
+  "sd_microsd_card": "trunk_base",
+  "sd_csi_connector": "trunk_base",
+  "sd_pcie_fpc": "trunk_base",
+  "sd_uboot_button": "trunk_base",
+  "sd_underside_smd": "trunk_base",
+  "sd_heatsink_6530b": "trunk_base",
+  "sd_thermal_pad_6530b": "trunk_base",
+  "sd_dupont_housings": "trunk_base",
+  "sd_antenna": "trunk_base",
+  "sd_usb_c_plug": "trunk_base",
+  "speaker_tape": "jaw_soft",
+  "amp_tape": "jaw_soft",
+  "mic_foam_left": "jaw_soft",
+  "mic_foam_right": "jaw_soft",
+  "mic_foam_back": "jaw_soft",
+  "mic_left": "jaw_soft",
+  "mic_right": "jaw_soft",
+  "mic_back": "jaw_soft",
+  "touch_xiao_tape": "jaw_soft",
+  "touch_xiao": "jaw_soft",
+  "touch_pad_l1": "jaw_soft",
+  "touch_pad_r1": "jaw_soft",
+  "touch_pad_l2": "jaw_soft",
+  "touch_pad_r2": "jaw_soft",
+  "touch_pad_m": "jaw_soft",
+  "camera_u20cam": "jaw_soft",
+  "camera_cable_stub": "jaw_soft",
+  "bv2_frame": "trunk_base",
+  "bv2_cap": "trunk_base",
+  "bv2_battery": "trunk_base",
+  "bv2_foam": "trunk_base",
+  "bv2_dfr1202": "trunk_base",
+  "bv2_dfr_tape": "trunk_base",
+  "bv2_dfr_leads": "trunk_base",
+  "bv2_switch": "trunk_base",
+  "bv2_plug1": "trunk_base",
+  "bv2_plug2": "trunk_base",
+  "bv2_balance": "trunk_base",
+  "bv2_dc5": "trunk_base"
+ },
+ "body_override_reasons": {
+  "head_components": "The head shell, camera, microphones, touch board and audio ride with the head; jaw_frame remains separately labelled as jaw piece.",
+  "backpack_components": "Battery backpack V2 rev M5 parts and the A7Z saddle are torso mounted."
+ },
+ "palette": {
+  "orange": [
+   0.95,
+   0.45,
+   0.06,
+   1
+  ],
+  "yellow": [
+   1.0,
+   0.8,
+   0.1,
+   1
+  ],
+  "white": [
+   0.93,
+   0.93,
+   0.91,
+   1
+  ],
+  "black": [
+   0.11,
+   0.11,
+   0.12,
+   1
+  ],
+  "servo": [
+   0.17,
+   0.17,
+   0.18,
+   1
+  ],
+  "metal": [
+   0.72,
+   0.73,
+   0.74,
+   1
+  ],
+  "pcb_green": [
+   0.15,
+   0.4,
+   0.28,
+   1
+  ],
+  "pcb_blue": [
+   0.15,
+   0.3,
+   0.62,
+   1
+  ],
+  "dark": [
+   0.2,
+   0.2,
+   0.22,
+   1
+  ],
+  "light": [
+   0.9,
+   0.88,
+   0.82,
+   1
+  ],
+  "gold": [
+   0.8,
+   0.62,
+   0.25,
+   1
+  ],
+  "red": [
+   0.75,
+   0.19,
+   0.19,
+   1
+  ]
+ },
+ "guide_colours": {
+  "#ff8000": "orange",
+  "#e99436": "orange",
+  "#ffff00": "yellow",
+  "#edc447": "yellow",
+  "#e9e7df": "white",
+  "#202020": "black",
+  "#292b30": "black",
+  "#40454b": "servo",
+  "#b7c4d0": "metal",
+  "#b7b7b5": "metal",
+  "#b0b0b0": "metal",
+  "#c9c9c9": "metal",
+  "#6d6d6d": "metal",
+  "#277d4a": "pcb_green",
+  "#3d7268": "pcb_green",
+  "#30645a": "pcb_green",
+  "#1f5f3a": "pcb_green",
+  "#3a6b35": "pcb_green",
+  "#2d6fb5": "pcb_blue",
+  "#1f3f8f": "pcb_blue",
+  "#2b4a8b": "pcb_blue",
+  "#2e5d8a": "pcb_blue",
+  "#30333a": "dark",
+  "#3b3b3b": "dark",
+  "#26282b": "dark",
+  "#55585e": "dark",
+  "#ddd7c5": "light",
+  "#e8e2d0": "light",
+  "#f2f2f2": "light",
+  "#d4af37": "gold",
+  "#c9a227": "gold",
+  "#c87533": "gold",
+  "#f2c14e": "gold",
+  "#ff8f00": "gold",
+  "#1b1b1b": "black",
+  "#1b5e20": "pcb_green",
+  "#2e7d32": "pcb_green",
+  "#37474f": "dark",
+  "#4a4a4a": "dark",
+  "#9e9e9e": "metal",
+  "#b87333": "gold",
+  "#8a8f94": "metal",
+  "#2b2b2b": "black",
+  "#d9d0b8": "light",
+  "#c03030": "red",
+  "#e0c020": "yellow",
+  "#222222": "black",
+  "#ef7d22": "orange",
+  "#3b3d42": "dark",
+  "#2e9e5b": "pcb_green",
+  "#d64545": "red",
+  "#30343a": "dark",
+  "#1f5fbf": "pcb_blue",
+  "#6b4fa0": "pcb_blue",
+  "#24324a": "dark",
+  "#f2efe6": "white",
+  "#4a5560": "dark",
+  "#9fb3c8": "metal"
+ },
+ "part_files": {
+  "ankle": "cmu/model/visual-20261104/source-parts/ankle.stl",
+  "right_ankle": "cmu/model/visual-20261104/source-parts/right_ankle.stl",
+  "ankle_cheek": "cmu/model/visual-20261104/source-parts/ankle_cheek.stl",
+  "right_ankle_cheek": "cmu/model/visual-20261104/source-parts/right_ankle_cheek.stl",
+  "foot": "cmu/model/visual-20261104/source-parts/foot.stl",
+  "right_foot": "cmu/model/visual-20261104/source-parts/right_foot.stl",
+  "saddle_body": "cmu/model/visual-20261122/source-parts/saddle_body.stl"
+ },
+ "part_files_reason": "Ankles and feet pinned to the visual-20261104 copies as fitted. saddle_body is the V1.35 saddle on the robot, taken from the 11-04 guide snapshot (the guide now draws the V5 saddle, which was not printed, D-047). The new backpack parts come from the guide as drawn (screwed to the OpenRB box posts).",
+ "jaw": {
+  "parts": [
+   "jaw_frame"
+  ],
+  "body": "jaw_soft",
+  "pivot_mm": [
+   26.1,
+   0.0,
+   118.6146
+  ],
+  "axis": [
+   0.0,
+   1.0,
+   0.0
+  ],
+  "open_positive": "a positive angle about axis swings the lip tip down (opens)",
+  "source": "guide/extension-20261012-neck-audio/neck-route/nr_lib.py JAW_PIVOT / JAW_AXIS (robot frame, mm), the hinge the jaw pose-cap study sweeps"
+ },
+ "variants": {
+  "battery": {
+   "about": "Same dated battery visual snapshot; explicit key for the existing variant loader.",
+   "remove": [],
+   "add": []
+  }
+ },
+ "extra_parts": [
+  {
+   "key": "smallring",
+   "name": "Left ankle sleeve (V1.22, black), the inner ankle half runs on it",
+   "colour": "black",
+   "file": "cmu/model/visual-20261104/source-parts/smallring.stl"
+  },
+  {
+   "key": "right_smallring",
+   "name": "Right ankle sleeve (V1.22, black), the inner ankle half runs on it",
+   "colour": "black",
+   "file": "cmu/model/visual-20261104/source-parts/right_smallring.stl"
+  }
+ ],
+ "extra_parts_reason": "The two fitted ankle sleeves are absent from the guide parts list.",
+ "not_fitted_reason": "Saddle lid remains not fitted; right-angle pigtail/splice was not bought or failed. Actual factory camera lead and straight adapter lack a calibrated routed mesh. Dual Lock plate/strip installation is not confirmed by current-state. Charger hardware is removed for this battery-only visual snapshot. 2026-11-22: V5 roof plate not printed (D-047); flight pack parts are a separate payload (flight manifests); the USB-A camera adapter is not fitted (1 m camera cable retained, as in the mass manifest).",
+ "evidence": {
+  "current_state": "microduck-sim/CURRENT-STATE.json: battery_backpack_design, parts_a7z_extensions, a7z_audio_capture, a7z_touch_bus, backpack_swap_plugs",
+  "scan_reference": "scans/2026-11-04/inventory.json",
+  "user_scan_postures": "Both scans powered: closed-loop standing (105634) and commanded bend (105915), user confirmed 2026-11-04.",
+  "head_shells": "Guide V1.33 ear cap/U20 face and V1.36 floor speaker shell correspond to fitted microphones/U20/touch and scan appearance; no scan-precise dimensional acceptance claimed.",
+  "hatch": "V1.41 retained by 3M foam tape after failed printed latch. Tape thickness/shape not measured and not modelled.",
+  "excluded_unmeasured": "Loose cable coil, actual USB adapter stack, tape, fasteners not separately added to visual mesh; no claim of exact shape or mass."
+ },
+ "registration": {
+  "status": "nominal_CAD_not_registered_to_scan",
+  "battery_mount": "pre-Dual-Lock source pose; source-to-guide shift -8.7 mm not adopted without fitted confirmation",
+  "scan_validation": "Appearance/configuration comparison only; no numerical fit or static-stance model acceptance."
+ }
+}

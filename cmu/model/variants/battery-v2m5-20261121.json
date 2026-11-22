@@ -1,6 +1,6 @@
 {
  "variant": "battery-v2m5-20261121",
- "describes": "PLANNED robot, not on the robot: battery-20261104 with its battery backpack (18 add-bp-* parts, 103.1 g) replaced by the battery backpack V2 rev M5 with the Crazepony 2S 3000 mAh (11 add-bv2-* parts, 177.5 g). Not weighed: printed frame and cap are CAD volume x 1.24 g/cm3 x 0.851 at the mesh centroid (guide/print/battery-v2-cad-20261120/mass_com.py method), battery 110 g from its listing, switch, DFR1202, plug, leads and screws at today's masses. Built 2026-11-21 for the flight training line; current.json not moved (it moves when the new backpack is physically fitted).",
+ "describes": "the robot from 2026-11-22: battery-20261104 with its battery backpack (18 add-bp-* parts, 103.1 g) replaced by the battery backpack V2 rev M5 (print V1.47) with the Crazepony 2S 3000 mAh (11 add-bv2-* parts, 177.5 g); V1.35 orange A7Z saddle kept. Not weighed: printed frame and cap are CAD volume x 1.24 g/cm3 x 0.851 at the mesh centroid (guide/print/battery-v2-cad-20261120/mass_com.py method), battery 110 g from its listing, switch, DFR1202, plug, leads and screws at today's masses. Built 2026-11-21; made current 2026-11-22 when the battery arrived and the pack was being fitted (Shawn: \"替换仿真里面的东西，因为今天或者明天我们就要装上了\").",
  "base": "battery-20261104.json",
  "remove_ids": [
   "add-bp-switch",
@@ -29,13 +29,13 @@
   "Ordered replacement camera cables are not installed; 1 m existing cable retained.",
   "Full outer-shell and camera extrinsic scan registration remains independent of mass estimation.",
   "NP-F970 90 g removal is applied by apply_masses.variant_parts, not repeated in this parts list.",
-  "Visual layer still draws the battery-20261104 (old) backpack; physics does not use visual geoms."
+  "Visual layer: cmu/model/visual-20261122 (fitted-20261122.json) draws the new backpack; physics does not use visual geoms."
  ],
  "estimation": {
   "date": "2026-11-21",
   "method": "add-bv2-* parts copied verbatim from extensions/flight-20261110/train/manifests/flightpack-d2-bv2-nominal.json (written by train/make_d2_bv2_manifest.py from the rev M5 build outputs, guide/print/battery-v2-cad-20261120/build/build.json).",
   "uncertainty": "Nothing weighed; printed masses use the prior 0.851 effective fraction (examine +/-20%).",
-  "status": "planned, not fitted"
+  "status": "current robot (2026-11-22); masses estimated, not weighed"
  },
  "add": [
   {

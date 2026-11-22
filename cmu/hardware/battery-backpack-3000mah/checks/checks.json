@@ -1,0 +1,316 @@
+{
+ "solids": {
+  "frame": {
+   "bodies": 1,
+   "watertight": true,
+   "volume_cm3": 26.049,
+   "mass_g_100pct": 32.301
+  },
+  "cap": {
+   "bodies": 1,
+   "watertight": true,
+   "volume_cm3": 9.526,
+   "mass_g_100pct": 11.813
+  }
+ },
+ "mating_note": "rear_frame and rear_lid are the layout F bench box this backpack replaces; not on the robot",
+ "mating_overlap_mm3": {
+  "frame | openrb-board-upright": 0.0,
+  "frame | rear_pack": 0.0,
+  "frame | shell_left": 0.0,
+  "frame | shell_right": 0.0,
+  "cap | openrb-board-upright": 0.0,
+  "cap | rear_pack": 0.0,
+  "cap | shell_left": 0.0,
+  "cap | shell_right": 0.0
+ },
+ "mating_min_gap_mm (search 5)": {
+  "frame | openrb-board-upright": 5.0,
+  "frame | rear_pack": 0.0,
+  "frame | shell_left": 0.5,
+  "frame | shell_right": 0.5,
+  "cap | openrb-board-upright": 5.0,
+  "cap | rear_pack": 5.0,
+  "cap | shell_left": 5.0,
+  "cap | shell_right": 5.0
+ },
+ "frame_cap_overlap_mm3": -0.0,
+ "parts_overlap_mm3": {
+  "battery 2S 3000 (B08LZ8L4YD) | frame": 0.0,
+  "battery 2S 3000 (B08LZ8L4YD) | cap": 0.0,
+  "battery foam pad | frame": 0.0,
+  "battery foam pad | cap": 0.0,
+  "DFR1202 | frame": 0.0,
+  "DFR1202 | cap": 0.0,
+  "DFR1202 tape | frame": 0.0,
+  "DFR1202 tape | cap": 0.0,
+  "DFR1202 solder joints | frame": 0.0,
+  "DFR1202 solder joints | cap": 0.0,
+  "DFR1202 leads | frame": 0.0,
+  "DFR1202 leads | cap": 0.0,
+  "Swann 39 switch | frame": 0.0,
+  "Swann 39 switch | cap": 0.0,
+  "Swann 39 snap wings | frame": 0.0,
+  "Swann 39 snap wings | cap": 0.0,
+  "plug 1 (XT30 pair) | frame": 0.0,
+  "plug 1 (XT30 pair) | cap": 0.0,
+  "plug 2 (XT30 pair) | frame": 0.0,
+  "plug 2 (XT30 pair) | cap": 0.0,
+  "balance plug (JST XH-3P) | frame": 0.0,
+  "balance plug (JST XH-3P) | cap": 0.0,
+  "DC5.5 plug | frame": 0.0,
+  "DC5.5 plug | cap": 0.0
+ },
+ "parts_min_gap_mm (search 3)": {
+  "battery 2S 3000 (B08LZ8L4YD) | frame": 0.0,
+  "battery 2S 3000 (B08LZ8L4YD) | cap": 0.3,
+  "battery foam pad | frame": 0.3,
+  "battery foam pad | cap": 0.0,
+  "DFR1202 | frame": 0.425,
+  "DFR1202 | cap": 0.425,
+  "DFR1202 tape | frame": 0.0,
+  "DFR1202 tape | cap": 2.425,
+  "DFR1202 solder joints | frame": 0.695,
+  "DFR1202 solder joints | cap": 1.075,
+  "DFR1202 leads | frame": 0.695,
+  "DFR1202 leads | cap": 0.71,
+  "Swann 39 switch | frame": 0.25,
+  "Swann 39 switch | cap": 0.01,
+  "Swann 39 snap wings | frame": 0.25,
+  "Swann 39 snap wings | cap": 0.0,
+  "plug 1 (XT30 pair) | frame": 0.2,
+  "plug 1 (XT30 pair) | cap": 0.2,
+  "plug 2 (XT30 pair) | frame": 0.15,
+  "plug 2 (XT30 pair) | cap": 3.0,
+  "balance plug (JST XH-3P) | frame": 0.2,
+  "balance plug (JST XH-3P) | cap": 0.2,
+  "DC5.5 plug | frame": 0.2,
+  "DC5.5 plug | cap": 1.365
+ },
+ "part_part_overlap_mm3": {},
+ "trunk_points": {
+  "frame": {
+   "points_near": 36,
+   "inside": 0,
+   "within_1mm": 2
+  },
+  "cap": {
+   "points_near": 0,
+   "inside": 0,
+   "within_1mm": 0
+  }
+ },
+ "flight_overlap_mm3 (backpack 6.9 back, cap screw heads included)": {},
+ "wall_check": {
+  "frame": {
+   "fail_regions": [],
+   "regions": 0,
+   "min_wall_mm": 1.2
+  },
+  "cap": {
+   "fail_regions": [],
+   "regions": 0,
+   "min_wall_mm": 1.2
+  }
+ },
+ "switch_cutout": {
+  "cut_yz": [
+   27.5,
+   12.3
+  ],
+  "body_yz": [
+   27.3,
+   11.5
+  ],
+  "per_side": [
+   0.1,
+   0.4
+  ]
+ },
+ "fit_check": {
+  "H2S": {
+   "exit": 0,
+   "tail": [
+    "OK    cap-low-right-clear                ",
+    "OK    cap-low-right-pilot                ",
+    "12 fits, 0 fail, 0 warn"
+   ],
+   "gates": true
+  },
+  "X1C": {
+   "exit": 1,
+   "tail": [
+    "OK    cap-low-right-clear                ",
+    "FAIL  cap-low-right-pilot                pilot 1.95 over 1.80: thread strips",
+    "12 fits, 4 fail, 0 warn"
+   ],
+   "gates": false
+  }
+ },
+ "access": {
+  "exit": 0,
+  "lines": [
+   "[awkward] screw the frame onto the OpenRB pack (empty frame) | fix y+16.1 z+26.0 | M2 x 6 | free r=7.91 over 60 mm, 4 mm cyl 200.0 mm | straight: T1,T2,T3,T4a,T4b | T1 tilt 0.0 | finger no (7.92)",
+   "[awkward] screw the frame onto the OpenRB pack (empty frame) | fix y-16.1 z+26.0 | M2 x 6 | free r=4.25 over 60 mm, 4 mm cyl 200.0 mm | straight: T1,T2,T3,T5,T4a,T4b | T1 tilt 0.0 | finger no (4.25)",
+   "[awkward] screw the frame onto the OpenRB pack (empty frame) | fix y+16.1 z-36.5 | M2 x 6 | free r=4.0 over 60 mm, 4 mm cyl 200.0 mm | straight: T1,T2,T3,T4a,T4b | T1 tilt 0.0 | finger no (4.0)",
+   "[awkward] screw the frame onto the OpenRB pack (empty frame) | fix y-16.1 z-36.5 | M2 x 6 | free r=6.09 over 60 mm, 4 mm cyl 200.0 mm | straight: T1,T2,T3,T4a,T4b | T1 tilt 0.0 | finger no (7.5)",
+   "[awkward] close the cap (everything fitted) | cap-high-left | M2 x 8 | free r=4.91 over 60 mm, 4 mm cyl 200.0 mm | straight: T1,T2,T3,T5,T4a,T4b | T1 tilt 0.0 | finger no (4.91)",
+   "[OK] close the cap (everything fitted) | cap-high-right | M2 x 8 | free r=30.3 over 60 mm, 4 mm cyl 200.0 mm | straight: T1,T2,T3,T5,T4a,T4b | T1 tilt 0.0 | finger yes (30.3)",
+   "[OK] close the cap (everything fitted) | cap-low-left | M2 x 6 | free r=58.6 over 60 mm, 4 mm cyl 200.0 mm | straight: T1,T2,T3,T5,T4a,T4b | T1 tilt 0.0 | finger yes (58.6)",
+   "[OK] close the cap (everything fitted) | cap-low-right | M2 x 6 | free r=48.36 over 60 mm, 4 mm cyl 200.0 mm | straight: T1,T2,T3,T5,T4a,T4b | T1 tilt 0.0 | finger yes (48.36)",
+   "{\"OK\": 3, \"awkward\": 5, \"blocked\": 0}"
+  ]
+ },
+ "insertion": [
+  {
+   "id": "dfr1202",
+   "parts": [
+    "DFR1202",
+    "DFR1202 tape",
+    "DFR1202 solder joints",
+    "DFR1202 leads"
+   ],
+   "path": [
+    -25,
+    0,
+    0
+   ],
+   "samples": 41,
+   "seated_overlap_mm3": 0.0,
+   "max_overlap_mm3": 0.0,
+   "worst_offset": [
+    -2.5,
+    0.0,
+    0.0
+   ],
+   "narrowest_gap_mm": 0.0,
+   "collides": false
+  },
+  {
+   "id": "plug2",
+   "parts": [
+    "plug 2 (XT30 pair)"
+   ],
+   "path": [
+    -25,
+    0,
+    0
+   ],
+   "samples": 41,
+   "seated_overlap_mm3": 0.0,
+   "max_overlap_mm3": 0.0,
+   "worst_offset": null,
+   "narrowest_gap_mm": 0.15,
+   "collides": false
+  },
+  {
+   "id": "battery",
+   "parts": [
+    "battery 2S 3000 (B08LZ8L4YD)",
+    "battery foam pad"
+   ],
+   "path": [
+    -40,
+    0,
+    0
+   ],
+   "samples": 41,
+   "seated_overlap_mm3": 0.0,
+   "max_overlap_mm3": 0.001,
+   "worst_offset": [
+    -5.0,
+    0.0,
+    0.0
+   ],
+   "narrowest_gap_mm": 0.0,
+   "collides": false
+  },
+  {
+   "id": "plug1",
+   "parts": [
+    "plug 1 (XT30 pair)"
+   ],
+   "path": [
+    -25,
+    0,
+    0
+   ],
+   "samples": 41,
+   "seated_overlap_mm3": 0.0,
+   "max_overlap_mm3": 0.0,
+   "worst_offset": null,
+   "narrowest_gap_mm": 0.2,
+   "collides": false
+  },
+  {
+   "id": "balance-plug",
+   "parts": [
+    "balance plug (JST XH-3P)"
+   ],
+   "path": [
+    -25,
+    0,
+    0
+   ],
+   "samples": 41,
+   "seated_overlap_mm3": 0.0,
+   "max_overlap_mm3": 0.0,
+   "worst_offset": null,
+   "narrowest_gap_mm": 0.382,
+   "collides": false
+  },
+  {
+   "id": "switch-into-cap (bench)",
+   "parts": [
+    "Swann 39 switch"
+   ],
+   "path": [
+    -35,
+    0,
+    0
+   ],
+   "samples": 41,
+   "seated_overlap_mm3": 0.0,
+   "max_overlap_mm3": 0.0,
+   "worst_offset": null,
+   "narrowest_gap_mm": 0.1,
+   "collides": false
+  },
+  {
+   "id": "cap-with-switch",
+   "parts": [
+    "cap",
+    "Swann 39 switch",
+    "Swann 39 snap wings"
+   ],
+   "path": [
+    -25,
+    0,
+    0
+   ],
+   "samples": 41,
+   "seated_overlap_mm3": -0.0,
+   "max_overlap_mm3": 0.0,
+   "worst_offset": [
+    -25.0,
+    0.0,
+    0.0
+   ],
+   "narrowest_gap_mm": 0.2,
+   "collides": false
+  }
+ ],
+ "design_contract": {
+  "exit": 0,
+  "lines": [
+   "design contract Battery backpack V2 rev M (minimal), printable frame and cap, both Orange. Only the battery is new: the 2S 3000 mAh pack (74 x 34 x 20 envelope) stands upright, leads up, 6.3 mm right of centre in the rev B column; the lower tier ends at z -46 so the seated robot keeps 10 mm or more under the backpack; nothing grows above z 43 or wider than |y| 32.05. What the robot has today moves in unchanged: the Swann 39 rocker switch on its switch lead (plug 1 takes the battery's XT30), the DFR1202 as it is wired today (pad edge down, its three soldered leads hanging into the lower-left corridor and out through a window under the step) taped by its bare back face to the column's left rib, and the servo XT30 and A7Z MR30 swap leads out of the lower left. The switch sits in the cap's upper left with its rocker facing back (8 mm behind the cap, above the flight harness). The battery's three leads (XT30, white balance, DC5.5) leave through one wide slot over the pack's lead end in the roof and the cap's top edge, behind the camera's USB-C plug; plug 1, the balance plug and the DC5.5 plug sit outside on top. Charging is switch off and the balance plug into the HTRC B3, with nothing opened or unplugged. No Pololu, XIAO, LED button, contact pads, diode or dock. The cap is a back plate over both tiers held by two M2 x 8 (high) and two M2 x 6 (low); the frame screws onto the OpenRB pack posts with the four M2 x 6 as today. No snaps, hooks, flexures or latches of ours.: PASS (microduck-sim/guide/print/battery-v2-cad-20261120/DESIGN-CONTRACT.json)"
+  ]
+ },
+ "feature_registry": {
+  "missing": [],
+  "unbuilt": [],
+  "incomplete": [],
+  "unknown_premises": []
+ },
+ "fails": []
+}

@@ -1,0 +1,13 @@
+{
+ "folder": "print",
+ "files": {
+  "Elegoo/zhengxia_V1.47_Orange_Elegoo-Centauri-Carbon_1h40m.gcode": "cef7d40a8b3ed14bca6ab3d7d8045bd8bf2dfd86c49683033af2b409f401b314",
+  "H2S/zhengxia_V1.46_Orange_Bambu-H2S_1h39m.gcode.3mf": "df7c6341e133f20fc8de2a694dd88933fb0c29cf6a1bcb3b23234e62e9ea2039",
+  "X1C-CoolPlate/zhengxia_V1.47_Orange_Bambu-X1C-CoolPlate_1h32m.gcode.3mf": "a0e8294e7b7fceb21c73bdb12c584af9d502984d3aeaa3c37f2c05ae2dfc8701",
+  "X1C-TexturedPEI/zhengxia_V1.47_Orange_Bambu-X1C_1h33m.gcode.3mf": "ffb9089f88a4cf6fc543d35d99f2d3a10614221a315043c6c74601ece70c6cf0"
+ },
+ "holes": {
+  "H2S": "V1.46 geometry: M2 pilot 1.95, clearance 2.5",
+  "X1C/Elegoo": "V1.47 geometry: M2 pilot 1.65, clearance 2.2"
+ }
+}

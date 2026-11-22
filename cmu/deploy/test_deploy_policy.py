@@ -52,7 +52,16 @@ def test_a_payload_built_on_another_robot_is_refused_before_any_case_runs(tmp_pa
         sim_suite.payload_flags(str(tmp_path / "missing.json"))
 
 
-PLANNED = "battery-v2m5-20261121"
+# No robot is planned since battery-v2m5-20261121 became current (2026-11-22). The planned-robot path is checked on a
+# stand-in: the retired battery-20261104, which has a committed manifest and is not the current robot.
+PLANNED = "battery-20261104"
+
+
+@pytest.fixture(autouse=True)
+def stand_in_plan(monkeypatch):
+    plan = {PLANNED: "stand-in planned robot for the tests"}
+    monkeypatch.setattr(sim_suite, "PLANNED", plan)
+    monkeypatch.setattr(deploy_policy, "PLANNED", plan)
 
 
 def test_current_with_a_payload_built_on_a_planned_robot_is_still_refused(tmp_path):
