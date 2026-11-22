@@ -62,10 +62,17 @@ robot 1034.8 g, centre of mass at the stand pose x -11.2 mm in the trunk frame (
 The masses are estimates: printed parts from CAD volume, the battery from its listing, the reused parts at their
 earlier masses. The visual layer is `cmu/model/visual-20261122/` (built by `make_visual.py --fitted fitted-20261122.json`).
 
-What the deployed walking policy (walk61) does on it in `brain_sim_check.py`, 8 s at vx 0.3: started from the policy's
-first tick it walks 0.54 m with 10.6 deg peak tilt and 17 action jumps (old backpack: 0.92 m, 6.2 deg, 1 jump).
-Held in the open-loop stand pose first (the default 1 s `--stand-s`), it tips backward at 0.7 s; the old backpack
-does not. Policies trained on `-CMU-Current` from now on learn the heavier, further-back robot.
+The open-loop (Fixed) stand pose in `cmu/pi/stand_pose.py` is retuned for this backpack: `ANKLE_BACK = -0.045` (both
+ankles tilt the body 2.6 deg forward of the policies' start pose; the charger backpack needed +0.060, which tips this
+robot backward at 0.7 s). The study is `guide/firmware/mac/stand-ankle-20261122/` in the private tree: set down in the
+pose, the sim robot stands over centre-of-mass offsets 0 to +2 mm, at floor friction 0.4, and under 0.1 m/s forward and
+0.05 m/s backward pushes. Switching from the balanced stand (stand61) to the Fixed stand still fails on this
+backpack, because stand61 itself shuffles about 35 cm backward in 8 s at zero command before the switch.
+
+What the deployed walking policy (walk61) does on it in `brain_sim_check.py --model asbuilt --manifest current
+--walk-s 8`, vx 0.3, with the new stand pose: after the default 1 s of Fixed stand it walks 0.60 m with 6.6 deg peak
+tilt and 4 action jumps; started from the policy's first tick (`--stand-s 0`) 0.66 m, 7.2 deg, 4 jumps (old backpack:
+0.92 m, 6.2 deg, 1 jump). Policies trained on `-CMU-Current` from now on learn the heavier, further-back robot.
 
 Everything in this folder except this README is a copy of the private robotics tree, refreshed by
 `python3 cmu/sync_from_robotics.py`.
