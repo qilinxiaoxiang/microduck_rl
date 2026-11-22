@@ -66,7 +66,10 @@ add(PI, "pi", [
     # A7Z head computer: 10 Hz temperature and per-cluster clock log, full-CPU load test, CPU setting test (2026-10-21)
     "thermal_log.py", "a7z_load_test.sh", "a7z_cpu_compare.py", "A7Z-CPU-COMPARE.md", "test_thermal_log.py",
     "test_a7z_cpu_compare.py",
+    # a servo that fell back to factory settings (ID 1, 57600): in-place rescue through the bridge's ID 253 path (2026-11-13)
+    "SERVO-RESCUE.md", "rescue_factory_servo.py", "replace_servo.py",
 ])
+FILES.append(("guide/firmware/openrb_dual_host/openrb_dual_host.ino", "pi/openrb_dual_host/openrb_dual_host.ino"))  # the OpenRB bridge firmware
 add(f"{PI}/microduck_rt", "pi/microduck_rt", ["constants.py", "imu_reader.py"])
 add(f"{WHOLE}/dynamics", "whole/dynamics", ["evaluate.py"])
 add(f"{WHOLE}/dynamics/asbuilt-20261015", "whole/dynamics/asbuilt-20261015",

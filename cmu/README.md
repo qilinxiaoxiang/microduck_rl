@@ -19,6 +19,8 @@ The physical build (parts list, printed parts, wiring, assembly guide, bring-up 
   `duck_cam.py`, `jaw_ctl.py`), the jitter study scripts (`jitter-20261018/`) and their fake-link tests.
 - `pi/`: head-board side: the IMU streamer, the stand pose, joint sign and offset conventions, jaw limits, battery
   guard, and `microduck_rt/` with the community runtime's constants.
+  A servo that stops answering and blinks red has fallen back to factory settings: `pi/SERVO-RESCUE.md` brings it
+  back in place (`rescue_factory_servo.py`, bridge firmware source in `pi/openrb_dual_host/`).
 - `whole/`: whole-robot studies the sim check depends on: `dynamics/` (as-built manifest and the earlier v19 one,
   the real-gap study with its scripts), `delay-repair-20260912/` (model loader with BAM, observation compensation),
   `electrical/` (the NP-F970 battery entry), `runtime-overlay/` (the deployed policies `walk61`, `stand61`,
