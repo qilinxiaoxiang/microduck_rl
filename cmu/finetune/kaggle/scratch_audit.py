@@ -95,9 +95,18 @@ def main(argv=None):
         env.reset()
     res["zero_action"] = with_action_rate(fw.eval_policy(env, fw.ZeroActor(env.num_actions), args.steps, args.device,
                                                          noise_std=args.action_noise))
+    gk = env.unwrapped.__dict__.get("_legspeed_gyro_k")  # per-env leg-speed gyro factor, drawn at env creation
+    gyro_k = None if gk is None else dict(min=round(float(gk.min()), 4), mean=round(float(gk.mean()), 4),
+                                          max=round(float(gk.max()), 4), n=int(gk.numel()))
+    zd = env.unwrapped.__dict__.get("_zero_shift_d")  # per-env hidden zero offset d = true - believed (rad)
+    zero_shift_d = None if zd is None else {
+        n: dict(min=round(float(zd[:, i].min()), 4), mean=round(float(zd[:, i].mean()), 4),
+                max=round(float(zd[:, i].max()), 4)) for i, n in enumerate(env.unwrapped.__dict__["_zero_shift_joints"])}
     env.close()
     verdict = fw.degenerate_verdict(res["walker"], {k: v for k, v in res.items() if k != "walker"}, max_ratio)
     out = dict(model=args.model, conditions=args.conditions, envs=args.envs, steps=args.steps,
+               robot_conditions=sw.route_conditions(args.conditions), gyro_k_drawn=gyro_k,
+               zero_shift_d_drawn=zero_shift_d,
                action_noise_std=args.action_noise, device=args.device, seed=args.seed,
                walker=dict(path=args.walker, sha256_16=sha(Path(args.walker))),
                stand=dict(path=args.stand, sha256_16=sha(Path(args.stand))),

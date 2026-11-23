@@ -11,9 +11,20 @@ tests/test_scratch_worker_cfg.py checks that both cfgs equal the upstream task c
 
 --conditions (current model only; S1 ran `official`):
   official  the cfg above, no robot conditions (default)
-  gyro      official plus only the leg-speed gyro noise of ROBOT_CONDITIONS (src/mjlab_microduck/robot_conditions.py:
-            actor base_ang_vel + N(0, (0.3 x rms leg joint speed)^2) per axis per tick, on top of the stock +-0.03)
-  robot     make_cmu_velocity_env_cfg("current", robot_conditions=True): all six ROBOT_CONDITIONS
+  gyro      official plus only the leg-speed gyro noise (src/mjlab_microduck/robot_conditions.py: actor base_ang_vel
+            + N(0, (K x rms leg joint speed)^2) per axis per tick, on top of the stock +-0.03), with K drawn once per
+            env at env creation, uniform in GYRO_LEGSPEED_RANGE (0.15, 0.30) (robot random part 0.16-0.22,
+            gyro-signal-20261123; until 2026-11-23 the route used the constant K = 0.3)
+  robot     all six ROBOT_CONDITIONS as make_cmu_velocity_env_cfg("current", robot_conditions=True) applies them,
+            except that the gyro factor is the same per-env K as in `gyro` (the builder keeps the constant 0.3),
+            plus two conditions only this set has (robot_conditions.py):
+              zero_shift_range  the brain's hidden zero shift as an unknown: per env, once at creation, the real
+                                joint sits d from where the policy believes it, d uniform in [0, shift] (left hip roll
+                                [0, 0.096], right hip roll [-0.061, 0], head roll [-0.061, 0], head yaw [-0.087, 0]
+                                rad), through mjlab's encoder bias (bias -= d; actor joint_pos and action target both
+                                in the believed frame, critic true), on top of the stock +-0.015 rad bias
+              imu_max_lag       actor base_ang_vel and projected_gravity 0 to 2 policy ticks old (official 0 to 1)
+  run_record.json "robot_conditions" records the dict applied (route_conditions()).
 `stock` takes only `official`: the conditions were measured on the current robot and no stock builder applies them.
 
 Run controls added around the recipe (they change nothing it computes):
@@ -27,6 +38,21 @@ Run controls added around the recipe (they change nothing it computes):
     below S, stop, write FAILED and exit 2 (2026-11-12: a from-scratch pair learned to stand and burned 10 h).
 Every run ends with STATUS (DONE / FAILED and the reason) and run_record.json.
 
+--init-checkpoint PATH (continue a finished run; default none = the from-scratch route above, unchanged):
+  the env and runner are built exactly as above (same --model / --conditions), then the checkpoint is loaded through
+  the runner's own load (mjlab/rl/runner.py MjlabOnPolicyRunner.load -> rsl_rl PPO.load): actor (weights, action std,
+  observation normaliser), critic (weights, normaliser), Adam state, iteration, and env.common_step_counter, so every
+  step-based curriculum is at the stage the source run ended at (S1: 96000 steps, all final stages are <= 48000).
+  The worker refuses MICRODUCK_WARM_START (it would zero the counter) and stops if the counter after the load is below
+  (source iteration + 1) x num_steps_per_env. The PPO adaptive learning rate starts at the restored optimizer's lr
+  (rsl_rl would otherwise restart it at the cfg's 1e-3). The action std is the loaded one (never reset; logged).
+  Numbering continues the source: S1 ends at iteration 3999, so the continuation trains iterations 4000.. and saves
+  model_4000.pt, model_4250.pt, ..., the last one model_<3999 + max_iters>.pt, in its own run directory.
+  --max-iters is the number of MORE iterations; --early-stop-iter N is relative to this run's first iteration (checked
+  at absolute iteration first + N, S1 continuation: 4000 + N; from scratch first = 0, so N stays absolute as before);
+  --metric-interval and --save-interval stay on the absolute iteration number.
+  --init-sha256 HEX (optional) must match the file's sha256 (kaggle_job.py passes it).
+
 Kaggle: `kaggle_job.py push scratch ...` (cmu/finetune/kaggle/README.md). kernel_entry.py passes --root, --gpu and
 --rate-per-hour; the last is accepted and ignored (no dollar cap on Kaggle; --max-hours is the cap).
 """
@@ -35,6 +61,7 @@ from __future__ import annotations
 import argparse
 import copy
 import dataclasses
+import hashlib
 import json
 import os
 import shutil
@@ -65,14 +92,28 @@ def make_env_cfg(model: str, play: bool = False, conditions: str = "official"):
         return make_microduck_velocity_env_cfg(play=play)
     if model == "current":
         from mjlab_microduck.tasks.cmu_asbuilt import make_cmu_velocity_env_cfg
-        if conditions == "robot":
-            return make_cmu_velocity_env_cfg("current", play=play, robot_conditions=True)
         cfg = make_cmu_velocity_env_cfg("current", play=play, robot_conditions=False)
-        if conditions == "gyro":
-            from mjlab_microduck.robot_conditions import ROBOT_CONDITIONS, apply_robot_conditions
-            apply_robot_conditions(cfg, {"gyro_noise_legspeed": ROBOT_CONDITIONS["gyro_noise_legspeed"]})
+        if conditions != "official":
+            from mjlab_microduck.robot_conditions import apply_robot_conditions
+            apply_robot_conditions(cfg, route_conditions(conditions))
         return cfg
     raise SystemExit(f"--model {model!r}: choose from {MODELS}")
+
+
+def route_conditions(conditions: str) -> dict:
+    """The robot-condition dict the route applies (and run_record.json records) for `conditions`: ROBOT_CONDITIONS
+    (robot) or none of it (gyro) except the leg-speed gyro noise, whose factor is drawn per env in
+    GYRO_LEGSPEED_RANGE instead of the constant gyro_noise_legspeed."""
+    from mjlab_microduck.robot_conditions import GYRO_LEGSPEED_RANGE, IMU_MAX_LAG, ROBOT_CONDITIONS, ZERO_SHIFT_RANGE
+    if conditions == "official":
+        return {}
+    if conditions == "gyro":
+        return {"gyro_noise_legspeed_range": GYRO_LEGSPEED_RANGE}
+    if conditions == "robot":
+        c = {k: v for k, v in ROBOT_CONDITIONS.items() if k != "gyro_noise_legspeed"}
+        return dict(c, gyro_noise_legspeed_range=GYRO_LEGSPEED_RANGE, zero_shift_range=dict(ZERO_SHIFT_RANGE),
+                    imu_max_lag=IMU_MAX_LAG)
+    raise SystemExit(f"--conditions {conditions!r}: choose from {CONDITIONS}")
 
 
 def make_agent_cfg(run_name: str, seed: int, max_iters: int, save_interval: int):
@@ -89,6 +130,70 @@ def make_agent_cfg(run_name: str, seed: int, max_iters: int, save_interval: int)
 
 # fields make_agent_cfg sets; every other runner field must equal MicroduckRlCfg (the test checks it)
 AGENT_BOOKKEEPING = ("seed", "max_iterations", "save_interval", "logger", "run_name")
+WARM_START_ENV = "MICRODUCK_WARM_START"  # mdp.py Patch 5: zeroes the step counter after a load; refused here
+
+
+def sha256_file(path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for b in iter(lambda: f.read(1 << 20), b""):
+            h.update(b)
+    return h.hexdigest()
+
+
+def check_init_checkpoint(path, expect_sha256=None) -> dict:
+    """Before anything is built: the file exists, its hash matches, it is a full rsl_rl checkpoint with a step counter,
+    and the warm-start patch is off. Returns path, sha256, source iteration and source step counter."""
+    import torch
+    if os.environ.get(WARM_START_ENV, "") not in ("", "0"):
+        raise SystemExit(f"{WARM_START_ENV}={os.environ[WARM_START_ENV]} would reset common_step_counter to 0 after the "
+                         f"load (curricula restart); --init-checkpoint continues a run, unset it")
+    p = Path(path)
+    if not p.is_file():
+        raise SystemExit(f"--init-checkpoint {path}: no such file")
+    sha = sha256_file(p)
+    if expect_sha256 and sha != expect_sha256:
+        raise SystemExit(f"--init-checkpoint {path}: sha256 {sha} != --init-sha256 {expect_sha256}")
+    d = torch.load(p, map_location="cpu", weights_only=False)
+    missing = [k for k in ("actor_state_dict", "critic_state_dict", "optimizer_state_dict", "iter", "infos") if k not in d]
+    if missing:
+        raise SystemExit(f"--init-checkpoint {path}: not a full rsl_rl checkpoint (missing {missing})")
+    counter = ((d["infos"] or {}).get("env_state") or {}).get("common_step_counter")
+    if counter is None:
+        raise SystemExit(f"--init-checkpoint {path}: no infos.env_state.common_step_counter (not saved by mjlab's runner)")
+    return dict(path=str(p.resolve()), sha256=sha, source_iter=int(d["iter"]), source_common_step_counter=int(counter))
+
+
+def load_init_checkpoint(runner, info: dict, num_steps_per_env: int) -> dict:
+    """Load through the runner's own path (MjlabOnPolicyRunner.load: PPO.load of actor, critic, optimizer and the
+    iteration, then env.unwrapped.common_step_counter), assert the counter, continue the numbering and sync the
+    adaptive lr to the restored optimizer. Returns what was restored (for run_record/status)."""
+    import torch
+    runner.load(info["path"], map_location=runner.device)
+    u = runner.env.unwrapped
+    floor = (info["source_iter"] + 1) * num_steps_per_env
+    if u.common_step_counter < floor or u.common_step_counter != info["source_common_step_counter"]:
+        raise SystemExit(f"after loading {info['path']}: common_step_counter {u.common_step_counter}, expected "
+                         f"{info['source_common_step_counter']} (>= {floor}); curricula would not be at the source's stage")
+    if runner.current_learning_iteration != info["source_iter"]:
+        raise SystemExit(f"after loading: iteration {runner.current_learning_iteration} != checkpoint {info['source_iter']}")
+    runner.current_learning_iteration = info["source_iter"] + 1  # learn() runs source+1 .. source+max_iters
+    alg = runner.alg
+    lr_saved = alg.optimizer.param_groups[0]["lr"]
+    lr_cfg = alg.learning_rate
+    alg.learning_rate = lr_saved  # rsl_rl keeps its own copy (cfg 1e-3) and writes it into the optimizer each update
+    # output_std needs a sampled distribution; read the loaded parameter itself (scalar noise: std_param, log: exp)
+    sd = alg.get_policy().state_dict()
+    if "distribution.std_param" in sd:
+        std = sd["distribution.std_param"].detach().float().flatten().cpu()
+    elif "distribution.log_std_param" in sd:
+        std = torch.exp(sd["distribution.log_std_param"].detach().float()).flatten().cpu()
+    else:
+        raise SystemExit(f"after loading: no distribution std parameter in the actor ({sorted(sd)[:8]} ...)")
+    return dict(**info, common_step_counter_after_load=int(u.common_step_counter),
+                first_iteration=runner.current_learning_iteration, lr_restored=lr_saved, lr_cfg=lr_cfg,
+                action_std_mean=round(float(std.mean()), 4), action_std_min=round(float(std.min()), 4),
+                action_std_max=round(float(std.max()), 4))
 
 
 def main(argv=None):
@@ -109,9 +214,18 @@ def main(argv=None):
     ap.add_argument("--early-stop-speed", type=float, default=0.03, help="m/s along the forward command")
     ap.add_argument("--gpu", default="?")
     ap.add_argument("--rate-per-hour", type=float, default=0.0, help="accepted for kernel_entry.py; unused")
+    ap.add_argument("--init-checkpoint", default=None,
+                    help="continue a finished run of this worker: full rsl_rl checkpoint (model_<it>.pt); --max-iters "
+                         "MORE iterations, numbering continues, curricula stay at the source's stage (docstring)")
+    ap.add_argument("--init-sha256", default=None, help="expected sha256 of --init-checkpoint (optional)")
     args = ap.parse_args(argv)
     if args.model == "stock" and args.conditions != "official":
         ap.error(f"--conditions {args.conditions} needs --model current (no stock builder applies robot conditions)")
+    if args.init_sha256 and not args.init_checkpoint:
+        ap.error("--init-sha256 needs --init-checkpoint")
+    if args.max_iters < 1:
+        ap.error("--max-iters must be >= 1")
+    init = check_init_checkpoint(args.init_checkpoint, args.init_sha256) if args.init_checkpoint else None
 
     import numpy as np
     import torch
@@ -128,12 +242,19 @@ def main(argv=None):
     run_dir = Path(args.root) / args.run_name
     run_dir.mkdir(parents=True, exist_ok=True)
     if any(run_dir.glob("model_*.pt")):
-        raise SystemExit(f"{run_dir} already holds checkpoints; this route never resumes (curricula would restart)")
+        raise SystemExit(f"{run_dir} already holds checkpoints; this route never resumes (curricula would restart)"
+                         + ("; --init-checkpoint starts a new run: give it a new --run-name" if init else ""))
+    if init and Path(init["path"]).parent == run_dir.resolve():
+        raise SystemExit(f"--init-checkpoint {init['path']} lies in the new run directory {run_dir}; use a new --run-name")
 
     def status(stage, **kw):
+        extra = {"init_checkpoint": record.get("init_checkpoint", init)} if init else {}
         (run_dir / "status.json").write_text(json.dumps(dict(stage=stage, run_name=args.run_name,
                                                              conditions=args.conditions, started=t0_iso,
-                                                             updated=time.strftime("%Y-%m-%dT%H:%M:%S"), **kw), indent=1))
+                                                             updated=time.strftime("%Y-%m-%dT%H:%M:%S"), **extra, **kw),
+                                                        indent=1, default=str))
+
+    record = {}
 
     t0_iso = time.strftime("%Y-%m-%dT%H:%M:%S")
     status("build")
@@ -146,10 +267,13 @@ def main(argv=None):
                   conditions=args.conditions, seed=args.seed, num_envs=args.num_envs, max_iters=args.max_iters, save_interval=args.save_interval,
                   max_hours=args.max_hours, early_stop=dict(iter=args.early_stop_iter, speed=args.early_stop_speed),
                   gpu=args.gpu, started=t0_iso)
+    if init:
+        record["route"] = "continue (Pollen recipe unchanged, from a finished run's checkpoint)"
+        record["init_checkpoint"] = dict(init)
     if args.conditions != "official":
-        from mjlab_microduck.robot_conditions import ROBOT_CONDITIONS
-        record["robot_conditions"] = (dict(ROBOT_CONDITIONS) if args.conditions == "robot" else
-                                      {"gyro_noise_legspeed": ROBOT_CONDITIONS["gyro_noise_legspeed"]})
+        record["robot_conditions"] = route_conditions(args.conditions)
+        record["gyro_noise_legspeed_range_note"] = ("leg-speed gyro factor K drawn once per env at env creation, "
+                                                    "uniform in gyro_noise_legspeed_range")
     if args.model == "current":
         from mjlab_microduck.tasks.cmu_asbuilt import resolve_variant
         cur = Path(__file__).resolve().parents[3] / "cmu/model/current.json"
@@ -171,6 +295,8 @@ def main(argv=None):
             idx = {n: names.index(n) for n in ("track_linear_velocity", "track_angular_velocity") if n in names}
             self.win = dict(speed=0.0, speed_n=0, steps=0, **{n: 0.0 for n in idx})
             self.last_row = None
+            self.first_it = 0  # this run's first iteration (source iteration + 1 after --init-checkpoint)
+            self.saves = 0
             orig_step = self.logger.process_env_step
 
             def hooked_step(rewards, dones, extras, intrinsic_rewards=None):
@@ -210,7 +336,7 @@ def main(argv=None):
                 self.last_row = row
                 self.win = {k: 0 if k.endswith("_n") or k == "steps" else 0.0 for k in self.win}
                 status("train", iter=it, last=row)
-            if args.early_stop_iter and it == args.early_stop_iter:
+            if args.early_stop_iter and it - self.first_it == args.early_stop_iter:
                 s = self.last_row and self.last_row.get("speed_along_fwd_cmd")
                 if s is None or s < args.early_stop_speed:
                     out["failed"] = True
@@ -230,12 +356,25 @@ def main(argv=None):
                 shutil.copy(onnx, run_dir / f"model_{it}.onnx")
             else:
                 out["onnx_missing"].append(it)
-                if it == 0:
+                if self.saves == 0:
                     raise SystemExit("ONNX export failed at the first save; stopping before the GPU hours are spent")
+            self.saves += 1
 
     runner = ScratchRunner(env, dataclasses.asdict(agent_cfg), str(run_dir), device)
-    print(f"[scratch] {TASK} from scratch, model {args.model}, conditions {args.conditions}, seed {args.seed}, {args.num_envs} envs, "
-          f"{args.max_iters} iterations, common_step_counter {env.unwrapped.common_step_counter}", flush=True)
+    if init:
+        loaded = load_init_checkpoint(runner, init, agent_cfg.num_steps_per_env)
+        runner.first_it = loaded["first_iteration"]
+        record["init_checkpoint"] = loaded
+        (run_dir / "run_record.json").write_text(json.dumps(record, indent=1, default=str))
+        status("loaded")
+        print(f"[scratch] continuing {loaded['path']} (sha256 {loaded['sha256'][:16]}, iteration {loaded['source_iter']}): "
+              f"common_step_counter {loaded['common_step_counter_after_load']} (curricula at the source's stage), "
+              f"action std mean {loaded['action_std_mean']} (min {loaded['action_std_min']}, max {loaded['action_std_max']}, "
+              f"not reset), lr {loaded['lr_restored']:.3g} (cfg {loaded['lr_cfg']:.3g}); iterations "
+              f"{runner.first_it}..{runner.first_it + args.max_iters - 1}", flush=True)
+    print(f"[scratch] {TASK} {'continued' if init else 'from scratch'}, model {args.model}, conditions {args.conditions}, "
+          f"seed {args.seed}, {args.num_envs} envs, {args.max_iters} iterations, common_step_counter "
+          f"{env.unwrapped.common_step_counter}", flush=True)
     stop_reason = "max_iters reached"
     try:
         runner.learn(num_learning_iterations=args.max_iters, init_at_random_ep_len=True)
