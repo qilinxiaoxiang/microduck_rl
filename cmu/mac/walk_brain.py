@@ -210,7 +210,15 @@ WALK_ZERO = {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}
 # drift it learned on straight walking through an arc and stops growing while the command sits at TURN_MAX: on the robot
 # 2026-10-23 (run app1023-225437) a right arc pinned at -2.0 wound it up, and the left arc after it kept the command at
 # -1.7 to -2.0 for 1.5 s (run app1023-223352: the whole 3.7 s arc, +3 deg/s), then overshot to +1.9.
-TURN_MAX = 2.0
+# Trained command ranges (2026-11-22): the walking policies (Mjlab-Velocity-*-MicroDuck-CMU-Current, the battery-walk
+# C1/C2 fine-tunes included) were trained on microduck_velocity_env_cfg.py command.ranges lin_vel_x (-0.4, 0.4),
+# lin_vel_y (-0.3, 0.3), ang_vel_z (-1.0, 1.0). The 2.0 / 1.25 turn clamps fed the policy inputs it never saw: on the
+# robot C2 sat at -1.25 on 3 of 5 right turns in place and froze, walks reached +-2.0 and both C2 walk falls followed
+# |turn| 1.4-1.9 (battery-walk-20261122/heading_table_c2s1b_c1.txt). Every walking command entering the observation is
+# clipped to these ranges. Turning in place keeps SPIN_TURN_MAX 1.25 (cap SPIN_CMD_MAX): in sim with bw-c2-s1b a 1.0
+# clamp stalled the right turn in place (-12 deg in 8 s against -204, heading-clamp-20261122/sim/compare.txt).
+CMD_VX_MAX, CMD_VY_MAX, CMD_WZ_MAX = 0.4, 0.3, 1.0
+TURN_MAX = CMD_WZ_MAX
 # Turning in place (vx = vy = 0, vtheta != 0) uses the held heading too, but without the trim and the integral, which
 # are learned on straight walking: in the as-built sim with the 4 deg IMU pitch and the drift torque, the straight-walk
 # terms pinned the command at -2.0 and a right turn in place turned left (+35 deg in 6 s at 0.020 N m); the first robot
@@ -220,6 +228,7 @@ TURN_MAX = 2.0
 # Robot 2026-11-01, 51 spins binned by input (spins_compact.jsonl): 18-27 deg/s at 1.0-1.5, -4 and +5 deg/s from 1.5 up, with the tilt highest there,
 # and both spin falls (runs 8, 10) at the 1.55 the heading term reached. Wind-up from a stall may feed that bin, so the clamp is a test. Partial: no retrain.
 SPIN_TURN_MAX = 1.25
+SPIN_CMD_MAX = 1.25  # cap of a spin_max key or file entry (2.0, TURN_MAX, until 2026-11-22)
 ARC_LEAD = 0.35
 # Spin boost, a hack on Shawn's word 2026-11-21 ("加大右转力度 ... 看看什么方法可以快速hack"): with the charger pack and
 # its lead the right turn in place stalls at the -1.25 clamp while the left turn runs. Two levers for a turn in place, per
@@ -244,6 +253,13 @@ def load_spin_boost(path=SPIN_BOOST_FILE):
 SPIN_BOOST = load_spin_boost()
 
 
+def trained_command(vx, vy, wz, wz_max=CMD_WZ_MAX):
+    """The walk/stand policy's velocity command [vx, vy, wz], clipped to the trained ranges (CMD_WZ_MAX note); a turn
+    in place passes wz_max SPIN_CMD_MAX."""
+    return [float(np.clip(vx, -CMD_VX_MAX, CMD_VX_MAX)), float(np.clip(vy, -CMD_VY_MAX, CMD_VY_MAX)),
+            float(np.clip(wz, -wz_max, wz_max))]
+
+
 def spin_boost(want, vth):
     """(turn clamp, hip yaw gain, forward speed command m/s) for a turn in place at vth: command keys first, then the
     side's file entry. "spin_vx" is the forward speed the policy is given while it turns in place (Shawn 2026-11-21:
@@ -255,7 +271,7 @@ def spin_boost(want, vth):
         svx = float(want.get("spin_vx", side.get("spin_vx", 0.0)))
     except (TypeError, ValueError):
         smax, gain, svx = SPIN_TURN_MAX, 1.0, 0.0
-    return min(TURN_MAX, max(0.5, smax)), min(3.0, max(1.0, gain)), min(0.3, max(-0.3, svx))
+    return min(SPIN_CMD_MAX, max(0.5, smax)), min(3.0, max(1.0, gain)), min(0.3, max(-0.3, svx))
 # Gains 2026-10-23: with KP 2, KI 1 and the integral capped at 0.5 rad s the integral could not cover a steady drift, so
 # the heading settled left of the start (robot: +40 deg in 3 s, then +10 deg in 8 s). As-built sim, yaw torque 0.020 N m,
 # 8 s walks, mean heading over seconds 3-7: KP 2 / KI 1 / cap 0.5 +16.9 and +6.1 deg (trim -0.47 / -0.96); KP 3 / KI 2 /
@@ -1054,12 +1070,20 @@ class Brain:
                         if abs(u_new) < TURN_MAX or abs(i_new) < abs(self.heading_i):
                             self.heading_i = i_new
                     if moving:
-                        turn = float(np.clip(self.yaw_trim + vth + HEADING_KP * err + HEADING_KI * self.heading_i,
-                                             -TURN_MAX, TURN_MAX))
+                        base, lim = self.yaw_trim + vth + HEADING_KI * self.heading_i, TURN_MAX
                     else:  # turning in place: the straight-walk trim and integral do not apply (SPIN_TURN_MAX note)
                         smax, self._spin_gain_want, spin_vx = spin_boost(want, vth)
-                        turn = float(np.clip(vth + HEADING_KP * err, -smax, smax))
+                        base, lim = vth, smax
                         info["spin_max"], info["spin_vx"] = smax, spin_vx
+                    raw = base + HEADING_KP * err
+                    turn = float(np.clip(raw, -lim, lim))
+                    if moving and self.turning and raw != turn:
+                        # anti-windup (walking turns): while a turn sits at the clamp the held heading keeps only the
+                        # lead the clamp can use, so it does not run ahead of a robot that cannot follow and overshoot
+                        # on release (turns in place keep the old ARC_LEAD rule: a stalled spin needs its full push)
+                        keep = float(np.clip((turn - base) / HEADING_KP, min(0.0, err), max(0.0, err)))
+                        self.heading = yaw + keep
+                        info["turn_sat"] = round(raw, 3)
                 else:
                     turn, self.heading, self.turning = 0.0, None, False
                 if moving or abs(vth) > 1e-3:
@@ -1070,7 +1094,7 @@ class Brain:
                     self.learn_yaw_trim(self.walk_seg)
                     self.walk_seg = None
                 info["turn"], info["yaw_trim"] = round(turn, 3), round(self.yaw_trim, 3)
-                command = [vx + spin_vx, vy, turn]
+                command = trained_command(vx + spin_vx, vy, turn, CMD_WZ_MAX if moving else SPIN_CMD_MAX)
                 self.head_cmd += HEAD_ALPHA * (self.head_target(want) - self.head_cmd)
                 head = self.head_cmd
                 # a zero command after stepping stays on walk61: it brings its own stride to rest (Pollen's simulator
