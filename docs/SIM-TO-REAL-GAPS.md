@@ -7,7 +7,7 @@ conditions by default. One value (servo friction) is fitted rather than measured
 not reproduced by any sim. Check a new policy in the fitted CPU cell below before it goes on the robot; the old deploy
 gate alone is not enough.
 
-Robot: battery backpack with the 2S 3000 mAh pack (`cmu/model/current.json`, variant battery-v2m5-20261121), brain
+Robot: battery backpack with the 2S 3000 mAh pack (`cmu/model/current.json`, variant battery-v2m5-w918-20261123 since 2026-11-23: masses matched to the weighed 918 g), brain
 logs of 2026-11-22 plus every walking log since 2026-11-02. "Stock" means Pollen's recipe in
 `src/mjlab_microduck/tasks/microduck_velocity_env_cfg.py`. "Now" means the `-CMU-Current` tasks, whose values live in
 one place: `src/mjlab_microduck/robot_conditions.py` (`ROBOT_CONDITIONS`). The fine-tune delta `batreal`

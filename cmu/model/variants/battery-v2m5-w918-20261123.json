@@ -1,0 +1,3418 @@
+{
+ "variant": "battery-v2m5-w918-20261123",
+ "describes": "battery-v2m5-20261121 corrected to the weighed whole robot (918 g, Shawn 2026-11-23: \"\u6574\u673a\u627f\u91cd\u4e5f\u5df2\u7ecf\u79f0\u8fc7\u4e86 918g\u8fde\u4e0a\u7535\u6c60\u5305\"). Sourced corrections first (Pollen CAD mass our robot does not carry: NP-F970 rest, head electronics rest, denser thigh plates; slicer grams for jaw_frame, head_bottom, backpack frame and cap, jaw ring), then the remaining 52.05 g taken off the 152 parts still labelled estimate, x0.7464. Positions and centres unchanged. Built 2026-11-23 by extensions/battery-walk-20261122/mass-audit-20261123/build_variant.py; not current.",
+ "base": "battery-v2m5-20261121.json",
+ "remove_ids": [
+  "add-jaw_frame-20261104",
+  "add-head_bottom-20261104",
+  "add-bv2-frame-m5",
+  "add-bv2-cap-m5",
+  "add-mouth_sliding_ring-20261104",
+  "add-neck_pitch",
+  "add-screw-S10-case-069",
+  "add-screw-S10-case-070",
+  "add-screw-S05-case-073",
+  "add-screw-S05-case-074",
+  "add-screw-S10-case-072",
+  "add-screw-S05-case-076",
+  "add-screw-S12-case-087",
+  "add-screw-S12-case-088",
+  "add-screw-S12-case-089",
+  "add-screw-S12-case-090",
+  "add-screw-S11-case-091",
+  "add-screw-S11-case-092",
+  "add-screw-S11-case-093",
+  "add-screw-S11-case-094",
+  "add-screw-S12-rear_center-117",
+  "add-screw-S11-rear_center-118",
+  "add-screw-S13-horn-041",
+  "add-screw-S13-horn-042",
+  "add-screw-S13-horn-043",
+  "add-screw-S13-horn-044",
+  "add-screw-S14-horn-049",
+  "add-screw-S14-horn-050",
+  "add-screw-S14-horn-051",
+  "add-screw-S14-horn-052",
+  "add-screw-S13-case-095",
+  "add-screw-S13-case-096",
+  "add-screw-S13-case-097",
+  "add-screw-S13-case-098",
+  "add-screw-S11-horn-033",
+  "add-screw-S11-horn-034",
+  "add-screw-S11-horn-035",
+  "add-screw-S11-horn-036",
+  "add-screw-S11-horn-037",
+  "add-screw-S11-horn-038",
+  "add-screw-S11-horn-039",
+  "add-screw-S12-horn-026",
+  "add-screw-S12-horn-027",
+  "add-screw-S12-horn-028",
+  "add-screw-S12-horn-029",
+  "add-screw-S12-horn-030",
+  "add-screw-S12-horn-031",
+  "add-screw-S12-horn-032",
+  "add-screw-S10-case-071",
+  "add-screw-S05-case-075",
+  "add-screw-S15-horn-045",
+  "add-screw-S15-horn-046",
+  "add-screw-S15-horn-047",
+  "add-screw-S15-horn-048",
+  "add-screw-K-head_close-01",
+  "add-screw-K-head_close-02",
+  "add-screw-K-head_close-03",
+  "add-screw-B-openrb-01",
+  "add-screw-B-openrb-02",
+  "add-screw-B-openrb-03",
+  "add-screw-B-openrb-04",
+  "add-screw-C-pack_cover-01",
+  "add-screw-C-pack_cover-02",
+  "add-screw-C-pack_cover-03",
+  "add-screw-C-pack_cover-04",
+  "add-screw-P-passive_tab-01",
+  "add-screw-P-passive_tab-02",
+  "add-screw-P-passive_tab-03",
+  "add-screw-P-passive_tab-04",
+  "add-screw-X-shell_cross-01",
+  "add-screw-S10-horn-001",
+  "add-screw-S10-horn-002",
+  "add-screw-S10-horn-003",
+  "add-screw-S10-horn-004",
+  "add-screw-S05-horn-005",
+  "add-screw-S05-horn-006",
+  "add-screw-S05-horn-007",
+  "add-screw-S05-horn-008",
+  "add-screw-S09-case-077",
+  "add-screw-S09-case-078",
+  "add-screw-S09-case-079",
+  "add-screw-S09-case-080",
+  "add-screw-S09-rear_center-109",
+  "add-screw-S04-case-099",
+  "add-screw-S04-case-100",
+  "add-screw-S04-case-101",
+  "add-screw-S04-case-102",
+  "add-screw-S04-rear_center-113",
+  "add-screw-S09-horn-009",
+  "add-screw-S09-horn-010",
+  "add-screw-S09-horn-011",
+  "add-screw-S09-horn-012",
+  "add-screw-S04-horn-053",
+  "add-screw-S04-horn-054",
+  "add-screw-S04-horn-055",
+  "add-screw-S04-horn-056",
+  "add-screw-I-imu_rib-01",
+  "add-screw-I-imu_rib-02",
+  "add-cable-spk-plus-jaw_soft",
+  "add-cable-spk-minus-jaw_soft",
+  "add-a7z",
+  "add-antenna-ac019",
+  "add-saddle-a7z-header",
+  "add-cable-imu-saddle-trunk_base",
+  "add-cable-uart-saddle-trunk_base",
+  "add-cable-pi-lead-saddle-trunk_base",
+  "add-cable-amp-lrc-saddle-jaw_soft",
+  "add-cable-amp-lrc-saddle-neck",
+  "add-cable-amp-lrc-saddle-neck_pitch",
+  "add-cable-amp-lrc-saddle-trunk_base",
+  "add-cable-amp-bclk-saddle-jaw_soft",
+  "add-cable-amp-bclk-saddle-neck",
+  "add-cable-amp-bclk-saddle-neck_pitch",
+  "add-cable-amp-bclk-saddle-trunk_base",
+  "add-cable-amp-din-saddle-jaw_soft",
+  "add-cable-amp-din-saddle-neck",
+  "add-cable-amp-din-saddle-neck_pitch",
+  "add-cable-amp-din-saddle-trunk_base",
+  "add-cable-amp-gnd-saddle-jaw_soft",
+  "add-cable-amp-gnd-saddle-neck",
+  "add-cable-amp-gnd-saddle-neck_pitch",
+  "add-cable-amp-gnd-saddle-trunk_base",
+  "add-cable-amp-vin-saddle-jaw_soft",
+  "add-cable-amp-vin-saddle-neck",
+  "add-cable-amp-vin-saddle-neck_pitch",
+  "add-cable-amp-vin-saddle-trunk_base",
+  "add-heatsink-6530b",
+  "add-head-mic-foam-glue",
+  "add-neck-mic-touch-wires",
+  "add-camera-u20cam-estimate",
+  "add-camera-usb-head",
+  "add-camera-usb-neck",
+  "add-camera-usb-coil-plug",
+  "add-camera-usb-adapter",
+  "add-head_cap-20261104",
+  "add-face_panel-20261104",
+  "add-eye_trim-20261104",
+  "add-jaw_support-20261104",
+  "add-speaker_tape-20261104",
+  "add-amp_tape-20261104",
+  "add-screw-H-jaw_support-01-20261104",
+  "add-screw-H-jaw_support-02-20261104",
+  "add-screw-H-jaw_support-03-20261104",
+  "add-screw-H-jaw_support-04-20261104",
+  "add-screw-C-camera-01-20261104",
+  "add-screw-C-camera-02-20261104",
+  "add-screw-C-camera-03-20261104",
+  "add-screw-C-camera-04-20261104",
+  "add-screw-J-jaw_ring-01-20261104",
+  "add-bv2-switch",
+  "add-bv2-dfr1202",
+  "add-bv2-plug1",
+  "add-bv2-leads-plug2",
+  "add-bv2-screw-cap-high-left",
+  "add-bv2-screw-cap-high-right",
+  "add-bv2-screw-cap-low-left",
+  "add-bv2-screw-cap-low-right"
+ ],
+ "position_frame": "Each part position is in its named MuJoCo body frame, metres.",
+ "excluded": [
+  "No unconfirmed Dual Lock plate/strips or -8.7 mm mounting shift; four existing pack mounting screws retained.",
+  "Saddle lid not fitted; no lid added.",
+  "Ordered replacement camera cables are not installed; 1 m existing cable retained.",
+  "Full outer-shell and camera extrinsic scan registration remains independent of mass estimation.",
+  "NP-F970 90 g removal is applied by apply_masses.variant_parts, not repeated in this parts list.",
+  "Visual layer: cmu/model/visual-20261122 (fitted-20261122.json) draws the new backpack; physics does not use visual geoms."
+ ],
+ "estimation": {
+  "date": "2026-11-23",
+  "weighed": "whole robot with the fitted 3000 mAh backpack 918 g (Shawn, his scale); no single part weighed",
+  "sourced_step_total_g": 970.046,
+  "residual_rule": "after the sourced step the model is 970.05 g; the 52.05 g above 918 g is removed from every positive part whose label and basis are not slicer, datasheet, listing or audit (152 parts, 205.21 g) by one factor 0.7464, same positions, inertia scaled.",
+  "uncertainty": "The residual is not located: it is spread over estimates by mass, not assigned to the part that carries it. Pollen's yaw_roll_motion body holds 23.0 g beyond its printed mesh, servo and bearings (unidentified, kept).",
+  "audit": "extensions/battery-walk-20261122/mass-audit-20261123/summary.txt"
+ },
+ "add": [
+  {
+   "id": "remove-np_f970-rest-w918",
+   "body": "trunk_base",
+   "mass_kg": -0.0331982780037052,
+   "position_m": [
+    -0.03581169691365913,
+    -5.726456968565255e-06,
+    -0.004146846024334465
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -1.7648823319981047e-05,
+     -1.8151390900450409e-09,
+     1.9804835423053258e-07
+    ],
+    [
+     -1.8151390900450409e-09,
+     -1.4814218656673336e-05,
+     -6.441655846128808e-09
+    ],
+    [
+     1.9804835423053268e-07,
+     -6.441655846128808e-09,
+     -4.947180888255823e-06
+    ]
+   ],
+   "basis": "audit",
+   "label": "audit",
+   "source": "Pollen's trunk_base lumps the NP-F970 at about 123.5 g (2026-11-23 mass audit official_residual.py: 199.22 g minus 2 x 18 g XL330, 34.97 cm3 printed meshes x 1.0558 g/cm3, 2 x 1.4 g bearings; the same density fits 7 official bodies to 0.02 g). apply_masses removes 90 g; this removes the rest up to the audit's upper bound 123.198 g: 33.198 g at the uniform-mesh COM and inertia. Inference from CAD, not weighed."
+  },
+  {
+   "id": "remove-official-pi-zero-2w-rest-w918",
+   "body": "jaw_soft",
+   "mass_kg": -0.007864,
+   "position_m": [
+    0.015245177722092216,
+    -1.1303037980042068e-05,
+    -0.06000999964016337
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -2.7170157426886303e-06,
+     2.8540911182339612e-11,
+     1.4839202626534635e-14
+    ],
+    [
+     2.8540911182339612e-11,
+     -5.736060301987915e-07,
+     9.538604503866618e-14
+    ],
+    [
+     1.4839202626534635e-14,
+     9.538604503866618e-14,
+     -3.287272634670344e-06
+    ]
+   ],
+   "basis": "audit",
+   "source": "Pollen's jaw_soft CAD holds 44.66 g beyond its printed meshes x 1.0558 g/cm3, 2 x 18 g XL330 and the 15 x 3 mm bearing (official_residual.py, 2026-11-23); the base removes 25.00 g of head electronics, this removes remove-official-pi-zero-2w's share of the other 19.66 g. Inference from CAD.",
+   "official_mesh_volume_cm3": 3.018,
+   "label": "audit"
+  },
+  {
+   "id": "remove-official-lens-rest-w918",
+   "body": "jaw_soft",
+   "mass_kg": -0.0029489999999999994,
+   "position_m": [
+    0.015500000000000002,
+    -9.137779999999981e-05,
+    -0.07326368665756318
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -1.1192731258007818e-07,
+     -8.498611271362746e-25,
+     -1.7405155883750904e-21
+    ],
+    [
+     -8.498611271362746e-25,
+     -1.1192731258008166e-07,
+     3.3994445085450984e-24
+    ],
+    [
+     -1.7405155883750904e-21,
+     3.3994445085450984e-24,
+     -7.97039884120378e-08
+    ]
+   ],
+   "basis": "audit",
+   "source": "Pollen's jaw_soft CAD holds 44.66 g beyond its printed meshes x 1.0558 g/cm3, 2 x 18 g XL330 and the 15 x 3 mm bearing (official_residual.py, 2026-11-23); the base removes 25.00 g of head electronics, this removes remove-official-lens's share of the other 19.66 g. Inference from CAD.",
+   "official_mesh_volume_cm3": 2.803,
+   "label": "audit"
+  },
+  {
+   "id": "remove-official-elec_rpi_robot_hat_pcb-rest-w918",
+   "body": "jaw_soft",
+   "mass_kg": -0.005308199999999999,
+   "position_m": [
+    0.015232560531243581,
+    0.00011089914279681675,
+    -0.051480000003334234
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -1.825174908991149e-06,
+     -3.758352800649968e-09,
+     -1.0492794772236759e-20
+    ],
+    [
+     -3.758352800649968e-09,
+     -3.854613760246155e-07,
+     -3.169698420779854e-22
+    ],
+    [
+     -1.0492794772236759e-20,
+     -3.169698420779854e-22,
+     -2.210012040705781e-06
+    ]
+   ],
+   "basis": "audit",
+   "source": "Pollen's jaw_soft CAD holds 44.66 g beyond its printed meshes x 1.0558 g/cm3, 2 x 18 g XL330 and the 15 x 3 mm bearing (official_residual.py, 2026-11-23); the base removes 25.00 g of head electronics, this removes remove-official-elec_rpi_robot_hat_pcb's share of the other 19.66 g. Inference from CAD.",
+   "official_mesh_volume_cm3": 1.569,
+   "label": "audit"
+  },
+  {
+   "id": "remove-official-m12_lens_holder-rest-w918",
+   "body": "jaw_soft",
+   "mass_kg": -0.0017693999999999995,
+   "position_m": [
+    0.015465646893200829,
+    -9.137848641336593e-05,
+    -0.06303947008166692
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -9.006334243962688e-08,
+     -8.324690728271911e-15,
+     2.7597225860261e-10
+    ],
+    [
+     -8.324690728271911e-15,
+     -7.949184027252074e-08,
+     -2.0778168658648654e-15
+    ],
+    [
+     2.7597225860261e-10,
+     -2.0778168658648654e-15,
+     -1.0821714831482518e-07
+    ]
+   ],
+   "basis": "audit",
+   "source": "Pollen's jaw_soft CAD holds 44.66 g beyond its printed meshes x 1.0558 g/cm3, 2 x 18 g XL330 and the 15 x 3 mm bearing (official_residual.py, 2026-11-23); the base removes 25.00 g of head electronics, this removes remove-official-m12_lens_holder's share of the other 19.66 g. Inference from CAD.",
+   "official_mesh_volume_cm3": 1.098,
+   "label": "audit"
+  },
+  {
+   "id": "remove-official-speaker-rest-w918",
+   "body": "jaw_soft",
+   "mass_kg": -0.0017693999999999995,
+   "position_m": [
+    0.013500000108033415,
+    0.0007140000745058039,
+    0.01352259981373548
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     -2.7278250428449583e-07,
+     3.733707404677485e-24,
+     5.973931847483976e-23
+    ],
+    [
+     3.733707404677485e-24,
+     -9.938130319249788e-08,
+     -1.493482961870994e-23
+    ],
+    [
+     5.973931847483976e-23,
+     -1.493482961870994e-23,
+     -1.878513019840514e-07
+    ]
+   ],
+   "basis": "audit",
+   "source": "Pollen's jaw_soft CAD holds 44.66 g beyond its printed meshes x 1.0558 g/cm3, 2 x 18 g XL330 and the 15 x 3 mm bearing (official_residual.py, 2026-11-23); the base removes 25.00 g of head electronics, this removes remove-official-speaker's share of the other 19.66 g. Inference from CAD.",
+   "official_mesh_volume_cm3": 6.125,
+   "label": "audit"
+  },
+  {
+   "id": "remove-official-rigidity_plate-upper_leg_left-w918",
+   "body": "upper_leg_left",
+   "mass_kg": -0.00556185,
+   "position_m": [
+    0.005485308053201643,
+    0.022839190261433443,
+    0.0004999995976686447
+   ],
+   "dimensions_m": [
+    0.001,
+    0.045,
+    0.058
+   ],
+   "basis": "audit",
+   "label": "audit",
+   "source": "Pollen's upper_leg_left carries 5.64 g beyond its PLA meshes, 2 x 18 g XL330 and the bearing (official_residual.py); inferred to be a denser rigidity plate (0.75 cm3, implied 6.43 g). Ours is PLA: 0.87 g slicer model mass, release-ThighPlate-L Black Elegoo, 100 % infill (reprint of the fitted 10/1 plate, same STL). Net -5.562 g at the plate mesh centre. Inference."
+  },
+  {
+   "id": "remove-official-rigidity_plate-upper_leg_right-w918",
+   "body": "upper_leg_right",
+   "mass_kg": -0.00556185,
+   "position_m": [
+    -0.005485308053201643,
+    0.022839190261433443,
+    0.0005000004023313492
+   ],
+   "dimensions_m": [
+    0.001,
+    0.045,
+    0.058
+   ],
+   "basis": "audit",
+   "label": "audit",
+   "source": "Pollen's upper_leg_right carries 5.64 g beyond its PLA meshes, 2 x 18 g XL330 and the bearing (official_residual.py); inferred to be a denser rigidity plate (0.75 cm3, implied 6.43 g). Ours is PLA: 0.87 g slicer model mass, release-ThighPlate-L Black Elegoo, 100 % infill (reprint of the fitted 10/1 plate, same STL). Net -5.562 g at the plate mesh centre. Inference."
+  },
+  {
+   "id": "add-jaw_frame-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.020763,
+   "position_m": [
+    -0.01124612467291588,
+    -0.0005461136525712622,
+    -0.05708019801896359
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     2.1432713538851127e-05,
+     1.619941026189142e-07,
+     -8.533049585455375e-07
+    ],
+    [
+     1.619941026189142e-07,
+     5.2131732241970256e-06,
+     4.4259674638337914e-07
+    ],
+    [
+     -8.533049585455375e-07,
+     4.4259674638337914e-07,
+     1.7180844662308753e-05
+    ]
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "V1.9 Elegoo G-code object jaw_frame model 20.763 g (v19-mass-manifest summary sliced_mass_g; sliced solid volume 27.964 cm3 against this part's CAD 27.952 cm3: same geometry). Replaces add-jaw_frame-20261104 (29.495 g, estimate)."
+  },
+  {
+   "id": "add-head_bottom-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.030393999999999997,
+   "position_m": [
+    -0.0096216293264955,
+    -0.0014013073252194608,
+    -0.023531015852574923
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     5.593312064237225e-05,
+     6.101213705516946e-08,
+     2.3455805569575316e-06
+    ],
+    [
+     6.101213705516946e-08,
+     3.5457230825607925e-05,
+     4.3392951042134324e-07
+    ],
+    [
+     2.3455805569575316e-06,
+     4.3392951042134324e-07,
+     2.1531074355761654e-05
+    ]
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "release-V1.36 Yellow Elegoo G-code object head_bottom model 30.394 g (4 walls, 30 % gyroid; mass-audit-20261123/slicer_objects.json). Replaces add-head_bottom-20261104 (27.139 g, estimate)."
+  },
+  {
+   "id": "add-bv2-frame-m5-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.030525,
+   "position_m": [
+    -0.055791,
+    -0.001358,
+    -0.0027
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     3.608311824722802e-05,
+     -8.707263733440605e-08,
+     2.5830402760264004e-07
+    ],
+    [
+     -8.707263733440605e-08,
+     2.4941778187576153e-05,
+     -2.700452546477128e-07
+    ],
+    [
+     2.5830402760264004e-07,
+     -2.700452546477128e-07,
+     1.6124666365260934e-05
+    ]
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "release-V1.47 Orange Elegoo G-code object battery_v2_frame model 30.525 g (4 walls, 100 % rectilinear; support not counted; mass-audit-20261123/slicer_objects.json). Replaces add-bv2-frame-m5 (27.488 g, estimate)."
+  },
+  {
+   "id": "add-bv2-cap-m5-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.011775,
+   "position_m": [
+    -0.074267,
+    -0.001741,
+    -0.001379
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     9.509375249148047e-06,
+     1.9017787913646715e-08,
+     -1.998957190365578e-08
+    ],
+    [
+     1.9017787913646715e-08,
+     6.2926136662200294e-06,
+     4.275515478125308e-08
+    ],
+    [
+     -1.998957190365578e-08,
+     4.275515478125308e-08,
+     3.2506932930894947e-06
+    ]
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "release-V1.47 Orange Elegoo G-code object battery_v2_cap model 11.775 g (4 walls, 100 % rectilinear; mass-audit-20261123/slicer_objects.json). Replaces add-bv2-cap-m5 (10.053 g, estimate)."
+  },
+  {
+   "id": "add-mouth_sliding_ring-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.000718,
+   "position_m": [
+    0.0030053996840739426,
+    -0.035983630631267666,
+    -0.018000000203045877
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     1.2152236426290559e-08,
+     -1.7677683610263397e-16,
+     -9.698997368127908e-22
+    ],
+    [
+     -1.7677683610263397e-16,
+     2.044785930523357e-08,
+     -9.30890369402178e-17
+    ],
+    [
+     -9.698997368127908e-22,
+     -9.30890369402178e-17,
+     1.2152235832614202e-08
+    ]
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "release-V1.37 Black Elegoo G-code object jaw_ring_capped model 0.718 g. Replaces add-mouth_sliding_ring-20261104 (0.728 g, estimate)."
+  },
+  {
+   "id": "add-neck_pitch-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00326814781228167,
+   "position_m": [
+    -2.847476580913887e-09,
+    0.00937137118246635,
+    -0.01449990479449529
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     6.996271058277716e-07,
+     -8.545435647003223e-13,
+     -8.289653526969206e-13
+    ],
+    [
+     -8.545435647003223e-13,
+     6.290328406216839e-07,
+     2.2967466133413703e-12
+    ],
+    [
+     -8.289653526969206e-13,
+     2.2967466133413703e-12,
+     2.634673659047415e-07
+    ]
+   ],
+   "basis": "rho_eff",
+   "source": "guide audit solid x slicer-calibrated effective density (no per-object slice on file) [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 4.379 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-case-069-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    -0.0165,
+    0.0095,
+    -0.003094
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-case-070-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    -0.0165,
+    0.0255,
+    -0.00095
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-case-073-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    -0.0165,
+    -0.0255,
+    -0.00095
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-case-074-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    -0.0165,
+    -0.0095,
+    -0.003094
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-case-072-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    -0.0165,
+    0.0095,
+    0.025049
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-case-076-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    -0.0165,
+    -0.0095,
+    0.025049
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-case-087-w918",
+   "body": "neck",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    0.007999999999999998,
+    -0.022499500000000002,
+    0.0010500000000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-case-088-w918",
+   "body": "neck",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    -0.008000000000000002,
+    -0.022499500000000002,
+    0.0010500000000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-case-089-w918",
+   "body": "neck",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    0.007999999999999998,
+    -0.022499500000000002,
+    0.027999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-case-090-w918",
+   "body": "neck",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    -0.008000000000000002,
+    -0.022499500000000002,
+    0.027999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-case-091-w918",
+   "body": "neck",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    -0.008000000000000002,
+    -0.027499500000000003,
+    0.0010500000000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-case-092-w918",
+   "body": "neck",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    0.007999999999999998,
+    -0.027499500000000003,
+    0.0010500000000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-case-093-w918",
+   "body": "neck",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    -0.008000000000000002,
+    -0.027499500000000003,
+    0.027999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-case-094-w918",
+   "body": "neck",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    0.007999999999999998,
+    -0.027499500000000003,
+    0.027999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-rear_center-117-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    0.026,
+    -0.0127,
+    0.032422
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-rear_center-118-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    0.0,
+    -4.999999999727444e-07,
+    -0.027199999999999995
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-horn-041-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.006,
+    0.01484350000000002,
+    -0.014499999999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-horn-042-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    0.01484350000000002,
+    -0.008499999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-horn-043-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    0.01484350000000002,
+    -0.020499999999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-horn-044-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.005999999999999997,
+    0.01484350000000002,
+    -0.014499999999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S14-horn-049-w918",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.01454899999999999,
+    0.005999999999999995,
+    0.014500400000000017
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S14-horn-050-w918",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.01454899999999999,
+    -0.006,
+    0.014500400000000017
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S14-horn-051-w918",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.01454899999999999,
+    -3.0891196211362e-18,
+    0.008500400000000016
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S14-horn-052-w918",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.01454899999999999,
+    -2.5522121850380224e-18,
+    0.02050040000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-case-095-w918",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    0.008,
+    0.007499999999999994,
+    0.0274504
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-case-096-w918",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    -0.007999999999999997,
+    0.007499999999999994,
+    0.0274504
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-case-097-w918",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    0.008,
+    -0.022499999999999992,
+    0.027950400000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S13-case-098-w918",
+   "body": "yaw_roll_motion",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    -0.007999999999999997,
+    -0.022499999999999992,
+    0.027950400000000004
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-033-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.006,
+    -4.999999999727444e-07,
+    0.003
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-034-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    0.005999500000000017,
+    0.003
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-035-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    -0.006000499999999976,
+    0.003
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-036-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.005999999999999997,
+    -4.999999999727444e-07,
+    0.003
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-037-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.006,
+    -4.999999999727444e-07,
+    -0.031999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-038-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    -0.006000499999999976,
+    -0.031999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S11-horn-039-w918",
+   "body": "neck_pitch",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    0.005999500000000017,
+    -0.031999999999999994
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-026-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.032,
+    -0.018401,
+    0.032521999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-027-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.026,
+    -0.018401,
+    0.026521999999999997
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-028-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.026,
+    -0.018401,
+    0.038522
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-029-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.026,
+    0.0179,
+    0.038422
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-030-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.026,
+    0.0179,
+    0.026422
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-031-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.02,
+    0.0179,
+    0.032422
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S12-horn-032-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.032,
+    0.0179,
+    0.032422
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-case-071-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    0.0135,
+    0.0255,
+    0.024922
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-case-075-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00023560614702657217,
+   "position_m": [
+    0.0135,
+    -0.0255,
+    0.02495
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 10 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.316 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S15-horn-045-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.002999599999999964,
+    0.04355399999999998,
+    -0.017999999999999988
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S15-horn-046-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0030004000000000385,
+    0.04411899999999998,
+    -0.023999999999999987
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S15-horn-047-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.009000400000000028,
+    0.04418299999999998,
+    -0.017999999999999988
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S15-horn-048-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0030004000000000385,
+    0.04361899999999998,
+    -0.011999999999999988
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-K-head_close-01-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    -0.003253599999999954,
+    0.038999999999999986,
+    -0.06749999999999996
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-K-head_close-02-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    -0.0032535999999999507,
+    -0.038999999999999986,
+    -0.06749999999999996
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-K-head_close-03-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    -0.0032535999999999525,
+    -2.966257302842399e-18,
+    0.031499999999999986
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-B-openrb-01-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.0264,
+    -0.010539999999999999,
+    -0.03975
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-B-openrb-02-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.0264,
+    0.00996,
+    -0.03975
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-B-openrb-03-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.0264,
+    -0.010539999999999999,
+    0.02175
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-B-openrb-04-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.0264,
+    0.00996,
+    0.02175
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-C-pack_cover-01-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.047,
+    -0.0161,
+    0.026
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-C-pack_cover-02-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.047,
+    0.0161,
+    0.026
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-C-pack_cover-03-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.047,
+    -0.0161,
+    -0.0365
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-C-pack_cover-04-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.047,
+    0.0161,
+    -0.0365
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-P-passive_tab-01-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.009,
+    0.012499999999999995,
+    -4.336808689942017e-18
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-P-passive_tab-02-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.008999999999999996,
+    0.012499999999999995,
+    -4.336808689942017e-18
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-P-passive_tab-03-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.009,
+    0.012499999999999995,
+    -4.336808689942017e-18
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-P-passive_tab-04-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.008999999999999996,
+    0.012499999999999995,
+    -4.336808689942017e-18
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-X-shell_cross-01-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.038,
+    0.0020499999999999997,
+    0.03496
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-horn-001-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.005999999999999997,
+    0.0,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-horn-002-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.006,
+    0.0,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-horn-003-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    -0.005999999999999998,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S10-horn-004-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    0.005999999999999998,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-horn-005-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.006,
+    0.0,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-horn-006-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.005999999999999997,
+    0.0,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-horn-007-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    -0.005999999999999998,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S05-horn-008-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    0.005999999999999998,
+    0.0010009999999999956
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-case-077-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    -0.008,
+    0.012498999999999994,
+    0.03499999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-case-078-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    0.007999999999999995,
+    0.012498999999999994,
+    0.03499999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-case-079-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    -0.008,
+    -0.012299999999999997,
+    0.004999999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-case-080-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    0.007999999999999995,
+    -0.012299999999999997,
+    0.004999999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-rear_center-109-w918",
+   "body": "yaw2roll",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    0.0,
+    -0.012001999999999995,
+    0.012499999999999994
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-case-099-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    -0.007999999999999995,
+    0.012498999999999994,
+    0.03499999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-case-100-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    0.008,
+    0.012498999999999994,
+    0.03499999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-case-101-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    -0.007999999999999995,
+    -0.012299999999999997,
+    0.004999999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-case-102-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.00020615537864825066,
+   "position_m": [
+    0.008,
+    -0.012299999999999997,
+    0.004999999999999995
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.008
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 8 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.276 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-rear_center-113-w918",
+   "body": "bearing_roll",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    0.0,
+    -0.012001999999999995,
+    0.012499999999999994
+   ],
+   "dimensions_m": [
+    0.0045,
+    0.0045,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2.6 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-horn-009-w918",
+   "body": "hip_l",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.005999999999999996,
+    0.0,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-horn-010-w918",
+   "body": "hip_l",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    0.005999999999999999,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-horn-011-w918",
+   "body": "hip_l",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    -0.005999999999999996,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S09-horn-012-w918",
+   "body": "hip_l",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.005999999999999999,
+    0.0,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-horn-053-w918",
+   "body": "hip_l_2",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.005999999999999996,
+    0.0,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-horn-054-w918",
+   "body": "hip_l_2",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    -0.005999999999999999,
+    0.0,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-horn-055-w918",
+   "body": "hip_l_2",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    0.005999999999999996,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-S04-horn-056-w918",
+   "body": "hip_l_2",
+   "mass_kg": 0.00017670461026992912,
+   "position_m": [
+    0.0,
+    -0.005999999999999999,
+    0.000998000000000002
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.006
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 6 TAP steel, 0.8 fill of shank and head cylinders [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.237 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-I-imu_rib-01-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0001472538418916076,
+   "position_m": [
+    -0.015460000000000002,
+    -0.000695,
+    0.008039999999999999
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.004
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 4 TAP BNO085 on the V1.9 pack rib; steel, 0.8 fill [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.197 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-screw-I-imu_rib-02-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0001472538418916076,
+   "position_m": [
+    -0.015460000000000002,
+    -0.000695,
+    0.02836
+   ],
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.004
+   ],
+   "basis": "estimate",
+   "source": "M2 \u00d7 4 TAP BNO085 on the V1.9 pack rib; steel, 0.8 fill [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.197 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-spk-plus-jaw_soft-w918",
+   "body": "jaw_soft",
+   "mass_kg": 5.5978129362233516e-05,
+   "position_m": [
+    0.026531193866227893,
+    0.0016696425355528209,
+    -0.010332686912213512
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Speaker + lead; 30 mm stranded Dupont jumper wire soldered both ends (memory microduck-audio-no-resistor); 0.0025 g/mm x 30 mm + 0 ends, share 1.00 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.075 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-spk-minus-jaw_soft-w918",
+   "body": "jaw_soft",
+   "mass_kg": 5.5978129362233516e-05,
+   "position_m": [
+    0.026531193866227893,
+    -0.0016696425355528244,
+    -0.010332686912213512
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Speaker - lead; 30 mm stranded Dupont jumper wire soldered both ends (memory microduck-audio-no-resistor); 0.0025 g/mm x 30 mm + 0 ends, share 1.00 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.075 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-a7z-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.013434751046936045,
+   "dimensions_m": [
+    0.03,
+    0.065,
+    0.004
+   ],
+   "basis": "estimate",
+   "source": "Radxa publishes no mass for the Cubie A7Z (product brief, docs, ameridroid read 2026-10-19); bounded 15-20 g in cmu/model/sole/README.md; replace by the weighed value. Position: on the V1.35 saddle (D-028 V3: board x -41.7..-11.7, PCB z 48..49.6, header at the front; a7z-saddle/build/build.json), PCB centre. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 18.000 g]",
+   "label": "estimate",
+   "position_m": [
+    -0.026699999999999998,
+    0.0,
+    0.048799999999999996
+   ]
+  },
+  {
+   "id": "add-antenna-ac019-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0011195625872446704,
+   "dimensions_m": [
+    0.001,
+    0.042,
+    0.012
+   ],
+   "basis": "estimate",
+   "source": "Radxa AC019 antenna (1.5 g estimate) on the V1.35 saddle front wall inner face (D-028 V3, antenna y -11..31, z 50..62 in a7z-saddle/build/build.json); where it is stuck on the robot is not recorded [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 1.500 g]",
+   "label": "estimate",
+   "position_m": [
+    -0.00675,
+    0.01,
+    0.056
+   ]
+  },
+  {
+   "id": "add-saddle-a7z-header-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0018659376454077839,
+   "dimensions_m": [
+    0.005,
+    0.051,
+    0.009
+   ],
+   "basis": "estimate",
+   "source": "soldered 2x20 male header (plastic base + 40 pins), engineering estimate (the base entry add-pi-gpio-header, 2.5 g), on the V1.35 saddle at the board's front edge (D-028 V3, dupont_housings x -17.7..-12.7 in a7z-saddle/build/build.json) [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 2.500 g]",
+   "label": "estimate",
+   "position_m": [
+    -0.0152,
+    0.0,
+    0.05
+   ]
+  },
+  {
+   "id": "add-cable-imu-saddle-trunk_base-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.000762293079117677,
+   "position_m": [
+    -0.010600177431537685,
+    0.00655101579209195,
+    0.055145779061773134
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "IMU lead (4397 cable, extended) to the saddle header (guide route guide-20261026-camera-up, 70 mm); STEMMA QT 4-wire 28 AWG (~1.5 g/m per conductor) with JST SH ends; 0.0060 g/mm x 70 mm + ends 0.600 g (the base entry's end mass), share 1.00 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 1.021 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-uart-saddle-trunk_base-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0006391317666780595,
+   "position_m": [
+    -0.017484231979271927,
+    0.0035229302785845006,
+    0.043731635855624895
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "UART link (two jumper wires) to the saddle header (guide route guide-20261026-camera-up, 111 mm); two Dupont jumpers, 26-28 AWG ~2.5 g/m each, 0.1-0.15 g per housing; 0.0050 g/mm x 111 mm + ends 0.300 g (the base entry's end mass), share 1.00 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.856 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-pi-lead-saddle-trunk_base-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.001201968033787905,
+   "position_m": [
+    -0.03196177949796211,
+    0.01647383149025168,
+    0.03817618259979386
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "A7Z 5 V lead (two jumper chains, red + black) to the saddle header (guide route guide-20261026-camera-up, 202 mm); two Dupont jumper chains red + black, 26-28 AWG ~2.5 g/m each, 0.15 g per housing (v19 pi-trunk rate); 0.0050 g/mm x 202 mm + ends 0.600 g (the base entry's end mass), share 1.00 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 1.610 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-lrc-saddle-jaw_soft-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00023512786219626026,
+   "position_m": [
+    0.008810256727078173,
+    0.023120318405322565,
+    -0.025940144616973075
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier LRC to A7Z pin 35 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 205 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 205 mm + ends 0.100 g (the base entry's end mass), share 0.52 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.315 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-lrc-saddle-neck-w918",
+   "body": "neck",
+   "mass_kg": 0.00014820726766676766,
+   "position_m": [
+    0.020077687085795964,
+    -0.03767113289023195,
+    0.008332783091664618
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier LRC to A7Z pin 35 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 205 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 205 mm + ends 0.100 g (the base entry's end mass), share 0.32 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.199 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-lrc-saddle-neck_pitch-w918",
+   "body": "neck_pitch",
+   "mass_kg": 3.0919320007070674e-05,
+   "position_m": [
+    0.014599999999999997,
+    -0.004321499999999991,
+    0.0012499999999999992
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier LRC to A7Z pin 35 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 205 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 205 mm + ends 0.100 g (the base entry's end mass), share 0.07 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.041 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-lrc-saddle-trunk_base-w918",
+   "body": "trunk_base",
+   "mass_kg": 4.223781126439621e-05,
+   "position_m": [
+    -0.012997141922224998,
+    -0.0191,
+    0.06377987630482934
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier LRC to A7Z pin 35 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 205 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 205 mm + ends 0.100 g (the base entry's end mass), share 0.09 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.057 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-bclk-saddle-jaw_soft-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.0002407125999438431,
+   "position_m": [
+    0.00871101450922126,
+    0.022158563486211934,
+    -0.025593393387432543
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier BCLK to A7Z pin 12 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 180 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 180 mm + ends 0.100 g (the base entry's end mass), share 0.59 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.323 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-bclk-saddle-neck-w918",
+   "body": "neck",
+   "mass_kg": 0.00012090880483963858,
+   "position_m": [
+    0.021015804578283986,
+    -0.03937158636862267,
+    -0.00019095239491113096
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier BCLK to A7Z pin 12 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 180 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 180 mm + ends 0.100 g (the base entry's end mass), share 0.29 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.162 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-bclk-saddle-neck_pitch-w918",
+   "body": "neck_pitch",
+   "mass_kg": 3.161811240720057e-05,
+   "position_m": [
+    0.014599999999999997,
+    -0.004321499999999991,
+    0.0012499999999999992
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier BCLK to A7Z pin 12 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 180 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 180 mm + ends 0.100 g (the base entry's end mass), share 0.08 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.042 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-bclk-saddle-trunk_base-w918",
+   "body": "trunk_base",
+   "mass_kg": 1.687990769624271e-05,
+   "position_m": [
+    -0.013900000000000001,
+    0.0114,
+    0.061799999999999994
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier BCLK to A7Z pin 12 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 180 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 180 mm + ends 0.100 g (the base entry's end mass), share 0.04 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.023 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-din-saddle-jaw_soft-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00022505271751773083,
+   "position_m": [
+    0.00911025211739474,
+    0.02547612165523592,
+    -0.02349017572619439
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier DIN to A7Z pin 40 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 202 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 202 mm + ends 0.100 g (the base entry's end mass), share 0.50 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.302 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-din-saddle-neck-w918",
+   "body": "neck",
+   "mass_kg": 0.0001589586255367577,
+   "position_m": [
+    0.020335115279744326,
+    -0.03727454442173108,
+    0.01033273547515355
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier DIN to A7Z pin 40 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 202 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 202 mm + ends 0.100 g (the base entry's end mass), share 0.35 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.213 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-din-saddle-neck_pitch-w918",
+   "body": "neck_pitch",
+   "mass_kg": 3.0985792826267645e-05,
+   "position_m": [
+    0.014599999999999997,
+    -0.004321499999999991,
+    0.0012499999999999992
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier DIN to A7Z pin 40 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 202 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 202 mm + ends 0.100 g (the base entry's end mass), share 0.07 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.042 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-din-saddle-trunk_base-w918",
+   "body": "trunk_base",
+   "mass_kg": 3.6539306920785625e-05,
+   "position_m": [
+    -0.01146463533470925,
+    -0.024099999999999996,
+    0.06357863711509996
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier DIN to A7Z pin 40 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 202 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 202 mm + ends 0.100 g (the base entry's end mass), share 0.08 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.049 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-gnd-saddle-jaw_soft-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00021704690827059977,
+   "position_m": [
+    0.009095762927424459,
+    0.024528733263188475,
+    -0.02175493669261998
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier GND to A7Z pin 39 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 201 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 201 mm + ends 0.100 g (the base entry's end mass), share 0.48 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.291 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-gnd-saddle-neck-w918",
+   "body": "neck",
+   "mass_kg": 0.00015909954437443589,
+   "position_m": [
+    0.020335115279744326,
+    -0.03727454442173108,
+    0.01033273547515355
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier GND to A7Z pin 39 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 201 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 201 mm + ends 0.100 g (the base entry's end mass), share 0.35 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.213 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-gnd-saddle-neck_pitch-w918",
+   "body": "neck_pitch",
+   "mass_kg": 3.101326212461412e-05,
+   "position_m": [
+    0.014599999999999997,
+    -0.004321499999999991,
+    0.0012499999999999992
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier GND to A7Z pin 39 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 201 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 201 mm + ends 0.100 g (the base entry's end mass), share 0.07 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.042 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-gnd-saddle-trunk_base-w918",
+   "body": "trunk_base",
+   "mass_kg": 4.236614233473251e-05,
+   "position_m": [
+    -0.012997141922224998,
+    -0.024099999999999996,
+    0.06377987630482934
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier GND to A7Z pin 39 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 201 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 201 mm + ends 0.100 g (the base entry's end mass), share 0.09 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.057 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-vin-saddle-jaw_soft-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00022235363731038914,
+   "position_m": [
+    0.00914642852366813,
+    0.02510090360072297,
+    -0.021272722403869883
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier Vin to A7Z pin 4 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 172 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 172 mm + ends 0.100 g (the base entry's end mass), share 0.56 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.298 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-vin-saddle-neck-w918",
+   "body": "neck",
+   "mass_kg": 0.00010368146258047569,
+   "position_m": [
+    0.018219031453840417,
+    -0.040534538717084144,
+    -0.0025657428608134975
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier Vin to A7Z pin 4 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 172 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 172 mm + ends 0.100 g (the base entry's end mass), share 0.26 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.139 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-vin-saddle-neck_pitch-w918",
+   "body": "neck_pitch",
+   "mass_kg": 3.188011775638442e-05,
+   "position_m": [
+    0.014599999999999997,
+    -0.004321499999999991,
+    0.0012499999999999992
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier Vin to A7Z pin 4 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 172 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 172 mm + ends 0.100 g (the base entry's end mass), share 0.08 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.043 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-cable-amp-vin-saddle-trunk_base-w918",
+   "body": "trunk_base",
+   "mass_kg": 3.759391970063823e-05,
+   "position_m": [
+    -0.01146463533470925,
+    0.021599999999999998,
+    0.06357863711509996
+   ],
+   "dimensions_m": [
+    0.02,
+    0.02,
+    0.02
+   ],
+   "basis": "estimate",
+   "source": "Amplifier Vin to A7Z pin 4 (soldered wire, down the neck) to the saddle header (guide route guide-20261026-camera-up, 172 mm); one Dupont jumper soldered at the amp, one housing on the Pi pin (v19 i2s rate); 0.0025 g/mm x 172 mm + ends 0.100 g (the base entry's end mass), share 0.10 [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.050 g]",
+   "label": "estimate"
+  },
+  {
+   "id": "add-heatsink-6530b-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.01865937645407784,
+   "inertia_about_com_kg_m2": [
+    [
+     6.861339973938113e-06,
+     -1.7474667199982012e-10,
+     6.203338220352486e-09
+    ],
+    [
+     -1.7474667199982012e-10,
+     1.018946353293207e-06,
+     -5.272383458662991e-09
+    ],
+    [
+     6.203338220352486e-09,
+     -5.272383458662991e-09,
+     7.640349192068901e-06
+    ]
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Radxa Heatsink 6530B (aluminium 65 x 30 x 11.5 with blower fan; Radxa docs list no mass, read 2026-10-26) with its 1.5 mm pad and four M2 x 6: 25 g estimate (solid envelope 13.2 cm3 x 2.7 g/cm3 = 36 g, fins and fan pocket taken as about 30 % void, fan 3-4 g); weigh it. Fitted: the V1.35 saddle holds the A7Z only by the four M2 x 6 into the 6530B's bosses (D-028 V3), and the V1.35 saddle is on the robot (Shawn 2026-10-26). Envelope a7z-saddle/build/heatsink_6530b-world.stl. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 25.000 g]",
+   "position_m": [
+    -0.02984,
+    6.500000000000001e-05,
+    0.056808
+   ]
+  },
+  {
+   "id": "add-head-mic-foam-glue-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.0022391251744893407,
+   "dimensions_m": [
+    0.03,
+    0.08,
+    0.02
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "foam rings, horseshoe rings and hot glue on the three microphones, about 1 g each Placement updated 2026-11-04 from pinned source-guide current mic centres or XIAO(3 g)+five pads(0.4 g each) weighted centroid; mass estimates unchanged. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 3.000 g]",
+   "position_m": [
+    0.017373178640287805,
+    -0.003528215844243358,
+    -0.02609705005865609
+   ]
+  },
+  {
+   "id": "add-neck-mic-touch-wires-w918",
+   "body": "neck",
+   "mass_kg": 0.0022391251744893407,
+   "dimensions_m": [
+    0.01,
+    0.01,
+    0.04
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "15 microphone and 4 touch Dupont wires down the neck to the saddle, share on the neck [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 3.000 g]",
+   "position_m": [
+    0.018219031453840417,
+    -0.040534538717084144,
+    -0.0025657428608134975
+   ]
+  },
+  {
+   "id": "add-camera-u20cam-estimate-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.006304220848571851,
+   "position_m": [
+    0.015817856529732936,
+    7.080868297155431e-05,
+    -0.06506596166224561
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     6.059479172009768e-07,
+     -1.5215024573420826e-08,
+     -2.4971544181365782e-08
+    ],
+    [
+     -1.5215024573420826e-08,
+     6.172251942614771e-07,
+     -1.2633211659012692e-08
+    ],
+    [
+     -2.4971544181365782e-08,
+     -1.2633211659012692e-08,
+     4.868112256512673e-07
+    ]
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "ROBOTIS OMX-F CAMERA_INNOMAKER_720P CAD (source geometry README in robotics/microduck-sim/guide/print/face-u20/robotis-cad/): PCB 32 x 32 x 1.6 mm minus mounting holes at assumed FR4 effective density 1.85 g/cm3, remaining CAD volume at assumed housing/lens effective density 1.2 g/cm3, plus 1.5 g components. Homogeneous tensor rescaled to total estimate; density/composition are modelling assumptions, not product specifications. Range 6-12 g. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 8.446 g]",
+   "estimate_range_g": [
+    6,
+    12
+   ]
+  },
+  {
+   "id": "add-camera-usb-head-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.001492750116326227,
+   "position_m": [
+    0.015817856529732936,
+    7.080868297155431e-05,
+    -0.06506596166224561
+   ],
+   "dimensions_m": [
+    0.02,
+    0.03,
+    0.02
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Existing 1 m cable x prior 20 g/m estimate: 0.10 m allocated inside head; approximate centroid at camera. This replaces a share of the old trunk-only cable lump. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 2.000 g]",
+   "estimate_range_g": [
+    1,
+    3
+   ]
+  },
+  {
+   "id": "add-camera-usb-neck-w918",
+   "body": "neck",
+   "mass_kg": 0.0022391251744893407,
+   "dimensions_m": [
+    0.015,
+    0.02,
+    0.06
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Existing 1 m cable x prior 20 g/m estimate: 0.15 m allocated along neck, centroid approximated by existing amp lead on neck. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 3.000 g]",
+   "estimate_range_g": [
+    1.5,
+    4.5
+   ],
+   "position_m": [
+    0.018219031453840417,
+    -0.040534538717084144,
+    -0.0025657428608134975
+   ]
+  },
+  {
+   "id": "add-camera-usb-coil-plug-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.014181126105099157,
+   "position_m": [
+    -0.055,
+    0.008,
+    0.065
+   ],
+   "dimensions_m": [
+    0.05,
+    0.05,
+    0.03
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Existing 1 m cable x prior 20 g/m: remaining 0.75 m = 15 g coiled by backpack plus prior 4 g plug estimate. 0.10+0.15+0.75 m conserves full cable length. Coil location is an engineering estimate from state record, not scan fit. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 19.000 g]",
+   "estimate_range_g": [
+    11.5,
+    26.5
+   ]
+  },
+  {
+   "id": "add-camera-usb-adapter-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0022391251744893407,
+   "position_m": [
+    -0.045,
+    0,
+    0.065
+   ],
+   "dimensions_m": [
+    0.03,
+    0.014,
+    0.008
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Generic existing USB-A female to USB-C male adapter in the working 1 m camera path, as recorded in CURRENT-STATE parts_a7z_extensions.usb_a_to_c_adapter. Engineering mass allowance 3 g (range 1-6), approximate rear-port centroid. This is not the newly ordered right-angle adapter and does not assert its arrival or fitting. Included separately from the cable plug. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 3.000 g]",
+   "estimate_range_g": [
+    1,
+    6
+   ]
+  },
+  {
+   "id": "add-head_cap-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.023531208549825627,
+   "position_m": [
+    0.021897642552117253,
+    -4.057266569394258e-05,
+    -0.027077426273906552
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     5.1165025241101075e-05,
+     -7.482817177152002e-09,
+     3.5018607972319776e-06
+    ],
+    [
+     -7.482817177152002e-09,
+     3.6499557298850464e-05,
+     3.57067545640423e-08
+    ],
+    [
+     3.5018607972319776e-06,
+     3.57067545640423e-08,
+     2.2686147017000664e-05
+    ]
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cmu/model/visual-20261104/source-parts/head_cap.stl; current guide final pose mapped to jaw_soft at official qpos0. CAD volume x 1.05524 g/cm3 effective density; same 1.24 x 0.851 printed-part method. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 31.527 g]"
+  },
+  {
+   "id": "add-face_panel-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.003870381335184721,
+   "position_m": [
+    0.014821459513009304,
+    -9.025027368590057e-05,
+    -0.07136961354007447
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     1.8899388967945656e-06,
+     -1.317332804377426e-11,
+     -3.347973897378175e-09
+    ],
+    [
+     -1.317332804377426e-11,
+     6.759215163816161e-07,
+     6.819130328109246e-13
+    ],
+    [
+     -3.347973897378175e-09,
+     6.819130328109246e-13,
+     2.4885468823218234e-06
+    ]
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cmu/model/visual-20261104/source-parts/face_panel.stl; current guide final pose mapped to jaw_soft at official qpos0. CAD volume x 1.05524 g/cm3 effective density; same 1.24 x 0.851 printed-part method. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 5.186 g]"
+  },
+  {
+   "id": "add-eye_trim-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.003097439325706394,
+   "position_m": [
+    0.015501120133908856,
+    -8.985046189481579e-05,
+    -0.07726485774680307
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     2.4303625260712034e-07,
+     5.403821808024237e-13,
+     -2.6920169049844017e-11
+    ],
+    [
+     5.403821808024237e-13,
+     2.408861462618287e-07,
+     -1.8202381128151284e-12
+    ],
+    [
+     -2.6920169049844017e-11,
+     -1.8202381128151284e-12,
+     4.5138057364962114e-07
+    ]
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cmu/model/visual-20261104/source-parts/eye_trim.stl; current guide final pose mapped to jaw_soft at official qpos0. CAD volume x 1.05524 g/cm3 effective density; same 1.24 x 0.851 printed-part method. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 4.150 g]"
+  },
+  {
+   "id": "add-jaw_support-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.005932322750333344,
+   "position_m": [
+    0.006615919309299789,
+    -0.0012008045499498825,
+    -0.01689014626375093
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     4.697371102929631e-06,
+     -1.328229843530713e-07,
+     4.708711376099018e-08
+    ],
+    [
+     -1.328229843530713e-07,
+     2.103333467702024e-06,
+     8.802517068524095e-08
+    ],
+    [
+     4.708711376099018e-08,
+     8.802517068524095e-08,
+     3.0278754910650275e-06
+    ]
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cmu/model/visual-20261104/source-parts/jaw_support.stl; current guide final pose mapped to jaw_soft at official qpos0. CAD volume x 1.05524 g/cm3 effective density; same 1.24 x 0.851 printed-part method. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 7.948 g]"
+  },
+  {
+   "id": "add-speaker_tape-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 2.7869860874972166e-05,
+   "position_m": [
+    -0.005690398739258776,
+    -0.0020000100230899314,
+    -0.0603999851271495
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     4.1648243264991e-09,
+     4.3594106303003235e-13,
+     -1.2845691683635471e-11
+    ],
+    [
+     4.3594106303003235e-13,
+     1.4904528064607033e-09,
+     -1.1399239718076774e-15
+    ],
+    [
+     -1.2845691683635471e-11,
+     -1.1399239718076774e-15,
+     2.6750111821341782e-09
+    ]
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cmu/model/visual-20261104/source-guide.json.gz part speaker_tape; current guide final pose mapped to jaw_soft at official qpos0. CAD volume x 1 g/cm3 effective density; tape modelling assumption. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.037 g]"
+  },
+  {
+   "id": "add-amp_tape-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 5.671009229909226e-05,
+   "position_m": [
+    -0.003806254205322573,
+    0.02652499961853026,
+    -0.055899999999999964
+   ],
+   "inertia_about_com_kg_m2": [
+    [
+     2.394162277091466e-09,
+     1.9848985605498408e-13,
+     -1.014442627369809e-11
+    ],
+    [
+     1.9848985605498408e-13,
+     1.1815872540317064e-09,
+     -1.3033877774773501e-23
+    ],
+    [
+     -1.014442627369809e-11,
+     -1.3033877774773501e-23,
+     1.2222016707112725e-09
+    ]
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cmu/model/visual-20261104/source-guide.json.gz part amp_tape; current guide final pose mapped to jaw_soft at official qpos0. CAD volume x 0.3 g/cm3 effective density; tape modelling assumption. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.076 g]"
+  },
+  {
+   "id": "add-screw-H-jaw_support-01-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    -0.0024035999999999645,
+    0.03019999999999998,
+    -0.003499999999999991
+   ],
+   "dimensions_m": [
+    0.006,
+    0.006,
+    0.006
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Guide screw copied into battery-20261104-mass-provenance.json head_fastener_sources H-jaw_support-01: M2.6 \u00d7 6 TAP, dimensions and centre from guide; prior steel 7.85 g/cm3 x 0.8 cylinder fill estimate. Bounding box inertia approximation. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]"
+  },
+  {
+   "id": "add-screw-H-jaw_support-02-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    -0.002399599999999946,
+    0.009349999999999992,
+    -0.040999999999999974
+   ],
+   "dimensions_m": [
+    0.006,
+    0.006,
+    0.006
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Guide screw copied into battery-20261104-mass-provenance.json head_fastener_sources H-jaw_support-02: M2.6 \u00d7 6 TAP, dimensions and centre from guide; prior steel 7.85 g/cm3 x 0.8 cylinder fill estimate. Bounding box inertia approximation. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]"
+  },
+  {
+   "id": "add-screw-H-jaw_support-03-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    -0.0023995999999999436,
+    -0.02999999999999999,
+    -0.033999999999999975
+   ],
+   "dimensions_m": [
+    0.006,
+    0.006,
+    0.006
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Guide screw copied into battery-20261104-mass-provenance.json head_fastener_sources H-jaw_support-03: M2.6 \u00d7 6 TAP, dimensions and centre from guide; prior steel 7.85 g/cm3 x 0.8 cylinder fill estimate. Bounding box inertia approximation. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]"
+  },
+  {
+   "id": "add-screw-H-jaw_support-04-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.0002835004591018176,
+   "position_m": [
+    -0.0023995999999999436,
+    -0.02999999999999999,
+    0.005000000000000004
+   ],
+   "dimensions_m": [
+    0.006,
+    0.006,
+    0.006
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Guide screw copied into battery-20261104-mass-provenance.json head_fastener_sources H-jaw_support-04: M2.6 \u00d7 6 TAP, dimensions and centre from guide; prior steel 7.85 g/cm3 x 0.8 cylinder fill estimate. Bounding box inertia approximation. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.380 g]"
+  },
+  {
+   "id": "add-screw-C-camera-01-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00015745853313469605,
+   "position_m": [
+    0.0014954000000000495,
+    -0.014089999999999997,
+    -0.05729999999999996
+   ],
+   "dimensions_m": [
+    0.006,
+    0.006,
+    0.006
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Guide screw copied into battery-20261104-mass-provenance.json head_fastener_sources C-camera-01: M2 \u00d7 6 TAP, dimensions and centre from guide; prior steel 7.85 g/cm3 x 0.8 cylinder fill estimate. Bounding box inertia approximation. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.211 g]"
+  },
+  {
+   "id": "add-screw-C-camera-02-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00015745853313469605,
+   "position_m": [
+    0.029495400000000047,
+    -0.014089999999999995,
+    -0.05729999999999996
+   ],
+   "dimensions_m": [
+    0.006,
+    0.006,
+    0.006
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Guide screw copied into battery-20261104-mass-provenance.json head_fastener_sources C-camera-02: M2 \u00d7 6 TAP, dimensions and centre from guide; prior steel 7.85 g/cm3 x 0.8 cylinder fill estimate. Bounding box inertia approximation. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.211 g]"
+  },
+  {
+   "id": "add-screw-C-camera-03-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00015745853313469605,
+   "position_m": [
+    0.0014954000000000482,
+    0.01390999999999999,
+    -0.05729999999999996
+   ],
+   "dimensions_m": [
+    0.006,
+    0.006,
+    0.006
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Guide screw copied into battery-20261104-mass-provenance.json head_fastener_sources C-camera-03: M2 \u00d7 6 TAP, dimensions and centre from guide; prior steel 7.85 g/cm3 x 0.8 cylinder fill estimate. Bounding box inertia approximation. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.211 g]"
+  },
+  {
+   "id": "add-screw-C-camera-04-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00015745853313469605,
+   "position_m": [
+    0.029495400000000047,
+    0.013909999999999992,
+    -0.05729999999999996
+   ],
+   "dimensions_m": [
+    0.006,
+    0.006,
+    0.006
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Guide screw copied into battery-20261104-mass-provenance.json head_fastener_sources C-camera-04: M2 \u00d7 6 TAP, dimensions and centre from guide; prior steel 7.85 g/cm3 x 0.8 cylinder fill estimate. Bounding box inertia approximation. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.211 g]"
+  },
+  {
+   "id": "add-screw-J-jaw_ring-01-20261104-w918",
+   "body": "jaw_soft",
+   "mass_kg": 0.00021636006989133908,
+   "position_m": [
+    0.0030054000000000474,
+    -0.04380999999999998,
+    -0.017999999999999988
+   ],
+   "dimensions_m": [
+    0.01,
+    0.01,
+    0.01
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Guide screw copied into battery-20261104-mass-provenance.json head_fastener_sources J-jaw_ring-01: M2 \u00d7 10 TAP, dimensions and centre from guide; prior steel 7.85 g/cm3 x 0.8 cylinder fill estimate. Bounding box inertia approximation. [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.290 g]"
+  },
+  {
+   "id": "add-bv2-switch-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.010449250814283589,
+   "position_m": [
+    -0.067325,
+    0.0138,
+    0.0356
+   ],
+   "dimensions_m": [
+    0.01645,
+    0.0273,
+    0.0115
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Swann 39 switch with leads, today's 14 g (add-bp-switch), at its rev M5 cap-pose envelope centre; guide/print/battery-v2-cad-20261120/mass_com.py method, rev M5 build outputs (build/build.json, 2026-11-21) [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 14.000 g]"
+  },
+  {
+   "id": "add-bv2-dfr1202-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0044782503489786815,
+   "position_m": [
+    -0.060425,
+    0.0186,
+    0.0055
+   ],
+   "dimensions_m": [
+    0.026,
+    0.008,
+    0.03
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "DFR1202, today's 6 g (add-bp-dfr1202); guide/print/battery-v2-cad-20261120/mass_com.py method, rev M5 build outputs (build/build.json, 2026-11-21) [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 6.000 g]"
+  },
+  {
+   "id": "add-bv2-plug1-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0022391251744893407,
+   "position_m": [
+    -0.0709,
+    -0.012,
+    0.0458
+   ],
+   "dimensions_m": [
+    0.0102,
+    0.026,
+    0.0052
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "plug 1 (mated XT30) on the roof, today's 3 g; guide/print/battery-v2-cad-20261120/mass_com.py method, rev M5 build outputs (build/build.json, 2026-11-21) [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 3.000 g]"
+  },
+  {
+   "id": "add-bv2-leads-plug2-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0044782503489786815,
+   "position_m": [
+    -0.0547,
+    0.0274,
+    0.0095
+   ],
+   "dimensions_m": [
+    0.011,
+    0.0056,
+    0.027
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "leads and plug 2, today's wires 6 g (add-bp-wires-d037), at the plug 2 envelope centre; guide/print/battery-v2-cad-20261120/mass_com.py method, rev M5 build outputs (build/build.json, 2026-11-21) [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 6.000 g]"
+  },
+  {
+   "id": "add-bv2-screw-cap-high-left-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00018459741619531933,
+   "position_m": [
+    -0.07155,
+    0.029,
+    0.0265
+   ],
+   "dimensions_m": [
+    0.008,
+    0.0036,
+    0.0036
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "M2 x 8 cap screw, today's screw mass (add-bp-cap-screw-1); guide/print/battery-v2-cad-20261120/mass_com.py method, rev M5 build outputs (build/build.json, 2026-11-21) [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.247 g]"
+  },
+  {
+   "id": "add-bv2-screw-cap-high-right-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.00018459741619531933,
+   "position_m": [
+    -0.07155,
+    -0.029,
+    0.039
+   ],
+   "dimensions_m": [
+    0.008,
+    0.0036,
+    0.0036
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "M2 x 8 cap screw, today's screw mass (add-bp-cap-screw-1); guide/print/battery-v2-cad-20261120/mass_com.py method, rev M5 build outputs (build/build.json, 2026-11-21) [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.247 g]"
+  },
+  {
+   "id": "add-bv2-screw-cap-low-left-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0001551466478169978,
+   "position_m": [
+    -0.07255,
+    0.0176,
+    -0.028
+   ],
+   "dimensions_m": [
+    0.006,
+    0.0036,
+    0.0036
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "M2 x 6 cap screw, today's screw mass (add-bp-bar-screw-1); guide/print/battery-v2-cad-20261120/mass_com.py method, rev M5 build outputs (build/build.json, 2026-11-21) [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.208 g]"
+  },
+  {
+   "id": "add-bv2-screw-cap-low-right-w918",
+   "body": "trunk_base",
+   "mass_kg": 0.0001551466478169978,
+   "position_m": [
+    -0.07255,
+    -0.027825,
+    -0.008
+   ],
+   "dimensions_m": [
+    0.006,
+    0.0036,
+    0.0036
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "M2 x 6 cap screw, today's screw mass (add-bp-bar-screw-1); guide/print/battery-v2-cad-20261120/mass_com.py method, rev M5 build outputs (build/build.json, 2026-11-21) [w918 2026-11-23: x0.7464, residual 52.05 g to the weighed 918 g spread over the 152 remaining estimates (205.21 g) in proportion to mass; was 0.208 g]"
+  }
+ ]
+}

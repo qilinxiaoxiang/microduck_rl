@@ -70,7 +70,8 @@ CHECK = os.path.join(CMU, "mac", "brain_sim_check.py")
 DEFAULT_CONDITION = os.path.join(CMU, "robot-condition.json")
 # current = cmu/model/current.json (the robot as it is now). The rest are history: asbuilt = the model's own
 # 2026-10-15 manifest; the others are cmu/model/manifests/<variant>.json.
-VARIANTS = ("current", "battery-20261104", "asbuilt", "plugged", "battery", "battery-v2m5-20261121")
+VARIANTS = ("current", "battery-20261104", "asbuilt", "plugged", "battery", "battery-v2m5-20261121",
+            "battery-v2m5-w918-20261123")
 # Planned robots: dated variants of a robot that is NOT built yet (cmu/model/manifests/<variant>.json). They are checked
 # on purpose before a trial, never taken for the robot as it is now: rows and the header say so, their reference files
 # are named reference-walk61-planned-<variant>[...].jsonl, and brain_sim_check gets a "planned robot" --historical-model.

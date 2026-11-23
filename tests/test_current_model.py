@@ -105,7 +105,8 @@ def test_visual_variant_for_manifest(tmp_path):
     stand_in = tmp_path / "flightpack-nominal.json"
     stand_in.write_text(json.dumps({"build": "battery-20261104 + flight pack (stand-in)", "parts": []}))
     flight = [stand_in] + sorted(REPO_ROOT.parent.glob("extensions/flight-*/train/manifests/flightpack-*.json"))
-    v2 = "battery-v2m5-20261121"  # the new battery backpack, current since 2026-11-22, drawn by visual-20261122
+    v2 = "battery-v2m5-20261121"  # the new battery backpack, current 2026-11-22 to 11-23, drawn by visual-20261122
+    w918 = "battery-v2m5-w918-20261123"  # the same robot with masses matched to the weighed 918 g, current since 11-23
     for path in flight:
         build = json.loads(path.read_text()).get("build", "")
         if build.startswith("flightpack-"):  # hand-spliced on another payload manifest (flightpack-d2-bv2-nominal.json):
@@ -114,7 +115,8 @@ def test_visual_variant_for_manifest(tmp_path):
             continue
         want = v2 if build.startswith(v2 + " ") else "battery-20261104"
         assert visual.visual_variant_for_manifest(path) == want, path
-    assert visual.visual_variant_for_manifest(manifests / f"{v2}.json") == v2 == visual.current_model()["variant"]
+    assert visual.visual_variant_for_manifest(manifests / f"{v2}.json") == v2 != visual.current_model()["variant"]
+    assert visual.visual_variant_for_manifest(manifests / f"{w918}.json") == w918 == visual.current_model()["variant"]
     on_v2 = tmp_path / "flightpack-on-v2.json"
     on_v2.write_text(json.dumps({"build": f"{v2} + flight pack (stand-in)", "parts": []}))
     assert visual.visual_variant_for_manifest(on_v2) == v2
@@ -122,13 +124,12 @@ def test_visual_variant_for_manifest(tmp_path):
 
 def test_backpack_v2_variant():
     """battery-v2m5-20261121: battery-20261104 with its 18 add-bp-* parts replaced by the 11 add-bv2-* parts; the
-    committed manifest is what make_variants writes from the variant file; current.json names it; its visual layer
-    (visual-20261122) draws the new backpack and not the old one, without touching the physics."""
+    committed manifest is what make_variants writes from the variant file; its visual layer (visual-20261122, also the
+    current robot's) draws the new backpack and not the old one, without touching the physics."""
     import mujoco
     import apply_masses
     import make_variants
     name = "battery-v2m5-20261121"
-    assert visual.current_model()["variant"] == name
     on_disk = apply_masses.load_manifest(apply_masses.MANIFEST_DIR / f"{name}.json")
     _, regenerated, removed, added, chain = make_variants.resolve_variant(make_variants.VARIANT_DIR / f"{name}.json")
     assert on_disk["parts"] == regenerated and on_disk["build"].startswith(name + " (the robot from 2026-11-22")
@@ -146,4 +147,27 @@ def test_backpack_v2_variant():
     assert visual.apply_visual_to_spec(spec, name) > 0
     m1 = spec.compile()
     assert abs(m1.body_mass.sum() - m0.body_mass.sum()) < 1e-12
+
+
+def test_weighed_918_variant_is_current():
+    """battery-v2m5-w918-20261123: battery-v2m5-20261121 with its total mass matched to the robot weighed at 918 g on
+    2026-11-23 (extensions/battery-walk-20261122/mass-audit-20261123 in the robotics checkout); the committed manifest is
+    what make_variants writes; current.json names it; it is drawn by the same visual layer as battery-v2m5-20261121."""
+    import apply_masses
+    import make_variants
+    name = "battery-v2m5-w918-20261123"
+    assert visual.current_model()["variant"] == name
+    assert visual.current_model()["visual"] == "cmu/model/visual-20261122/visual.json"
+    on_disk = apply_masses.load_manifest(apply_masses.MANIFEST_DIR / f"{name}.json")
+    _, regenerated, _, _, chain = make_variants.resolve_variant(make_variants.VARIANT_DIR / f"{name}.json")
+    assert on_disk["parts"] == regenerated and on_disk["build"].startswith(name + " (")
+    assert chain[-1].endswith("variants/battery-v2m5-20261121.json")
+    assert make_variants.measure(name)["total_g"] == pytest.approx(918.0, abs=0.01)
+    import mujoco
+    a, _ = apply_masses.build_scene(name)
+    b, _ = apply_masses.build_scene("battery-v2m5-20261121")
+    na, nb = visual.apply_visual_to_spec(a, name), visual.apply_visual_to_spec(b, "battery-v2m5-20261121")
+    assert na == nb > 0
+    assert {g.name for g in a.geoms if g.name.startswith("cmu_")} == {g.name for g in b.geoms if g.name.startswith("cmu_")}
+    assert isinstance(a.compile(), mujoco.MjModel)
 

@@ -8,13 +8,15 @@ one from `cmu/finetune/modal/finetune_worker.py::apply_asbuilt_masses` (itself t
 with the body's official inertial, and written back as an explicit inertial (`fullinertia`) on the MjSpec body.
 
 Which model to use: `current`. It is an alias resolved through cmu/model/current.json (the one pointer to the robot as
-it is now; since 2026-11-22 battery-v2m5-20261121), and the CLI default. The other dated variants below are history,
+it is now; since 2026-11-23 battery-v2m5-w918-20261123), and the CLI default. The other dated variants below are history,
 kept so old runs can be reproduced.
 
 Variants (`variant_parts`):
   current   alias: the variant named in current.json, whose manifest sha256 is checked on every resolve.
+  battery-v2m5-w918-20261123  battery-v2m5-20261121 with its total mass matched to the robot weighed at 918 g
+            (2026-11-23 mass audit); same parts, positions and look; current since 2026-11-23.
   battery-v2m5-20261121  the battery backpack with the Crazepony 2S 3000 mAh battery (frame and cap rev M5, print
-            V1.47), V1.35 orange A7Z saddle; current since 2026-11-22.
+            V1.47), V1.35 orange A7Z saddle, masses estimated at 1034.76 g (current 2026-11-22 to 11-23).
   battery-20261104  the 2026-11-04 battery backpack, orange A7Z saddle, charger box removed (current 2026-11-11 to 11-22).
   official  Pollen's model, no parts.
   asbuilt   the 2026-10-15 as-built manifest (bench box, Pi Zero W head) with the NP-F970 battery (90 g) removed.
@@ -51,7 +53,8 @@ MANIFEST_DIR = MODEL_DIR / "manifests"
 # only in robot_allcollisions.xml; this scene carries the 7 sites of the groundcontact export.
 SCENE_XML = REPO_ROOT / "src/mjlab_microduck/robot/microduck/scene.xml"
 BATTERY_REMOVE_KG = 0.090
-VARIANTS = ("official", "asbuilt", "plugged", "battery", "battery-20261104", "battery-v2m5-20261121")  # dated variants (make_variants measures each)
+VARIANTS = ("official", "asbuilt", "plugged", "battery", "battery-20261104", "battery-v2m5-20261121",
+            "battery-v2m5-w918-20261123")  # dated variants (make_variants measures each)
 CURRENT = "current"  # alias for the variant named in current.json
 CHOICES = (CURRENT,) + VARIANTS
 CURRENT_FILE = MODEL_DIR / "current.json"

@@ -33,6 +33,8 @@ EXPECTED_TASKS = (
     "Mjlab-Velocity-Rough-MicroDuck-CMU-Battery-20261104",
     "Mjlab-Velocity-Flat-MicroDuck-CMU-Battery-v2m5-20261121",
     "Mjlab-Velocity-Rough-MicroDuck-CMU-Battery-v2m5-20261121",
+    "Mjlab-Velocity-Flat-MicroDuck-CMU-Battery-v2m5-w918-20261123",
+    "Mjlab-Velocity-Rough-MicroDuck-CMU-Battery-v2m5-w918-20261123",
 )
 
 
@@ -43,7 +45,7 @@ def _total_g(model: mujoco.MjModel) -> float:
 @pytest.fixture(scope="module")
 def measured():
     return {v: make_variants.measure(v) for v in ("official", "asbuilt", "plugged", "battery", "battery-20261104",
-                                              "battery-v2m5-20261121", "current")}
+                                              "battery-v2m5-20261121", "battery-v2m5-w918-20261123", "current")}
 
 
 # ── (a) registry ─────────────────────────────────────────────────────────────
@@ -112,7 +114,7 @@ def test_variant_totals_are_asbuilt_plus_signed_deltas(measured):
 
 
 def test_manifests_match_their_variant_files():
-    for name in ("plugged", "battery", "battery-20261104"):
+    for name in ("plugged", "battery", "battery-20261104", "battery-v2m5-20261121", "battery-v2m5-w918-20261123"):
         on_disk = apply_masses.load_manifest(apply_masses.MANIFEST_DIR / f"{name}.json")["parts"]
         _, regenerated, _, _, _ = make_variants.resolve_variant(make_variants.VARIANT_DIR / f"{name}.json")
         assert [p["id"] for p in on_disk] == [p["id"] for p in regenerated], f"{name}: run make_variants.py"
