@@ -256,3 +256,79 @@ def test_deploy_despite_gate_needs_deploy_or_record_and_a_reason(argv, monkeypat
     with pytest.raises(SystemExit) as e:
         deploy_policy.main()
     assert "deploy-despite-gate" in str(e.value)
+
+
+# The brain-stop case (2026-11-23): walk_wired.py's 3 rad action stop on, walk / zero command / walk.
+def guard_case_flags(payload=None):
+    (cls, name, flags), = sim_suite.guard_cases(payload)
+    assert cls == "real" and name == "walk_zero_walk_guard" and sim_suite.is_guard_case(name)
+    return flags
+
+
+def last(flags, flag):
+    """The value brain_sim_check's argparse keeps: the last occurrence of the flag."""
+    return flags[len(flags) - 1 - flags[::-1].index(flag) + 1]
+
+
+def test_the_guard_case_runs_the_brains_stop_over_walk_zero_walk_without_noise(tmp_path):
+    flags = guard_case_flags()
+    assert "--wired-guards" in flags and last(flags, "--vx") == "0.25" and last(flags, "--walk-s") == "20.0"
+    sched = json.load(open(last(flags, "--cmd-replay")))
+    assert [(t, c["mode"], c["vx"], c["vtheta"]) for t, c in sched] == [(0.0, "walk", 0.25, 0.0), (8.0, "walk", 0.0, 0.0),
+                                                                        (14.0, "walk", 0.25, 0.0)]
+    # cases U-X of run_gate_ablation.sh: tool defaults for noise, drops and friction, direct start after 6 s of stand mode
+    base = sim_suite.base_flags(sim_suite.DEFAULT_CONDITION)
+    full = base + flags  # sim_suite.run_case puts the case's own flags after the base flags
+    for flag, want in (("--gyro-noise-dq", "0"), ("--vel-noise-dq", "0"), ("--gyro-noise", "0"), ("--vel-noise", "0"),
+                       ("--drop", "0"), ("--bam-friction-scale", "1.0"), ("--stand-s", "6.0"), ("--walk-at", "6.0")):
+        assert last(full, flag) == want, flag
+    assert last(full, "--volt") == str(json.load(open(sim_suite.DEFAULT_CONDITION))["facts"]["servo_rail_v"]["value"])
+    assert sim_suite.GUARD_SEEDS == (0,)
+    # with a payload the policy runs from 0 s, and so does the guard case's command
+    pflags = guard_case_flags("flightpack.json")
+    assert last(pflags, "--stand-s") == "0.0" and last(pflags, "--walk-at") == "0.0"
+
+
+def test_the_guard_case_is_not_given_a_direct_twin_and_leaves_the_other_cases_alone(tmp_path):
+    base = sim_suite.CASES[:5] + sim_suite.STAND_CASES + sim_suite.CASES[5:]
+    names = [n for _, n, _ in sim_suite.with_starts(base)]
+    assert "walk_zero_walk_guard" not in names and not any(sim_suite.is_guard_case(n) for n in names)
+    assert [n for _, n, _ in sim_suite.CASES] == ["nominal", "vx0.25", "vx0.2", "com+5", "imu_pitch4", "volt6.3",
+                                                  "drop8_imu35", "drop8_imu35_s1"]
+
+
+# rows as noisy_check printed them for cases U, V and W on the Mac mini, 2026-11-23 (guard_rows.txt)
+S1_SEED1 = {"case": "walk_zero_walk_guard", "seed": 0, "kind": "walk", "start": "direct", "fell_at": 15.34,
+            "dist_x": 1.0, "max_action": 3.53, "guard_stop_at": 14.52,
+            "guard_why": "action over 3.0 rad in 3 of 10 ticks"}
+S1_SEED2 = {"case": "walk_zero_walk_guard", "seed": 0, "kind": "walk", "start": "direct", "fell_at": None,
+            "dist_x": 2.5, "max_action": 1.04, "guard_stop_at": None, "guard_why": None}
+
+
+def test_a_brain_stop_or_a_fall_fails_the_guard_case_and_nothing_else_does():
+    assert sim_suite.outcome(S1_SEED1, True) == sim_suite.GUARD_STOP
+    ok, why = sim_suite.judge_guard([S1_SEED1])
+    assert not ok and "brain stop at 14.52 s" in why[0] and "3.53 rad" in why[0] and "fell at 15.34" in why[0]
+    assert sim_suite.judge_guard([S1_SEED2]) == (True, [])
+    assert "largest action 1.04 rad" in sim_suite.guard_text([S1_SEED2])
+    fell = dict(S1_SEED2, fell_at=11.0)
+    ok, why = sim_suite.judge_guard([fell])
+    assert not ok and "fell at 11.0 s without a brain stop" in why[0]
+    # one stopped seed fails the case even when the others pass (no median here)
+    assert not sim_suite.judge_guard([S1_SEED2, S1_SEED1, S1_SEED2])[0]
+    assert sim_suite.SEVERITY[sim_suite.GUARD_STOP] == sim_suite.SEVERITY["fell"]
+    # rows without the guard keys (every case without --wired-guards) keep their labels
+    assert sim_suite.outcome({"fell_at": None, "dist_x": 0.5}, True) == "walked"
+
+
+def test_the_guard_case_failure_reaches_the_deploy_record_and_its_schedule_is_in_the_baseline_hash(tmp_path, monkeypatch):
+    run = tmp_path / "cand"
+    run.mkdir()
+    (run / "suite-current.out").write_text(
+        "verdict against ref:\n  walk_zero_walk_guard worse: seed 0: brain stop at 14.52 s (action over 3.0 rad in 3 of "
+        "10 ticks), largest action 3.53 rad, fell at 15.34 s\n"
+        "verdict: candidate is worse than the reference on at least one real case\n")
+    got = deploy_policy.recorded_gate(str(run))
+    assert got["gate_passed"] is False and got["worse"]["current"][0].startswith("walk_zero_walk_guard: seed 0: brain stop")
+    assert "schedule-walk-zero-walk.json" in open(deploy_policy.__file__).read()
+    assert os.path.isfile(sim_suite.GUARD_SCHEDULE)

@@ -19,6 +19,11 @@ Same worker, same flags as cmu/finetune/modal/finetune.py; only the launcher dif
                                                                   # Pollen's recipe from scratch (cmu/finetune/kaggle/scratch_worker.py); --model
                                                                   # current|stock. No preflight record: the recipe's rewards are unchanged, and the
                                                                   # worker's early stop at iteration 2000 (< 0.03 m/s) is the stand-still guard
+  python3 cmu/finetune/kaggle/kaggle_job.py push scratch --run-name bw-s2r-a --pair-run-name bw-s2r-b -- --model current --seed 1 --conditions gyro --init-checkpoint <s1 model_3999.pt> --max-iters 1000 -- <same for seed 2>
+                                                                  # continue a finished scratch run (scratch_worker.py
+                                                                  # --init-checkpoint): the local file is checked, shipped as
+                                                                  # dataset asset init-<sha16>.pt, and the worker gets
+                                                                  # /root/assets/init-<sha16>.pt plus --init-sha256
   python3 cmu/finetune/kaggle/kaggle_job.py push <preset> --dry-run ...   # flags checked, tarball staged, kernel folder written; nothing pushed
   python3 cmu/finetune/kaggle/kaggle_job.py status <run-name>     # QUEUED / RUNNING / COMPLETE / ERROR
   python3 cmu/finetune/kaggle/kaggle_job.py fetch <run-name>      # download /kaggle/working into cmu/finetune/kaggle/out/<run-name>/
@@ -193,7 +198,11 @@ def stage(digest):
         for p in files:
             t.add(p, arcname=str(p.relative_to(REPO)))
         t.add(STAGE / "SOURCE_DIGEST", arcname="SOURCE_DIGEST")
-    for name, p in ASSETS.items():
+    assets = all_assets()
+    for old in (d / "assets").glob("init-*.pt"):  # an earlier push's checkpoint must not ride along
+        if old.name not in assets:
+            old.unlink()
+    for name, p in assets.items():
         (d / "assets" / name).parent.mkdir(parents=True, exist_ok=True)
         (d / "assets" / name).write_bytes(p.read_bytes())
     return files, (d / "microduck_rl_src.tgz").stat().st_size
@@ -208,15 +217,18 @@ def pack(force=False, dry_run=False):
     for p in files:
         h.update(str(p.relative_to(REPO)).encode())
         h.update(p.read_bytes())
-    for name, p in ASSETS.items():
+    assets = all_assets()
+    for name, p in assets.items():
         h.update(name.encode())
         h.update(p.read_bytes())
     digest = h.hexdigest()[:16]
     if dry_run:
         files, size = stage(digest)
-        asset_size = sum(p.stat().st_size for p in ASSETS.values())
-        print(f"dry run: {len(files)} source files, tarball {size / 1e6:.1f} MB, {len(ASSETS)} assets {asset_size / 1e6:.1f} MB, digest {digest}; staged in {STAGE / 'dataset'}, nothing uploaded")
-        print("assets: " + ", ".join(sorted(ASSETS)))
+        asset_size = sum(p.stat().st_size for p in assets.values())
+        print(f"dry run: {len(files)} source files, tarball {size / 1e6:.1f} MB, {len(assets)} assets {asset_size / 1e6:.1f} MB, digest {digest}; staged in {STAGE / 'dataset'}, nothing uploaded")
+        print("assets: " + ", ".join(sorted(assets)))
+        for name, p in sorted(EXTRA_ASSETS.items()):
+            print(f"  init checkpoint asset {name} ({p.stat().st_size / 1e6:.1f} MB) <- {p}  -> kernel {INIT_ASSET_DIR}/{name}")
         for p in files[:30]:
             print("  " + str(p.relative_to(REPO)))
         if len(files) > 30:
@@ -261,6 +273,8 @@ def worker_args(preset, run_name, extra, worker="finetune"):
             sys.exit(f"--conditions {cond!r}: choose from official, gyro, robot")
         if cond not in (None, "official") and flag_value(args, "--model") != "current":
             sys.exit(f"--conditions {cond} needs --model current (scratch_worker.py refuses it on the stock model)")
+        if flag_value(args, "--init-sha256") is not None:
+            sys.exit("--init-sha256 is set by kaggle_job.py from --init-checkpoint; do not pass it")
     unknown = sorted({a.split("=", 1)[0] for a in extra if a.startswith("--")} - known)
     if unknown:
         sys.exit(f"{path.name} has no flag {', '.join(unknown)}; it accepts: {' '.join(sorted(known))}")
@@ -269,7 +283,44 @@ def worker_args(preset, run_name, extra, worker="finetune"):
     hours = float(flag_value(args, "--max-hours"))
     if hours > MAX_HOURS:
         sys.exit(f"--max-hours {hours} exceeds {MAX_HOURS}: Kaggle would kill the session before the worker saves")
+    if preset in PRESET_WORKER and flag_value(args, "--init-checkpoint") is not None:
+        args = ship_init_checkpoint(args)
     return args
+
+
+# per-push assets (--init-checkpoint files): dataset assets/<name> -> /root/assets/<name> in the kernel
+EXTRA_ASSETS = {}
+INIT_ASSET_DIR = "/root/assets"
+
+
+def ship_init_checkpoint(args):
+    """--init-checkpoint LOCAL.pt: check the file now, ship it as dataset asset init-<sha16>.pt (kernel_entry.py copies
+    top-level assets to /root/assets/), and give the worker that path plus --init-sha256 so a stale asset fails there."""
+    local = flag_value(args, "--init-checkpoint")
+    p = Path(local)
+    if not p.is_absolute() and not p.exists() and (REPO / p).exists():
+        p = REPO / p
+    if not p.is_file():
+        sys.exit(f"--init-checkpoint {local}: no such file (paths are relative to {Path.cwd()} or the repository root)")
+    sha = hashlib.sha256(p.read_bytes()).hexdigest()
+    name = f"init-{sha[:16]}.pt"
+    EXTRA_ASSETS[name] = p.resolve()
+    out, skip = [], False
+    for i, a in enumerate(args):  # drop every --init-checkpoint occurrence, then append the kernel's path once
+        if skip:
+            skip = False
+            continue
+        if a == "--init-checkpoint":
+            skip = True
+            continue
+        if a.startswith("--init-checkpoint="):
+            continue
+        out.append(a)
+    return out + ["--init-checkpoint", f"{INIT_ASSET_DIR}/{name}", "--init-sha256", sha]
+
+
+def all_assets():
+    return {**ASSETS, **EXTRA_ASSETS}
 
 
 def job_worker(preset, worker="finetune"):

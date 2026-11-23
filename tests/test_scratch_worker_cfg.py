@@ -41,9 +41,12 @@ def cfg_diff(a, b, path="", out=None, seen=None):
     """Every path where two cfg trees differ (dataclasses, dicts, sequences, callables, arrays, scalars)."""
     out = [] if out is None else out
     seen = set() if seen is None else seen
-    if id(a) in seen and id(b) in seen:
-        return out
-    seen.update((id(a), id(b)))
+    # cycle guard for containers and objects only: Python shares one object per small int, string, True, None, so
+    # tracking scalars made every later comparison of an already-seen value (say a delay lag of 1 against 2) a skip
+    if not isinstance(a, (int, float, str, bytes, bool, type(None), tuple, frozenset)):
+        if id(a) in seen and id(b) in seen:
+            return out
+        seen.update((id(a), id(b)))
     if type(a) is not type(b) and _type_id(type(a)) != _type_id(type(b)):
         out.append((path, f"type {type(a).__name__} != {type(b).__name__}"))
     elif dataclasses.is_dataclass(a) and not isinstance(a, type):
@@ -124,6 +127,7 @@ def test_two_builds_of_the_route_are_independent(upstream):
 
 
 GYRO_TERM = "observations['actor'].terms['base_ang_vel']"
+GRAV_TERM = "observations['actor'].terms['projected_gravity']"
 
 
 def test_official_conditions_are_the_default():
@@ -132,26 +136,226 @@ def test_official_conditions_are_the_default():
 
 
 def test_gyro_conditions_change_only_the_legspeed_gyro_term():
-    from mjlab_microduck.robot_conditions import ROBOT_CONDITIONS
+    from mjlab_microduck.robot_conditions import GYRO_LEGSPEED_RANGE
     off, gyro = sw.make_env_cfg("current"), sw.make_env_cfg("current", conditions="gyro")
     diffs = cfg_diff(gyro, off)
     _report("gyro vs official", diffs)
-    assert {p for p, _ in diffs} == {f"{GYRO_TERM}.func", f"{GYRO_TERM}.params['k']"}
+    assert {p for p, _ in diffs} == {f"{GYRO_TERM}.func", f"{GYRO_TERM}.params['k_range']"}
     av, av0 = gyro.observations["actor"].terms["base_ang_vel"], off.observations["actor"].terms["base_ang_vel"]
     assert av.func.__qualname__ == "make_legspeed_gyro.<locals>.base_ang_vel_legspeed_noise"
-    assert av.params["k"] == ROBOT_CONDITIONS["gyro_noise_legspeed"] == 0.3
+    assert av.params["k_range"] == GYRO_LEGSPEED_RANGE == (0.15, 0.30) and "k" not in av.params
     assert (av.noise.n_min, av.noise.n_max) == (av0.noise.n_min, av0.noise.n_max) == (-0.03, 0.03)  # stock floor kept
     # the critic sees the true rate, as in robot conditions
     assert cfg_diff(gyro.observations["critic"], off.observations["critic"]) == []
 
 
-def test_robot_conditions_equal_the_builder():
+def test_robot_conditions_equal_the_builder_apart_from_the_gyro_factor():
+    """robot = the builder's six conditions; only the gyro factor changes from the constant 0.3 to the per-env range."""
+    from mjlab_microduck.robot_conditions import GYRO_LEGSPEED_RANGE
     from mjlab_microduck.tasks.cmu_asbuilt import make_cmu_velocity_env_cfg
     rc = sw.make_env_cfg("current", conditions="robot")
-    diffs = cfg_diff(rc, make_cmu_velocity_env_cfg("current", robot_conditions=True))
+    built = make_cmu_velocity_env_cfg("current", robot_conditions=True)
+    diffs = cfg_diff(rc, built)
     _report("robot vs builder", diffs)
-    assert diffs == []
+    assert {p for p, _ in diffs} == {f"{GYRO_TERM}.params['k']", f"{GYRO_TERM}.params['k_range']",
+                                     f"{GYRO_TERM}.delay_max_lag", f"{GRAV_TERM}.delay_max_lag",
+                                     "events['zero_shift_bias']"}
+    assert rc.observations["actor"].terms["base_ang_vel"].params["k_range"] == GYRO_LEGSPEED_RANGE
+    assert built.observations["actor"].terms["base_ang_vel"].params["k"] == 0.3  # the -CMU-Current tasks keep 0.3
     assert len(cfg_diff(rc, sw.make_env_cfg("current"))) >= 6  # and it is not the official cfg
+
+
+def test_route_conditions_are_what_the_record_holds():
+    from mjlab_microduck.robot_conditions import GYRO_LEGSPEED_RANGE, ROBOT_CONDITIONS
+    assert sw.route_conditions("official") == {}
+    assert sw.route_conditions("gyro") == {"gyro_noise_legspeed_range": GYRO_LEGSPEED_RANGE}
+    r = sw.route_conditions("robot")
+    assert "gyro_noise_legspeed" not in r and r["gyro_noise_legspeed_range"] == GYRO_LEGSPEED_RANGE
+    extra = ("gyro_noise_legspeed_range", "zero_shift_range", "imu_max_lag")
+    assert {k: v for k, v in r.items() if k not in extra} == {
+        k: v for k, v in ROBOT_CONDITIONS.items() if k != "gyro_noise_legspeed"}
+    assert r["imu_max_lag"] == 2
+    zs = r["zero_shift_range"]  # d = true - believed, between 0 and the robot's shift (rad)
+    assert set(zs) == {"left_hip_roll", "right_hip_roll", "head_roll", "head_yaw"}
+    for j, (lo, hi) in {"left_hip_roll": (0.0, 0.0960), "right_hip_roll": (-0.0611, 0.0),
+                        "head_roll": (-0.0611, 0.0), "head_yaw": (-0.0873, 0.0)}.items():
+        assert abs(zs[j][0] - lo) < 1e-4 and abs(zs[j][1] - hi) < 1e-4, (j, zs[j])
+    # the record is JSON-serialisable
+    import json
+    json.loads(json.dumps(r))
+    assert ROBOT_CONDITIONS["gyro_noise_legspeed"] == 0.3  # old scalar key kept for finetune_worker and the tasks
+
+
+def test_zero_shift_and_imu_age_only_in_robot():
+    off, gyro, rob = (sw.make_env_cfg("current", conditions=c) for c in ("official", "gyro", "robot"))
+    for cfg in (off, gyro):
+        assert "zero_shift_bias" not in cfg.events
+        a = cfg.observations["actor"].terms
+        assert (a["base_ang_vel"].delay_min_lag, a["base_ang_vel"].delay_max_lag) == (0, 1)
+        assert (a["projected_gravity"].delay_min_lag, a["projected_gravity"].delay_max_lag) == (0, 1)
+    a = rob.observations["actor"].terms
+    assert (a["base_ang_vel"].delay_min_lag, a["base_ang_vel"].delay_max_lag) == (0, 2)
+    assert (a["projected_gravity"].delay_min_lag, a["projected_gravity"].delay_max_lag) == (0, 2)
+    assert a["base_ang_vel"].delay_update_period == off.observations["actor"].terms["base_ang_vel"].delay_update_period
+    assert cfg_diff(rob.observations["critic"], off.observations["critic"]) == []  # critic unchanged
+    ev = list(rob.events)
+    assert rob.events["zero_shift_bias"].mode == "startup" and ev.index("zero_shift_bias") > ev.index("encoder_bias")
+    assert rob.events["encoder_bias"].params["bias_range"] == off.events["encoder_bias"].params["bias_range"]
+
+
+def test_encoder_bias_sign_convention_with_a_known_offset():
+    """mjlab's encoder bias b: the actor's joint_pos reads q_true + b and the action target is action - b. So with
+    b = -d the policy commanding angle a puts the real target at a + d and reading the real angle q gives q - d: the
+    real joint sits d from where the policy believes it (d = true - believed). Official cfg, 2 envs, CPU."""
+    import torch
+    from mjlab.envs import ManagerBasedRlEnv
+    from mjlab.envs.mdp.observations import joint_pos_rel
+    cfg = sw.make_env_cfg("current")
+    cfg.scene.num_envs = 2
+    env = ManagerBasedRlEnv(cfg=cfg, device="cpu")
+    try:
+        robot = env.scene["robot"]
+        j = robot.find_joints("^left_hip_roll$")[0][0]
+        d = 0.05
+        robot.data.encoder_bias[:] = 0.0
+        robot.data.encoder_bias[:, j] = -d
+        believed = joint_pos_rel(env, biased=True)  # what the actor reads
+        true = joint_pos_rel(env, biased=False)  # what the critic reads
+        assert torch.allclose(true[:, j] - believed[:, j], torch.full((2,), d), atol=1e-6)  # true - believed = d
+        others = [i for i in range(true.shape[1]) if i != j]
+        assert torch.allclose(true[:, others], believed[:, others])
+        term = env.action_manager.get_term("joint_pos")
+        term.process_actions(torch.zeros(2, term.action_dim))
+        term.apply_actions()
+        tid = list(term._target_ids.tolist()).index(j) if isinstance(term._target_ids, torch.Tensor) else j  # noqa: SLF001
+        believed_target = term._processed_actions[:, tid]  # noqa: SLF001
+        real_target = robot.data.joint_pos_target[:, j]
+        assert torch.allclose(real_target - believed_target, torch.full((2,), d), atol=1e-6)  # real = believed + d
+    finally:
+        env.close()
+
+
+def test_robot_env_draws_zero_shift_per_env_in_range():
+    """robot set, 64 envs, CPU: d per env and joint lies in [0, shift], differs across envs, and the encoder bias on
+    those joints is the stock +-0.015 draw minus d; the other joints keep the stock draw only."""
+    import torch
+    from mjlab.envs import ManagerBasedRlEnv
+    from mjlab_microduck.robot_conditions import ZERO_SHIFT_RANGE
+    cfg = sw.make_env_cfg("current", conditions="robot")
+    cfg.scene.num_envs = 64
+    cfg.seed = 5
+    env = ManagerBasedRlEnv(cfg=cfg, device="cpu")
+    try:
+        d, names = env.__dict__["_zero_shift_d"], env.__dict__["_zero_shift_joints"]
+        robot = env.scene["robot"]
+        assert d.shape == (64, 4) and names == list(ZERO_SHIFT_RANGE)
+        for c, n in enumerate(names):
+            lo, hi = ZERO_SHIFT_RANGE[n]
+            assert float(d[:, c].min()) >= lo - 1e-7 and float(d[:, c].max()) <= hi + 1e-7, n
+            assert len(torch.unique(d[:, c])) == 64
+            assert float(d[:, c].abs().max()) > 0.8 * max(abs(lo), abs(hi))  # spans most of the range
+            j = robot.find_joints(f"^{n}$")[0][0]
+            stock = robot.data.encoder_bias[:, j] + d[:, c]
+            assert float(stock.abs().max()) <= 0.015 + 1e-6, n
+        other = [i for i in range(robot.num_joints)
+                 if robot.joint_names[i] not in names and not robot.joint_names[i].startswith("passive_")]
+        assert float(robot.data.encoder_bias[:, other].abs().max()) <= 0.015 + 1e-6
+        d0 = d.clone()
+        env.reset()
+        term = env.action_manager.get_term("joint_pos")
+        for _ in range(5):
+            obs, *_ = env.step(torch.zeros(64, term.action_dim))
+            assert torch.isfinite(obs["actor"]).all()
+        assert torch.equal(env.__dict__["_zero_shift_d"], d0)  # once per env, not per reset
+    finally:
+        env.close()
+
+
+def test_both_gyro_keys_are_refused():
+    from mjlab_microduck.robot_conditions import apply_robot_conditions
+    with pytest.raises(AssertionError):
+        apply_robot_conditions(sw.make_env_cfg("current"), {"gyro_noise_legspeed": 0.3,
+                                                            "gyro_noise_legspeed_range": (0.15, 0.3)})
+
+
+class _FakeRobot:
+    def __init__(self, qd):
+        import types
+        self.data = types.SimpleNamespace(joint_vel=qd)
+
+    def find_joints(self, _re):
+        return (list(range(10)), None)
+
+
+def _fake_env(qd):
+    import types
+    return types.SimpleNamespace(num_envs=qd.shape[0], device="cpu", scene={"robot": _FakeRobot(qd)})
+
+
+def test_per_env_factors_lie_in_the_range_and_differ():
+    import torch
+    from mjlab_microduck.robot_conditions import GYRO_LEGSPEED_RANGE, make_legspeed_gyro
+    torch.manual_seed(0)
+    f = make_legspeed_gyro(lambda env: torch.zeros(env.num_envs, 3))
+    env = _fake_env(torch.randn(512, 10))
+    f(env, k_range=GYRO_LEGSPEED_RANGE)
+    k = env._legspeed_gyro_k
+    lo, hi = GYRO_LEGSPEED_RANGE
+    assert k.shape == (512, 1) and float(k.min()) >= lo and float(k.max()) <= hi
+    assert len(torch.unique(k)) == 512  # every env its own value
+    assert float(k.min()) < lo + 0.01 and float(k.max()) > hi - 0.01  # spans the range (512 uniform draws)
+    k0 = k.clone()
+    for _ in range(5):
+        f(env, k_range=GYRO_LEGSPEED_RANGE)
+    assert torch.equal(env._legspeed_gyro_k, k0)  # drawn once, never redrawn per tick
+
+
+def test_noise_sd_is_factor_times_rms_leg_speed():
+    """Synthetic leg speeds with a known rms per env; the measured per-env noise sd over many ticks matches K x rms."""
+    import torch
+    from mjlab_microduck.robot_conditions import GYRO_LEGSPEED_RANGE, make_legspeed_gyro
+    torch.manual_seed(1)
+    n, ticks = 256, 400
+    rms = torch.linspace(0.5, 8.0, n)[:, None]  # rad/s, roughly walking leg speeds
+    qd = rms * torch.ones(n, 10)  # constant per env: rms over the 10 joints is exactly `rms`
+    qd[:, ::2] *= -1  # signs do not matter
+    f = make_legspeed_gyro(lambda env: torch.zeros(env.num_envs, 3))
+    env = _fake_env(qd)
+    samples = torch.stack([f(env, k_range=GYRO_LEGSPEED_RANGE) for _ in range(ticks)])  # (ticks, n, 3)
+    k = env._legspeed_gyro_k
+    ratio = samples.std(dim=0) / (k * rms)  # per env, per axis
+    se = 1.0 / (2 * (ticks - 1)) ** 0.5  # relative standard error of a sample sd
+    assert abs(float(ratio.mean()) - 1.0) < 4 * se / (n * 3) ** 0.5 + 1e-3, float(ratio.mean())
+    assert float((ratio - 1).abs().max()) < 5 * se, float((ratio - 1).abs().max())
+    assert abs(float(samples.mean())) < 0.01  # zero-centred
+    # the scalar k path is unchanged: one K for every env
+    env2 = _fake_env(qd)
+    s2 = torch.stack([f(env2, k=0.3) for _ in range(ticks)]).std(dim=0) / (0.3 * rms)
+    assert float((s2 - 1).abs().max()) < 5 * se and "_legspeed_gyro_k" not in vars(env2)
+
+
+def test_gyro_env_draws_factors_at_creation_on_cpu():
+    """The real env: the factors exist once the env is built, lie in the range, differ across envs and stay fixed."""
+    import torch
+    from mjlab.envs import ManagerBasedRlEnv
+    from mjlab_microduck.robot_conditions import GYRO_LEGSPEED_RANGE
+    cfg = sw.make_env_cfg("current", conditions="gyro")
+    cfg.scene.num_envs = 8
+    cfg.seed = 3
+    env = ManagerBasedRlEnv(cfg=cfg, device="cpu")
+    try:
+        k = env.__dict__["_legspeed_gyro_k"]
+        lo, hi = GYRO_LEGSPEED_RANGE
+        assert k.shape == (8, 1) and float(k.min()) >= lo and float(k.max()) <= hi and len(torch.unique(k)) == 8
+        k0 = k.clone()
+        obs, _ = env.reset()
+        term = env.action_manager.get_term("joint_pos")
+        for _ in range(10):
+            obs, *_ = env.step(torch.zeros(8, term.action_dim))
+            assert torch.isfinite(obs["actor"]).all()
+        assert torch.equal(env.__dict__["_legspeed_gyro_k"], k0)
+    finally:
+        env.close()
 
 
 @pytest.mark.parametrize("cond", ["gyro", "robot"])

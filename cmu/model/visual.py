@@ -27,7 +27,9 @@ def apply_visual_to_spec(spec: mujoco.MjSpec, variant: str = "", visual: dict | 
     visual_dir = VISUAL_DIR
     # battery-v2m5-20261121 (the battery backpack with the 2S 3000 mAh battery, current since 2026-11-22) is drawn by
     # visual-20261122 (fitted-20261122.json: the 11-04 robot with the new backpack in place of the old one).
-    if variant == "battery-v2m5-20261121":
+    # battery-v2m5-w918-20261123 (current since 2026-11-23) is the same robot with masses matched to the weighed 918 g,
+    # so it is drawn by the same layer.
+    if variant in ("battery-v2m5-20261121", "battery-v2m5-w918-20261123"):
         visual_dir = VISUAL_DIR.with_name("visual-20261122")
         visual = visual or json.loads((visual_dir / "visual.json").read_text())
         variant = ""
@@ -63,7 +65,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # mass manifest file stem -> the visual layer that draws the same robot ("" = the legacy charger-pack look)
 _VISUAL_BY_STEM = {"asbuilt-mass-manifest": "", "plugged": "", "battery": "battery", "battery-20261104": "battery-20261104",
                    # the new battery backpack (current since 2026-11-22), drawn by visual-20261122
-                   "battery-v2m5-20261121": "battery-v2m5-20261121"}
+                   "battery-v2m5-20261121": "battery-v2m5-20261121",
+                   # the same robot with masses matched to the weighed 918 g (current since 2026-11-23); its own name,
+                   # so a sim can tell it from the 1034.76 g estimate, and apply_visual_to_spec draws it with visual-20261122
+                   "battery-v2m5-w918-20261123": "battery-v2m5-w918-20261123"}
 
 
 def current_model() -> dict:

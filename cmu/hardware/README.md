@@ -5,7 +5,7 @@ Four things live here, all for teammates who want to change the robot's printed 
 - [battery-backpack-3000mah/](battery-backpack-3000mah/README.md): **the backpack on the robot from 2026-11-22** (2S
   3000 mAh battery standing in a printed frame, old switch in the cap): ready print files for the H2S, the X1C (textured
   PEI and Cool Plate) and the Elegoo, STLs with each printer's holes, the Chinese assembly page, BOM, checks and CAD
-  source. The simulator's current model (`cmu/model/current.json`, variant `battery-v2m5-20261121`) is this backpack.
+  source. The simulator's current model (`cmu/model/current.json`, variant `battery-v2m5-w918-20261123`, masses matched to the weighed 918 g) is this backpack.
   The two folders below are its predecessors.
 - [battery-backpack/](battery-backpack/README.md): the 2S battery backpack: the current STL files in robot and print
   orientation, and from V1.20 the design brief and its fixed interfaces, the bought-part envelopes

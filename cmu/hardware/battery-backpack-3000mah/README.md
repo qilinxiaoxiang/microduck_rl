@@ -3,7 +3,8 @@
 This is the backpack on the robot from 2026-11-22. It carries a Crazepony 2S 3000 mAh LiPo (Amazon B08LZ8L4YD, 110 g)
 standing upright in a printed frame, with the old rocker switch clipped into the printed cap. It replaces the
 battery-on-the-cap backpack in [../battery-redesign/](../battery-redesign/README.md) (Tattu 2S 650 mAh). The simulator
-already uses it: `cmu/model/current.json` names the variant `battery-v2m5-20261121`, so every `-CMU-Current` task,
+already uses it: `cmu/model/current.json` names the variant `battery-v2m5-w918-20261123` (since 2026-11-23; before
+that `battery-v2m5-20261121`), so every `-CMU-Current` task,
 `apply_masses.py --variant current` and `brain_sim_check.py --manifest current` load this backpack.
 
 Two printed parts, frame and cap, screwed to the four posts of the OpenRB box with the four M2 x 6 screws of the old
@@ -59,6 +60,10 @@ over from the old backpack and the tools. [BOM.json](BOM.json) is the parts list
 The mass model is `cmu/model/manifests/battery-v2m5-20261121.json` (from `cmu/model/variants/battery-v2m5-20261121.json`):
 the 2026-11-04 robot with the old backpack's 18 parts (103.1 g) replaced by this backpack's 11 parts (177.5 g). Whole
 robot 1034.8 g, centre of mass at the stand pose x -11.2 mm in the trunk frame (the old backpack: 960.5 g, x -7.6 mm).
+The robot weighed 918 g on 2026-11-23, so the current model is `battery-v2m5-w918-20261123` (from
+`cmu/model/variants/battery-v2m5-w918-20261123.json`): the same parts and positions with the total matched to 918.00 g
+(Pollen CAD mass our robot does not carry and slicer grams first, the rest spread over parts still estimated); centre
+of mass at the stand pose x -12.2 mm, z +18.7 mm (the 1034.8 g estimate: x -11.2, z +22.8).
 The masses are estimates: printed parts from CAD volume, the battery from its listing, the reused parts at their
 earlier masses. The visual layer is `cmu/model/visual-20261122/` (built by `make_visual.py --fitted fitted-20261122.json`).
 

@@ -1,0 +1,3 @@
+[[0.0, {"mode": "walk", "vx": 0.25, "vy": 0.0, "vtheta": 0.0}],
+ [8.0, {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0}],
+ [14.0, {"mode": "walk", "vx": 0.25, "vy": 0.0, "vtheta": 0.0}]]
