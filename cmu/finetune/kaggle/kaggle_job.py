@@ -7,6 +7,10 @@ Same worker, same flags as cmu/finetune/modal/finetune.py; only the launcher dif
   python3 cmu/finetune/kaggle/kaggle_job.py pack --dry-run        # stage the tarball only: file count, size, first paths; no Kaggle CLI, no upload
   python3 cmu/finetune/kaggle/kaggle_job.py push smoke            # 64 envs, 6 iterations: build + train + ONNX export
   python3 cmu/finetune/kaggle/kaggle_job.py push bench            # 4096 envs, 40 iterations: it/s for comparison with Modal
+  python3 cmu/finetune/kaggle/kaggle_job.py push audit --run-name bw-c3-audit -- --delta batreal --cmu-config current
+                                                                  # degenerate-policy audit only: walk61 vs stand61 vs zero
+                                                                  # action reward/s in that env; `push run` needs a fetched
+                                                                  # PASS record for the same env (or --allow-degenerate REASON)
   python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name ft4 -- --max-iters 1000 --max-hours 10 --delta default
   python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name b1 -- --max-iters 1000 --max-hours 10 --delta lowcmd --cmu-config current
   python3 cmu/finetune/kaggle/kaggle_job.py push smoke --run-name a --pair-run-name b -- --seed 1 -- --seed 2
@@ -55,7 +59,43 @@ PRESETS = {
     "smoke": ["--num-envs", "64", "--max-iters", "6", "--warmup-iters", "3", "--save-interval", "2", "--max-hours", "0.25", "--max-dollars", "1"],
     "bench": ["--num-envs", "4096", "--max-iters", "40", "--warmup-iters", "0", "--save-interval", "10", "--max-hours", "0.5", "--max-dollars", "1"],
     "run": ["--num-envs", "4096", "--save-interval", "25", "--max-dollars", "1"],
+    # degenerate-policy audit only (finetune_worker.py preflight): walk61 vs stand61 vs zero action in the run's env
+    "audit": ["--preflight-only", "--max-hours", "0.25", "--max-dollars", "1"],
 }
+OUT = HERE / "out"
+
+
+def preflight_key(args):
+    """The worker's preflight_key() from its flags (same defaults as finetune_worker.py)."""
+    v = lambda name, default: flag_value(args, name) if flag_value(args, name) is not None else default  # noqa: E731
+    return dict(delta=v("--delta", "default"), cmu_config=v("--cmu-config", "asbuilt"), no_asbuilt="--no-asbuilt" in args,
+                onnx=Path(v("--onnx", "/root/assets/walk61.onnx")).name, remove_battery_kg=float(v("--remove-battery-kg", "0.09")))
+
+
+def preflight_records(out=None):
+    """Every fetched preflight.json under cmu/finetune/kaggle/out/<kernel>/runs/<run>/ (audit, smoke or run kernels)."""
+    for p in sorted((out or OUT).glob("*/runs/*/preflight.json")):
+        try:
+            yield p, json.loads(p.read_text())
+        except (OSError, ValueError):
+            continue
+
+
+def check_preflight(args, out=None):
+    """A full fine-tune launch needs a fetched preflight record for the same env whose audit PASSed, or an explicit
+    --allow-degenerate reason (the worker repeats the audit itself and refuses a FAIL in the run as well)."""
+    key = preflight_key(args)
+    if (flag_value(args, "--allow-degenerate") or "").strip():
+        return f"preflight override: --allow-degenerate {flag_value(args, '--allow-degenerate')!r}"
+    match = [(p, r) for p, r in preflight_records(out) if r.get("key") == key]
+    if not match:
+        sys.exit(f"no preflight record for {key} under {out or OUT}: run `kaggle_job.py push audit --run-name <bw-...-audit> -- "
+                 f"<the same env flags>` and fetch it first (degenerate-policy audit: does standing still pay in this env?)")
+    p, r = match[-1]
+    a = r.get("audit", {})
+    if a.get("verdict") != "PASS":
+        sys.exit(f"preflight {p}: standing still pays in this env ({a}); refused. Fix the reward or the delta, or pass --allow-degenerate '<reason>'")
+    return f"preflight {p}:{a.get('stand_still')} {a.get('stand_still_reward_per_s')} vs walk61 {a.get('walk61_reward_per_s')} reward/s -> PASS"
 MAX_HOURS = 11.5
 
 
@@ -200,6 +240,9 @@ def push(preset, run_name, extra, accelerator, pair_run_name="", pair_extra=None
             sys.exit("both jobs have identical flags; give the pair its own group after a second -- (e.g. another --seed)")
     elif pair_extra is not None:
         sys.exit("a second -- group needs --pair-run-name")
+    if preset == "run":
+        for a in [args] + ([pair] if pair else []):
+            print(check_preflight(a))
     digest = pack()
     user = username()
     name = slug(run_name)
