@@ -57,10 +57,12 @@ The gaps below are grouped by status (split: what we know about each gap).
 - **Left yaw drift at walk start.** Over the first 2 s of a straight walk at vx 0.25 the robot turns left: median
   +16 to +18 deg for the C1 fine-tunes and +10 to +18 deg for the deployed walk61 (range -7 to +29). The fitted sim
   gives -13 to -2 deg for C1 and +2.8 for walk61. Cause unknown.
-- **Walking trunk pitch in action replay (largest open gap, 2026-11-22).**
-  - **Method:** the robot's logged servo goals were fed into the sim from the robot's logged joint and trunk state, over 1 s windows. The self-test replays the sim's own trajectory and stays under 2 deg at 0.3 s.
-  - **Result:** in every walking window, for walk61 on the 650 mAh pack (which walks on the robot) as much as for the C2 fine-tunes, the sim trunk pitches backward against the robot by about 23 deg at 0.3 s. Trunk pitch diverges first at about 0.07 s, then the knee.
-  - **Ruled out:** a joint CMA-ES fit of foot friction, servo friction, delay, kp, damping, ankle zero and IMU offset fixes standing (held-out loss 27.8 to 0.76) but leaves walking unchanged. So the error is in the model's mass layout or foot contact geometry, or in the replay's walking initialisation, and it is common to good and bad policies.
+- **Walking trunk pitch in open-loop action replay (2026-11-22, not yet separated from the replay's initial state).**
+  - **Method:** the robot's logged servo goals were fed into the sim from the robot's logged joint and trunk state, over 1 s windows.
+  - **Self-test:** replaying the sim's own trajectory is exact in stands. In walking windows, pitch is 1.7 deg and roll 8.6 deg at 0.3 s, and 8 of 10 windows pass 5 deg tilt (median 0.24 s). Open-loop replay of a walking biped amplifies small initial-state errors.
+  - **Robot walking windows:** the sim trunk pitches backward against the robot by about 23 deg at 0.3 s. This happens as much for walk61 on the 650 mAh pack, a policy trained in this sim that walks on the robot and walks closed-loop in the sim (5.1), as for the C2 fine-tunes. It does not separate good from bad policies.
+  - **What moves it:** of every setting swept, only the initial trunk pitch does. Moving the IMU offset from -2 deg to the feet-flat value changes the bias from -23 to -42..-48 deg. Foot friction, servo friction, delay, kp, damping and mass x1.2 leave the walking loss unchanged. A joint fit of those settings does fix standing (held-out loss 27.8 to 0.76).
+  - **Reading:** the most likely cause is the replay's walking initialisation (trunk pitch, and trunk velocity reconstructed from the stance foot), not the model. The separating test, not yet run, is to sweep the initial trunk forward velocity and pitch on the walk61-650 windows; one common value that removes the bias at 0.1 s and 0.3 s means initialisation.
   - **Source:** robotics repo `microduck-sim/extensions/battery-walk-20261122/action-replay-20261122/summary.txt`.
 - **Closed-loop walking agitation.** In the same robot command sequences the robot's legs move much more than the sim's: turn leg rms 2.2 vs 0.6-0.9 rad/s, and 18-19 vs 1-4 action jumps per s. The robot also falls after the walk key is released (8 of 11 straight falls). One extra 20 ms action tick in the sim matches the turns but over-falls straight walks, so any extra robot latency is between 0 and 20 ms (`gap-c2-20261122/SUMMARY.txt` in the same folder).
 - **IMU mount offset.** Feet-flat stands give an IMU pitch offset of +5.0 deg (650 mAh pack) to +7.6 deg (3000 mAh pack), against -2 deg in the fitted cell. It is not separable from ankle zero without an independent scan.
@@ -106,8 +108,10 @@ it falls in 5-6 of 10.
 ### 5.2 The old deploy gate missed a walking policy
 
 `cmu/simcheck/sim_suite.py` (the deploy gate) said fine-tune C2 did not walk: its vx 0.25 case moved -0.002 m against
-walk61's 0.577 m. On the robot C2 walked. The cause is under investigation and not settled. Until it is, run the fitted
-cell as well, and do not reject or accept a walking policy on the gate's walk distance alone.
+walk61's 0.577 m. On the robot C2 walked.
+- **Cause:** the gate started every walk after a 3 s stand61 pause at zero command. C2 freezes after a settled balance stand (0 of 12 walked in sim), but walks 12 of 12 when the command comes straight from open-loop stand mode, which is how the robot starts 3 of 4 times (`start-sequence-20261122/` in the robotics effort folder).
+- **Fix:** every real walk case now runs both starts. A candidate must walk in the direct start, and the freeze after a settled stand is reported as its own label.
+- **The gate rejects and ranks; it does not accept.** With the fix it ranks walk61-650 above C2 above C1, as the robot does. But it passes C2, which fell in 19 of 20 robot walk attempts on 2026-11-22. C2 is a known false pass, so a gate pass is never acceptance; only the robot trial is.
 
 ## Sources
 
