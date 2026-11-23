@@ -21,7 +21,11 @@ candidates. Steps, each one stops the script when it fails:
    policies), never the stored rows in cmu/simcheck/: those were recorded on 2026-10-19 and walk61 itself no longer
    matches them at the current code (2026-11-01 self-test: worse on four plugged and three battery real cases, after
    the 10-22 heading hold, the 10-26 saddle masses and the 10-29 collision refit). The current verdict must read
-   "matches or beats the reference on every real case". Rows and logs go to cmu/deploy/runs/<name>/. A pass says the candidate
+   "matches or beats the reference on every real case". One real case is judged without the reference
+   (2026-11-23): walk_zero_walk_guard runs walk_wired.py's own stops (an action over 3.0 rad in 3 of 10 ticks switches
+   to the open-loop stand) over walk 8 s, zero command 6 s, walk 6 s, and a brain stop or a fall there fails the
+   candidate (every other case runs with the stop off, so the sim showed bw-s1-cur-s1 standing at zero command while
+   on the robot it tripped the stop and fell after every key release). Rows and logs go to cmu/deploy/runs/<name>/. A pass says the candidate
    is at least as good as walk61 in the simulation at the robot's measured condition; it does not predict the robot
    (ft3 passed and fell on the robot, cmu/real-logs/README.md), so the first robot run is still watched by hand.
 3. Copy (deploy only): the policy set to a7z:~/policies/<name>/ with a MANIFEST.json (sha256 of every file, the gate
@@ -150,7 +154,8 @@ def sim_hash():
     """Hash of everything the suite's walk61 rows depend on, so a cached baseline is reused only while it is current."""
     h = hashlib.sha256()
     paths = [os.path.join(ROOT, "cmu", "robot-condition.json"), os.path.join(ROOT, "cmu", "simcheck", "sim_suite.py"),
-             os.path.join(ROOT, "cmu", "simcheck", "noisy_check.py")]
+             os.path.join(ROOT, "cmu", "simcheck", "noisy_check.py"),
+             os.path.join(ROOT, "cmu", "simcheck", "schedule-walk-zero-walk.json")]  # the brain-stop case's commands
     for top in ("cmu/mac", "cmu/model", "cmu/whole/delay-repair-20260912", "cmu/whole/dynamics", "cmu/pi",
                 "cmu/whole/runtime-overlay/models"):
         for d, _, files in os.walk(os.path.join(ROOT, top)):

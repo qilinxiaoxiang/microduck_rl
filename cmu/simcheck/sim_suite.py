@@ -42,6 +42,17 @@ label, "freezes after a settled balance stand" (bw-c2-s1b's known defect, which 
 hidden, and not a failure on its own; a fall or worse walking in the paused start still fails. imu_pitch4/direct is
 stress (DIRECT_STRESS: the known-good walk61 on the 650 mAh model falls there).
 
+The brain's action stop (2026-11-23, GUARD_CASES): real walk_zero_walk_guard runs walk_wired.py's walk-mode stops
+(brain_sim_check --wired-guards: an action over 3.0 rad in 3 of the last 10 ticks, or tilt over 30 deg, stops the
+policy and switches to the open-loop stand) over walk vx 0.25 for 8 s, zero command for 6 s, walk vx 0.25 for 6 s
+(schedule-walk-zero-walk.json), direct start after 6 s of stand mode. It runs without sensor noise, read drops or the
+fitted friction (drop 0, friction 1.0), on one seed (the run is then deterministic): cases U-X of
+microduck-sim/extensions/battery-walk-20261122/s1-sim-screen-20261123/run_gate_ablation.sh, the form that is ranked by
+the robot (bw-s1-cur-s1 trips the stop after the key release on the robot and here; bw-s1-cur-s2 and walk61 do not).
+It is judged on its own, not against the reference: a brain stop or a fall fails the candidate, nothing else is
+measured there. Without it the suite passed bw-s1-cur-s1 at zero command while the robot stopped and fell after every
+release, because every other case runs with the stop switched off.
+
 Real cases are the robot's condition: the verdict compares them with the reference rows (walk61 by default). Stress
 rows are harsher than the robot and are printed as "stress, report only"; they never accept or reject a policy.
 Each output row is the brain_sim_check JSON row with "case", "class" and "variant" prefixed; stderr of all cases goes to
@@ -152,7 +163,26 @@ FREEZE = "freezes after a settled balance stand"
 # imu_pitch4/direct (Mac mini 2026-11-22; it walks 3/3 in imu_pitch4 paused). The robot's own IMU offset is about
 # -2 deg pitch, and direct with it walks 6/6 (start-sequence-20261122 results.txt, w650 rdirect_o).
 DIRECT_STRESS = ("imu_pitch4",)
-SEVERITY = {"walked": 0, "steady": 0, "did not start walking": 1, FREEZE: 1, "struggled": 1, "fell": 2}
+GUARD_STOP = "stopped by the brain"
+SEVERITY = {"walked": 0, "steady": 0, "did not start walking": 1, FREEZE: 1, "struggled": 1, "fell": 2, GUARD_STOP: 2}
+# The brain's action stop, judged on its own (see the module docstring). Without noise, drops or the fitted friction:
+# the robot-ranked form (cases U-X, 2026-11-23); the base flags' values are overridden here.
+GUARD_SCHEDULE = os.path.join(HERE, "schedule-walk-zero-walk.json")
+GUARD_WALK_S = 20.0       # walk 8 s, zero command 6 s, walk 6 s
+GUARD_SEEDS = (0,)        # deterministic without noise and drops (U-X: six seeds gave identical rows)
+GUARD_QUIET = ["--gyro-noise-dq", "0", "--vel-noise-dq", "0", "--gyro-noise", "0", "--vel-noise", "0",
+               "--drop", "0", "--bam-friction-scale", "1.0"]
+
+
+def guard_cases(payload=None):
+    """The walk, zero command, walk case with walk_wired.py's stops on, in the direct start (direct_flags)."""
+    return [("real", "walk_zero_walk_guard",
+             ["--vx", "0.25", "--cmd-replay", GUARD_SCHEDULE, "--wired-guards", "--walk-s", str(GUARD_WALK_S)]
+             + GUARD_QUIET + direct_flags(payload))]
+
+
+def is_guard_case(name):
+    return name == "walk_zero_walk_guard"
 
 
 def base_flags(condition_path):
@@ -297,7 +327,10 @@ def settled(row):
 
 def outcome(row, walk):
     """One run's label: walk cases fell / did not start walking / walked, and a paused start that did not walk after
-    stand61 settled FREEZE; the stand case fell / struggled / steady."""
+    stand61 settled FREEZE; the stand case fell / struggled / steady. A run in which walk_wired.py's stop fired
+    (--wired-guards) is GUARD_STOP, whatever happened after it (the robot falls 0.6-1.6 s after the stop)."""
+    if row.get("guard_stop_at") is not None:
+        return GUARD_STOP
     if row.get("fell_at") is not None:
         return "fell"
     if walk:
@@ -324,7 +357,7 @@ def run_case(models, walk_s, base, cls, name, extra, err, variant="current", pay
     walk = is_walk_case(extra)
     row = {"case": name, "class": cls, "seed": seed, **row_prefix(variant, payload), **row}
     row["kind"] = "walk" if walk else "stand"
-    row["start"] = start_of(name, walk)
+    row["start"] = "direct" if is_guard_case(name) else start_of(name, walk)
     row["outcome"] = outcome(row, walk)
     return row
 
@@ -378,6 +411,27 @@ def aggregate(rows):
         agg[k] = pick(k)
     agg["stand_dur"] = pick("stand_dur")
     return agg
+
+
+def judge_guard(rows):
+    """(ok, reasons) of the brain-stop case from its seed rows, no reference: any seed with a brain stop or a fall fails."""
+    if isinstance(rows, dict):
+        rows = [rows]
+    reasons = []
+    for r in rows:
+        seed = "" if r.get("seed") is None else f"seed {r['seed']}: "
+        if r.get("guard_stop_at") is not None:
+            reasons.append(f"{seed}brain stop at {r['guard_stop_at']} s ({r.get('guard_why')}), largest action "
+                           f"{r.get('max_action')} rad" + (f", fell at {r['fell_at']} s" if r.get("fell_at") is not None else ""))
+        elif r.get("fell_at") is not None:
+            reasons.append(f"{seed}fell at {r['fell_at']} s without a brain stop, largest action {r.get('max_action')} rad")
+    return not reasons, reasons
+
+
+def guard_text(rows):
+    """'no brain stop, no fall, largest action 0.77 rad' for a passing brain-stop case."""
+    rows = [rows] if isinstance(rows, dict) else rows
+    return f"no brain stop, no fall, largest action {max((r.get('max_action') or 0.0) for r in rows)} rad"
 
 
 def judge(row, ref):
@@ -465,10 +519,14 @@ def main():
     print(f"sensor noise and friction on every case: {' '.join(base[base.index('--gyro-noise-dq'):])}; real cases on "
           f"seeds {', '.join(map(str, REAL_SEEDS))} (verdict on the median), {JOBS} sims at once")
     from concurrent.futures import ThreadPoolExecutor
-    cases = with_starts(CASES[:5] + STAND_CASES + CASES[5:] + floor_mu_cases(a.condition), a.payload_manifest)
+    cases = (with_starts(CASES[:5] + STAND_CASES + CASES[5:] + floor_mu_cases(a.condition), a.payload_manifest)
+             + guard_cases(a.payload_manifest))
     print(f"real walk cases run two starts: <name> paused (stand61 at zero command before the command), <name>{DIRECT} "
           f"direct ({' '.join(direct_flags(a.payload_manifest))}: the command on the first policy tick)")
-    jobs = [(cls, name, extra, s) for cls, name, extra in cases for s in (REAL_SEEDS if cls == "real" else (None,))]
+    print("walk_zero_walk_guard: walk_wired.py's stops on (--wired-guards), walk 8 s / zero 6 s / walk 6 s at vx 0.25, "
+          f"no noise, drop 0, friction 1.0, seed {', '.join(map(str, GUARD_SEEDS))}; fails on a brain stop or a fall")
+    jobs = [(cls, name, extra, s) for cls, name, extra in cases
+            for s in (GUARD_SEEDS if is_guard_case(name) else REAL_SEEDS if cls == "real" else (None,))]
     by_case = {}
     with open(a.out, "w") as out, open(a.out + ".err", "w") as err, ThreadPoolExecutor(JOBS) as pool:
         futs = [pool.submit(run_case, a.models, a.walk_s, base, cls, name, extra, err, a.variant, a.payload_manifest, s)
@@ -503,6 +561,11 @@ def main():
         for row in rows:
             if row["class"] != "real":
                 print(f"  {row['case']:18s} stress, report only")
+                continue
+            if is_guard_case(row["case"]):  # judged on its own: a brain stop or a fall, no reference bar
+                ok, reasons = judge_guard(by_case[row["case"]])
+                verdict &= ok
+                print(f"  {row['case']:18s} {guard_text(by_case[row['case']]) if ok else 'worse: ' + '; '.join(reasons)}")
                 continue
             r = ref.get(row["case"])
             if r is None:
