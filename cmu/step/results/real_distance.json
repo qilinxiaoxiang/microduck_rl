@@ -1,0 +1,15 @@
+{
+ "states": 645,
+ "policies": {
+  "step005": {
+   "mean_l2": 0.1548,
+   "mean_l1": 0.5314,
+   "max_per_joint": 0.05
+  },
+  "step010": {
+   "mean_l2": 0.2897,
+   "mean_l1": 0.9707,
+   "max_per_joint": 0.1
+  }
+ }
+}

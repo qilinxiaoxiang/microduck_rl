@@ -794,3 +794,52 @@ register_mjlab_task(
                        max_iterations=800),
     runner_cls=MicroduckOnPolicyRunner,
 )
+
+# Walk step (cmu_walk_step_env_cfg.py, 2026-11-22): a capped L1 correction on frozen walk61 that turns a short burst
+# into a short repeatable step, for step-look-step. Trained on the current body only.
+from .cmu_walk_step_env_cfg import CAPS as _WS_CAPS
+from .cmu_walk_step_env_cfg import make_walk_step_env_cfg, walk_step_rl_cfg
+
+
+class WalkStepResidualRunner(MicroduckOnPolicyRunner):
+    """Critic warm-up: the zero correction (= walk61) is frozen while the fresh critic learns its returns."""
+
+    CRITIC_WARMUP_ITERS = 50
+    CRITIC_WARMUP_LR = 1e-3
+
+    def __init__(self, env, train_cfg: dict, log_dir=None, device="cpu", **kwargs):
+        super().__init__(env, train_cfg, log_dir, device, **kwargs)
+        alg, update = self.alg, self.alg.update
+        actor_params, lr = list(alg.actor.parameters()), alg.learning_rate
+
+        def warm_update():
+            warm = self.current_learning_iteration < self.CRITIC_WARMUP_ITERS
+            for p in actor_params:
+                p.requires_grad_(not warm)
+            alg.learning_rate = self.CRITIC_WARMUP_LR if warm else lr
+            for g in alg.optimizer.param_groups:
+                g["lr"] = alg.learning_rate
+            return update()
+
+        alg.update = warm_update
+
+
+for _cap in _WS_CAPS:
+    register_mjlab_task(
+        task_id=f"Mjlab-WalkStep-Cap{round(_cap * 100):03d}-FromWalk61-MicroDuck-CMU-Current",
+        env_cfg=make_walk_step_env_cfg(),
+        play_env_cfg=make_walk_step_env_cfg(play=True),
+        rl_cfg=walk_step_rl_cfg(MicroduckRlCfg, _cap),
+        runner_cls=WalkStepResidualRunner,
+    )
+
+from .cmu_walk_step_env_cfg import NOISE_VARIANTS as _WS_NOISE
+
+for _tag, _noise in _WS_NOISE.items():
+    register_mjlab_task(
+        task_id=f"Mjlab-WalkStep-{_tag}-FromWalk61-MicroDuck-CMU-Current",
+        env_cfg=make_walk_step_env_cfg(noise=_noise),
+        play_env_cfg=make_walk_step_env_cfg(play=True, noise=_noise),
+        rl_cfg=walk_step_rl_cfg(MicroduckRlCfg, 0.15),
+        runner_cls=WalkStepResidualRunner,
+    )

@@ -1,0 +1,740 @@
+{
+ "walkstep-s005_250": [
+  {
+   "case": "nominal",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.382,
+   "max_tilt": 6.9,
+   "action_jumps": 2
+  },
+  {
+   "case": "vx0.25",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.768,
+   "max_tilt": 6.8,
+   "action_jumps": 0
+  },
+  {
+   "case": "vx0.2",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.003,
+   "max_tilt": 2.8,
+   "action_jumps": 0
+  },
+  {
+   "case": "com+5",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.676,
+   "max_tilt": 7.8,
+   "action_jumps": 2
+  },
+  {
+   "case": "imu_pitch4",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.945,
+   "max_tilt": 5.6,
+   "action_jumps": 1
+  },
+  {
+   "case": "volt6.3",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.321,
+   "max_tilt": 7.0,
+   "action_jumps": 5
+  },
+  {
+   "case": "drop8_imu35",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.343,
+   "max_tilt": 8.0,
+   "action_jumps": 26
+  },
+  {
+   "case": "drop8_imu35_s1",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.242,
+   "max_tilt": 9.9,
+   "action_jumps": 22
+  },
+  {
+   "case": "floor_mu_bare",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.336,
+   "max_tilt": 7.6,
+   "action_jumps": 23
+  },
+  {
+   "case": "floor_mu_sole",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.79,
+   "max_tilt": 6.7,
+   "action_jumps": 1
+  }
+ ],
+ "walkstep-s005_500": [
+  {
+   "case": "nominal",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.33,
+   "max_tilt": 6.4,
+   "action_jumps": 2
+  },
+  {
+   "case": "vx0.25",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.609,
+   "max_tilt": 6.2,
+   "action_jumps": 0
+  },
+  {
+   "case": "vx0.2",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.003,
+   "max_tilt": 2.9,
+   "action_jumps": 0
+  },
+  {
+   "case": "com+5",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.714,
+   "max_tilt": 6.9,
+   "action_jumps": 3
+  },
+  {
+   "case": "imu_pitch4",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.985,
+   "max_tilt": 6.0,
+   "action_jumps": 3
+  },
+  {
+   "case": "volt6.3",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.355,
+   "max_tilt": 7.0,
+   "action_jumps": 4
+  },
+  {
+   "case": "drop8_imu35",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.359,
+   "max_tilt": 8.3,
+   "action_jumps": 25
+  },
+  {
+   "case": "drop8_imu35_s1",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.182,
+   "max_tilt": 8.8,
+   "action_jumps": 31
+  },
+  {
+   "case": "floor_mu_bare",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.002,
+   "max_tilt": 3.2,
+   "action_jumps": 0
+  },
+  {
+   "case": "floor_mu_sole",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.44,
+   "max_tilt": 6.3,
+   "action_jumps": 1
+  }
+ ],
+ "walkstep-s005_750": [
+  {
+   "case": "nominal",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.432,
+   "max_tilt": 7.4,
+   "action_jumps": 1
+  },
+  {
+   "case": "vx0.25",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.041,
+   "max_tilt": 7.1,
+   "action_jumps": 2
+  },
+  {
+   "case": "vx0.2",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.002,
+   "max_tilt": 2.6,
+   "action_jumps": 0
+  },
+  {
+   "case": "com+5",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.725,
+   "max_tilt": 7.4,
+   "action_jumps": 5
+  },
+  {
+   "case": "imu_pitch4",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.053,
+   "max_tilt": 5.6,
+   "action_jumps": 1
+  },
+  {
+   "case": "volt6.3",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.349,
+   "max_tilt": 7.2,
+   "action_jumps": 5
+  },
+  {
+   "case": "drop8_imu35",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.385,
+   "max_tilt": 9.8,
+   "action_jumps": 29
+  },
+  {
+   "case": "drop8_imu35_s1",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.216,
+   "max_tilt": 10.6,
+   "action_jumps": 29
+  },
+  {
+   "case": "floor_mu_bare",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.882,
+   "max_tilt": 7.4,
+   "action_jumps": 55
+  },
+  {
+   "case": "floor_mu_sole",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.783,
+   "max_tilt": 7.2,
+   "action_jumps": 0
+  }
+ ],
+ "walkstep-s005_999": [
+  {
+   "case": "nominal",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.483,
+   "max_tilt": 6.4,
+   "action_jumps": 4
+  },
+  {
+   "case": "vx0.25",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.131,
+   "max_tilt": 6.7,
+   "action_jumps": 1
+  },
+  {
+   "case": "vx0.2",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.002,
+   "max_tilt": 2.7,
+   "action_jumps": 0
+  },
+  {
+   "case": "com+5",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.736,
+   "max_tilt": 6.2,
+   "action_jumps": 1
+  },
+  {
+   "case": "imu_pitch4",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.036,
+   "max_tilt": 5.8,
+   "action_jumps": 3
+  },
+  {
+   "case": "volt6.3",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.378,
+   "max_tilt": 6.7,
+   "action_jumps": 3
+  },
+  {
+   "case": "drop8_imu35",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.373,
+   "max_tilt": 10.7,
+   "action_jumps": 28
+  },
+  {
+   "case": "drop8_imu35_s1",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.965,
+   "max_tilt": 10.3,
+   "action_jumps": 44
+  },
+  {
+   "case": "floor_mu_bare",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.954,
+   "max_tilt": 8.1,
+   "action_jumps": 58
+  },
+  {
+   "case": "floor_mu_sole",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.013,
+   "max_tilt": 7.2,
+   "action_jumps": 3
+  }
+ ],
+ "walkstep-s010_250": [
+  {
+   "case": "nominal",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.501,
+   "max_tilt": 6.6,
+   "action_jumps": 2
+  },
+  {
+   "case": "vx0.25",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.301,
+   "max_tilt": 6.7,
+   "action_jumps": 5
+  },
+  {
+   "case": "vx0.2",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.661,
+   "max_tilt": 7.1,
+   "action_jumps": 3
+  },
+  {
+   "case": "com+5",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.833,
+   "max_tilt": 7.8,
+   "action_jumps": 6
+  },
+  {
+   "case": "imu_pitch4",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.888,
+   "max_tilt": 9.8,
+   "action_jumps": 7
+  },
+  {
+   "case": "volt6.3",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.483,
+   "max_tilt": 8.2,
+   "action_jumps": 7
+  },
+  {
+   "case": "drop8_imu35",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.488,
+   "max_tilt": 8.3,
+   "action_jumps": 25
+  },
+  {
+   "case": "drop8_imu35_s1",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.366,
+   "max_tilt": 11.1,
+   "action_jumps": 30
+  },
+  {
+   "case": "floor_mu_bare",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.001,
+   "max_tilt": 13.1,
+   "action_jumps": 81
+  },
+  {
+   "case": "floor_mu_sole",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.274,
+   "max_tilt": 7.4,
+   "action_jumps": 2
+  }
+ ],
+ "walkstep-s010_500": [
+  {
+   "case": "nominal",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.457,
+   "max_tilt": 7.7,
+   "action_jumps": 2
+  },
+  {
+   "case": "vx0.25",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.412,
+   "max_tilt": 7.6,
+   "action_jumps": 7
+  },
+  {
+   "case": "vx0.2",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.155,
+   "max_tilt": 8.1,
+   "action_jumps": 7
+  },
+  {
+   "case": "com+5",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 2.023,
+   "max_tilt": 8.7,
+   "action_jumps": 14
+  },
+  {
+   "case": "imu_pitch4",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.879,
+   "max_tilt": 7.3,
+   "action_jumps": 6
+  },
+  {
+   "case": "volt6.3",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.618,
+   "max_tilt": 8.5,
+   "action_jumps": 5
+  },
+  {
+   "case": "drop8_imu35",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.406,
+   "max_tilt": 11.9,
+   "action_jumps": 32
+  },
+  {
+   "case": "drop8_imu35_s1",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.527,
+   "max_tilt": 10.6,
+   "action_jumps": 31
+  },
+  {
+   "case": "floor_mu_bare",
+   "name": null,
+   "fell_at": 8.16,
+   "dist_x": 0.379,
+   "max_tilt": 46.6,
+   "action_jumps": 37
+  },
+  {
+   "case": "floor_mu_sole",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.394,
+   "max_tilt": 8.7,
+   "action_jumps": 4
+  }
+ ],
+ "walkstep-s010_750": [
+  {
+   "case": "nominal",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.437,
+   "max_tilt": 8.5,
+   "action_jumps": 5
+  },
+  {
+   "case": "vx0.25",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.317,
+   "max_tilt": 8.2,
+   "action_jumps": 4
+  },
+  {
+   "case": "vx0.2",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.15,
+   "max_tilt": 10.1,
+   "action_jumps": 4
+  },
+  {
+   "case": "com+5",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 2.039,
+   "max_tilt": 9.2,
+   "action_jumps": 9
+  },
+  {
+   "case": "imu_pitch4",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.844,
+   "max_tilt": 6.6,
+   "action_jumps": 12
+  },
+  {
+   "case": "volt6.3",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.548,
+   "max_tilt": 8.1,
+   "action_jumps": 5
+  },
+  {
+   "case": "drop8_imu35",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.461,
+   "max_tilt": 13.1,
+   "action_jumps": 30
+  },
+  {
+   "case": "drop8_imu35_s1",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.498,
+   "max_tilt": 10.7,
+   "action_jumps": 36
+  },
+  {
+   "case": "floor_mu_bare",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.426,
+   "max_tilt": 10.8,
+   "action_jumps": 68
+  },
+  {
+   "case": "floor_mu_sole",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.339,
+   "max_tilt": 8.2,
+   "action_jumps": 2
+  }
+ ],
+ "walkstep-s010_999": [
+  {
+   "case": "nominal",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.451,
+   "max_tilt": 8.8,
+   "action_jumps": 6
+  },
+  {
+   "case": "vx0.25",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.257,
+   "max_tilt": 8.6,
+   "action_jumps": 6
+  },
+  {
+   "case": "vx0.2",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.024,
+   "max_tilt": 9.0,
+   "action_jumps": 6
+  },
+  {
+   "case": "com+5",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.89,
+   "max_tilt": 10.5,
+   "action_jumps": 8
+  },
+  {
+   "case": "imu_pitch4",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.723,
+   "max_tilt": 7.2,
+   "action_jumps": 12
+  },
+  {
+   "case": "volt6.3",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.426,
+   "max_tilt": 8.6,
+   "action_jumps": 6
+  },
+  {
+   "case": "drop8_imu35",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.341,
+   "max_tilt": 12.3,
+   "action_jumps": 35
+  },
+  {
+   "case": "drop8_imu35_s1",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.447,
+   "max_tilt": 13.3,
+   "action_jumps": 34
+  },
+  {
+   "case": "floor_mu_bare",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.119,
+   "max_tilt": 14.3,
+   "action_jumps": 76
+  },
+  {
+   "case": "floor_mu_sole",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.224,
+   "max_tilt": 8.6,
+   "action_jumps": 9
+  }
+ ],
+ "_walk61-21200df5bae7": [
+  {
+   "case": "nominal",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.096,
+   "max_tilt": 6.1,
+   "action_jumps": 2
+  },
+  {
+   "case": "vx0.25",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.905,
+   "max_tilt": 6.0,
+   "action_jumps": 1
+  },
+  {
+   "case": "vx0.2",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.003,
+   "max_tilt": 2.0,
+   "action_jumps": 0
+  },
+  {
+   "case": "com+5",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.446,
+   "max_tilt": 6.7,
+   "action_jumps": 4
+  },
+  {
+   "case": "imu_pitch4",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.62,
+   "max_tilt": 12.3,
+   "action_jumps": 11
+  },
+  {
+   "case": "volt6.3",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.148,
+   "max_tilt": 6.2,
+   "action_jumps": 4
+  },
+  {
+   "case": "drop8_imu35",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.057,
+   "max_tilt": 7.2,
+   "action_jumps": 16
+  },
+  {
+   "case": "drop8_imu35_s1",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 1.072,
+   "max_tilt": 10.1,
+   "action_jumps": 21
+  },
+  {
+   "case": "floor_mu_bare",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.834,
+   "max_tilt": 7.4,
+   "action_jumps": 60
+  },
+  {
+   "case": "floor_mu_sole",
+   "name": null,
+   "fell_at": null,
+   "dist_x": 0.908,
+   "max_tilt": 7.5,
+   "action_jumps": 0
+  }
+ ]
+}

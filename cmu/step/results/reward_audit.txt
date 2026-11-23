@@ -1,0 +1,11 @@
+RESULT walk61                     reward/s   4.771 falls/env-min 0.832 end err cm p50/p90 8.7/29.7
+RESULT stand61                    reward/s   4.284 falls/env-min 0.168 end err cm p50/p90 12.2/38.7
+RESULT t2b                        reward/s   5.982 falls/env-min 0.219 end err cm p50/p90 3.2/12.9
+RESULT walk61, command hidden     reward/s   4.393 falls/env-min 0.934 end err cm p50/p90 10.8/34.3
+RESULT stand61, zero command      reward/s   4.293 falls/env-min 0.242 end err cm p50/p90 12.6/38.3
+--- as trained
+RESULT walk61                     reward/s   2.951 falls/env-min 0.523 end err cm p50/p90 7.1/27.9
+RESULT stand61                    reward/s   2.209 falls/env-min 0.016 end err cm p50/p90 9.4/38.0
+RESULT t2b                        reward/s   5.154 falls/env-min 0.039 end err cm p50/p90 2.4/8.4
+RESULT walk61, command hidden     reward/s   2.384 falls/env-min 0.488 end err cm p50/p90 9.0/33.0
+RESULT stand61, zero command      reward/s   2.269 falls/env-min 0.012 end err cm p50/p90 9.2/36.8

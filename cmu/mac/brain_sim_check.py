@@ -1277,6 +1277,13 @@ def run(args):
         print("tether", {k: np.round(v, 4).tolist() for k, v in prm.items()}, flush=True)
     path_m, path_xy = 0.0, None  # trunk path over the walk window, sampled every 0.5 s (stride sway averages out)
     rng = np.random.default_rng(args.seed)
+    # --servo-noise: the training's servo read noise levels (mjlab_microduck/tasks/servo_noise.py; 1 = what the step
+    # policies train with, 2 = its stress level) on the readings the brain gets: uniform white noise on every position
+    # and velocity read, and a per-joint calibration bias drawn once per run. Its own generator, so the drop draws of a
+    # seed are the same with and without it.
+    sn = SERVO_NOISE_LEVELS[args.servo_noise] if args.servo_noise else None
+    sn_rng = np.random.default_rng([args.seed, 11])
+    sn_bias = {n: (float(sn_rng.uniform(-sn["bias"], sn["bias"])) if sn else 0.0) for n in NAMES}
     imu_hold, imu_t = None, 0.0
     max_action, action_jumps, prev_action = 0.0, 0, None
     T = args.walk_at + args.walk_s + args.after_walk
@@ -1391,8 +1398,13 @@ def run(args):
             imu_hold, imu_t = sample[:2], t
         sample = imu_hold + sample[2:]
         q_sensor, g_sensor, qm, dqm = sq[0]
-        pos_t = [to_tick(n, float(qm[idx[n]])) for n in NAMES]
-        vel_t = [int(round(float(dqm[idx[n]]) / VEL_UNIT / SIGN[n])) for n in NAMES]
+        if sn:
+            pos_t = [to_tick(n, float(qm[idx[n]]) + sn_bias[n] + float(sn_rng.uniform(-sn["pos"], sn["pos"]))) for n in NAMES]
+            vel_t = [int(round((float(dqm[idx[n]]) + float(sn_rng.uniform(-sn["vel"], sn["vel"]))) / VEL_UNIT / SIGN[n]))
+                     for n in NAMES]
+        else:
+            pos_t = [to_tick(n, float(qm[idx[n]])) for n in NAMES]
+            vel_t = [int(round(float(dqm[idx[n]]) / VEL_UNIT / SIGN[n])) for n in NAMES]
         if t < args.stand_s:
             want = {"mode": "stand"}
         elif gp_at is not None and gp_at <= t < gp_done_at:
@@ -1796,7 +1808,9 @@ def run(args):
                 head=None if not (args.head_yaw or args.head_pitch is not None or args.neck_pitch is not None) else dict(head_yaw=args.head_yaw, head_pitch=args.head_pitch, neck_pitch=args.neck_pitch,
                                                          final={n: round(float(d.qpos[qa[k]] - z0[k]), 3) for k, n in enumerate(names) if "head" in n or "neck" in n}),
                 compensation=args.compensation, first_policy_tick_s=first_policy, max_action=round(max_action, 2), action_jumps=action_jumps,
-                drop=args.drop, imu_hz=args.imu_hz, floor_mu=args.floor_mu, fell_at=fell, fall_dir=fall_dir,
+                drop=args.drop, imu_hz=args.imu_hz, floor_mu=args.floor_mu, servo_noise=args.servo_noise,
+                guard_stop_at=guard["stop"] if args.wired_guards else None, guard_why=guard["why"] if args.wired_guards else None,
+                fell_at=fell, fall_dir=fall_dir,
                 max_tilt=round(maxtilt, 1), battery_stop_at=stop_at, stop_ramp=args.stop_ramp, settled_s=settled_at, end_mode=brain.mode,
                 max_tilt_after_stop=round(tilt_after_stop, 1) if stop_at is not None else None,
                 dist_x=None if x0 is None else round(float(d.xpos[trunk, 0] - x0), 3),
@@ -1899,6 +1913,10 @@ def hold_summary(args, rows, hand, guard, stable_after, leg_names):
     return out
 
 
+# servo read noise (--servo-noise): levels 1 and 2 as mjlab_microduck/tasks/servo_noise.py; 3 is a worst case beyond the
+# training's stress level (4x the white noise, bias +-0.06 rad = 3.4 deg)
+SERVO_NOISE_LEVELS = {0: None, 1: dict(pos=0.004, vel=0.5, bias=0.026), 2: dict(pos=0.008, vel=1.0, bias=0.04),
+                      3: dict(pos=0.016, vel=2.0, bias=0.06)}
 tick_log = None
 STORY = None  # fullflow_sim.Story: setup(m, d, sp, args, trunk), want(t, want, brain) -> want, after(t, brain, info, tilt), done
 
@@ -1981,6 +1999,9 @@ def main():
     ap.add_argument("--after-stop", type=float, default=10.0, help="s simulated after the battery stop")
     ap.add_argument("--stop-ramp", type=float, default=None, help="s after the stop to switch to stand (rejected design)")
     ap.add_argument("--drop", type=float, default=0.0, help="fraction of ticks with a dropped servo read")
+    ap.add_argument("--servo-noise", type=int, choices=sorted(SERVO_NOISE_LEVELS), default=0,
+                    help="servo read noise level on the brain's position/velocity reads: 1 = training (+-0.004 rad, "
+                         "+-0.5 rad/s, bias +-0.026 rad), 2 = 2x (bias +-0.04), 3 = 4x (bias +-0.06); 0 = none")
     ap.add_argument("--imu-hz", type=float, default=0.0, help="IMU sample rate; 0 = every 20 ms tick")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--breakaway", action="store_true", help="apply walk_brain.breakaway to the goals (no stiction in the sim: checks the push alone does not upset the policy)")

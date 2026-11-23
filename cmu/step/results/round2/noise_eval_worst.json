@@ -1,0 +1,2681 @@
+{
+ "note": "SIM ONLY, battery-v2m5 body, Balance stand start, walk_wired stops on",
+ "conditions": {
+  "clean": [],
+  "sn1_train": [
+   "--servo-noise",
+   "1"
+  ],
+  "sn2_stress": [
+   "--servo-noise",
+   "2"
+  ],
+  "sn3_beyond": [
+   "--servo-noise",
+   "3"
+  ],
+  "worst_sn2": [
+   "--servo-noise",
+   "2",
+   "--joint-play",
+   "2",
+   "--bam-friction-scale",
+   "1.4",
+   "--drop",
+   "0.08",
+   "--action-delay",
+   "2",
+   "--volt",
+   "6.8"
+  ],
+  "worst_sn3": [
+   "--servo-noise",
+   "3",
+   "--joint-play",
+   "2",
+   "--bam-friction-scale",
+   "1.4",
+   "--drop",
+   "0.08",
+   "--action-delay",
+   "2",
+   "--volt",
+   "6.8"
+  ]
+ },
+ "Ts": [
+  0.6,
+  1.0,
+  1.3,
+  8.0
+ ],
+ "seeds": 10,
+ "summary": {
+  "walk61/worst_sn2": {
+   "runs": 40,
+   "errors": 0,
+   "falls": 40,
+   "guard_stops": 40,
+   "jumps_per_10s": 8.7,
+   "max_action": 3.06,
+   "max_tilt": 51.2,
+   "walk8_m": null,
+   "burst_cm": {
+    "0.6": null,
+    "1.0": null,
+    "1.3": null
+   },
+   "backward": 0
+  },
+  "walk61/worst_sn3": {
+   "runs": 40,
+   "errors": 0,
+   "falls": 40,
+   "guard_stops": 40,
+   "jumps_per_10s": 17.2,
+   "max_action": 3.18,
+   "max_tilt": 52.9,
+   "walk8_m": null,
+   "burst_cm": {
+    "0.6": null,
+    "1.0": null,
+    "1.3": null
+   },
+   "backward": 0
+  },
+  "cand/worst_sn2": {
+   "runs": 40,
+   "errors": 0,
+   "falls": 36,
+   "guard_stops": 36,
+   "jumps_per_10s": 20.7,
+   "max_action": 4.5,
+   "max_tilt": 52.6,
+   "walk8_m": null,
+   "burst_cm": {
+    "0.6": 2.5,
+    "1.0": 5.1,
+    "1.3": 4.8
+   },
+   "backward": 12
+  },
+  "cand/worst_sn3": {
+   "runs": 40,
+   "errors": 0,
+   "falls": 40,
+   "guard_stops": 40,
+   "jumps_per_10s": 25.0,
+   "max_action": 3.8,
+   "max_tilt": 51.9,
+   "walk8_m": null,
+   "burst_cm": {
+    "0.6": null,
+    "1.0": null,
+    "1.3": null
+   },
+   "backward": 4
+  }
+ },
+ "rows": [
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 0.64,
+   "tilt": 51.2,
+   "jumps": 9,
+   "amax": 2.51,
+   "stop": 0.62,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 1
+   },
+   "x": null,
+   "fell": 0.86,
+   "tilt": 45.1,
+   "jumps": 9,
+   "amax": 2.11,
+   "stop": 0.84,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 2
+   },
+   "x": null,
+   "fell": 0.66,
+   "tilt": 45.9,
+   "jumps": 7,
+   "amax": 1.97,
+   "stop": 0.64,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 0.88,
+   "tilt": 49.6,
+   "jumps": 10,
+   "amax": 2.22,
+   "stop": 0.82,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 0.8,
+   "tilt": 48.9,
+   "jumps": 8,
+   "amax": 1.92,
+   "stop": 0.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 0.66,
+   "tilt": 45.7,
+   "jumps": 8,
+   "amax": 2.18,
+   "stop": 0.66,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 6
+   },
+   "x": null,
+   "fell": 0.92,
+   "tilt": 49.5,
+   "jumps": 8,
+   "amax": 2.56,
+   "stop": 0.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 0.98,
+   "tilt": 45.4,
+   "jumps": 5,
+   "amax": 1.76,
+   "stop": 0.96,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 0.58,
+   "tilt": 45.8,
+   "jumps": 11,
+   "amax": 3.06,
+   "stop": 0.58,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 9
+   },
+   "x": null,
+   "fell": 0.68,
+   "tilt": 47.6,
+   "jumps": 10,
+   "amax": 2.59,
+   "stop": 0.68,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 0.64,
+   "tilt": 51.2,
+   "jumps": 9,
+   "amax": 2.51,
+   "stop": 0.62,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 1
+   },
+   "x": null,
+   "fell": 0.86,
+   "tilt": 45.1,
+   "jumps": 9,
+   "amax": 2.11,
+   "stop": 0.84,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 2
+   },
+   "x": null,
+   "fell": 0.66,
+   "tilt": 45.9,
+   "jumps": 7,
+   "amax": 1.97,
+   "stop": 0.64,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 0.88,
+   "tilt": 49.6,
+   "jumps": 10,
+   "amax": 2.22,
+   "stop": 0.82,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 0.8,
+   "tilt": 48.9,
+   "jumps": 8,
+   "amax": 1.92,
+   "stop": 0.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 0.66,
+   "tilt": 45.7,
+   "jumps": 8,
+   "amax": 2.18,
+   "stop": 0.66,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 6
+   },
+   "x": null,
+   "fell": 0.92,
+   "tilt": 49.5,
+   "jumps": 8,
+   "amax": 2.56,
+   "stop": 0.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 0.98,
+   "tilt": 45.4,
+   "jumps": 5,
+   "amax": 1.76,
+   "stop": 0.96,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 0.58,
+   "tilt": 45.8,
+   "jumps": 11,
+   "amax": 3.06,
+   "stop": 0.58,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 9
+   },
+   "x": null,
+   "fell": 0.68,
+   "tilt": 47.6,
+   "jumps": 10,
+   "amax": 2.59,
+   "stop": 0.68,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 0.64,
+   "tilt": 51.2,
+   "jumps": 9,
+   "amax": 2.51,
+   "stop": 0.62,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 1
+   },
+   "x": null,
+   "fell": 0.86,
+   "tilt": 45.1,
+   "jumps": 9,
+   "amax": 2.11,
+   "stop": 0.84,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 2
+   },
+   "x": null,
+   "fell": 0.66,
+   "tilt": 45.9,
+   "jumps": 7,
+   "amax": 1.97,
+   "stop": 0.64,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 0.88,
+   "tilt": 49.6,
+   "jumps": 10,
+   "amax": 2.22,
+   "stop": 0.82,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 0.8,
+   "tilt": 48.9,
+   "jumps": 8,
+   "amax": 1.92,
+   "stop": 0.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 0.66,
+   "tilt": 45.7,
+   "jumps": 8,
+   "amax": 2.18,
+   "stop": 0.66,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 6
+   },
+   "x": null,
+   "fell": 0.92,
+   "tilt": 49.5,
+   "jumps": 8,
+   "amax": 2.56,
+   "stop": 0.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 0.98,
+   "tilt": 45.4,
+   "jumps": 5,
+   "amax": 1.76,
+   "stop": 0.96,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 0.58,
+   "tilt": 45.8,
+   "jumps": 11,
+   "amax": 3.06,
+   "stop": 0.58,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 9
+   },
+   "x": null,
+   "fell": 0.68,
+   "tilt": 47.6,
+   "jumps": 10,
+   "amax": 2.59,
+   "stop": 0.68,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 0.64,
+   "tilt": 51.2,
+   "jumps": 9,
+   "amax": 2.51,
+   "stop": 0.62,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 1
+   },
+   "x": null,
+   "fell": 0.86,
+   "tilt": 45.1,
+   "jumps": 9,
+   "amax": 2.11,
+   "stop": 0.84,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 2
+   },
+   "x": null,
+   "fell": 0.66,
+   "tilt": 45.9,
+   "jumps": 7,
+   "amax": 1.97,
+   "stop": 0.64,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 0.88,
+   "tilt": 49.6,
+   "jumps": 10,
+   "amax": 2.22,
+   "stop": 0.82,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 0.8,
+   "tilt": 48.9,
+   "jumps": 8,
+   "amax": 1.92,
+   "stop": 0.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 0.66,
+   "tilt": 45.7,
+   "jumps": 8,
+   "amax": 2.18,
+   "stop": 0.66,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 6
+   },
+   "x": null,
+   "fell": 0.92,
+   "tilt": 49.5,
+   "jumps": 8,
+   "amax": 2.56,
+   "stop": 0.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 0.98,
+   "tilt": 45.4,
+   "jumps": 5,
+   "amax": 1.76,
+   "stop": 0.96,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 0.58,
+   "tilt": 45.8,
+   "jumps": 11,
+   "amax": 3.06,
+   "stop": 0.58,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 9
+   },
+   "x": null,
+   "fell": 0.68,
+   "tilt": 47.6,
+   "jumps": 10,
+   "amax": 2.59,
+   "stop": 0.68,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 0.58,
+   "tilt": 46.0,
+   "jumps": 11,
+   "amax": 2.84,
+   "stop": 0.58,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 1
+   },
+   "x": null,
+   "fell": 1.06,
+   "tilt": 50.3,
+   "jumps": 14,
+   "amax": 2.83,
+   "stop": 0.94,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 2
+   },
+   "x": null,
+   "fell": 0.9,
+   "tilt": 48.2,
+   "jumps": 15,
+   "amax": 2.57,
+   "stop": 0.88,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 1.58,
+   "tilt": 48.4,
+   "jumps": 18,
+   "amax": 2.85,
+   "stop": 1.54,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 2.92,
+   "tilt": 46.9,
+   "jumps": 38,
+   "amax": 2.77,
+   "stop": 2.9,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 0.74,
+   "tilt": 52.9,
+   "jumps": 8,
+   "amax": 1.72,
+   "stop": 0.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 6
+   },
+   "x": null,
+   "fell": 0.72,
+   "tilt": 51.5,
+   "jumps": 12,
+   "amax": 3.0,
+   "stop": 0.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 2.32,
+   "tilt": 47.5,
+   "jumps": 31,
+   "amax": 3.18,
+   "stop": 2.3,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 0.5,
+   "tilt": 46.9,
+   "jumps": 9,
+   "amax": 2.21,
+   "stop": 0.5,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 9
+   },
+   "x": null,
+   "fell": 0.74,
+   "tilt": 47.6,
+   "jumps": 11,
+   "amax": 2.25,
+   "stop": 0.72,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 0.58,
+   "tilt": 46.0,
+   "jumps": 11,
+   "amax": 2.84,
+   "stop": 0.58,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 1
+   },
+   "x": null,
+   "fell": 1.06,
+   "tilt": 50.3,
+   "jumps": 14,
+   "amax": 2.83,
+   "stop": 0.94,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 2
+   },
+   "x": null,
+   "fell": 0.9,
+   "tilt": 48.2,
+   "jumps": 15,
+   "amax": 2.57,
+   "stop": 0.88,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 1.58,
+   "tilt": 48.4,
+   "jumps": 18,
+   "amax": 2.85,
+   "stop": 1.54,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 2.92,
+   "tilt": 46.9,
+   "jumps": 38,
+   "amax": 2.77,
+   "stop": 2.9,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 0.74,
+   "tilt": 52.9,
+   "jumps": 8,
+   "amax": 1.72,
+   "stop": 0.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 6
+   },
+   "x": null,
+   "fell": 0.72,
+   "tilt": 51.5,
+   "jumps": 12,
+   "amax": 3.0,
+   "stop": 0.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 2.32,
+   "tilt": 47.5,
+   "jumps": 31,
+   "amax": 3.18,
+   "stop": 2.3,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 0.5,
+   "tilt": 46.9,
+   "jumps": 9,
+   "amax": 2.21,
+   "stop": 0.5,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 9
+   },
+   "x": null,
+   "fell": 0.74,
+   "tilt": 47.6,
+   "jumps": 11,
+   "amax": 2.25,
+   "stop": 0.72,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 0.58,
+   "tilt": 46.0,
+   "jumps": 11,
+   "amax": 2.84,
+   "stop": 0.58,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 1
+   },
+   "x": null,
+   "fell": 1.06,
+   "tilt": 50.3,
+   "jumps": 14,
+   "amax": 2.83,
+   "stop": 0.94,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 2
+   },
+   "x": null,
+   "fell": 0.9,
+   "tilt": 48.2,
+   "jumps": 15,
+   "amax": 2.57,
+   "stop": 0.88,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 1.58,
+   "tilt": 48.4,
+   "jumps": 18,
+   "amax": 2.85,
+   "stop": 1.54,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 2.92,
+   "tilt": 46.9,
+   "jumps": 38,
+   "amax": 2.77,
+   "stop": 2.9,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 0.74,
+   "tilt": 52.9,
+   "jumps": 8,
+   "amax": 1.72,
+   "stop": 0.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 6
+   },
+   "x": null,
+   "fell": 0.72,
+   "tilt": 51.5,
+   "jumps": 12,
+   "amax": 3.0,
+   "stop": 0.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 2.32,
+   "tilt": 47.5,
+   "jumps": 31,
+   "amax": 3.18,
+   "stop": 2.3,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 0.5,
+   "tilt": 46.9,
+   "jumps": 9,
+   "amax": 2.21,
+   "stop": 0.5,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 9
+   },
+   "x": null,
+   "fell": 0.74,
+   "tilt": 47.6,
+   "jumps": 11,
+   "amax": 2.25,
+   "stop": 0.72,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 0.58,
+   "tilt": 46.0,
+   "jumps": 11,
+   "amax": 2.84,
+   "stop": 0.58,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 1
+   },
+   "x": null,
+   "fell": 1.06,
+   "tilt": 50.3,
+   "jumps": 14,
+   "amax": 2.83,
+   "stop": 0.94,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 2
+   },
+   "x": null,
+   "fell": 0.9,
+   "tilt": 48.2,
+   "jumps": 15,
+   "amax": 2.57,
+   "stop": 0.88,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 1.58,
+   "tilt": 48.4,
+   "jumps": 18,
+   "amax": 2.85,
+   "stop": 1.54,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 2.92,
+   "tilt": 46.9,
+   "jumps": 38,
+   "amax": 2.77,
+   "stop": 2.9,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 0.74,
+   "tilt": 52.9,
+   "jumps": 8,
+   "amax": 1.72,
+   "stop": 0.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 6
+   },
+   "x": null,
+   "fell": 0.72,
+   "tilt": 51.5,
+   "jumps": 12,
+   "amax": 3.0,
+   "stop": 0.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 2.32,
+   "tilt": 47.5,
+   "jumps": 31,
+   "amax": 3.18,
+   "stop": 2.3,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 0.5,
+   "tilt": 46.9,
+   "jumps": 9,
+   "amax": 2.21,
+   "stop": 0.5,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "walk61",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 9
+   },
+   "x": null,
+   "fell": 0.74,
+   "tilt": 47.6,
+   "jumps": 11,
+   "amax": 2.25,
+   "stop": 0.72,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 0
+   },
+   "x": 0.032,
+   "fell": 3.98,
+   "tilt": 47.7,
+   "jumps": 14,
+   "amax": 2.8,
+   "stop": 3.92,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 1
+   },
+   "x": 0.078,
+   "fell": 4.02,
+   "tilt": 45.1,
+   "jumps": 20,
+   "amax": 2.11,
+   "stop": 3.94,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 2
+   },
+   "x": -0.148,
+   "fell": 3.88,
+   "tilt": 45.2,
+   "jumps": 26,
+   "amax": 2.4,
+   "stop": 3.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 3
+   },
+   "x": 0.009,
+   "fell": null,
+   "tilt": 13.3,
+   "jumps": 18,
+   "amax": 1.22,
+   "stop": null,
+   "why": null,
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 4
+   },
+   "x": -0.087,
+   "fell": 3.38,
+   "tilt": 47.6,
+   "jumps": 16,
+   "amax": 2.09,
+   "stop": 3.22,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 5
+   },
+   "x": 0.001,
+   "fell": 4.08,
+   "tilt": 52.3,
+   "jumps": 22,
+   "amax": 3.35,
+   "stop": 3.98,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 6
+   },
+   "x": 0.042,
+   "fell": null,
+   "tilt": 24.2,
+   "jumps": 25,
+   "amax": 1.94,
+   "stop": null,
+   "why": null,
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 7
+   },
+   "x": 0.054,
+   "fell": 3.42,
+   "tilt": 48.7,
+   "jumps": 14,
+   "amax": 3.56,
+   "stop": 3.4,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 8
+   },
+   "x": -0.016,
+   "fell": 3.06,
+   "tilt": 45.9,
+   "jumps": 17,
+   "amax": 2.37,
+   "stop": 2.96,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 0.6,
+    "seed": 9
+   },
+   "x": 0.055,
+   "fell": 5.62,
+   "tilt": 45.3,
+   "jumps": 17,
+   "amax": 2.8,
+   "stop": 5.48,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 0
+   },
+   "x": 0.031,
+   "fell": 3.96,
+   "tilt": 47.7,
+   "jumps": 13,
+   "amax": 2.84,
+   "stop": 3.92,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 1
+   },
+   "x": 0.08,
+   "fell": 4.0,
+   "tilt": 47.2,
+   "jumps": 21,
+   "amax": 2.0,
+   "stop": 3.94,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 2
+   },
+   "x": -0.158,
+   "fell": 3.9,
+   "tilt": 47.6,
+   "jumps": 26,
+   "amax": 2.46,
+   "stop": 3.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 3
+   },
+   "x": 0.06,
+   "fell": 5.32,
+   "tilt": 50.9,
+   "jumps": 28,
+   "amax": 4.29,
+   "stop": 5.32,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 4
+   },
+   "x": -0.087,
+   "fell": 3.38,
+   "tilt": 47.6,
+   "jumps": 16,
+   "amax": 2.09,
+   "stop": 3.22,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 5
+   },
+   "x": 0.013,
+   "fell": 4.06,
+   "tilt": 48.1,
+   "jumps": 22,
+   "amax": 3.49,
+   "stop": 3.98,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 6
+   },
+   "x": 0.051,
+   "fell": null,
+   "tilt": 24.2,
+   "jumps": 25,
+   "amax": 1.94,
+   "stop": null,
+   "why": null,
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 7
+   },
+   "x": 0.054,
+   "fell": 3.42,
+   "tilt": 48.7,
+   "jumps": 14,
+   "amax": 3.56,
+   "stop": 3.4,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 8
+   },
+   "x": -0.016,
+   "fell": 3.06,
+   "tilt": 45.9,
+   "jumps": 17,
+   "amax": 2.37,
+   "stop": 2.96,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.0,
+    "seed": 9
+   },
+   "x": 0.028,
+   "fell": 5.18,
+   "tilt": 45.2,
+   "jumps": 20,
+   "amax": 2.64,
+   "stop": 5.18,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 0
+   },
+   "x": 0.031,
+   "fell": 3.96,
+   "tilt": 47.7,
+   "jumps": 13,
+   "amax": 2.84,
+   "stop": 3.92,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 1
+   },
+   "x": 0.08,
+   "fell": 4.0,
+   "tilt": 47.2,
+   "jumps": 21,
+   "amax": 2.0,
+   "stop": 3.94,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 2
+   },
+   "x": -0.158,
+   "fell": 3.9,
+   "tilt": 47.6,
+   "jumps": 26,
+   "amax": 2.46,
+   "stop": 3.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 3
+   },
+   "x": 0.099,
+   "fell": 5.26,
+   "tilt": 46.1,
+   "jumps": 27,
+   "amax": 2.89,
+   "stop": 4.84,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 4
+   },
+   "x": -0.087,
+   "fell": 3.38,
+   "tilt": 47.6,
+   "jumps": 16,
+   "amax": 2.09,
+   "stop": 3.22,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 5
+   },
+   "x": 0.013,
+   "fell": 4.06,
+   "tilt": 48.1,
+   "jumps": 22,
+   "amax": 3.49,
+   "stop": 3.98,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 6
+   },
+   "x": 0.048,
+   "fell": null,
+   "tilt": 24.2,
+   "jumps": 24,
+   "amax": 1.94,
+   "stop": null,
+   "why": null,
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 7
+   },
+   "x": 0.054,
+   "fell": 3.42,
+   "tilt": 48.7,
+   "jumps": 14,
+   "amax": 3.56,
+   "stop": 3.4,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 8
+   },
+   "x": -0.016,
+   "fell": 3.06,
+   "tilt": 45.9,
+   "jumps": 17,
+   "amax": 2.37,
+   "stop": 2.96,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 1.3,
+    "seed": 9
+   },
+   "x": 0.099,
+   "fell": 5.36,
+   "tilt": 52.6,
+   "jumps": 24,
+   "amax": 4.5,
+   "stop": 5.32,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 0
+   },
+   "x": 0.031,
+   "fell": 3.96,
+   "tilt": 47.7,
+   "jumps": 13,
+   "amax": 2.84,
+   "stop": 3.92,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 1
+   },
+   "x": 0.08,
+   "fell": 4.0,
+   "tilt": 47.2,
+   "jumps": 21,
+   "amax": 2.0,
+   "stop": 3.94,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 2
+   },
+   "x": -0.158,
+   "fell": 3.9,
+   "tilt": 47.6,
+   "jumps": 26,
+   "amax": 2.46,
+   "stop": 3.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 3
+   },
+   "x": 0.184,
+   "fell": 4.86,
+   "tilt": 45.3,
+   "jumps": 23,
+   "amax": 3.03,
+   "stop": 4.82,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 4
+   },
+   "x": -0.087,
+   "fell": 3.38,
+   "tilt": 47.6,
+   "jumps": 16,
+   "amax": 2.09,
+   "stop": 3.22,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 5
+   },
+   "x": 0.013,
+   "fell": 4.06,
+   "tilt": 48.1,
+   "jumps": 22,
+   "amax": 3.49,
+   "stop": 3.98,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 6
+   },
+   "x": 0.122,
+   "fell": 5.72,
+   "tilt": 50.4,
+   "jumps": 40,
+   "amax": 3.31,
+   "stop": 5.7,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 7
+   },
+   "x": 0.054,
+   "fell": 3.42,
+   "tilt": 48.7,
+   "jumps": 14,
+   "amax": 3.56,
+   "stop": 3.4,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 8
+   },
+   "x": -0.016,
+   "fell": 3.06,
+   "tilt": 45.9,
+   "jumps": 17,
+   "amax": 2.37,
+   "stop": 2.96,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn2",
+    "T": 8.0,
+    "seed": 9
+   },
+   "x": 0.21,
+   "fell": 4.86,
+   "tilt": 45.5,
+   "jumps": 17,
+   "amax": 3.28,
+   "stop": 4.84,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 2.12,
+   "tilt": 51.9,
+   "jumps": 29,
+   "amax": 3.07,
+   "stop": 2.1,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 1
+   },
+   "x": 0.11,
+   "fell": 3.8,
+   "tilt": 48.3,
+   "jumps": 22,
+   "amax": 2.71,
+   "stop": 3.8,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 2
+   },
+   "x": 0.108,
+   "fell": 4.16,
+   "tilt": 47.7,
+   "jumps": 35,
+   "amax": 3.08,
+   "stop": 4.1,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 2.34,
+   "tilt": 45.2,
+   "jumps": 21,
+   "amax": 3.8,
+   "stop": 2.3,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 2.22,
+   "tilt": 45.2,
+   "jumps": 15,
+   "amax": 1.98,
+   "stop": 2.06,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 2.68,
+   "tilt": 45.7,
+   "jumps": 21,
+   "amax": 2.17,
+   "stop": 2.56,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 6
+   },
+   "x": -0.011,
+   "fell": 4.06,
+   "tilt": 46.1,
+   "jumps": 17,
+   "amax": 2.85,
+   "stop": 4.0,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 2.76,
+   "tilt": 49.7,
+   "jumps": 24,
+   "amax": 2.76,
+   "stop": 2.76,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 2.2,
+   "tilt": 47.1,
+   "jumps": 34,
+   "amax": 2.48,
+   "stop": 2.08,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 0.6,
+    "seed": 9
+   },
+   "x": -0.006,
+   "fell": 3.88,
+   "tilt": 47.9,
+   "jumps": 27,
+   "amax": 2.5,
+   "stop": 3.82,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 7.6
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 2.12,
+   "tilt": 51.9,
+   "jumps": 29,
+   "amax": 3.07,
+   "stop": 2.1,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 1
+   },
+   "x": 0.109,
+   "fell": 3.8,
+   "tilt": 49.2,
+   "jumps": 23,
+   "amax": 2.93,
+   "stop": 3.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 2
+   },
+   "x": 0.093,
+   "fell": 4.26,
+   "tilt": 45.2,
+   "jumps": 31,
+   "amax": 3.17,
+   "stop": 4.04,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 2.34,
+   "tilt": 45.2,
+   "jumps": 21,
+   "amax": 3.8,
+   "stop": 2.3,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 2.22,
+   "tilt": 45.2,
+   "jumps": 15,
+   "amax": 1.98,
+   "stop": 2.06,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 2.68,
+   "tilt": 45.7,
+   "jumps": 21,
+   "amax": 2.17,
+   "stop": 2.56,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 6
+   },
+   "x": -0.011,
+   "fell": 4.06,
+   "tilt": 51.5,
+   "jumps": 17,
+   "amax": 3.08,
+   "stop": 4.0,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 2.76,
+   "tilt": 49.7,
+   "jumps": 24,
+   "amax": 2.76,
+   "stop": 2.76,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 2.2,
+   "tilt": 47.1,
+   "jumps": 34,
+   "amax": 2.48,
+   "stop": 2.08,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.0,
+    "seed": 9
+   },
+   "x": -0.005,
+   "fell": 3.88,
+   "tilt": 48.4,
+   "jumps": 27,
+   "amax": 2.69,
+   "stop": 3.82,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 2.12,
+   "tilt": 51.9,
+   "jumps": 29,
+   "amax": 3.07,
+   "stop": 2.1,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 1
+   },
+   "x": 0.109,
+   "fell": 3.8,
+   "tilt": 49.2,
+   "jumps": 23,
+   "amax": 2.93,
+   "stop": 3.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 2
+   },
+   "x": 0.094,
+   "fell": 4.28,
+   "tilt": 47.0,
+   "jumps": 31,
+   "amax": 3.19,
+   "stop": 4.04,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 2.34,
+   "tilt": 45.2,
+   "jumps": 21,
+   "amax": 3.8,
+   "stop": 2.3,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 2.22,
+   "tilt": 45.2,
+   "jumps": 15,
+   "amax": 1.98,
+   "stop": 2.06,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 2.68,
+   "tilt": 45.7,
+   "jumps": 21,
+   "amax": 2.17,
+   "stop": 2.56,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 6
+   },
+   "x": -0.011,
+   "fell": 4.06,
+   "tilt": 51.5,
+   "jumps": 17,
+   "amax": 3.08,
+   "stop": 4.0,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 2.76,
+   "tilt": 49.7,
+   "jumps": 24,
+   "amax": 2.76,
+   "stop": 2.76,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 2.2,
+   "tilt": 47.1,
+   "jumps": 34,
+   "amax": 2.48,
+   "stop": 2.08,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 1.3,
+    "seed": 9
+   },
+   "x": -0.005,
+   "fell": 3.88,
+   "tilt": 48.4,
+   "jumps": 27,
+   "amax": 2.69,
+   "stop": 3.82,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 8.3
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 0
+   },
+   "x": null,
+   "fell": 2.12,
+   "tilt": 51.9,
+   "jumps": 29,
+   "amax": 3.07,
+   "stop": 2.1,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 1
+   },
+   "x": 0.109,
+   "fell": 3.8,
+   "tilt": 49.2,
+   "jumps": 23,
+   "amax": 2.93,
+   "stop": 3.78,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 2
+   },
+   "x": 0.094,
+   "fell": 4.28,
+   "tilt": 47.0,
+   "jumps": 31,
+   "amax": 3.19,
+   "stop": 4.04,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 3
+   },
+   "x": null,
+   "fell": 2.34,
+   "tilt": 45.2,
+   "jumps": 21,
+   "amax": 3.8,
+   "stop": 2.3,
+   "why": "action over 3.0 rad in 3 of 10 ticks",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 4
+   },
+   "x": null,
+   "fell": 2.22,
+   "tilt": 45.2,
+   "jumps": 15,
+   "amax": 1.98,
+   "stop": 2.06,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 5
+   },
+   "x": null,
+   "fell": 2.68,
+   "tilt": 45.7,
+   "jumps": 21,
+   "amax": 2.17,
+   "stop": 2.56,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 6
+   },
+   "x": -0.011,
+   "fell": 4.06,
+   "tilt": 51.5,
+   "jumps": 17,
+   "amax": 3.08,
+   "stop": 4.0,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 7
+   },
+   "x": null,
+   "fell": 2.76,
+   "tilt": 49.7,
+   "jumps": 24,
+   "amax": 2.76,
+   "stop": 2.76,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 8
+   },
+   "x": null,
+   "fell": 2.2,
+   "tilt": 47.1,
+   "jumps": 34,
+   "amax": 2.48,
+   "stop": 2.08,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  },
+  {
+   "job": {
+    "policy": "cand",
+    "cond": "worst_sn3",
+    "T": 8.0,
+    "seed": 9
+   },
+   "x": -0.005,
+   "fell": 3.88,
+   "tilt": 48.4,
+   "jumps": 27,
+   "amax": 2.69,
+   "stop": 3.82,
+   "why": "body tilt over 30.0 deg",
+   "sim_s": 15.0
+  }
+ ]
+}

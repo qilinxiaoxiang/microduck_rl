@@ -1,0 +1,163 @@
+{
+ "variant": "current",
+ "stand_s": 1.0,
+ "both_slots": false,
+ "rows": [
+  {
+   "policy": "walk61",
+   "ankle_fwd": -0.06,
+   "pitch_trim": null,
+   "case": "nominal",
+   "bursts": {
+    "0.0": {
+     "n": 6,
+     "fell": 6,
+     "cm": null,
+     "back": 0,
+     "tilt": 48.2,
+     "jumps": 0.0
+    }
+   }
+  },
+  {
+   "policy": "walk61",
+   "ankle_fwd": 0.0,
+   "pitch_trim": null,
+   "case": "nominal",
+   "bursts": {
+    "0.0": {
+     "n": 6,
+     "fell": 6,
+     "cm": null,
+     "back": 0,
+     "tilt": 48.3,
+     "jumps": 0.0
+    }
+   }
+  },
+  {
+   "policy": "walk61",
+   "ankle_fwd": 0.02,
+   "pitch_trim": null,
+   "case": "nominal",
+   "bursts": {
+    "0.0": {
+     "n": 6,
+     "fell": 6,
+     "cm": null,
+     "back": 0,
+     "tilt": 48.2,
+     "jumps": 0.0
+    }
+   }
+  },
+  {
+   "policy": "walk61",
+   "ankle_fwd": 0.04,
+   "pitch_trim": null,
+   "case": "nominal",
+   "bursts": {
+    "0.0": {
+     "n": 6,
+     "fell": 0,
+     "cm": [
+      -25.2,
+      -23.1,
+      -13.4
+     ],
+     "back": 6,
+     "tilt": 4.6,
+     "jumps": 5.83
+    }
+   }
+  },
+  {
+   "policy": "walk61",
+   "ankle_fwd": 0.06,
+   "pitch_trim": null,
+   "case": "nominal",
+   "bursts": {
+    "0.0": {
+     "n": 6,
+     "fell": 0,
+     "cm": [
+      -24.7,
+      -21.9,
+      4.8
+     ],
+     "back": 5,
+     "tilt": 4.9,
+     "jumps": 9.5
+    }
+   }
+  },
+  {
+   "policy": "walk61",
+   "ankle_fwd": 0.08,
+   "pitch_trim": null,
+   "case": "nominal",
+   "bursts": {
+    "0.0": {
+     "n": 6,
+     "fell": 0,
+     "cm": [
+      -25.7,
+      -14.1,
+      -4.7
+     ],
+     "back": 6,
+     "tilt": 10.5,
+     "jumps": 10.83
+    }
+   }
+  },
+  {
+   "policy": "walk61",
+   "ankle_fwd": 0.1,
+   "pitch_trim": null,
+   "case": "nominal",
+   "bursts": {
+    "0.0": {
+     "n": 6,
+     "fell": 6,
+     "cm": null,
+     "back": 0,
+     "tilt": 48.3,
+     "jumps": 22.67
+    }
+   }
+  },
+  {
+   "policy": "walk61",
+   "ankle_fwd": 0.13,
+   "pitch_trim": null,
+   "case": "nominal",
+   "bursts": {
+    "0.0": {
+     "n": 6,
+     "fell": 6,
+     "cm": null,
+     "back": 0,
+     "tilt": 47.1,
+     "jumps": 0.0
+    }
+   }
+  },
+  {
+   "policy": "walk61",
+   "ankle_fwd": 0.16,
+   "pitch_trim": null,
+   "case": "nominal",
+   "bursts": {
+    "0.0": {
+     "n": 6,
+     "fell": 6,
+     "cm": null,
+     "back": 0,
+     "tilt": 46.3,
+     "jumps": 0.0
+    }
+   }
+  }
+ ]
+}

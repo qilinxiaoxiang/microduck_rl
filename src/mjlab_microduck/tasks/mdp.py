@@ -8373,3 +8373,259 @@ def action_acc_l2(env: ManagerBasedRlEnv) -> torch.Tensor:
     and knee that a first difference (action_rate_l2) prices at the same rate as a smooth stride."""
     am = env.action_manager
     return torch.sum(torch.square(am.action - 2.0 * am.prev_action + am.prev_prev_action), dim=1)
+
+
+# ── Walk step (cmu_walk_step_env_cfg.py): walk61's burst contract, for step-look-step ──────────────────────────────
+
+
+class StepBurstCommand(CommandTerm):
+    """Velocity bursts exactly as the robot feeds walk61: a forward pulse of T s (walk_wired's for_s), then zero, both
+    through walk_wired's per-tick command low-pass. The policy sees only that twist: no target, no odometry.
+
+    A reference pose (foot midpoint, trunk heading) is anchored when a pulse starts, advances at ref_speed along the
+    commanded arc while the RAW pulse is on, and holds afterwards. Only the rewards see it."""
+
+    cfg: "StepBurstCommandCfg"
+
+    def __init__(self, cfg: "StepBurstCommandCfg", env: ManagerBasedRlEnv):
+        super().__init__(cfg, env)
+        n, dev = self.num_envs, self.device
+        self.robot: Entity = env.scene[cfg.entity_name]
+        self._feet, _ = self.robot.find_sites(["left_foot", "right_foot"], preserve_order=True)
+        self.smoothed, self.pulse = torch.zeros(n, 3, device=dev), torch.zeros(n, 3, device=dev)
+        self.left_s = torch.zeros(n, device=dev)        # of the current phase (pulse or rest)
+        self.rest_age_s = torch.zeros(n, device=dev)    # since the last pulse ended (or the reset)
+        self.pulsing = torch.zeros(n, dtype=torch.bool, device=dev)
+        self.stepped = torch.zeros(n, dtype=torch.bool, device=dev)  # a pulse has run in this episode
+        self.ref_xy, self.ref_yaw = torch.zeros(n, 2, device=dev), torch.zeros(n, device=dev)
+        self.err = torch.zeros(n, 3, device=dev)        # reference minus robot: world dx, dy and dyaw
+        self.end_err = torch.zeros(n, device=dev)
+        self.forward_ema = torch.zeros(n, device=dev)   # trunk speed along the reference heading, sway averaged out
+        for k in ("err_xy", "end_err_xy"):
+            self.metrics[k] = torch.zeros(n, device=dev)
+
+    @property
+    def command(self) -> torch.Tensor:
+        return self.smoothed
+
+    def pose(self) -> tuple[torch.Tensor, torch.Tensor]:
+        q = self.robot.data.root_link_quat_w
+        yaw = torch.atan2(2 * (q[:, 0] * q[:, 3] + q[:, 1] * q[:, 2]), 1 - 2 * (q[:, 2] ** 2 + q[:, 3] ** 2))
+        return self.robot.data.site_pos_w[:, self._feet, :2].mean(1), yaw
+
+    def _uniform(self, n: int, lo_hi: tuple[float, float]) -> torch.Tensor:
+        return torch.empty(n, device=self.device).uniform_(*lo_hi)
+
+    def _resample_command(self, env_ids: torch.Tensor) -> None:
+        # only at a reset (resampling_time_range is longer than any episode): start in a rest
+        self.smoothed[env_ids] = self.pulse[env_ids] = 0.0
+        self.forward_ema[env_ids] = 0.0
+        self.err[env_ids] = 0.0
+        self.end_err[env_ids] = self.rest_age_s[env_ids] = 0.0
+        self.pulsing[env_ids] = self.stepped[env_ids] = False
+        first = self._uniform(len(env_ids), self.cfg.first_rest_s)
+        first[torch.rand(len(env_ids), device=self.device) < self.cfg.idle_prob] = 1e9   # stands the whole episode
+        self.left_s[env_ids] = first
+
+    def _update_command(self) -> None:
+        c, dt = self.cfg, self._env.step_dt
+        p, yaw = self.pose()
+        # until the robot has landed from the reset the reference follows it
+        landing = ~self.stepped & (self.rest_age_s < c.land_s)
+        self.ref_xy[landing], self.ref_yaw[landing] = p[landing], yaw[landing]
+
+        self.left_s -= dt
+        due = self.left_s <= 0
+        stop = (due & self.pulsing).nonzero(as_tuple=True)[0]
+        go = (due & ~self.pulsing).nonzero(as_tuple=True)[0]
+        if len(stop):
+            self.pulsing[stop] = False
+            self.pulse[stop] = self.rest_age_s[stop] = 0.0
+            self.left_s[stop] = self._uniform(len(stop), c.rest_s)
+        if len(go):
+            n = len(go)
+            again = self.stepped[go]
+            self.end_err[go[again]] = (self.ref_xy[go[again]] - p[go[again]]).norm(dim=-1)
+            wz = self._uniform(n, c.wz)
+            wz[torch.rand(n, device=self.device) < c.straight_prob] = 0.0
+            self.pulse[go] = torch.stack([self._uniform(n, c.vx), self._uniform(n, c.vy), wz], -1)
+            length = self._uniform(n, c.pulse_s)
+            long = torch.rand(n, device=self.device) < c.long_prob
+            length[long] = self._uniform(int(long.sum()), c.long_pulse_s)
+            if c.long_vx is not None:
+                self.pulse[go[long], 0] = self._uniform(int(long.sum()), c.long_vx)
+            self.left_s[go] = length
+            self.pulsing[go] = self.stepped[go] = True
+            self.ref_xy[go], self.ref_yaw[go] = p[go], yaw[go]
+
+        on = self.pulsing.float()
+        self.ref_yaw += on * self.pulse[:, 2] * dt
+        self.ref_xy += (on * c.ref_speed * dt).unsqueeze(-1) * torch.stack([self.ref_yaw.cos(), self.ref_yaw.sin()], -1)
+        self.rest_age_s += (1.0 - on) * dt
+        v = self.robot.data.root_link_lin_vel_w
+        forward = v[:, 0] * self.ref_yaw.cos() + v[:, 1] * self.ref_yaw.sin()
+        self.forward_ema += dt / c.speed_tau_s * (forward - self.forward_ema)
+        self.smoothed += c.cmd_alpha * (self.pulse - self.smoothed)
+        self.smoothed[self.smoothed.abs() < 1e-4] = 0.0
+        self.err = torch.cat([self.ref_xy - p, wrap_to_pi(self.ref_yaw - yaw).unsqueeze(-1)], -1)
+
+    def _update_metrics(self) -> None:
+        self.metrics["err_xy"] = self.err[:, :2].norm(dim=-1)
+        self.metrics["end_err_xy"] = self.end_err.clone()
+
+
+@_dataclass(kw_only=True)
+class StepBurstCommandCfg(CommandTermCfg):
+    entity_name: str = "robot"
+    vx: tuple[float, float]
+    vy: tuple[float, float]
+    wz: tuple[float, float]
+    straight_prob: float
+    pulse_s: tuple[float, float]
+    rest_s: tuple[float, float]
+    first_rest_s: tuple[float, float]
+    land_s: float
+    ref_speed: float
+    cmd_alpha: float
+    speed_tau_s: float = 0.4
+    idle_prob: float = 0.0                      # share of episodes that only stand (stand61's job before the first step)
+    long_prob: float = 0.0                      # share of pulses that are teleop walks, long_pulse_s long
+    long_pulse_s: tuple[float, float] = (1.5, 5.0)
+    long_vx: tuple[float, float] | None = None     # forward command of the long pulses (None: vx)
+    resampling_time_range: tuple[float, float] = (1e9, 1e9)
+
+    def build(self, env: ManagerBasedRlEnv) -> StepBurstCommand:
+        return StepBurstCommand(self, env)
+
+
+def step_ref_position(env: ManagerBasedRlEnv, command_name: str, std: float) -> torch.Tensor:
+    """exp(-|e_xy|^2 / std^2) to the burst's moving reference. The reference is rate-limited (it IS the ramp), so
+    arriving early pays nothing. >= 0, use a positive weight."""
+    return torch.exp(-env.command_manager.get_term(command_name).err[:, :2].square().sum(-1) / std**2)
+
+
+def step_ref_position_l1(env: ManagerBasedRlEnv, command_name: str, max_err: float) -> torch.Tensor:
+    """|e_x| + |e_y| to the reference, capped at max_err (so falling is never cheaper). >= 0, use a negative weight."""
+    return env.command_manager.get_term(command_name).err[:, :2].abs().sum(-1).clamp(max=max_err)
+
+
+def step_ref_heading(env: ManagerBasedRlEnv, command_name: str, std: float) -> torch.Tensor:
+    """exp(-e_yaw^2 / std^2) to the reference heading. >= 0, use a positive weight."""
+    return torch.exp(-env.command_manager.get_term(command_name).err[:, 2].square() / std**2)
+
+
+def step_burst_progress(env: ManagerBasedRlEnv, command_name: str) -> torch.Tensor:
+    """While a burst runs only: speed along it over the reference speed, clipped to [-1, 1]. Standing through a burst
+    pays zero and going faster than the reference pays nothing more. Signed, use a positive weight."""
+    t = env.command_manager.get_term(command_name)
+    return t.pulsing.float() * (t.forward_ema / t.cfg.ref_speed).clamp(-1.0, 1.0)
+
+
+def step_settled_speed(env: ManagerBasedRlEnv, command_name: str, settle_s: float, max_speed: float) -> torch.Tensor:
+    """Trunk planar speed once a burst has had settle_s to stop (walk61 creeps and keeps stepping), capped.
+    >= 0, use a negative weight."""
+    late = env.command_manager.get_term(command_name).rest_age_s > settle_s
+    speed = env.scene["robot"].data.root_link_lin_vel_w[:, :2].norm(dim=-1)
+    return late.float() * speed.clamp(max=max_speed)
+
+
+class StepLookHeadCommand(UniformPoseCommand):
+    """Head command of step-look-step: neutral while a burst runs and while it stops; once the robot has stood for
+    look_after_s it looks down (a share look_prob of the rests) and is back at neutral lead_s before the next burst.
+    Low-passed per tick as walk_brain's HEAD_ALPHA. Needs a StepBurstCommand registered before it."""
+
+    cfg: "StepLookHeadCommandCfg"
+
+    def __init__(self, cfg: "StepLookHeadCommandCfg", env: ManagerBasedRlEnv):
+        super().__init__(cfg, env)
+        self._look = torch.zeros(self.num_envs, self.dim, device=self.device)
+        self._idle = torch.zeros(self.num_envs, self.dim, device=self.device)
+        self._was_pulsing = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+
+    def _draw(self, ids: torch.Tensor) -> None:
+        n, u = len(ids), torch.empty(len(ids), device=self.device)
+        for i, ((lo, hi), (look_lo, look_hi)) in enumerate(zip(self.cfg.ranges, self.cfg.look_ranges)):
+            self._idle[ids, i] = u.uniform_(lo, hi)
+            self._look[ids, i] = u.uniform_(look_lo, look_hi)
+        self._idle[ids[torch.rand(n, device=self.device) < self.cfg.zero_command_prob]] = 0.0
+        none = ids[torch.rand(n, device=self.device) >= self.cfg.look_prob]
+        self._look[none] = self._idle[none]
+
+    def _resample_command(self, env_ids: torch.Tensor) -> None:
+        if len(env_ids):
+            self._draw(env_ids)
+            self._command[env_ids] = self._idle[env_ids]
+            self._was_pulsing[env_ids] = False
+
+    def _update_command(self) -> None:
+        c, twist = self.cfg, self._env.command_manager.get_term(self.cfg.twist_command_name)
+        ended = (self._was_pulsing & ~twist.pulsing).nonzero(as_tuple=True)[0]
+        if len(ended):
+            self._draw(ended)
+        self._was_pulsing[:] = twist.pulsing
+        looking = ~twist.pulsing & (twist.rest_age_s > c.look_after_s) & (twist.left_s > c.lead_s)
+        self._command += c.alpha * (torch.where(looking.unsqueeze(-1), self._look, self._idle) - self._command)
+
+
+@_dataclass(kw_only=True)
+class StepLookHeadCommandCfg(UniformPoseCommandCfg):
+    look_ranges: tuple[tuple[float, float], ...]
+    look_prob: float
+    look_after_s: float
+    lead_s: float
+    alpha: float
+    twist_command_name: str = "twist"
+    resampling_time_range: tuple[float, float] = (1e9, 1e9)
+
+    def build(self, env: ManagerBasedRlEnv) -> "StepLookHeadCommand":
+        return StepLookHeadCommand(self, env)
+
+
+def leg_action_step_over_l2(env: ManagerBasedRlEnv, limit: float, action_name: str = "joint_pos") -> torch.Tensor:
+    """sum over the ten leg actions of max(|a_t - a_t-1| - limit, 0)^2: only the one-tick jumps the deploy gate counts
+    (> 0.5 rad), which action_rate_l2 prices at almost nothing next to many small steps (flight round 3,
+    cmu/finetune/flight/smooth_terms.py). >= 0, use a negative weight."""
+    am = env.action_manager
+    legs = getattr(env, "_leg_action_ids", None)
+    if legs is None:
+        names = am.get_term(action_name).target_names
+        legs = env._leg_action_ids = [i for i, n in enumerate(names) if n.startswith(("left_", "right_"))]
+        assert len(legs) == 10, names
+    d = (am.action - am.prev_action)[:, legs].abs()
+    return torch.sum(torch.square(torch.clamp(d - limit, min=0.0)), dim=1)
+
+
+from mjlab.envs.mdp.actions.actions import JointPositionAction as _JointPositionAction
+from mjlab.envs.mdp.actions.actions import JointPositionActionCfg as _JointPositionActionCfg
+
+
+class DroppedReadJointPositionAction(_JointPositionAction):
+    """Joint position targets with the robot's dropped servo reads: on such a tick walk_brain skips the policy and the
+    servos keep the goals they have (walk_brain.Brain.tick, brain_sim_check --drop; 3.6 % of walking ticks on the
+    robot, 8 % in the gate's stress cases). Each episode draws its drop share from cfg.drop_range."""
+
+    def __init__(self, cfg: "DroppedReadJointPositionActionCfg", env: ManagerBasedRlEnv):
+        super().__init__(cfg, env)
+        self._held = torch.zeros_like(self._raw_actions)
+        self._p = torch.zeros(self.num_envs, device=self.device)
+
+    def process_actions(self, actions: torch.Tensor):
+        drop = (torch.rand(self.num_envs, device=self.device) < self._p).unsqueeze(-1)
+        held = torch.where(drop, self._held, actions)
+        self._held = held.clone()
+        super().process_actions(held)
+
+    def reset(self, env_ids: torch.Tensor | slice | None = None) -> None:
+        super().reset(env_ids)
+        ids = slice(None) if env_ids is None else env_ids
+        self._held[ids] = 0.0
+        n = self._p[ids].numel()
+        self._p[ids] = torch.empty(n, device=self.device).uniform_(*self.cfg.drop_range)
+
+
+@_dataclass(kw_only=True)
+class DroppedReadJointPositionActionCfg(_JointPositionActionCfg):
+    drop_range: tuple[float, float] = (0.0, 0.08)
+
+    def build(self, env: ManagerBasedRlEnv) -> DroppedReadJointPositionAction:
+        return DroppedReadJointPositionAction(self, env)
