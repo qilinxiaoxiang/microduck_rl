@@ -57,6 +57,13 @@ The gaps below are grouped by status (split: what we know about each gap).
 - **Left yaw drift at walk start.** Over the first 2 s of a straight walk at vx 0.25 the robot turns left: median
   +16 to +18 deg for the C1 fine-tunes and +10 to +18 deg for the deployed walk61 (range -7 to +29). The fitted sim
   gives -13 to -2 deg for C1 and +2.8 for walk61. Cause unknown.
+- **Walking trunk pitch in action replay (largest open gap, 2026-11-22).**
+  - **Method:** the robot's logged servo goals were fed into the sim from the robot's logged joint and trunk state, over 1 s windows. The self-test replays the sim's own trajectory and stays under 2 deg at 0.3 s.
+  - **Result:** in every walking window, for walk61 on the 650 mAh pack (which walks on the robot) as much as for the C2 fine-tunes, the sim trunk pitches backward against the robot by about 23 deg at 0.3 s. Trunk pitch diverges first at about 0.07 s, then the knee.
+  - **Ruled out:** a joint CMA-ES fit of foot friction, servo friction, delay, kp, damping, ankle zero and IMU offset fixes standing (held-out loss 27.8 to 0.76) but leaves walking unchanged. So the error is in the model's mass layout or foot contact geometry, or in the replay's walking initialisation, and it is common to good and bad policies.
+  - **Source:** robotics repo `microduck-sim/extensions/battery-walk-20261122/action-replay-20261122/summary.txt`.
+- **Closed-loop walking agitation.** In the same robot command sequences the robot's legs move much more than the sim's: turn leg rms 2.2 vs 0.6-0.9 rad/s, and 18-19 vs 1-4 action jumps per s. The robot also falls after the walk key is released (8 of 11 straight falls). One extra 20 ms action tick in the sim matches the turns but over-falls straight walks, so any extra robot latency is between 0 and 20 ms (`gap-c2-20261122/SUMMARY.txt` in the same folder).
+- **IMU mount offset.** Feet-flat stands give an IMU pitch offset of +5.0 deg (650 mAh pack) to +7.6 deg (3000 mAh pack), against -2 deg in the fitted cell. It is not separable from ankle zero without an independent scan.
 - **Supply sag (not a fall cause).** Pack-to-servo path resistance is 0.21-0.23 ohm (fit of servo voltage against
   summed servo current), so 4-5 A steps sag the rail about 1 V. The 2026-11-22 power cuts came from a loose XT30
   joint, since re-soldered. Training already draws the supply from 6.5-8.2 V with sag.
