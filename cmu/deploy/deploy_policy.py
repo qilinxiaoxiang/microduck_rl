@@ -149,7 +149,8 @@ def gate_label(variant, payload=None):
 def sim_hash():
     """Hash of everything the suite's walk61 rows depend on, so a cached baseline is reused only while it is current."""
     h = hashlib.sha256()
-    paths = [os.path.join(ROOT, "cmu", "robot-condition.json"), os.path.join(ROOT, "cmu", "simcheck", "sim_suite.py")]
+    paths = [os.path.join(ROOT, "cmu", "robot-condition.json"), os.path.join(ROOT, "cmu", "simcheck", "sim_suite.py"),
+             os.path.join(ROOT, "cmu", "simcheck", "noisy_check.py")]
     for top in ("cmu/mac", "cmu/model", "cmu/whole/delay-repair-20260912", "cmu/whole/dynamics", "cmu/pi",
                 "cmu/whole/runtime-overlay/models"):
         for d, _, files in os.walk(os.path.join(ROOT, top)):

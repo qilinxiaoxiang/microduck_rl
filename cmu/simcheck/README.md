@@ -44,14 +44,29 @@ case's own flags come after and override the base.
 ## How to judge
 
 Only the real cases decide. The verdict prints, per real case, whether the candidate matches or beats the reference
-row (walk61 by default); stress cases are printed as "stress, report only" and never accept or reject a policy. A
-candidate matches or beats the reference on a case when all of these hold:
+row (walk61 by default); stress cases are printed as "stress, report only" and never accept or reject a policy.
 
-- it does not fall when the reference did not fall (`fell_at` stays null);
+Since 2026-11-22 every case runs through `noisy_check.py` with the robot's measured sensor noise and servo friction
+(`sim_suite.py` SENSOR_NOISE and BAM_FRICTION, sources in the comment there: motion-driven gyro noise 0.35 x rms leg
+speed, joint velocity noise 0.26 x rms leg speed, 0.02 rad/s floors, BAM friction x1.25), and every real case runs
+seeds 0, 1 and 2 (4 sims at once, `SIM_SUITE_JOBS`). With clean sensors the gate was wrong both ways: bw-c2-s1b froze
+from standstill in the sim and walks on the robot; bw-c1-s1b passed and fell on the robot. A `stand` case (stand61 at
+zero command for 11 s) is real too.
+
+Each run gets a label: walk cases `fell`, `did not start walking` (trunk moved under 0.1 m) or `walked`; the stand
+case `fell`, `struggled` or `steady`, steady meaning all of `gapcheck.py`'s STEADY bars from the robot's own stands
+(action jumps at most 1.0/s, leg rms speed at most 0.30 rad/s, at least 75 % still 1 s windows, settled within 2 s).
+The case takes the median label of its seeds (an even count rounds to the worse) and the medians of the measures over
+the seeds that did not fall. Walk measures start at the walk command (`max_tilt_cmd`, `action_jumps_cmd`), so the
+stand61 settle before it no longer reads as walking tilt. A candidate matches or beats the reference on a case when:
+
+- it did not fall (a fall never passes, whatever the reference did; a candidate that stands where the reference fell
+  passes that case);
+- it started walking where the reference started; it stood steady (a struggling stand is not a stand);
 - `max_tilt` is at most the reference plus 2 deg;
 - `dist_x` reaches at least 0.9 of the reference distance (only checked when the reference walked forward);
 - `action_jumps` (ticks whose action moved more than 0.5 rad from the previous tick, the jitter measure used on the
-  real logs) is at most the reference plus 2.
+  real logs) is at most the reference plus 2 or plus 50 %, whichever is more.
 
 The thresholds are constants at the top of `sim_suite.py`. A passing verdict means the candidate is at least as
 good as the deployed policy in the simulation at the robot's condition; it does not predict the robot. The

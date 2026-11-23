@@ -48,7 +48,7 @@ def test_a_measured_floor_mu_makes_its_case_real(tmp_path):
 
 def test_the_first_eight_cases_are_unchanged():
     assert [(cls, name) for cls, name, _ in sim_suite.CASES] == [
-        ("real", "nominal"), ("real", "vx0.25"), ("real", "vx0.2"), ("real", "com+5"), ("real", "imu_pitch4"),
+        ("real", "nominal"), ("real", "vx0.25"), ("real", "vx0.2"), ("stress", "com+5"), ("real", "imu_pitch4"),
         ("stress", "volt6.3"), ("stress", "drop8_imu35"), ("stress", "drop8_imu35_s1")]
 
 
