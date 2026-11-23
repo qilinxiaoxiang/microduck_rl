@@ -46,7 +46,9 @@ def main():
     cfg = load_env_cfg(fw.TASK, play=False)
     fw.apply_delta(cfg, delta)
     manifest = fw.resolve_manifest("current", "", manifests_dir=str(REPO / "cmu/model/manifests"))
-    case("current manifest is battery-v2m5-20261121", Path(manifest).name == "battery-v2m5-20261121.json", manifest)
+    import json as _json
+    cur_name = Path(_json.loads((REPO / "cmu/model/current.json").read_text())["mass_manifest"]).name
+    case("current manifest is the one current.json names", Path(manifest).name == cur_name, manifest)
     cfg.scene.entities["robot"] = fw.apply_asbuilt_masses(cfg.scene.entities["robot"], manifest,
                                                           str(REPO / "cmu/whole/electrical/existing-model-mass-audit.json"), 0.09)
     cfg.scene.num_envs = 4
