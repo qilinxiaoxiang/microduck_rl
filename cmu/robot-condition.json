@@ -1,16 +1,16 @@
 {
   "purpose": "The CMU MicroDuck's current measured condition, as far as the simulation needs it. Copied from the private microduck-sim/CURRENT-STATE.json (the robot's single source of current facts, checked against the newest real run on Shawn's Mac). simcheck/sim_suite.py turns these into brain_sim_check.py flags for its 'real' cases. Never edit by hand on the fork: update CURRENT-STATE.json from a measurement, then copy.",
   "copied_from": "microduck-sim/CURRENT-STATE.json",
-  "copied_on": "2026-11-10",
+  "copied_on": "2026-11-23",
   "facts": {
     "servo_rail_v": {
-      "value": 7.6,
-      "meaning": "Servo supply while walking on the 2S battery backpack (median 7.6 V over the 2026-11-02..11-06 walks and turns, 7.2-8.2 V). The sim holds the supply constant at this value (--volt).",
-      "verified_at": "2026-11-06",
+      "value": 7.2,
+      "meaning": "Servo supply while walking on the 2S 3000 mAh battery backpack (median 7.2 V over the 4866 walk and turn ticks of 2026-11-22, 6.8-7.8 V: 7.8 V on the fresh pack, 7.1-7.2 V late in the evening). The sim holds the supply constant at this value (--volt).",
+      "verified_at": "2026-11-23",
       "before": {
-        "value": 7.0,
-        "until": "2026-11-06",
-        "why": "XL4015 bench rail; the robot now runs on the battery"
+        "value": 7.6,
+        "until": "2026-11-22",
+        "why": "650 mAh battery backpack, 2026-11-02..11-06; the 3000 mAh backpack replaced it on 2026-11-22"
       }
     },
     "imu_rate_hz": {
@@ -29,11 +29,11 @@
       "verified_at": "2026-11-06"
     },
     "walking_policy": {
-      "value": "walk61.onnx (Pollen BEST_alpha_walking) at 0.25 m/s, 3-4 s walks; KP_RL 200 walking, KP 400 in open-loop stand mode",
+      "value": "walk61.onnx / stand61.onnx (Pollen BEST_alpha_walking) is the default set and the gate's reference; KP_RL 200 walking, KP 400 in open-loop stand mode. On the 3000 mAh battery backpack (2026-11-22) no policy walks yet: walk61 fell in 3 of 3 walk attempts (12.2-15.6 s) and 6 of 7 zero-command stands",
       "candidates": [
         "whole/runtime-overlay/models-ft3-it999 (ft3 iteration 999): better in the sim, lost balance at 2.5-4 s in three of three robot walks at 0.20 m/s on 2026-10-17/18"
       ],
-      "verified_at": "2026-10-18"
+      "verified_at": "2026-11-22"
     },
     "sole": {
       "value": "wrapped anti-slip sheet over the printed foot (template cmu/model/sole/sole_template.py); the 2026-10-18 runs used sandpaper on 0.5 mm foam tape",
