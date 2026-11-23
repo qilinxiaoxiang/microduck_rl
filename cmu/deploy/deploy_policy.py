@@ -203,7 +203,8 @@ def gate(run, models, extras=(), payload=None, variant="current", despite=None):
             fail(f"sim_suite on {label} gave no verdict (exit {p.returncode}); see {run}/suite-{label}.out")
         verdicts[label] = line
         print(f"  {label}{'' if (v, pl) in gates else ' (historical, report only)'}: {line}")
-        print("\n".join("    " + l for l in p.stdout.splitlines() if l.startswith("  ") and "worse" in l))
+        print("\n".join("    " + l for l in p.stdout.splitlines()
+                        if (l.startswith("  ") and "worse" in l) or l.startswith("known defect: ")))
     labels = [gate_label(v, pl) for v, pl in gates]
     passed = all(verdicts[l] == PASS for l in labels)
     if not passed and not despite:

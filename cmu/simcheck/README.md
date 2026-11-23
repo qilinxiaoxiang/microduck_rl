@@ -68,6 +68,25 @@ stand61 settle before it no longer reads as walking tilt. A candidate matches or
 - `action_jumps` (ticks whose action moved more than 0.5 rad from the previous tick, the jitter measure used on the
   real logs) is at most the reference plus 2 or plus 50 %, whichever is more.
 
+Two starts per real walk case (2026-11-22). The robot starts a walk either straight from open-loop stand mode (KP
+400), walk61 getting the command on its first tick, which is its main start (3 of 4 standstill starts on 2026-11-22),
+or after a stand61 pause at zero command (1 of 4). The case under its plain name (`vx0.25`) is the paused start:
+1 s stand mode, stand61 at zero command to 4 s, then the command. `vx0.25/direct` is the direct start: 6 s of stand
+mode, then the command from the first policy tick (`--stand-s 6 --walk-at 6`; with a payload, whose policy runs from
+0 s, `--stand-s 0 --walk-at 0`). The suite prints both labels per case. On top of the rules above:
+
+- the candidate must walk in the direct start, whatever the reference does there;
+- a paused start that does not walk after stand61 settled (gapcheck settle time, the first still 1 s window, within
+  2 s) is labelled `freezes after a settled balance stand` and printed with a `known defect:` line; it is not a
+  failure on its own (bw-c2-s1b has it, settled at 0.6-0.9 s; C3 trains it out). A fall, or walking worse than the
+  reference, in the paused start still fails; a freeze without a settled stand is `did not start walking` and fails
+  where the reference walked;
+- `imu_pitch4/direct` is stress, report only: walk61 on the 650 mAh model, which walked on the robot from both
+  starts, falls there 3/3 (it walks in the direct start with the robot's own -2 deg IMU offset).
+
+Evidence: `microduck-sim/extensions/battery-walk-20261122/start-sequence-20261122/` in the robotics repository
+(robot command sequence and sim results: bw-c2-s1b walks 12/12 in the direct start and 0/12 after the pause).
+
 The thresholds are constants at the top of `sim_suite.py`. A passing verdict means the candidate is at least as
 good as the deployed policy in the simulation at the robot's condition; it does not predict the robot. The
 reference ft3 rows below show why: ft3 walks farther than walk61 in every case but has more action jumps, and it
