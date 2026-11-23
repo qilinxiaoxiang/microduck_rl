@@ -1,11 +1,11 @@
-"""Per-log metrics for the step015_v2m5 experiment (EXPERIMENT-step015.md): the same measures as the sim checks, so
+"""Per-log metrics for the step045n_v2m5 experiment (EXPERIMENT-step045n.md): the same measures as the sim checks, so
 robot and sim compare directly.
 
     uv run --no-sync --with pyserial python cmu/step/trial_report.py <brain log .jsonl[.gz]> [...] [--out r.json]
 
 Per log, in walk mode with a policy acting:
   jumps_per_10s   ticks where any joint's action moved > 0.5 rad from the tick before (brain_sim_check's measure),
-                  per 10 s of policy ticks; the sim's noise_eval reads 0.7 (clean) to 10 (2x training noise) for the
+                  per 10 s of policy ticks; the sim's noise_eval reads 1.3 (clean) to 7.5 (2x training noise) for the
                   candidate; walk61 on the 2026-10-18 robot logs read 66-297
   max_tilt_deg    peak body tilt as the brain reads it (IMU pitch trim included); the walk_wired stop is at 30
   falls           stretches over 45 deg

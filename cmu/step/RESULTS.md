@@ -127,14 +127,59 @@ The candidate's falls come 1-2.5 s into the walk; walk61's mostly come in the st
 walk_brain.MAX_AGE: the brain holds its goals, the policy never runs, and both fall from the held pose.
 Files: `results/round2/noise_eval*.json`, `noise_ablation.json`.
 
-# Round 4: IN PROGRESS (started 2026-11-22 20:15, running until about 07:30 on 11-23)
+# Round 4: training under servo read noise (2026-11-22 20:15 to 11-23 00:48)
 
-Cautious steps under servo read noise: 14 runs, lambda 0.10 / 0.15 / 0.20 / 0.30 / 0.45 / 0.60, each with noise
-level 3 fixed (`Mjlab-WalkStep-SN3-...`) and with the level drawn per episode in [1, 3] (`...-SNR13-...`), fresh from
-walk61; plus the round-3 candidate warm-started at 0.15 under both. Queue: `logs/walk_step/r4.sh` (not in git).
-Its models and evals are not committed yet; they will be once the round is evaluated.
+Cautious steps under servo read noise: 14 runs of 1000 iterations, lambda 0.10 / 0.15 / 0.20 / 0.30 / 0.45 / 0.60, each
+with noise level 3 fixed (`Mjlab-WalkStep-SN3-...`) and with the level drawn per episode in [1, 3] (`...-SNR13-...`),
+fresh from walk61; plus the round-3 candidate warm-started at 0.15 under both. L1 0.3, trim 6 deg, 2048 envs. Queue:
+`queues/round4.sh`. Every run's model_500 and last checkpoint: `models/round4/`, evals `results/round4/noise_<run>.json`
+(noise_eval.py as above, 40 runs per row). Ranked on falls, then backward bursts, then jumps, then distance (cautious,
+correctable steps first). Top four (falls and backward bursts summed over noise 0-3, 160 runs):
+
+| checkpoint | falls | backward | jumps / 10 s, clean / noise 2 / noise 3 | 1.0 s burst, clean | worst-at-2 falls |
+|---|---|---|---|---|---|
+| **snr_l45 @ 999** | 0 | 4 | 1.3 / 7.5 / 49 | 8.9 cm | 40 |
+| snr_l30 @ 999 | 0 | 5 | 0.6 / 6.8 / 51 | 8.2 cm | 40 |
+| snr_l60 @ 999 | 0 | 6 | 0.5 / 6.0 / 47 | 6.5 cm | 35 |
+| sn3_l30 @ 999 | 0 | 9 | 0.5 / 7.2 / 47 | 7.4 cm | 40 |
+| round 3's step015_v2m5 | 0 | 22 | 0.7 / 10.3 / 71 | 6.6 cm | 36 |
+
+- Noise drawn per episode in [1, 3] beat level 3 fixed; lambda 0.30-0.60 beat 0.10-0.20 (more backward bursts and
+  jumps at noise 3); the warm starts from round 3 were among the worst (4 falls each at their last checkpoint).
+- The stacked worst case is not solved by noise training: 35-40 / 40 falls for every checkpoint. Its one breaking
+  factor is extra actuation delay (round 2 ablation); training with actuation delay is the next lever.
+
+# Round 5: snr_l45 trained longer (11-23 00:49 to 06:25)
+
+snr_l45 resumed at 999 on the same task and settings until 06:25 (iteration 19,319; `queues/round5_long.sh`). Mean
+reward was about 90 by iteration 3,000 and then moved between 86 and 97: no further gain. Four checkpoints, same eval
+(`results/round5/noise_l45long.json`, models `models/round5/`):
+
+| checkpoint | falls | backward | jumps / 10 s, clean / noise 3 | 1.0 s burst, clean | worst-at-2 falls |
+|---|---|---|---|---|---|
+| 999 (start) | 0 | 4 | 1.3 / 49 | 8.9 cm | 40 |
+| 5,500 | 1 | 7 | 1.1 / 48 | 6.7 cm | 39 |
+| 10,250 | 0 | 3 | 0.9 / 49 | 6.7 cm | 39 |
+| 14,750 | 0 | 7 | 0.7 / 51 | 7.0 cm | 40 |
+| 19,250 | 1 | 12 | 1.1 / 50 | 6.2 cm | 37 |
+
+Longer training did not help; 10,250 ties 999 with shorter bursts, the last checkpoint is slightly worse.
+
+## The pick: snr_l45 @ 999 as `models/step045n_v2m5.onnx` (sha 3a79251ec55e1844), replacing step015_v2m5
+
+- Deploy-gate diagnostic (`diag_suite.py --stand-s 0`, `results/round5/diag_step045n.json`): over the tilt bar by 2-7 deg
+  and the jump bar by 5-11 in the 4 real cases, as every round 3-5 candidate (the forward lean that carries the pack).
+  It fell once, in the single-seed bare-floor stress case (friction 0.3); so did every round 4/5 checkpoint
+  (`results/round5/diag_others.json`), while step015_v2m5 did not. walk61 on this body: 3 falls / 10.
+- That case over 10 seeds x 4 durations (`noise_eval.py --conditions floor_bare,floor_bare_sn1`,
+  `results/round5/noise_floor_bare.json`), falls of 40 clean / 40 at noise 1: step045n 0 / 0, snr_l30 0 / 1,
+  round 5 @ 10,250 0 / 0, step015_v2m5 3 / 1, walk61 40 / 40. The single-seed fall was the seed, not the policy.
+- Bursts through the brain (`results/round5/runtime_bursts_step045n.json`, Balance stand, 8 runs each): 0 falls in 80,
+  never backward; 4.3 / 6.8 / 8.8 / 11.8 cm for 0.6 / 0.8 / 1.0 / 1.3 s (step015_v2m5: 2.4 / 4.6 / 6.8 / 9.1). walk61
+  on this body: 26 / 80 falls and every burst backward.
+- `arms.json` carries it as an arm with its gate FAIL and `waived_by` empty: it is held back like step015_v2m5 was.
 
 Correction to the noise estimate above (2026-11-22 night): on still moments the 10-18 robot logs read about 0.0002 rad
 of position noise in two logs (near the servo's resolution) and 0.011 rad in the other two (not understood yet), with
 velocity noise about 0.02 rad/s, far below training level 1. The earlier "about level 2" counted real joint motion.
-`trial_report.py` measures it; EXPERIMENT-step015.md B4 records a fresh log for it.
+`trial_report.py` measures it; EXPERIMENT-step045n.md B4 records a fresh log for it.

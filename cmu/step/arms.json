@@ -1,5 +1,5 @@
 {
- "about": "Arms of step-look-step (steplook.py, step.sh). bursts = [seconds, the furthest it has been seen to move, m]: the planner never picks a burst that could pass the stop. Round 2 (2026-11-22): the robot carries the 3000 mAh backpack (battery-v2m5-20261121). The step015_v2m5 table is the robot-brain sim's furthest per duration over 7 conditions (cmu/step/results/round2/runtime_bursts_candidate.json); replace it with servo odometry from the first robot logs (odom_report.py). walk61's table is from the old body; on this body walk61 creeps backward at zero command in the sim.",
+ "about": "Arms of step-look-step (steplook.py, step.sh). bursts = [seconds, the furthest it has been seen to move, m]: the planner never picks a burst that could pass the stop. Round 2 (2026-11-22): the robot carries the 3000 mAh backpack (battery-v2m5-20261121). The step015_v2m5 table (round 3; step045n_v2m5, round 4, replaced it in the experiment on 2026-11-23) is the robot-brain sim's furthest per duration over 7 conditions (cmu/step/results/round2/runtime_bursts_candidate.json); replace it with servo odometry from the first robot logs (odom_report.py). walk61's table is from the old body; on this body walk61 creeps backward at zero command in the sim.",
  "arms": [
   {
    "name": "walk61",
@@ -82,9 +82,45 @@
      0.114
     ]
    ],
-   "gate": "FAIL deploy gate 2026-11-22: on battery-v2m5 the gate fails every policy, walk61 against itself too (the stand falls before a policy acts). Diagnostic (cmu/step/diag_suite.py, committed stand pose, against walk61 on the old body): no falls in the real cases, distance passes, tilt over the +2 deg bar by 4-6 deg (the forward lean that carries the pack), action jumps over by 2-4 in 3 of 5 real cases",
+   "gate": "FAIL deploy gate 2026-11-22: on battery-v2m5 the gate fails every policy, walk61 against itself too (the stand falls before a policy acts). Diagnostic (cmu/step/diag_suite.py, committed stand pose, against walk61 on the old body): no falls in the real cases, distance passes, tilt over the +2 deg bar by 4-6 deg (the forward lean that carries the pack), action jumps over by 2-4 in 3 of 5 real cases; RETIRED from the experiment 2026-11-23: replaced by step045n_v2m5 (fewer jumps under servo noise, no falls on the bare floor over 80 runs where this fell 4)",
    "waived_by": "",
    "trained": "walk_step_r3 r3l15b03 @ 749: lambda (cap) 0.15 rad, L1 0.3, base pitch trim 6 deg; warm start from walk_step_r2 l15 @ 500"
+  },
+  {
+   "name": "step045n_v2m5",
+   "file": "models/step045n_v2m5.onnx",
+   "sha": "3a79251ec55e1844",
+   "slots": [
+    "walk61",
+    "stand61"
+   ],
+   "base_trim_deg": 6.0,
+   "bursts": [
+    [
+     0.4,
+     0.005
+    ],
+    [
+     0.6,
+     0.047
+    ],
+    [
+     0.8,
+     0.071
+    ],
+    [
+     1.0,
+     0.094
+    ],
+    [
+     1.3,
+     0.128
+    ]
+   ],
+   "gate": "FAIL deploy gate 2026-11-23 (diagnostic, Balance stand, against walk61 on the old body): tilt over the +2 deg bar by 2-7 deg in all 4 real cases (the forward lean that carries the pack) and action jumps over by 5-11 in all 4; 0 falls in the 9 other cases, the one single-seed fall (floor_mu_bare) did not repeat over 80 seeded runs (cmu/step/results/round5/noise_floor_bare.json). walk61 on this body: 3 falls / 10",
+   "waived_by": "",
+   "trained": "walk_step_r4 snr_l45 @ 999: task Mjlab-WalkStep-SNR13-FromWalk61-MicroDuck-CMU-Current (servo read noise level drawn per episode in [1, 3]), lambda (cap) 0.45 rad, L1 0.3, base pitch trim 6 deg, fresh from walk61",
+   "bursts_from": "furthest of 8 runs per duration, robot-brain sim, Balance stand, nominal (runtime_check.py, 2026-11-23); replace with servo odometry from the first robot logs"
   }
  ],
  "not_an_arm": {

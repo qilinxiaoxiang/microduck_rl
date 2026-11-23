@@ -1,0 +1,251 @@
+{
+ "note": "diagnostic, not the deploy gate",
+ "reference": "deployed set on battery-20261104",
+ "stand_pose_ankle_fwd": {
+  "battery-20261104": 0.0,
+  "current": null
+ },
+ "stand_s": 0.0,
+ "reference_rows": {
+  "nominal": {
+   "fell_at": null,
+   "dist_x": 1.121,
+   "max_tilt": 6.5,
+   "action_jumps": 2
+  },
+  "vx0.25": {
+   "fell_at": null,
+   "dist_x": 0.909,
+   "max_tilt": 5.9,
+   "action_jumps": 1
+  },
+  "vx0.2": {
+   "fell_at": null,
+   "dist_x": 0.002,
+   "max_tilt": 2.9,
+   "action_jumps": 0
+  },
+  "com+5": {
+   "fell_at": null,
+   "dist_x": 1.448,
+   "max_tilt": 6.0,
+   "action_jumps": 2
+  },
+  "imu_pitch4": {
+   "fell_at": null,
+   "dist_x": 0.683,
+   "max_tilt": 9.4,
+   "action_jumps": 5
+  },
+  "volt6.3": {
+   "fell_at": null,
+   "dist_x": 1.129,
+   "max_tilt": 6.7,
+   "action_jumps": 4
+  },
+  "drop8_imu35": {
+   "fell_at": null,
+   "dist_x": 1.103,
+   "max_tilt": 7.0,
+   "action_jumps": 16
+  },
+  "drop8_imu35_s1": {
+   "fell_at": null,
+   "dist_x": 1.121,
+   "max_tilt": 8.3,
+   "action_jumps": 18
+  },
+  "floor_mu_bare": {
+   "fell_at": null,
+   "dist_x": 0.849,
+   "max_tilt": 6.8,
+   "action_jumps": 54
+  },
+  "floor_mu_sole": {
+   "fell_at": null,
+   "dist_x": 0.891,
+   "max_tilt": 6.6,
+   "action_jumps": 1
+  }
+ },
+ "policies": {
+  "walk61": {
+   "passes": false,
+   "worse": {
+    "nominal": [
+     "max_tilt 10.3 > reference 6.5 + 2.0",
+     "dist_x 0.672 < 0.9 x reference 1.121",
+     "action_jumps 16 > reference 2 + 2"
+    ],
+    "vx0.25": [
+     "max_tilt 8.8 > reference 5.9 + 2.0",
+     "dist_x 0.558 < 0.9 x reference 0.909",
+     "action_jumps 15 > reference 1 + 2"
+    ],
+    "vx0.2": [
+     "max_tilt 9.9 > reference 2.9 + 2.0",
+     "action_jumps 18 > reference 0 + 2"
+    ],
+    "com+5": [
+     "dist_x 1.168 < 0.9 x reference 1.448"
+    ],
+    "imu_pitch4": [
+     "fell at 16.0 s, reference did not fall"
+    ]
+   },
+   "falls": [
+    "imu_pitch4",
+    "drop8_imu35",
+    "floor_mu_bare"
+   ],
+   "rows": {
+    "nominal": {
+     "fell_at": null,
+     "dist_x": 0.672,
+     "max_tilt": 10.3,
+     "action_jumps": 16
+    },
+    "vx0.25": {
+     "fell_at": null,
+     "dist_x": 0.558,
+     "max_tilt": 8.8,
+     "action_jumps": 15
+    },
+    "vx0.2": {
+     "fell_at": null,
+     "dist_x": 0.402,
+     "max_tilt": 9.9,
+     "action_jumps": 18
+    },
+    "com+5": {
+     "fell_at": null,
+     "dist_x": 1.168,
+     "max_tilt": 6.6,
+     "action_jumps": 3
+    },
+    "imu_pitch4": {
+     "fell_at": 16.0,
+     "dist_x": 0.223,
+     "max_tilt": 46.1,
+     "action_jumps": 34
+    },
+    "volt6.3": {
+     "fell_at": null,
+     "dist_x": 0.791,
+     "max_tilt": 12.2,
+     "action_jumps": 15
+    },
+    "drop8_imu35": {
+     "fell_at": 4.92,
+     "dist_x": 0.071,
+     "max_tilt": 46.9,
+     "action_jumps": 44
+    },
+    "drop8_imu35_s1": {
+     "fell_at": null,
+     "dist_x": 0.687,
+     "max_tilt": 11.1,
+     "action_jumps": 55
+    },
+    "floor_mu_bare": {
+     "fell_at": 1.92,
+     "dist_x": null,
+     "max_tilt": 50.7,
+     "action_jumps": 22
+    },
+    "floor_mu_sole": {
+     "fell_at": null,
+     "dist_x": 0.595,
+     "max_tilt": 9.4,
+     "action_jumps": 7
+    }
+   }
+  },
+  "cand": {
+   "passes": false,
+   "worse": {
+    "nominal": [
+     "max_tilt 10.7 > reference 6.5 + 2.0",
+     "action_jumps 9 > reference 2 + 2"
+    ],
+    "vx0.25": [
+     "max_tilt 10.7 > reference 5.9 + 2.0",
+     "action_jumps 8 > reference 1 + 2"
+    ],
+    "vx0.2": [
+     "max_tilt 11.7 > reference 2.9 + 2.0",
+     "action_jumps 7 > reference 0 + 2"
+    ],
+    "com+5": [
+     "max_tilt 11.3 > reference 6.0 + 2.0",
+     "action_jumps 15 > reference 2 + 2"
+    ]
+   },
+   "falls": [
+    "floor_mu_bare"
+   ],
+   "rows": {
+    "nominal": {
+     "fell_at": null,
+     "dist_x": 1.385,
+     "max_tilt": 10.7,
+     "action_jumps": 9
+    },
+    "vx0.25": {
+     "fell_at": null,
+     "dist_x": 1.173,
+     "max_tilt": 10.7,
+     "action_jumps": 8
+    },
+    "vx0.2": {
+     "fell_at": null,
+     "dist_x": 0.879,
+     "max_tilt": 11.7,
+     "action_jumps": 7
+    },
+    "com+5": {
+     "fell_at": null,
+     "dist_x": 1.69,
+     "max_tilt": 11.3,
+     "action_jumps": 15
+    },
+    "imu_pitch4": {
+     "fell_at": null,
+     "dist_x": 1.233,
+     "max_tilt": 7.7,
+     "action_jumps": 0
+    },
+    "volt6.3": {
+     "fell_at": null,
+     "dist_x": 1.335,
+     "max_tilt": 11.5,
+     "action_jumps": 13
+    },
+    "drop8_imu35": {
+     "fell_at": null,
+     "dist_x": 1.177,
+     "max_tilt": 16.9,
+     "action_jumps": 45
+    },
+    "drop8_imu35_s1": {
+     "fell_at": null,
+     "dist_x": 1.275,
+     "max_tilt": 20.1,
+     "action_jumps": 77
+    },
+    "floor_mu_bare": {
+     "fell_at": 12.8,
+     "dist_x": 0.401,
+     "max_tilt": 48.4,
+     "action_jumps": 118
+    },
+    "floor_mu_sole": {
+     "fell_at": null,
+     "dist_x": 1.163,
+     "max_tilt": 10.7,
+     "action_jumps": 6
+    }
+   }
+  }
+ }
+}

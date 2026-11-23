@@ -7,7 +7,8 @@ Everything goes to `~/dock-stage` on the A7Z; the live `~/rt` code and `~/duck-p
 |---|---|---|
 | `walk61` | the deployed walk policy (baseline) | yes |
 | `step005` | round 1, old body | retired |
-| `step015_v2m5` | walk61 (trimmed 6 deg) + at most 0.15 rad, in both slots | **not until Michael waives its gate failure** |
+| `step015_v2m5` | round 3: walk61 (trimmed 6 deg) + at most 0.15 rad, in both slots | replaced by step045n_v2m5 (2026-11-23) |
+| `step045n_v2m5` | round 4: walk61 (trimmed 6 deg) + at most 0.45 rad, trained under servo read noise, in both slots | **not until Michael waives its gate failure** |
 
 **Do not press N (dock) or F (small step) on the floor.** Both fell on 2026-11-21.
 

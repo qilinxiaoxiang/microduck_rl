@@ -32,6 +32,8 @@ CONDITIONS = {
     "sn3_beyond": ["--servo-noise", "3"],
     "worst_sn2": ["--servo-noise", "2", *WORST],
     "worst_sn3": ["--servo-noise", "3", *WORST],
+    "floor_bare": ["--floor-mu", "0.3"],                       # sim_suite's bare-floor stress estimate (soles ~0.7)
+    "floor_bare_sn1": ["--floor-mu", "0.3", "--servo-noise", "1"],
 }
 TS = (0.6, 1.0, 1.3, 8.0)   # step-look-step bursts and one long teleop-style walk, all at vx 0.25
 SEEDS = range(10)
