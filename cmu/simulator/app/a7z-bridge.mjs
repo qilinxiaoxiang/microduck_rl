@@ -42,12 +42,15 @@
 // this bridge opens no SSH session to the A7Z and refuses commands, and every page gets {"shutdown": {state, line}}:
 // state running, off, unreachable (it did not answer, nothing was sent) or failed. off and unreachable clear themselves
 // when the A7Z is back.
+// Policy set: GET /api/a7z/models answers which policy files the A7Z brain runs (desktop/duck-models.py, read-only).
 // MICRODUCK_PY names the Python with OpenCV (default ~/.venvs/microduck-walk/bin/python).
 import {spawn, spawnSync} from "node:child_process";
 import {appendFile, readFileSync} from "node:fs";
 import {homedir} from "node:os";
+import {fileURLToPath} from "node:url";
 
 const HISTORY_S = 1800, SILENT_S = 3, ACK_S = 3, START_ACK_S = 30;  // START_ACK_S covers duck-command.py START_S
+const MODELS_CACHE_S = 4;  // GET /api/a7z/models: one SSH read serves every page for this long
 const WRITER_RETRY_S = 5;  // an unreachable A7Z gets one ssh attempt this often from the driver poll, not one a second
 const CAMERA_LINGER_S = 2, CAMERA_SILENT_S = 6, BOUNDARY = "duckframe";
 // the reader runs in the background and the shell waits on it, so its own exit (and error) ends the session; a second
@@ -58,6 +61,7 @@ const CAMERA_PIPELINE = hold => "exec 3<&0; nice -n 10 ~/.venvs/duck-policy/bin/
 const SSH_OPTS = ["-T","-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "-o", "ServerAliveInterval=2", "-o", "ServerAliveCountMax=2"];
 
 export function a7zBridge({script, commandScript, stabilizeScript, shutdownScript,
+                           modelsScript = fileURLToPath(new URL("../desktop/duck-models.py", import.meta.url)),
                            python = process.env.MICRODUCK_PY ?? `${homedir()}/.venvs/microduck-walk/bin/python`, host = process.env.MICRODUCK_ROBOT_HOST ?? "a7z",
                            cmdPath = process.env.MICRODUCK_CMD_PATH}) {
   return {
@@ -99,6 +103,9 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
           {stdio: ["pipe", "pipe", "pipe"]});
         child = proc; childBus = bus; lastLine = Date.now(); buffer = "";
         let stderr = "";
+        // an ssh that exits before reading the piped script (unreachable A7Z, the tests' stand-in) gives EPIPE here;
+        // unhandled it ends the whole service, as the writer's did (below). The exit handler retries.
+        proc.stdin.on("error", () => {});
         proc.stdin.end(readFileSync(script));
         proc.stderr.on("data", d => { stderr = (stderr + d).slice(-400); });
         proc.stdout.on("data", d => {
@@ -349,6 +356,38 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
           answer = parsed(await remote(`cat ${SELFCHECK_OUT}`, 10));
         }
         res.writeHead(answer.ok ? 200 : 502, {"Content-Type": "application/json"});
+        res.end(JSON.stringify(answer));
+      });
+
+      // Policy set (Shawn 2026-11-22: "遥控上最好显示每个活动调用的是什么模型 这样方便我们部署和调试"): GET returns
+      // desktop/duck-models.py's answer, read-only over SSH: the running brain's --models directory (else the set the next
+      // start loads), every *61.onnx's sha256 and the set's MANIFEST.json. One read at a time, kept MODELS_CACHE_S.
+      let models = null, modelsRun = null;
+      const readModels = () => new Promise(resolve => {
+        const p = spawn("ssh", [...SSH_OPTS, host, "python3 -u -"], {stdio: ["pipe", "pipe", "pipe"]});
+        let out = "", err = "";
+        const kill = setTimeout(() => p.kill(), 15000);
+        p.stdin.on("error", () => {});
+        p.stdin.end(readFileSync(modelsScript));
+        p.stdout.on("data", d => { out += d; });
+        p.stderr.on("data", d => { err += d; });
+        p.on("error", e => { err += `\n${e.message}`; });
+        p.on("close", code => {
+          clearTimeout(kill);
+          try { resolve(JSON.parse(out.trim().split("\n").pop())); }
+          catch { resolve({ok: false, error: err.split("\n").filter(l => l && !/quantum|store now|upgraded/.test(l)).pop() ?? `exit ${code}`}); }
+        });
+      });
+      server.middlewares.use("/api/a7z/models", async (req, res) => {
+        if (req.method !== "GET") { res.statusCode = 405; return res.end(); }
+        let answer;
+        if (poweringOff()) answer = {ok: false, error: "A7Z is shutting down"};
+        else if (models && Date.now() - models.at < MODELS_CACHE_S * 1000) answer = models.answer;
+        else {
+          modelsRun ??= readModels().then(a => { models = {at: Date.now(), answer: a}; return a; }).finally(() => { modelsRun = null; });
+          answer = await modelsRun;
+        }
+        res.writeHead(answer.ok ? 200 : 502, {"Content-Type": "application/json", "Cache-Control": "no-store"});
         res.end(JSON.stringify(answer));
       });
 

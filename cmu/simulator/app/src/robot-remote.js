@@ -161,11 +161,79 @@ const HEAD_ACTIONS = [
   {id: "headReset", key: "H", label: "Center", hint: "Head back to its default pose"},
 ];
 const ALL_ACTIONS = [...ACTIONS, ...HEAD_ACTIONS];
+
+// Which policy file each button runs (Shawn 2026-11-22: "遥控上最好显示每个活动调用的是什么模型 这样方便我们部署和调试"),
+// read from walk_brain.Brain.tick, never from the names: slot k runs <set>/k61.onnx. Walk mode at a zero command runs
+// stand61 until the first step (Brain.stepped), walk61 after it; entering walk mode (Balance stand, a finished kick, sit's
+// stand-up, the bend's rise) clears that, so they hand over to stand61. Stand (open-loop ramp), monitor and off run none.
+// The set is GET /api/a7z/models (desktop/duck-models.py): the running brain's --models directory and each file's sha256.
+const ACTION_MODELS = {
+  left: {slot: "walk"}, walk: {slot: "walk"}, right: {slot: "walk"}, back: {slot: "walk"},
+  stop: {none: "no new policy (a walk eases to rest on its model; else holds the pose)"},
+  stand: {none: "no policy (fixed pose)"},
+  stand61: {slot: "stand", next: "walk"},
+  off: {none: "no policy (servos limp)"},
+  quack: {none: "no policy (sound and beak only)"},
+  kickL: {slot: "kick_left", then: "then stand61"},
+  kickR: {slot: "kick_right", then: "then stand61"},
+  sit: {slot: "sitstand", then: "then stand61"},
+  bend: {slot: "groundpick", then: "then stand61"},
+};
+const GATE_PASS = "verdict: candidate matches or beats the reference on every real case";  // deploy_policy.py PASS
+const hash8 = f => f.sha256.slice(0, 8);
+const when = t => new Date(t * 1000).toLocaleString("en-US", {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23"});
+
+// One card's line: "model: <set>/<file> (<sha256[:8]>)", or why it runs none.
+export function modelLine(id, info) {
+  const spec = ACTION_MODELS[id];
+  if (!spec) return "";
+  if (spec.none) return spec.none;
+  if (!info) return "model: reading from the A7Z…";
+  if (!info.ok) return "model: unknown (policy set not readable)";
+  const file = `${spec.slot}61.onnx`, f = info.files?.[file];
+  if (!f) return `model: ${info.name}/${file} is missing, the brain refuses this`;
+  let then = spec.then ? `, ${spec.then}` : "";
+  if (spec.next) {
+    const n = info.files?.[`${spec.next}61.onnx`];
+    then = !n ? "" : n.sha256 === f.sha256 ? `; ${spec.next}61 (same file) once it steps` : `; ${spec.next}61 (${hash8(n)}) once it steps`;
+  }
+  return `model: ${info.name}/${file} (${hash8(f)})${then}`;
+}
+
+// The header: the set, its deploy time and gate verdict, the brain, the slot running now; warn = something to check.
+export function modelsHeader(info, brain) {
+  if (!info) return {text: "Policy set: reading from the A7Z…", warn: false};
+  if (!info.ok) return {text: `Policy set: cannot read it (${info.error ?? "no answer"})`, warn: true};
+  const m = info.manifest, parts = [`Policy set: ${info.name}${info.default ? " (default set, nothing deployed)" : ""}`];
+  const warn = [];
+  if (info.pointer_matches && info.pointer?.written) parts.push(`deployed ${when(info.pointer.written)}${m?.by ? ` by ${m.by}` : ""}`);
+  else if (m?.built) parts.push(`built ${m.built.replace("T", " ").slice(0, 16)}${m.by ? ` by ${m.by}` : ""}`);
+  if (m) {
+    const verdicts = Object.values(m.gate ?? {});
+    const on = m.gate_model?.variant ? ` on ${m.gate_model.variant}` : "";
+    if (verdicts.length && verdicts.every(v => v === GATE_PASS)) parts.push(`gate passed (sim${on})`);
+    else { parts.push(`gate: ${verdicts.join("; ") || "no verdict"}${on}`); warn.push("gate did not pass"); }
+  } else if (!info.default) { parts.push("no MANIFEST.json, so no gate record"); warn.push("not deployed through deploy_policy.py"); }
+  if (info.brain?.running) {
+    parts.push(`brain started ${when(info.brain.started)}`);
+    if (brain?.running) parts.push(`running now: ${brain.policy ? `${brain.policy}61` : "no policy"}`);
+  } else parts.push("brain not running: the next start loads this set");
+  if (info.brain?.running && info.pointer?.dir && !info.pointer_matches)
+    warn.push(`~/duck-policy names ${info.pointer.dir.split("/").pop()}, loaded at the next brain start`);
+  if (info.brain?.running && !info.pointer && !info.default) warn.push("~/duck-policy is gone (rolled back): the next start loads the default set");
+  if (info.changed_after_start?.length) warn.push(`changed after the brain started, it still runs the old ${info.changed_after_start.join(", ")}`);
+  if (info.not_as_gated?.length) warn.push(`not the gated file: ${info.not_as_gated.join(", ")}`);
+  if (info.error) warn.push(info.error);
+  return {text: parts.join(" · ") + (warn.length ? `. Check: ${warn.join("; ")}` : ""), warn: warn.length > 0};
+}
+
 const btn = a => `
-      <button type="button" data-act="${a.id}" title="${a.hint}"><kbd>${a.key}</kbd><span>${a.label}</span><small>${a.hint}</small></button>`;
+      <button type="button" data-act="${a.id}" title="${a.hint}"><kbd>${a.key}</kbd><span>${a.label}</span><small>${a.hint}</small>${
+        ACTION_MODELS[a.id] ? `<em class="remote-model" data-model>${modelLine(a.id, null)}</em>` : ""}</button>`;
 
 export function createRemote({root, state, log}) {
   root.innerHTML = `
+    <p class="remote-models" data-models aria-live="polite">${modelsHeader(null).text}</p>
     <div class="remote-stick-row"><div class="remote-stick" data-stick title="Press and drag: the further forward, the faster; sideways turns">
       <div class="remote-knob" data-knob></div></div>
       <p class="remote-status">Stick: push forward past 30 % to walk (0.25 m/s), all the way for 0.4 m/s. Sideways turns while walking, or in place with no forward push. Pull back past 30 % to walk straight back (0.4 m/s). Let go to stop.
@@ -479,10 +547,23 @@ export function createRemote({root, state, log}) {
   showHead();
 
   const modeEl = root.querySelector("[data-mode]"), fileEl = root.querySelector("[data-file]");
+  const modelsEl = root.querySelector("[data-models]");
+  let models = null;
+  const showModelHeader = () => {
+    const {text, warn} = modelsHeader(models, state().online ? state().brain : null);
+    if (modelsEl.textContent !== text) modelsEl.textContent = text;
+    modelsEl.classList.toggle("warn", warn);
+  };
   const MODE_NAMES = {monitor: "monitor (no commands)", stand: "fixed stand", walk: "walk / balance stand", kick: "kick", sit: "sit", groundpick: "bend to pick"};
   return {
     me,
     showDriver,
+    // GET /api/a7z/models's answer (robot-live.js polls it): every card's model line and the header
+    showModels(info) {
+      models = info;
+      for (const [id, b] of buttons) { const el = b.querySelector("[data-model]"); if (el) el.textContent = modelLine(id, info); }
+      showModelHeader();
+    },
     showFile({path, current, supply}) {
       showSupply(supply);
       if (current === undefined) return;
@@ -509,6 +590,7 @@ export function createRemote({root, state, log}) {
         : `Brain: ${MODE_NAMES[brain.mode] ?? brain.mode} · torque ${brain.torque ? "on" : "off"}`
           + (brain.battery_dv != null ? ` · battery ${(brain.battery_dv / 10).toFixed(1)} V, about ${batteryPercent(brain.battery_dv)}%` : "");
       root.classList.toggle("off", !running);
+      showModelHeader();
       stickEl.classList.toggle("disabled", !online || (gate.blocked && gated("walk")));
       for (const [id, b] of buttons) {
         const hot = gate.blocked && gated(id);

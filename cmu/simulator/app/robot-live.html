@@ -78,6 +78,10 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 .remote-driver button[aria-pressed="true"]{background:var(--text);color:var(--surface);border-color:var(--text)}
 .remote-driver button[data-supply]{border-color:var(--border)}
 .remote-driver button{font:inherit;font-size:14px;padding:4px 12px;border-radius:6px;border:1px solid var(--warn);background:var(--surface);color:var(--text);cursor:pointer}
+.remote-grid button .remote-model{font-size:12px;line-height:1.3;font-style:normal;color:var(--text-2);margin-top:3px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.remote-grid button.held .remote-model,.remote-grid button:active:not(:disabled) .remote-model{color:var(--surface)}
+.remote-models{font-size:14px;color:var(--text);margin:0 0 10px;padding:6px 10px;border-radius:6px;background:var(--grid);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.remote-models.warn{background:color-mix(in srgb,var(--warn) 16%,transparent)}
 .remote-status,.remote-last{font-size:12px;color:var(--text-2);margin:8px 0 0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 .note{font-size:12px;color:var(--muted);margin:6px 0 0}
 .touch{display:grid;grid-template-columns:2.2em 4.5em 4em 1fr;gap:6px 8px;align-items:center;font-size:14px;font-variant-numeric:tabular-nums}
@@ -105,6 +109,7 @@ canvas.chart{display:block;width:100%;height:190px;cursor:crosshair}
 details.note summary{cursor:pointer}
 #shutdownState{font-size:13px;margin:8px 0 0;color:var(--text-2);overflow-wrap:anywhere}#shutdownState.bad{color:var(--bad);font-weight:600}#shutdownState.off{color:var(--good);font-weight:600}
 /* phone: the home-screen web app clears the notch and home bar */
+@media(max-width:600px){.remote-grid button .remote-model,.remote-models{font-size:16px}}
 @media(max-width:600px){.remote-grid button{min-height:56px}
   header{padding:calc(10px + env(safe-area-inset-top)) 12px 10px}main{padding-bottom:calc(12px + env(safe-area-inset-bottom))}}
 @media(max-width:900px){main{grid-template-columns:1fr;padding:12px}.remote-grid{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.pose{position:static}#view{height:300px}.range{margin-left:0}}

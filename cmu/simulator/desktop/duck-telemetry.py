@@ -391,7 +391,9 @@ def brain_log(now):
         return out
     recent = [v for v, t in servo_v.values() if now - t < 2.0]
     q = row.get("q") or []
-    out.update(mode=row.get("mode"), torque=row.get("torque"), loop_ms=row.get("loop_ms"), gb=row.get("gb"),
+    # policy: the walk_brain slot this tick ran ("walk", "stand", "sitstand", "kick_left", ...; absent = none), for the
+    # remote's "running now" line next to the policy set (GET /api/a7z/models)
+    out.update(mode=row.get("mode"), torque=row.get("torque"), policy=row.get("policy"), loop_ms=row.get("loop_ms"), gb=row.get("gb"),
                imu_age_ms=None if row.get("imu_age") is None else row["imu_age"] * 1000,
                hw_faults=row.get("hw_faults") or [], missing=row.get("missing") or [],
                battery=row.get("battery"), battery_dv=row.get("battery_dv"),

@@ -16,7 +16,7 @@ globalThis.fetch = async (_url, {body}) => {
   return {json: async () => ({ok: true, wrote: b.cmd})};
 };
 
-const {walkCommand, stickCommand, headStep, headTargets, createRemote} = await import("../src/robot-remote.js");
+const {walkCommand, stickCommand, headStep, headTargets, createRemote, modelLine, modelsHeader} = await import("../src/robot-remote.js");
 
 const ZERO = {mode: "walk", vx: 0, vy: 0, vtheta: 0, for_s: 1.5};
 const cmd = ids => walkCommand(new Set(ids)).cmd;
@@ -234,6 +234,39 @@ key("keydown", "KeyH");
 
 // every walk write is a plain set, never a brain start
 assert.ok(sent.every(b => b.op === "set" && !("start" in b)));
+
+// Model lines (GET /api/a7z/models, desktop/duck-models.py): the set the brain loaded, the slot each card runs
+const hx = c => c.repeat(64);
+const PASS = "verdict: candidate matches or beats the reference on every real case";
+const info = {ok: true, name: "bw-c1-s1b", default: false, pointer_matches: true,
+  pointer: {dir: "/home/radxa/policies/bw-c1-s1b", written: 1795397898.3},
+  brain: {running: true, started: 1795398509.5}, changed_after_start: [], not_as_gated: [],
+  files: {"walk61.onnx": {sha256: hx("1")}, "stand61.onnx": {sha256: hx("1")}, "sitstand61.onnx": {sha256: hx("c")},
+    "groundpick61.onnx": {sha256: hx("f")}, "kick_left61.onnx": {sha256: hx("d")}, "kick_right61.onnx": {sha256: hx("e")}},
+  manifest: {name: "bw-c1-s1b", built: "2026-11-22T20:38:15", by: "xiangzheng", gate: {current: PASS},
+    gate_model: {variant: "battery-v2m5-20261121"}}};
+for (const id of ["walk", "left", "right", "back"]) assert.equal(modelLine(id, info), "model: bw-c1-s1b/walk61.onnx (11111111)");
+assert.equal(modelLine("stand61", info), "model: bw-c1-s1b/stand61.onnx (11111111); walk61 (same file) once it steps");
+assert.match(modelLine("stand61", {...info, files: {...info.files, "walk61.onnx": {sha256: hx("2")}}}), /walk61 \(22222222\) once it steps$/);
+assert.equal(modelLine("sit", info), "model: bw-c1-s1b/sitstand61.onnx (cccccccc), then stand61");
+assert.equal(modelLine("bend", info), "model: bw-c1-s1b/groundpick61.onnx (ffffffff), then stand61");
+assert.equal(modelLine("kickL", info), "model: bw-c1-s1b/kick_left61.onnx (dddddddd), then stand61");
+assert.equal(modelLine("kickR", info), "model: bw-c1-s1b/kick_right61.onnx (eeeeeeee), then stand61");
+for (const id of ["stand", "off", "quack", "stop"]) assert.match(modelLine(id, info), /^no /);
+assert.equal(modelLine("headUp", info), "");
+assert.match(modelLine("sit", {...info, files: {"walk61.onnx": {sha256: hx("1")}}}), /sitstand61\.onnx is missing/);
+let hd = modelsHeader(info, {running: true, policy: "stand"});
+assert.match(hd.text, /^Policy set: bw-c1-s1b · deployed .* by xiangzheng · gate passed \(sim on battery-v2m5-20261121\) · brain started .* · running now: stand61$/);
+assert.equal(hd.warn, false);
+assert.match(modelsHeader(info, {running: true}).text, /running now: no policy$/);
+hd = modelsHeader({...info, pointer: {dir: "/home/radxa/policies/next"}, pointer_matches: false,
+  changed_after_start: ["walk61.onnx"], manifest: {...info.manifest, gate: {current: "verdict: worse on 2 real cases"}}}, null);
+assert.ok(hd.warn);
+assert.match(hd.text, /built 2026-11-22 20:38 by xiangzheng/);
+assert.match(hd.text, /gate did not pass; ~\/duck-policy names next, loaded at the next brain start; changed after the brain started/);
+assert.match(modelsHeader({...info, brain: {running: false}}, null).text, /brain not running: the next start loads this set/);
+assert.match(modelsHeader({ok: false, error: "ssh: timeout"}).text, /cannot read it \(ssh: timeout\)/);
+remote.showModels(info); remote.refresh();
 
 console.log("robot-remote: all cases pass");
 
