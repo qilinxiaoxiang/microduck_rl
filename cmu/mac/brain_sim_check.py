@@ -1811,7 +1811,6 @@ def run(args):
                                                          final={n: round(float(d.qpos[qa[k]] - z0[k]), 3) for k, n in enumerate(names) if "head" in n or "neck" in n}),
                 compensation=args.compensation, first_policy_tick_s=first_policy, max_action=round(max_action, 2), action_jumps=action_jumps,
                 drop=args.drop, imu_hz=args.imu_hz, floor_mu=args.floor_mu, servo_noise=args.servo_noise,
-                guard_stop_at=guard["stop"] if args.wired_guards else None, guard_why=guard["why"] if args.wired_guards else None,
                 fell_at=fell, fall_dir=fall_dir,
                 max_tilt=round(maxtilt, 1), battery_stop_at=stop_at, stop_ramp=args.stop_ramp, settled_s=settled_at, end_mode=brain.mode,
                 wired_guards=bool(args.wired_guards), guard_stop_at=guard["stop"], guard_why=guard["why"],
