@@ -6,7 +6,8 @@ passes ~/duck-policy there), or from walk_brain.WHOLE/runtime-overlay/models wit
 the next start loads: the directory ~/duck-policy names (microduck_rl cmu/deploy/deploy_policy.py), else that default.
 For the set: sha256 and mtime of every *61.onnx, its MANIFEST.json (deploy_policy.py), the time ~/duck-policy was
 written (the deploy), files changed after the brain started (it still runs the old ones) and files whose hash is not the
-one the MANIFEST gated.
+one the MANIFEST gated. Everything but the gate comes from the files and the brain alone: a set copied by hand, with no
+MANIFEST, still shows its name, hashes, file times and the brain's start.
 """
 import glob
 import hashlib
@@ -99,13 +100,15 @@ def main():
     for p in sorted(glob.glob(os.path.join(models, "*61.onnx"))):
         files[os.path.basename(p)] = {"sha256": sha256(p), "mtime": round(os.path.getmtime(p), 1)}
     out["files"] = files
+    out["newest_mtime"] = max((v["mtime"] for v in files.values()), default=None)  # when the set's files were copied
     manifest = None
     try:
         with open(os.path.join(models, "MANIFEST.json")) as f:
             manifest = json.load(f)
     except (OSError, ValueError):
         pass
-    out["manifest"] = manifest and {k: manifest.get(k) for k in ("name", "built", "by", "gate", "gate_model", "slots", "source")}
+    out["manifest"] = manifest and {k: manifest.get(k) for k in ("name", "built", "by", "gate", "gate_passed", "worse", "forced",
+                                                                  "recorded", "gate_model", "slots", "source")}
     gated = (manifest or {}).get("files") or {}
     out["not_as_gated"] = sorted(f for f, v in files.items() if f in gated and gated[f] != v["sha256"])
     started = out["brain"].get("started")

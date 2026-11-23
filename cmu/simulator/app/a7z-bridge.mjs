@@ -46,10 +46,12 @@
 // MICRODUCK_PY names the Python with OpenCV (default ~/.venvs/microduck-walk/bin/python).
 import {spawn, spawnSync} from "node:child_process";
 import {appendFile, readFileSync} from "node:fs";
+import {createHash} from "node:crypto";
 import {homedir} from "node:os";
 import {fileURLToPath} from "node:url";
 
 const HISTORY_S = 1800, SILENT_S = 3, ACK_S = 3, START_ACK_S = 30;  // START_ACK_S covers duck-command.py START_S
+const GATE_PASS = "verdict: candidate matches or beats the reference on every real case";  // deploy_policy.py PASS
 const MODELS_CACHE_S = 4;  // GET /api/a7z/models: one SSH read serves every page for this long
 const WRITER_RETRY_S = 5;  // an unreachable A7Z gets one ssh attempt this often from the driver poll, not one a second
 const CAMERA_LINGER_S = 2, CAMERA_SILENT_S = 6, BOUNDARY = "duckframe";
@@ -62,6 +64,7 @@ const SSH_OPTS = ["-T","-o", "BatchMode=yes", "-o", "ConnectTimeout=4", "-o", "S
 
 export function a7zBridge({script, commandScript, stabilizeScript, shutdownScript,
                            modelsScript = fileURLToPath(new URL("../desktop/duck-models.py", import.meta.url)),
+                           deployRuns = process.env.MICRODUCK_DEPLOY_RUNS ?? fileURLToPath(new URL("../../microduck_rl/cmu/deploy/runs", import.meta.url)),
                            python = process.env.MICRODUCK_PY ?? `${homedir()}/.venvs/microduck-walk/bin/python`, host = process.env.MICRODUCK_ROBOT_HOST ?? "a7z",
                            cmdPath = process.env.MICRODUCK_CMD_PATH}) {
   return {
@@ -362,7 +365,23 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
       // Policy set (Shawn 2026-11-22: "遥控上最好显示每个活动调用的是什么模型 这样方便我们部署和调试"): GET returns
       // desktop/duck-models.py's answer, read-only over SSH: the running brain's --models directory (else the set the next
       // start loads), every *61.onnx's sha256 and the set's MANIFEST.json. One read at a time, kept MODELS_CACHE_S.
+      // A set with no MANIFEST on the A7Z (copied by hand) gets its gate from this machine's deploy runs, when they hold the
+      // same files: microduck_rl cmu/deploy/runs/<name>/suite-current.out (deploy_policy.py), as local_gate.
       let models = null, modelsRun = null;
+      const localGate = answer => {
+        if (!answer.ok || answer.manifest || !/^[\w-]+$/.test(answer.name ?? "")) return answer;
+        try {
+          const run = `${deployRuns}/${answer.name}`;
+          const walk = answer.files?.["walk61.onnx"]?.sha256;
+          if (!walk || createHash("sha256").update(readFileSync(`${run}/models/walk61.onnx`)).digest("hex") !== walk) return answer;
+          const text = readFileSync(`${run}/suite-current.out`, "utf8").split("\n");
+          const verdict = text.find(l => l.startsWith("verdict: "));
+          if (!verdict) return answer;
+          const variant = /variant current = ([^,]+)/.exec(text[0] ?? "")?.[1] ?? null;
+          return {...answer, local_gate: {verdict, passed: verdict === GATE_PASS, variant,
+            worse: text.filter(l => l.startsWith("  ") && l.includes(" worse: ")).map(l => l.trim().replace(/\s+worse:/, ":"))}};
+        } catch { return answer; }  // no deploy runs on this machine, or none for this set
+      };
       const readModels = () => new Promise(resolve => {
         const p = spawn("ssh", [...SSH_OPTS, host, "python3 -u -"], {stdio: ["pipe", "pipe", "pipe"]});
         let out = "", err = "";
@@ -374,7 +393,7 @@ export function a7zBridge({script, commandScript, stabilizeScript, shutdownScrip
         p.on("error", e => { err += `\n${e.message}`; });
         p.on("close", code => {
           clearTimeout(kill);
-          try { resolve(JSON.parse(out.trim().split("\n").pop())); }
+          try { resolve(localGate(JSON.parse(out.trim().split("\n").pop()))); }
           catch { resolve({ok: false, error: err.split("\n").filter(l => l && !/quantum|store now|upgraded/.test(l)).pop() ?? `exit ${code}`}); }
         });
       });

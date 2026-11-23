@@ -201,10 +201,58 @@ def test_the_gate_runs_the_candidate_and_the_deployed_set_on_the_same_payload_mo
     run.mkdir()
     got = deploy_policy.gate(str(run), str(run / "models"), payload=p)
     label = deploy_policy.gate_label("current", p)
-    assert got == {"gate": {label: deploy_policy.PASS}, "historical_extras": {}}
+    assert got == {"gate": {label: deploy_policy.PASS}, "gate_passed": True, "worse": {label: []}, "historical_extras": {}}
     assert calls[0][:3] == ("models", "current", p) and calls[0][3] is None  # the deployed set (BASE), with the payload
     assert calls[1][1:3] == ("current", p) and calls[1][3].endswith(f"suite-{label}.jsonl")
     verdict[0] = "verdict: candidate is worse than the reference on at least one real case"
     with pytest.raises(SystemExit) as e:
         deploy_policy.gate(str(run), str(run / "models"), payload=p)
     assert "worse than the deployed set" in str(e.value)
+
+
+WORSE_OUT = """sim_suite: models /x/runs/c/models, variant current = battery-v2m5-20261121, walk 10.0 s
+verdict against /x/runs/_walk61/suite-current.jsonl (real cases only):
+  nominal         worse: max_tilt 13.8 > reference 8.7 + 2.0
+  vx0.2           worse: dist_x -0.001 < 0.9 x reference 0.34
+  imu_pitch4      ok
+verdict: candidate is worse than the reference on at least one real case
+"""
+
+
+def test_a_rejected_candidate_goes_on_only_with_a_reason_and_keeps_the_failed_verdict_and_worse_rows(tmp_path, monkeypatch):
+    """2026-11-22 bw-c2-s1b: gate failed, Shawn said copy anyway ("不过也拷上去"), it was copied by hand and the robot had
+    no record of the failed gate. --deploy-despite-gate goes on and returns what the MANIFEST keeps."""
+    monkeypatch.setattr(deploy_policy, "RUNS", str(tmp_path))
+    monkeypatch.setattr(deploy_policy, "sim_hash", lambda: "testhash")
+
+    class Done:
+        returncode, stderr = 0, ""
+
+        def __init__(self, out):
+            self.stdout = out
+
+    def fake_suite(models, out, variant, reference=None, payload=None):
+        open(out, "w").write("{}\n")
+        return Done(WORSE_OUT if reference else "")
+
+    monkeypatch.setattr(deploy_policy, "suite", fake_suite)
+    run = tmp_path / "cand"
+    run.mkdir()
+    with pytest.raises(SystemExit):
+        deploy_policy.gate(str(run), str(run / "models"))
+    got = deploy_policy.gate(str(run), str(run / "models"), despite="不过也拷上去")
+    assert got["gate_passed"] is False
+    assert got["gate"] == {"current": "verdict: candidate is worse than the reference on at least one real case"}
+    assert got["worse"] == {"current": ["nominal: max_tilt 13.8 > reference 8.7 + 2.0", "vx0.2: dist_x -0.001 < 0.9 x reference 0.34"]}
+    assert deploy_policy.recorded_gate(str(run))["worse"] == got["worse"]
+    assert deploy_policy.recorded_gate(str(run))["gate_passed"] is False
+
+
+@pytest.mark.parametrize("argv", [["check", "x.onnx", "--name", "n", "--deploy-despite-gate", "why"],
+                                  ["deploy", "x.onnx", "--name", "n", "--deploy-despite-gate", " "]])
+def test_deploy_despite_gate_needs_deploy_or_record_and_a_reason(argv, monkeypatch):
+    monkeypatch.setattr(deploy_policy, "ssh", lambda *a, **k: pytest.fail("no ssh before the refusal"))
+    monkeypatch.setattr(sys, "argv", ["deploy_policy.py", *argv])
+    with pytest.raises(SystemExit) as e:
+        deploy_policy.main()
+    assert "deploy-despite-gate" in str(e.value)

@@ -263,7 +263,21 @@ hd = modelsHeader({...info, pointer: {dir: "/home/radxa/policies/next"}, pointer
   changed_after_start: ["walk61.onnx"], manifest: {...info.manifest, gate: {current: "verdict: worse on 2 real cases"}}}, null);
 assert.ok(hd.warn);
 assert.match(hd.text, /built 2026-11-22 20:38 by xiangzheng/);
-assert.match(hd.text, /gate did not pass; ~\/duck-policy names next, loaded at the next brain start; changed after the brain started/);
+assert.match(hd.text, /gate FAILED \(sim on battery-v2m5-20261121\)/);
+assert.match(hd.text, /Check: gate failed and no reason was recorded for deploying it; ~\/duck-policy names next, loaded at the next brain start; changed after the brain started/);
+// 2026-11-22 bw-c2-s1b: copied by hand on Shawn's word after a failed gate
+const c2 = {...info, name: "bw-c2-s1b", newest_mtime: 1795399500, manifest: null};
+hd = modelsHeader(c2, {running: true, policy: "walk"});
+assert.equal(hd.warn, false);  // no MANIFEST is a note, not a fault
+assert.match(hd.text, /^Policy set: bw-c2-s1b · deployed .* · no gate record \(no MANIFEST\.json and no local gate run for these files\) · brain started .* · running now: walk61$/);
+hd = modelsHeader({...c2, pointer_matches: false, local_gate: {verdict: "verdict: candidate is worse than the reference on at least one real case",
+  passed: false, variant: "battery-v2m5-20261121", worse: ["nominal: max_tilt 13.8 > reference 8.7 + 2.0", "vx0.2: dist_x -0.001 < 0.9 x reference 0.34"]}}, null);
+assert.match(hd.text, /files copied .* · gate FAILED \(sim on battery-v2m5-20261121: worse on nominal, vx0\.2\) · gate read from this machine's deploy run/);
+hd = modelsHeader({...c2, manifest: {name: "bw-c2-s1b", by: "xiangzheng", gate: {current: "verdict: candidate is worse than the reference on at least one real case"},
+  gate_passed: false, worse: {current: ["nominal: a", "vx0.25: b", "vx0.2: c", "com+5: d"]}, forced: {reason: "不过也拷上去"},
+  gate_model: {variant: "battery-v2m5-20261121"}}}, {running: true, policy: "stand"});
+assert.equal(hd.warn, false);
+assert.match(hd.text, /gate FAILED \(sim on battery-v2m5-20261121: worse on nominal, vx0\.25, vx0\.2, com\+5\), deployed anyway: "不过也拷上去"/);
 assert.match(modelsHeader({...info, brain: {running: false}}, null).text, /brain not running: the next start loads this set/);
 assert.match(modelsHeader({ok: false, error: "ssh: timeout"}).text, /cannot read it \(ssh: timeout\)/);
 remote.showModels(info); remote.refresh();

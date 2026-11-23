@@ -35,9 +35,9 @@ process.env.HOME = dir;
 
 const {createServer} = await import("vite");
 const {a7zBridge} = await import("../a7z-bridge.mjs");
-async function bridge(host) {
+async function bridge(host, deployRuns = join(dir, "no-runs")) {
   const server = await createServer({configFile: false, root: here(".."), logLevel: "silent",
-    plugins: [a7zBridge({host, script: here("../../desktop/duck-telemetry.py"), commandScript: here("../../desktop/duck-command.py"),
+    plugins: [a7zBridge({host, deployRuns, script: here("../../desktop/duck-telemetry.py"), commandScript: here("../../desktop/duck-command.py"),
       stabilizeScript: here("../../desktop/duck-stabilize.py"), shutdownScript: "/bin/true"})],
     server: {host: "127.0.0.1", port: 0, hmr: false}});
   await server.listen();
@@ -66,6 +66,29 @@ await Promise.all([fetch(`${base}/api/a7z/models`).then(x => x.json()), fetch(`$
 assert.equal(reads(), 1);
 assert.equal((await fetch(`${base}/api/a7z/models`, {method: "POST"})).status, 405);
 await server.close();
+
+// a set copied by hand (no MANIFEST): name, hashes and times still come back, and the gate from this machine's deploy run
+// of the same files (2026-11-22 bw-c2-s1b); a run whose walk61 differs is not used
+const {rmSync, copyFileSync} = await import("node:fs");
+rmSync(join(set, "MANIFEST.json"));
+const runs = join(dir, "runs"), run = join(runs, "bw-test");
+mkdirSync(join(run, "models"), {recursive: true});
+copyFileSync(join(set, "walk61.onnx"), join(run, "models", "walk61.onnx"));
+writeFileSync(join(run, "suite-current.out"), "sim_suite: models x, variant current = battery-v2m5-20261121, walk 10.0 s\n"
+  + "  nominal         worse: max_tilt 13.8 > reference 8.7 + 2.0\n  imu_pitch4      ok\n"
+  + "verdict: candidate is worse than the reference on at least one real case\n");
+const local = await bridge("fake-a7z", runs);
+const l = await (await fetch(`${local.base}/api/a7z/models`)).json();
+assert.equal(l.manifest, null);
+assert.equal(l.files["walk61.onnx"].sha256, sha("walk"));
+assert.ok(l.newest_mtime > 0);
+assert.deepEqual(l.local_gate, {verdict: "verdict: candidate is worse than the reference on at least one real case", passed: false,
+  variant: "battery-v2m5-20261121", worse: ["nominal: max_tilt 13.8 > reference 8.7 + 2.0"]});
+await local.server.close();
+writeFileSync(join(run, "models", "walk61.onnx"), "another walk");
+const other = await bridge("fake-a7z", runs);
+assert.equal((await (await fetch(`${other.base}/api/a7z/models`)).json()).local_gate, undefined);
+await other.server.close();
 
 // an A7Z that does not answer: 502 with ssh's own reason
 const down = await bridge("down");

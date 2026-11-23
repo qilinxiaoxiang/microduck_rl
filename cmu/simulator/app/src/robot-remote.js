@@ -200,7 +200,12 @@ export function modelLine(id, info) {
   return `model: ${info.name}/${file} (${hash8(f)})${then}`;
 }
 
-// The header: the set, its deploy time and gate verdict, the brain, the slot running now; warn = something to check.
+// The header, all of it from what is on the A7Z now (Shawn 2026-11-22: "遥控要看到现状 不管你什么方法"): the set the brain
+// loaded, when it was deployed (~/duck-policy written) or its files copied, the gate (the set's MANIFEST.json, else this
+// service's own deploy run for the same files, local_gate), the brain's start and the slot running now. A set copied by
+// hand without a MANIFEST is a plain note, never a fault. warn (amber) = the brain and the files disagree, or a failed gate
+// that nobody recorded a reason for.
+const caseNames = rows => (rows ?? []).map(r => r.split(":")[0]).join(", ");
 export function modelsHeader(info, brain) {
   if (!info) return {text: "Policy set: reading from the A7Z…", warn: false};
   if (!info.ok) return {text: `Policy set: cannot read it (${info.error ?? "no answer"})`, warn: true};
@@ -208,12 +213,19 @@ export function modelsHeader(info, brain) {
   const warn = [];
   if (info.pointer_matches && info.pointer?.written) parts.push(`deployed ${when(info.pointer.written)}${m?.by ? ` by ${m.by}` : ""}`);
   else if (m?.built) parts.push(`built ${m.built.replace("T", " ").slice(0, 16)}${m.by ? ` by ${m.by}` : ""}`);
-  if (m) {
-    const verdicts = Object.values(m.gate ?? {});
-    const on = m.gate_model?.variant ? ` on ${m.gate_model.variant}` : "";
-    if (verdicts.length && verdicts.every(v => v === GATE_PASS)) parts.push(`gate passed (sim${on})`);
-    else { parts.push(`gate: ${verdicts.join("; ") || "no verdict"}${on}`); warn.push("gate did not pass"); }
-  } else if (!info.default) { parts.push("no MANIFEST.json, so no gate record"); warn.push("not deployed through deploy_policy.py"); }
+  else if (info.newest_mtime) parts.push(`files copied ${when(info.newest_mtime)}`);
+  const verdicts = m ? Object.values(m.gate ?? {}) : info.local_gate ? [info.local_gate.verdict] : [];
+  const passed = m ? (m.gate_passed ?? (verdicts.length > 0 && verdicts.every(v => v === GATE_PASS))) : info.local_gate?.passed;
+  const variant = m ? m.gate_model?.variant : info.local_gate?.variant;
+  const on = variant ? ` on ${variant}` : "";
+  const worse = m ? Object.values(m.worse ?? {}).flat() : info.local_gate?.worse ?? [];
+  if (verdicts.length && passed) parts.push(`gate passed (sim${on})`);
+  else if (verdicts.length) {
+    parts.push(`gate FAILED (sim${on}${worse.length ? `: worse on ${caseNames(worse)}` : ""})`
+      + (m?.forced?.reason ? `, deployed anyway: "${m.forced.reason}"` : ""));
+    if (!m?.forced?.reason) warn.push("gate failed and no reason was recorded for deploying it");
+  } else if (!info.default) parts.push("no gate record (no MANIFEST.json and no local gate run for these files)");
+  if (!m && info.local_gate) parts.push("gate read from this machine's deploy run");
   if (info.brain?.running) {
     parts.push(`brain started ${when(info.brain.started)}`);
     if (brain?.running) parts.push(`running now: ${brain.policy ? `${brain.policy}61` : "no policy"}`);
