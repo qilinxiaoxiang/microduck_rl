@@ -181,10 +181,83 @@ DELTA_PLAY = dict(play=dict(half_deg=PLAY_HALF_DEG, none_fraction=0.2),
 # Every reward term and weight, actuator, voltage, noise and push stays Pollen's.
 ZERO_SHIFT_DEG = {"left_hip_roll": 5.5, "right_hip_roll": -3.5, "head_roll": -3.5, "head_yaw": -5.0}
 DELTA_BATSHIFT = dict(zero_shift_deg=ZERO_SHIFT_DEG, foot_friction=(0.4, 1.3))
+# batreal (2026-11-22, battery-walk-20261122 TRAIN-CONTRACT.json stage C2): batshift plus the robot's measured sensor and
+# actuator conditions (extensions/battery-walk-20261122/GAP-AUDIT.md, gaps 1-6). One change against C1: what the policy
+# reads and how the servos answer; masses, shift, foot friction, rewards and commands stay C1's.
+#   gyro_noise_legspeed  gyro (actor base_ang_vel) noise, Gaussian per axis per tick with sd = K x rms true leg joint
+#                        speed (the 10 leg servos): robot gyro diff sd / leg rms 0.36-0.46, i.e. noise sd 0.25-0.33 x leg
+#                        rms; jitter_sim.py --gyro-noise-dq is the same model. Added on top of Pollen's +-0.03.
+#   joint_friction       BAM friction budget scale per episode (1.0, 1.5) (was (0.9, 1.1)): robot fits x1.25-1.4.
+#   joint_vel_noise_sd   actor joint_vel noise Gaussian sd 0.5 rad/s (was uniform +-0.25, sd 0.14): robot 0.63-0.65.
+#   servo_drop           fraction of policy ticks whose servo read is dropped: the brain skips the policy and holds the
+#                        last goals and its last action (walk_brain.py tick: no policy step without a fresh sample;
+#                        brain_sim_check.py --drop). Here the applied action and the last-action history keep the
+#                        previous tick's values on those ticks. Robot 2.2-4.4 % of walk ticks.
+#   gravity_noise        actor projected_gravity uniform +-0.02 (was +-0.01): robot diff sd 0.016-0.018.
+#   joint_pos_lag        actor joint_pos one policy tick old (was 0): robot joint reading 17 ms old, tick 21 ms.
+LEG_JOINTS_RE = r"^(left|right)_(hip_yaw|hip_roll|hip_pitch|knee|ankle)$"
+DELTA_BATREAL = dict(DELTA_BATSHIFT, gyro_noise_legspeed=0.3, joint_friction=(1.0, 1.5), joint_vel_noise_sd=0.5,
+                     servo_drop=0.04, gravity_noise=0.02, joint_pos_lag=1)
 DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP,
           "tether": DELTA_TETHER, "play": DELTA_PLAY,
           "playctl": dict(track_lin_vel=DELTA_PLAY["track_lin_vel"]),  # play's control arm: the same run without play
-          "batshift": DELTA_BATSHIFT}
+          "batshift": DELTA_BATSHIFT, "batreal": DELTA_BATREAL}
+
+
+def make_legspeed_gyro(base_func):
+    """actor base_ang_vel = base_func(env, ...) + N(0, (k x rms leg joint speed)^2) per axis, drawn every call (once
+    per policy tick); the leg speed is the true one (the robot's vibration follows the trunk and leg motion)."""
+
+    def base_ang_vel_legspeed_noise(env, k: float, max_angle_deg: float | None = None):
+        w = base_func(env) if max_angle_deg is None else base_func(env, max_angle_deg=max_angle_deg)
+        robot = env.scene["robot"]
+        ids = env.__dict__.get("_leg_joint_ids")
+        if ids is None:
+            ids = env.__dict__["_leg_joint_ids"] = robot.find_joints(LEG_JOINTS_RE)[0]
+        qd = robot.data.joint_vel[:, ids]
+        sd = k * torch.sqrt(torch.mean(torch.square(qd), dim=1, keepdim=True))
+        return w + sd * torch.randn_like(w)
+
+    return base_ang_vel_legspeed_noise
+
+
+def make_drop_action_cfg(old, drop: float):
+    """a JointPositionActionCfg whose term holds, on a `drop` fraction of the policy ticks per env, the previous applied
+    action (raw and processed) and writes it back into the action history, so last_action and action_rate see the held
+    action as walk_brain.py's last_action does. The first tick of an episode is never dropped."""
+    from mjlab.envs.mdp.actions.actions import JointPositionAction, JointPositionActionCfg
+
+    class JointPositionDropAction(JointPositionAction):
+        def __init__(self, cfg, env):
+            super().__init__(cfg, env)
+            self.drop = float(cfg.drop)
+            self.drop_ticks = 0
+            self.ticks = 0
+            self.last_drop_mask = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+
+        def process_actions(self, actions):
+            env = self._env
+            m = (torch.rand(actions.shape[0], device=actions.device) < self.drop) & (env.episode_length_buf > 0)
+            self.last_drop_mask = m
+            self.ticks += int(actions.shape[0])
+            n = int(m.sum())
+            if n:
+                self.drop_ticks += n
+                actions = torch.where(m[:, None], self._raw_actions, actions)
+                am = env.action_manager
+                assert am.total_action_dim == self.action_dim, "servo_drop assumes the joint_pos term is the only action"
+                am._action[m] = self._raw_actions[m]  # noqa: SLF001
+            super().process_actions(actions)
+
+    @dataclasses.dataclass(kw_only=True)
+    class JointPositionDropActionCfg(JointPositionActionCfg):
+        drop: float = 0.0
+
+        def build(self, env):
+            return JointPositionDropAction(self, env)
+
+    kw = {f.name: getattr(old, f.name) for f in dataclasses.fields(old) if f.init}
+    return JointPositionDropActionCfg(**kw, drop=drop)
 
 
 ZERO_SHIFT_ORIG: dict = {}  # the unshifted default joint position patterns of the last apply_zero_shift
@@ -468,6 +541,25 @@ def apply_delta(env_cfg, delta: dict):
         apply_play(env_cfg, delta["play"])
     if delta.get("zero_shift_deg"):
         env_cfg.scene.entities["robot"] = apply_zero_shift(env_cfg.scene.entities["robot"], delta["zero_shift_deg"])
+    actor = env_cfg.observations["actor"].terms
+    if delta.get("gyro_noise_legspeed"):
+        av = actor["base_ang_vel"]
+        extra = set(av.params) - {"max_angle_deg"}
+        assert not extra, f"gyro_noise_legspeed: unexpected base_ang_vel params {extra}"
+        av.func = make_legspeed_gyro(av.func)
+        av.params = dict(av.params, k=float(delta["gyro_noise_legspeed"]))
+    if delta.get("joint_vel_noise_sd"):
+        from mjlab.utils.noise import GaussianNoiseCfg as Gnoise
+        actor["joint_vel"].noise = Gnoise(mean=0.0, std=float(delta["joint_vel_noise_sd"]))
+    if delta.get("gravity_noise"):
+        g = delta["gravity_noise"]
+        actor["projected_gravity"].noise = Unoise(n_min=-g, n_max=g)
+    if delta.get("joint_pos_lag"):
+        jp = actor["joint_pos"]
+        jp.delay_min_lag = jp.delay_max_lag = int(delta["joint_pos_lag"])
+        jp.delay_update_period = 0
+    if delta.get("servo_drop"):
+        env_cfg.actions["joint_pos"] = make_drop_action_cfg(env_cfg.actions["joint_pos"], float(delta["servo_drop"]))
     if delta.get("track_lin_vel"):
         term = env_cfg.rewards["track_linear_velocity"]  # weight 2.0 unchanged: same reward mass, filtered velocity
         term.func = track_linear_velocity_ema
