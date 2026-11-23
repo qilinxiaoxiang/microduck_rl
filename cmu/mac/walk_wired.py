@@ -13,15 +13,15 @@ Stopping this process leaves the servos holding their last goals.
 
 Battery guard (pi/battery.py, thresholds and their measured capacity there), --supply auto by default: once the servos
 read 7.5 V or more (only the 2S pack does), Present Input Voltage is read once a second and judged on its 10 s median
-(a walk-start sag is one sample); under 7.4 V it warns (cleared at 7.5 V for 10 s), at 7.2 V it replaces the control
+(a walk-start sag is one sample); under 7.0 V it warns (cleared at 7.2 V for 10 s), at 6.8 V it replaces the control
 file: walking gets
 zero velocity, so walk61 stops its own steps and keeps the robot balanced (no open-loop ramp to STAND, which falls in
 the simulation), stand mode returns to plain STAND, torque stays on, and once that pose is held (1.5 s at zero command)
 /tmp/duck_battery_stop.json is written. With torque still off it stays in monitor. While that marker exists torque is
 not switched on until the servos read 7.8 V or more (a charged or swapped pack), which deletes it. --supply battery
-applies the guard from the start; --supply bench switches it off (the bench rail sags under 7.2 V while walking,
-which the guard reads as an empty pack) but keeps the Alert-bit packets and the hardware-error watch. A failed voltage read is a skipped sample and never
-releases torque. After the stop, 7.1 V on three samples (about 9 % of the pack left) sits the robot down and turns torque
+applies the guard from the start; --supply bench switches it off (the bench rail sags under 7.0 V while walking,
+which the guard reads as a low pack) but keeps the Alert-bit packets and the hardware-error watch. A failed voltage read is a skipped sample and never
+releases torque. After the stop, 6.6 V judged three times (3.3 V per cell under load) sits the robot down and turns torque
 off, by 6 s at the latest; 3 s after that torque off the brain fsyncs its log and powers the A7Z off cleanly
 (systemctl poweroff, then sudo -n), so the camera and name call stop draining the pack (--no-floor-poweroff keeps it
 running). --supply-file (the phone's backpack switch) changes the guard while running, also while driving. Armed, the loop also reads Hardware Error Status once a second; a fault other than the battery's
