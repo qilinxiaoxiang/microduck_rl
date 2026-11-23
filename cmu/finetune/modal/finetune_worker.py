@@ -168,9 +168,97 @@ PLAY_HALF_DEG = {r"^(neck_pitch|head_pitch|head_yaw|head_roll)$": 4.0,
                  r"^(left|right)_(hip_yaw|hip_roll|hip_pitch|knee)$": 2.0}
 DELTA_PLAY = dict(play=dict(half_deg=PLAY_HALF_DEG, none_fraction=0.2),
                   track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)))
+# batshift (2026-11-22, battery-walk-20261122 TRAIN-CONTRACT.json stage C1): walk61 under the robot's condition with the
+# 3000 mAh battery backpack. Only the robot model changes (Shawn 2026-11-22: rewards and the exam stay as they are).
+# Run with --cmu-config current (battery-v2m5-20261121 masses). Changes from Pollen's recipe:
+#   zero_shift_deg  the brain's zero shift outside the policy (A7Z ~/duck-zero-offset.json, pi/joint_signs.py
+#                   MOTOR_OFFSET): motor = policy goal + shift, reading = true angle - shift. In this env that is the
+#                   default joint position + shift, used by the action offset, the joint observation (actor and
+#                   critic), the reset pose and the pose terms alike; the policy's frame is unchanged. The exported
+#                   ONNX metadata keeps the unshifted default (walk_brain.py reads it and applies the shift itself).
+#   foot_friction   the existing foot friction DR widened from (0.7, 1.3) to (0.4, 1.3): the foot geoms have contact
+#                   priority 1 over the floor, so the old range never reached the mu 0.4 floor of stage Y1.
+# Every reward term and weight, actuator, voltage, noise and push stays Pollen's.
+ZERO_SHIFT_DEG = {"left_hip_roll": 5.5, "right_hip_roll": -3.5, "head_roll": -3.5, "head_yaw": -5.0}
+DELTA_BATSHIFT = dict(zero_shift_deg=ZERO_SHIFT_DEG, foot_friction=(0.4, 1.3))
 DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP,
           "tether": DELTA_TETHER, "play": DELTA_PLAY,
-          "playctl": dict(track_lin_vel=DELTA_PLAY["track_lin_vel"])}  # play's control arm: the same run without play
+          "playctl": dict(track_lin_vel=DELTA_PLAY["track_lin_vel"]),  # play's control arm: the same run without play
+          "batshift": DELTA_BATSHIFT}
+
+
+ZERO_SHIFT_ORIG: dict = {}  # the unshifted default joint position patterns of the last apply_zero_shift
+
+
+def apply_zero_shift(robot_cfg, shift_deg: dict):
+    """Return a copy of the robot EntityCfg whose default joint position is the original one + shift (deg) on the
+    named joints: exact-name patterns placed first, since mjlab's resolve_expr takes the first matching pattern."""
+    from mjlab.utils.string import resolve_expr
+    orig = dict(robot_cfg.init_state.joint_pos)
+    new = {}
+    for name, deg in shift_deg.items():
+        base = resolve_expr(orig, (name,), None)[0]
+        assert base is not None, f"zero shift: no default joint position pattern matches {name}"
+        new[f"^{name}$"] = float(base) + math.radians(deg)
+    new.update(orig)
+    init = dataclasses.replace(robot_cfg.init_state, joint_pos=new)
+    ZERO_SHIFT_ORIG.clear()
+    ZERO_SHIFT_ORIG.update(orig)  # for check_zero_shift (later robot cfg copies, e.g. the mass patch, drop attributes)
+    return dataclasses.replace(robot_cfg, init_state=init)
+
+
+def zero_shift_vector(joint_names, shift_deg: dict):
+    """shift in rad per joint, in the robot's joint order (0 for joints without a shift)"""
+    missing = sorted(set(shift_deg) - set(joint_names))
+    assert not missing, f"zero shift joints not in the robot: {missing}"
+    return [math.radians(shift_deg.get(n, 0.0)) for n in joint_names]
+
+
+def check_zero_shift(env, shift_deg: dict, orig_joint_pos: dict):
+    """after the env is built: default_joint_pos = original default + shift on every joint, and the action offset
+    of joint_pos is that default (motor goal = policy goal + shift)"""
+    from mjlab.utils.string import resolve_expr
+    robot = env.scene["robot"]
+    names = tuple(robot.joint_names)
+    want = torch.tensor([b + s for b, s in zip(resolve_expr(orig_joint_pos, names, 0.0), zero_shift_vector(names, shift_deg))],
+                        device=robot.data.default_joint_pos.device)
+    got = robot.data.default_joint_pos[0]
+    err = float((got - want).abs().max())
+    assert err < 1e-6, f"zero shift: default_joint_pos differs from original + shift by {err}"
+    term = env.action_manager.get_term("joint_pos")
+    off = term._offset[0] if isinstance(term._offset, torch.Tensor) else None  # noqa: SLF001
+    if off is not None:
+        exp = got[term._target_ids] if hasattr(term, "_target_ids") else got  # noqa: SLF001
+        err2 = float((off - exp).abs().max())
+        assert err2 < 1e-6, f"zero shift: action offset differs from the shifted default by {err2}"
+    print(f"[zero-shift] default + shift on {sorted(shift_deg)} ({shift_deg} deg); action offset follows", flush=True)
+
+
+def unshift_metadata(meta: dict, shift_deg: dict) -> dict:
+    """the exported default_joint_pos without the shift: the runtime reads it from the ONNX and adds the shift itself"""
+    names = meta["joint_names"]
+    sv = zero_shift_vector(names, shift_deg)
+    meta = dict(meta)
+    # rounded to 1e-9 and + 0.0: a float32 0 + shift - shift prints "-0.000", which walk_brain.py's string compare of
+    # default_joint_pos across policy slots would reject
+    meta["default_joint_pos"] = [round(float(v) - s, 9) + 0.0 for v, s in zip(meta["default_joint_pos"], sv)]
+    return meta
+
+
+def install_runtime_delta(env, delta):
+    """checks on a built env (ManagerBasedRlEnv, unwrapped) for the parts of a delta that need one"""
+    if delta and delta.get("zero_shift_deg"):
+        check_zero_shift(env, delta["zero_shift_deg"], ZERO_SHIFT_ORIG)
+
+
+def export_metadata(env, run_path: str, delta):
+    from mjlab.rl.exporter_utils import get_base_metadata
+    meta = get_base_metadata(env, run_path=run_path)
+    if delta and delta.get("zero_shift_deg"):
+        meta = unshift_metadata(meta, delta["zero_shift_deg"])
+    return meta
+
+
 PLAY_SUFFIX = "_play"
 PLAY_EPS = 1e-4  # rad; the half-width of a "no play" hinge (a zero range is degenerate)
 
@@ -378,6 +466,8 @@ def apply_delta(env_cfg, delta: dict):
                                                                  asset_cfg=SceneEntityCfg("robot")))
     if delta.get("play"):
         apply_play(env_cfg, delta["play"])
+    if delta.get("zero_shift_deg"):
+        env_cfg.scene.entities["robot"] = apply_zero_shift(env_cfg.scene.entities["robot"], delta["zero_shift_deg"])
     if delta.get("track_lin_vel"):
         term = env_cfg.rewards["track_linear_velocity"]  # weight 2.0 unchanged: same reward mass, filtered velocity
         term.func = track_linear_velocity_ema
@@ -568,10 +658,13 @@ def main():
             cfg_v = load_env_cfg(TASK, play=False)
             # variant = "<delta>[_asbuilt]" with <delta> a DELTAS key, "delta" (= default), "baseline" or "asbuilt"
             dname = variant.split("_")[0]
+            dv = None
             if dname == "delta":
-                apply_delta(cfg_v, dict(DELTA_DEFAULT))
+                dv = dict(DELTA_DEFAULT)
+                apply_delta(cfg_v, dv)
             elif dname in DELTAS:
-                apply_delta(cfg_v, dict(DELTAS[dname]))
+                dv = dict(DELTAS[dname])
+                apply_delta(cfg_v, dv)
             elif variant not in ("baseline", "asbuilt"):
                 raise SystemExit(f"unknown eval variant {variant!r}: use baseline, asbuilt, delta, or a DELTAS key, each optionally _asbuilt")
             if "asbuilt" in variant:
@@ -579,6 +672,7 @@ def main():
             cfg_v.scene.num_envs = args.num_envs
             cfg_v.seed = args.seed
             env_v = ManagerBasedRlEnv(cfg=cfg_v, device=device)
+            install_runtime_delta(env_v, dv)
             env_v = RslRlVecEnvWrapper(env_v, clip_actions=load_rl_cfg(TASK).clip_actions)
             env_v.unwrapped.common_step_counter = CURRICULA_DONE_STEP
             runner_v = (load_runner_cls(TASK) or MjlabOnPolicyRunner)(env_v, dataclasses.asdict(load_rl_cfg(TASK)), str(run_dir), device)
@@ -622,6 +716,7 @@ def main():
     agent_cfg.max_iterations = args.max_iters
 
     env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
+    install_runtime_delta(env, delta)
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
     runner_base = load_runner_cls(TASK) or MjlabOnPolicyRunner
     worker = {"stop": None}
@@ -707,7 +802,10 @@ def main():
             # the tracking-error check applies, from N on the speed checks apply as usual (2026-11-19 ts3m-w61long
             # was stopped at iteration 250, 150 actor iterations in)
             in_grace = it < args.track_grace
-            speed_bad = (not in_grace) and (speed < sbase / args.track_guard if sbase > 0 else speed < args.low_speed_floor)
+            # bool(args.track_guard) first: with the guard off (0) the division below must not run (2026-11-22
+            # bw-c1-smoke stopped at its second save with ZeroDivisionError once the warm-up speed baseline existed)
+            speed_bad = bool(args.track_guard) and (not in_grace) and (
+                speed < sbase / args.track_guard if sbase > 0 else speed < args.low_speed_floor)
             track_ok = not (args.track_guard and not self.rebase_left and base == base and track == track and
                             (track > args.track_guard * base or speed_bad or (low_bad and not in_grace)))
             row = dict(iter=it, elapsed_s=round(elapsed, 1), dollars=round(dollars, 3), mean_reward=rew, mean_ep_len=length,
@@ -801,7 +899,7 @@ def main():
     if not final_ckpt.exists():
         torch.save(runner.alg.save() | {"iter": final_it, "infos": {"env_state": {"common_step_counter": env.unwrapped.common_step_counter}}}, final_ckpt)
     runner.export_policy_to_onnx(str(run_dir), f"{args.run_name}.onnx")
-    meta = get_base_metadata(runner.env.unwrapped, run_path=str(final_ckpt))
+    meta = export_metadata(runner.env.unwrapped, str(final_ckpt), delta)
     attach_metadata_to_onnx(str(run_dir / f"{args.run_name}.onnx"), meta)
     if (run_dir / "model_best.pt").exists():
         # the normalizer buffers became inference tensors during the rollouts; clone them so load_state_dict can copy in place
@@ -812,7 +910,7 @@ def main():
                     setattr(norm, name, getattr(norm, name).detach().clone())
         runner.load(str(run_dir / "model_best.pt"))
         runner.export_policy_to_onnx(str(run_dir), f"{args.run_name}_best.onnx")
-        attach_metadata_to_onnx(str(run_dir / f"{args.run_name}_best.onnx"), get_base_metadata(runner.env.unwrapped, run_path=str(run_dir / "model_best.pt")))
+        attach_metadata_to_onnx(str(run_dir / f"{args.run_name}_best.onnx"), export_metadata(runner.env.unwrapped, str(run_dir / "model_best.pt"), delta))
     elapsed = elapsed_prev + (time.time() - t_start)
     record.update(finished=time.strftime("%Y-%m-%dT%H:%M:%S"), final_iter=final_it, stop_reason=stop_reason,
                   elapsed_s=round(elapsed, 1), dollars=round(elapsed / 3600 * args.rate_per_hour, 3),
