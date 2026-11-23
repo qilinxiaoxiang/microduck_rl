@@ -10,7 +10,8 @@ kept so old runs reproduce, never the default for new training.
 that the signed mass parts of `cmu/model` (`variant_parts(variant)`) are applied to the MJCF bodies as explicit
 inertials before mjlab compiles the scene, and (for battery-20261104 and battery-v2m5-20261121, which the current
 variant resolves to) the robot's own visual layer is drawn. Everything else (observations, 61-D contract, rewards, DR, BAM actuators, HOME
-frame) is Pollen's. `cmu/model/apply_masses.py` is loaded by file path from the repository root; `cmu/` is not an
+frame) is Pollen's, except that the `current` tasks also train under the real robot's measured sensor and actuator
+conditions (`mjlab_microduck/robot_conditions.py`, docs/SIM-TO-REAL-GAPS.md). `cmu/model/apply_masses.py` is loaded by file path from the repository root; `cmu/` is not an
 installed package.
 """
 from __future__ import annotations
@@ -87,12 +88,23 @@ def cmu_robot_spec_fn(base_spec_fn, variant: str, tag: str = "cmu"):
     return spec_fn
 
 
-def make_cmu_velocity_env_cfg(variant: str = CURRENT, play: bool = False, rough: bool = False):
-    """Velocity cfg on a CMU mass variant. Default `current` (cmu/model/current.json); dated variants are historical."""
+def make_cmu_velocity_env_cfg(variant: str = CURRENT, play: bool = False, rough: bool = False,
+                              robot_conditions: bool | None = None):
+    """Velocity cfg on a CMU mass variant. Default `current` (cmu/model/current.json); dated variants are historical.
+
+    robot_conditions: apply the real robot's measured sensor and actuator conditions
+    (`mjlab_microduck.robot_conditions.ROBOT_CONDITIONS`: leg-speed gyro noise, joint velocity and gravity noise, one
+    tick old joint position, 4 % servo read drops, BAM friction x1.0-1.5). Default (None): on for `current`, off for
+    the dated variants, so historical runs reproduce. docs/SIM-TO-REAL-GAPS.md has the evidence for each value."""
     cfg = make_microduck_velocity_env_cfg(play=play, rough=rough)
     robot = cfg.scene.entities["robot"]
     spec_fn = cmu_robot_spec_fn(robot.spec_fn, variant)
     cfg.scene.entities = {**cfg.scene.entities, "robot": dataclasses.replace(robot, spec_fn=spec_fn)}
+    if robot_conditions is None:
+        robot_conditions = variant == CURRENT
+    if robot_conditions:
+        from mjlab_microduck.robot_conditions import apply_robot_conditions
+        apply_robot_conditions(cfg)
     return cfg
 
 
