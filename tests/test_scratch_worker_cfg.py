@@ -30,6 +30,13 @@ def _fn_id(f):
     return (name, tuple(repr(c.cell_contents) for c in cells if not callable(c.cell_contents)))
 
 
+def _type_id(t):
+    """A class made inside a factory (robot_conditions.make_drop_action_cfg) is a new class object per call; two such
+    classes count as the same type when module and qualname match, as factory-made functions do in _fn_id. Their
+    fields are still compared one by one."""
+    return (t.__module__, t.__qualname__) if "<locals>" in t.__qualname__ else t
+
+
 def cfg_diff(a, b, path="", out=None, seen=None):
     """Every path where two cfg trees differ (dataclasses, dicts, sequences, callables, arrays, scalars)."""
     out = [] if out is None else out
@@ -37,7 +44,7 @@ def cfg_diff(a, b, path="", out=None, seen=None):
     if id(a) in seen and id(b) in seen:
         return out
     seen.update((id(a), id(b)))
-    if type(a) is not type(b):
+    if type(a) is not type(b) and _type_id(type(a)) != _type_id(type(b)):
         out.append((path, f"type {type(a).__name__} != {type(b).__name__}"))
     elif dataclasses.is_dataclass(a) and not isinstance(a, type):
         for f in dataclasses.fields(a):
@@ -114,6 +121,56 @@ def test_two_builds_of_the_route_are_independent(upstream):
     """No shared mutable state: building `current` does not change a later `stock` build or the upstream cfg."""
     sw.make_env_cfg("current")
     assert cfg_diff(sw.make_env_cfg("stock"), make_microduck_velocity_env_cfg(play=False)) == []
+
+
+GYRO_TERM = "observations['actor'].terms['base_ang_vel']"
+
+
+def test_official_conditions_are_the_default():
+    assert cfg_diff(sw.make_env_cfg("current", conditions="official"), sw.make_env_cfg("current")) == []
+    assert cfg_diff(sw.make_env_cfg("stock", conditions="official"), sw.make_env_cfg("stock")) == []
+
+
+def test_gyro_conditions_change_only_the_legspeed_gyro_term():
+    from mjlab_microduck.robot_conditions import ROBOT_CONDITIONS
+    off, gyro = sw.make_env_cfg("current"), sw.make_env_cfg("current", conditions="gyro")
+    diffs = cfg_diff(gyro, off)
+    _report("gyro vs official", diffs)
+    assert {p for p, _ in diffs} == {f"{GYRO_TERM}.func", f"{GYRO_TERM}.params['k']"}
+    av, av0 = gyro.observations["actor"].terms["base_ang_vel"], off.observations["actor"].terms["base_ang_vel"]
+    assert av.func.__qualname__ == "make_legspeed_gyro.<locals>.base_ang_vel_legspeed_noise"
+    assert av.params["k"] == ROBOT_CONDITIONS["gyro_noise_legspeed"] == 0.3
+    assert (av.noise.n_min, av.noise.n_max) == (av0.noise.n_min, av0.noise.n_max) == (-0.03, 0.03)  # stock floor kept
+    # the critic sees the true rate, as in robot conditions
+    assert cfg_diff(gyro.observations["critic"], off.observations["critic"]) == []
+
+
+def test_robot_conditions_equal_the_builder():
+    from mjlab_microduck.tasks.cmu_asbuilt import make_cmu_velocity_env_cfg
+    rc = sw.make_env_cfg("current", conditions="robot")
+    diffs = cfg_diff(rc, make_cmu_velocity_env_cfg("current", robot_conditions=True))
+    _report("robot vs builder", diffs)
+    assert diffs == []
+    assert len(cfg_diff(rc, sw.make_env_cfg("current"))) >= 6  # and it is not the official cfg
+
+
+@pytest.mark.parametrize("cond", ["gyro", "robot"])
+def test_stock_model_refuses_robot_conditions(cond):
+    with pytest.raises(SystemExit):
+        sw.make_env_cfg("stock", conditions=cond)
+    with pytest.raises(SystemExit):
+        sw.main(["--run-name", "x", "--model", "stock", "--conditions", cond, "--max-hours", "0.1"])
+    import kaggle_job as kj
+    with pytest.raises(SystemExit):
+        kj.worker_args("scratch", "x", ["--model", "stock", "--conditions", cond])
+
+
+def test_kaggle_preset_carries_the_conditions():
+    import kaggle_job as kj
+    args = kj.worker_args("scratch", "bw-s2-a", ["--model", "current", "--seed", "1", "--conditions", "gyro"])
+    assert kj.flag_value(args, "--conditions") == "gyro"
+    with pytest.raises(SystemExit):
+        kj.worker_args("scratch", "x", ["--model", "current", "--conditions", "noisy"])
 
 
 def _model_facts(cfg):

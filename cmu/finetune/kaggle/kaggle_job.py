@@ -230,6 +230,11 @@ def worker_args(preset, run_name, extra):
         known = set(re.findall(r'add_argument\("(--[a-z0-9-]+)"', PRESET_WORKER[preset].read_text()))
         if flag_value(args, "--model") is None:
             sys.exit(f"push {preset} needs --model (stock or current) in each job's group")
+        cond = flag_value(args, "--conditions")
+        if cond not in (None, "official", "gyro", "robot"):
+            sys.exit(f"--conditions {cond!r}: choose from official, gyro, robot")
+        if cond not in (None, "official") and flag_value(args, "--model") != "current":
+            sys.exit(f"--conditions {cond} needs --model current (scratch_worker.py refuses it on the stock model)")
     else:
         known = worker_flags()
     unknown = sorted({a.split("=", 1)[0] for a in extra if a.startswith("--")} - known)

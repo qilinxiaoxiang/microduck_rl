@@ -9,6 +9,13 @@ no delta, no robot conditions. The only choice is the robot model:
                    robot_conditions=False), i.e. the variant's signed mass parts and the ankle heel stop, nothing else
 tests/test_scratch_worker_cfg.py checks that both cfgs equal the upstream task cfg apart from the robot model.
 
+--conditions (current model only; S1 ran `official`):
+  official  the cfg above, no robot conditions (default)
+  gyro      official plus only the leg-speed gyro noise of ROBOT_CONDITIONS (src/mjlab_microduck/robot_conditions.py:
+            actor base_ang_vel + N(0, (0.3 x rms leg joint speed)^2) per axis per tick, on top of the stock +-0.03)
+  robot     make_cmu_velocity_env_cfg("current", robot_conditions=True): all six ROBOT_CONDITIONS
+`stock` takes only `official`: the conditions were measured on the current robot and no stock builder applies them.
+
 Run controls added around the recipe (they change nothing it computes):
   - checkpoints and an ONNX (runner export path, normalizer baked in, metadata attached) every --save-interval
     iterations as model_<it>.pt / model_<it>.onnx, plus the final iteration;
@@ -37,6 +44,7 @@ from pathlib import Path
 
 TASK = "Mjlab-Velocity-Flat-MicroDuck"
 MODELS = ("stock", "current")
+CONDITIONS = ("official", "gyro", "robot")
 FWD_CMD_MIN = 0.15  # m/s: an env counts as commanded forward above this (the worker's "moving" band)
 
 
@@ -44,14 +52,26 @@ class StopTraining(Exception):
     pass
 
 
-def make_env_cfg(model: str, play: bool = False):
-    """The env cfg of the route: the upstream velocity cfg, with the current robot's masses for `current`."""
+def make_env_cfg(model: str, play: bool = False, conditions: str = "official"):
+    """The env cfg of the route: the upstream velocity cfg, with the current robot's masses for `current`, and for
+    `current` the robot conditions chosen by `conditions` (module docstring)."""
+    if conditions not in CONDITIONS:
+        raise SystemExit(f"--conditions {conditions!r}: choose from {CONDITIONS}")
     if model == "stock":
+        if conditions != "official":
+            raise SystemExit(f"--conditions {conditions} needs --model current: the robot conditions were measured on "
+                             f"the current robot and no stock builder applies them")
         from mjlab_microduck.tasks.microduck_velocity_env_cfg import make_microduck_velocity_env_cfg
         return make_microduck_velocity_env_cfg(play=play)
     if model == "current":
         from mjlab_microduck.tasks.cmu_asbuilt import make_cmu_velocity_env_cfg
-        return make_cmu_velocity_env_cfg("current", play=play, robot_conditions=False)
+        if conditions == "robot":
+            return make_cmu_velocity_env_cfg("current", play=play, robot_conditions=True)
+        cfg = make_cmu_velocity_env_cfg("current", play=play, robot_conditions=False)
+        if conditions == "gyro":
+            from mjlab_microduck.robot_conditions import ROBOT_CONDITIONS, apply_robot_conditions
+            apply_robot_conditions(cfg, {"gyro_noise_legspeed": ROBOT_CONDITIONS["gyro_noise_legspeed"]})
+        return cfg
     raise SystemExit(f"--model {model!r}: choose from {MODELS}")
 
 
@@ -76,6 +96,9 @@ def main(argv=None):
     ap.add_argument("--run-name", required=True)
     ap.add_argument("--root", default="runs")
     ap.add_argument("--model", choices=MODELS, required=True)
+    ap.add_argument("--conditions", choices=CONDITIONS, default="official",
+                    help="robot conditions in training (current model only): official = none (S1), gyro = leg-speed "
+                         "gyro noise only, robot = all ROBOT_CONDITIONS")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--num-envs", type=int, default=4096)
     ap.add_argument("--max-iters", type=int, default=4000)
@@ -87,6 +110,8 @@ def main(argv=None):
     ap.add_argument("--gpu", default="?")
     ap.add_argument("--rate-per-hour", type=float, default=0.0, help="accepted for kernel_entry.py; unused")
     args = ap.parse_args(argv)
+    if args.model == "stock" and args.conditions != "official":
+        ap.error(f"--conditions {args.conditions} needs --model current (no stock builder applies robot conditions)")
 
     import numpy as np
     import torch
@@ -106,20 +131,25 @@ def main(argv=None):
         raise SystemExit(f"{run_dir} already holds checkpoints; this route never resumes (curricula would restart)")
 
     def status(stage, **kw):
-        (run_dir / "status.json").write_text(json.dumps(dict(stage=stage, run_name=args.run_name, started=t0_iso,
+        (run_dir / "status.json").write_text(json.dumps(dict(stage=stage, run_name=args.run_name,
+                                                             conditions=args.conditions, started=t0_iso,
                                                              updated=time.strftime("%Y-%m-%dT%H:%M:%S"), **kw), indent=1))
 
     t0_iso = time.strftime("%Y-%m-%dT%H:%M:%S")
     status("build")
-    env_cfg = make_env_cfg(args.model)
+    env_cfg = make_env_cfg(args.model, conditions=args.conditions)
     env_cfg.scene.num_envs = args.num_envs
     env_cfg.seed = args.seed
     agent_cfg = make_agent_cfg(args.run_name, args.seed, args.max_iters, args.save_interval)
 
     record = dict(run_name=args.run_name, task=TASK, route="scratch (Pollen recipe unchanged)", model=args.model,
-                  seed=args.seed, num_envs=args.num_envs, max_iters=args.max_iters, save_interval=args.save_interval,
+                  conditions=args.conditions, seed=args.seed, num_envs=args.num_envs, max_iters=args.max_iters, save_interval=args.save_interval,
                   max_hours=args.max_hours, early_stop=dict(iter=args.early_stop_iter, speed=args.early_stop_speed),
                   gpu=args.gpu, started=t0_iso)
+    if args.conditions != "official":
+        from mjlab_microduck.robot_conditions import ROBOT_CONDITIONS
+        record["robot_conditions"] = (dict(ROBOT_CONDITIONS) if args.conditions == "robot" else
+                                      {"gyro_noise_legspeed": ROBOT_CONDITIONS["gyro_noise_legspeed"]})
     if args.model == "current":
         from mjlab_microduck.tasks.cmu_asbuilt import resolve_variant
         cur = Path(__file__).resolve().parents[3] / "cmu/model/current.json"
@@ -204,7 +234,7 @@ def main(argv=None):
                     raise SystemExit("ONNX export failed at the first save; stopping before the GPU hours are spent")
 
     runner = ScratchRunner(env, dataclasses.asdict(agent_cfg), str(run_dir), device)
-    print(f"[scratch] {TASK} from scratch, model {args.model}, seed {args.seed}, {args.num_envs} envs, "
+    print(f"[scratch] {TASK} from scratch, model {args.model}, conditions {args.conditions}, seed {args.seed}, {args.num_envs} envs, "
           f"{args.max_iters} iterations, common_step_counter {env.unwrapped.common_step_counter}", flush=True)
     stop_reason = "max_iters reached"
     try:
