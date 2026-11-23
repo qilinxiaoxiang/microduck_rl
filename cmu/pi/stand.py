@@ -149,9 +149,11 @@ def battery_event(guard, event):
         print(f"battery guard not armed: the servos read {guard.dv / 10:.1f} V, a bench rail; on the 2S "
               "pack restart with --supply battery", flush=True)
     elif event == "warn":
-        print(f"BATTERY LOW: {guard.dv / 10:.1f} V, under {WARN_BELOW_DV / 10} V; finish and charge the pack", flush=True)
+        print(f"BATTERY LOW: {guard.judged_text()}, under {WARN_BELOW_DV / 10} V; finish and charge the pack", flush=True)
+    elif event == "clear":
+        print(f"battery low cleared: {guard.judged_text()}, the low reading was a sag", flush=True)
     elif event == "stop":
-        print(f"BATTERY STOP: {guard.dv / 10:.1f} V; ramping to the stand pose and holding", flush=True)
+        print(f"BATTERY STOP: {guard.judged_text()}; ramping to the stand pose and holding", flush=True)
 
 
 def main():

@@ -222,7 +222,7 @@ class WiredBattery(unittest.TestCase):
     def test_walking_stops_at_zero_command_and_keeps_torque(self):
         w = World(shutdown=52, hw_err=0x01, volts_dv=76)
         text, marker, wants, reads, last_log = self.run_wired(
-            w, lambda t: 76 if t < 5 else 72, {"mode": "walk", "vx": 0.3}, end=14.0)
+            w, lambda t: 76 if t < 5 else 72, {"mode": "walk", "vx": 0.3}, end=18.0)  # stop near 11 s (10 s median)
         self.assertIn("torque on at present positions", text)
         self.assertIn("battery guard armed", text)
         self.assertIn("BATTERY LOW", text)
@@ -342,6 +342,31 @@ class WiredBattery(unittest.TestCase):
             self.run_wired(quiet, lambda t: 76, {"mode": "walk"}, end=10.0)
         voice.return_value.quack.assert_not_called()
 
+    def test_walk_start_sags_never_call_out(self):
+        # 2026-11-22 c1s1b-1122: one-sample sags to 6.6-6.8 V at walk starts on a 7.7 V pack latched warn and the duck
+        # called out every 10 s for the rest of the run
+        w = World(shutdown=52, hw_err=0x01, volts_dv=77)
+        with mock.patch.object(ww, "Voice") as voice:
+            text, *_ = self.run_wired(w, lambda t: 66 if int(t) % 6 == 3 else (68 if int(t) % 6 == 4 else 77),
+                                      {"mode": "walk", "vx": 0.3}, end=40.0, supply="battery")
+        self.assertNotIn("BATTERY", text)
+        voice.return_value.quack.assert_not_called()
+
+    def test_a_sag_that_warned_clears_and_the_calls_stop(self):
+        w = World(shutdown=52, hw_err=0x01, volts_dv=77)
+        with mock.patch.object(ww, "Voice") as voice:
+            text, *_ = self.run_wired(w, lambda t: 73 if 6 <= t < 14 else 77, {"mode": "walk", "vx": 0.3}, end=60.0,
+                                      supply="battery")
+        self.assertIn("BATTERY LOW: 7.3 V (10 s median)", text)
+        self.assertIn("battery low cleared: 7.7 V (10 s median)", text)
+        self.assertNotIn("BATTERY STOP", text)
+        warn_t = self.first("battery", "warn")
+        clear_t = next(ln["t"] - 1e9 for ln in self.log_lines if ln["t"] - 1e9 > warn_t and ln["battery"] == "ok")
+        self.assertLess(clear_t, 40.0)
+        calls = voice.return_value.quack.call_count
+        self.assertGreaterEqual(calls, 1)
+        self.assertLessEqual(calls, 4)  # every 10 s while warned, none after the clear
+
     def test_above_the_floor_torque_stays_on_after_a_stop(self):
         w = World(shutdown=52, hw_err=0x01, volts_dv=76)
         text, *_ = self.run_wired(w, lambda t: 76 if t < 5 else 72, {"mode": "walk"}, end=20.0)
@@ -369,14 +394,15 @@ class WiredBattery(unittest.TestCase):
     def test_standing_stop_returns_to_plain_stand(self):
         w = World(shutdown=52, hw_err=0x01, volts_dv=76)
         text, marker, wants, reads, _ = self.run_wired(
-            w, lambda t: 76 if t < 5 else 72, {"mode": "stand", "head_pitch": 0.2}, end=12.0)
+            w, lambda t: 76 if t < 5 else 72, {"mode": "stand", "head_pitch": 0.2}, end=16.0)
         self.assertEqual(marker["holding"], "STAND, torque on")
         self.assertEqual({v for a, i, v in w.log if a == ww.ADDR_TORQUE}, {1})
         final = {i: w.read(i, ww.ADDR_GOAL, 4) for i in IDS}
         self.assertEqual(final, {i: to_tick(n, STAND[n]) for i, n in zip(IDS, ww.NAMES)})  # override dropped
 
     def test_stop_during_an_override_ramp_signals_only_on_stand(self):
-        # stand mode; a new head_pitch override starts a 1.5 s ramp at 6.5 s; the stop lands at about 7 s, inside it
+        # stand mode; a new head_pitch override starts a 1.5 s ramp at 10.5 s; the stop (10 s median) lands at about
+        # 11 s, inside it
         w = World(shutdown=52, hw_err=0x01, volts_dv=76)
 
         def override(d, cmd_path):
@@ -384,12 +410,12 @@ class WiredBattery(unittest.TestCase):
                 with open(cmd_path, "w") as fh:
                     json.dump({"mode": "stand", "head_pitch": 0.2}, fh)
                 os.utime(cmd_path, (2e9, 2e9))
-            return [(6.5, write)]
+            return [(10.5, write)]
         text, marker, wants, reads, _ = self.run_wired(w, lambda t: 76 if t < 5 else 72, {"mode": "stand"},
-                                                       end=13.0, hooks=override)
+                                                       end=17.0, hooks=override)
         stop_t, signal_t = self.first("battery", "stop"), self.first("battery_signalled", True)
-        self.assertTrue(6.5 < stop_t < 8.0, stop_t)
-        self.assertGreater(signal_t, 9.4)  # override ramp ends at 8.0, then 1.5 s back to STAND
+        self.assertTrue(10.5 < stop_t < 12.0, stop_t)
+        self.assertGreater(signal_t, 13.4)  # override ramp ends at 12.0, then 1.5 s back to STAND
         at_signal = next(ln for ln in self.log_lines if ln.get("battery_signalled"))
         stand_q = [STAND[n] for n in ww.NAMES]
         self.assertTrue(all(abs(q - sq) < 0.002 for q, sq in zip(at_signal["q"], stand_q)))
@@ -442,12 +468,12 @@ class WiredBattery(unittest.TestCase):
                 with open(cmd_path, "w") as fh:
                     json.dump({"mode": "walk", "vx": 0.3}, fh)
                 os.utime(cmd_path, (2e9, 2e9))
-            return [(6.0, write)]
-        text, marker, wants, reads, _ = self.run_wired(w, lambda t: 72, {"mode": "monitor"}, end=9.0, hooks=walk_later,
+            return [(8.0, write)]  # after the stop (judged from the 5th sample, then 3 values: about 6 s)
+        text, marker, wants, reads, _ = self.run_wired(w, lambda t: 72, {"mode": "monitor"}, end=11.0, hooks=walk_later,
                                                        supply="battery")
         self.assertEqual(marker["holding"], "nothing, torque off")
         self.assertNotIn(ww.ADDR_TORQUE, {a for a, i, v in w.log})
-        self.assertTrue(all(want == {"mode": "monitor"} for t, want in wants if t > 6.0))
+        self.assertTrue(all(want == {"mode": "monitor"} for t, want in wants if t > 8.0))
 
     def test_bench_supply_reads_no_voltage(self):
         w = World(shutdown=53, volts_dv=68)

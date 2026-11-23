@@ -12,8 +12,9 @@ power cycle; the control file then reads monitor, and the next stand or walk com
 Stopping this process leaves the servos holding their last goals.
 
 Battery guard (pi/battery.py, thresholds and their measured capacity there), --supply auto by default: once the servos
-read 7.5 V or more (only the 2S pack does), Present Input Voltage is read once a second; under 7.4 V it warns, at
-7.2 V it replaces the control file: walking gets
+read 7.5 V or more (only the 2S pack does), Present Input Voltage is read once a second and judged on its 10 s median
+(a walk-start sag is one sample); under 7.4 V it warns (cleared at 7.5 V for 10 s), at 7.2 V it replaces the control
+file: walking gets
 zero velocity, so walk61 stops its own steps and keeps the robot balanced (no open-loop ramp to STAND, which falls in
 the simulation), stand mode returns to plain STAND, torque stays on, and once that pose is held (1.5 s at zero command)
 /tmp/duck_battery_stop.json is written. With torque still off it stays in monitor. While that marker exists torque is
@@ -1358,12 +1359,15 @@ def main():
                 print(f"battery guard not armed: the servos read {guard.dv / 10:.1f} V, a bench rail; on the 2S pack "
                       "restart with --supply battery", flush=True)
             elif event == "warn":
-                print(f"BATTERY LOW: {guard.dv / 10:.1f} V, under {WARN_BELOW_DV / 10} V; stop walking soon and charge the pack",
+                print(f"BATTERY LOW: {guard.judged_text()}, under {WARN_BELOW_DV / 10} V; stop walking soon and charge the "
+                      "pack", flush=True)
+            elif event == "clear":
+                print(f"battery low cleared: {guard.judged_text()}, the low reading was a sag; the call-outs stop",
                       flush=True)
             elif event == "stop":
-                print(f"BATTERY STOP: {guard.dv / 10:.1f} V; walking stops and the robot keeps standing", flush=True)
+                print(f"BATTERY STOP: {guard.judged_text()}; walking stops and the robot keeps standing", flush=True)
             elif event == "floor":
-                print(f"BATTERY FLOOR: {guard.dv / 10:.1f} V; sitting down, then torque off", flush=True)
+                print(f"BATTERY FLOOR: {guard.judged_text()}; sitting down, then torque off", flush=True)
         elif (guard is None or guard.armed) and now >= next_hw:  # half a second away from the voltage read
             next_hw = now + 1.0
             hw = link.sync_read(ADDR_HW_ERROR, 1, IDS, timeout=0.015, allow_alert=True)

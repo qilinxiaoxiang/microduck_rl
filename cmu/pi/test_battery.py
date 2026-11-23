@@ -155,42 +155,132 @@ def feed(guard, values, t0=0.0):
     return events
 
 
+def feed_judged(seq):
+    """The judged (10 s median) voltage after each sample of seq (0.1 V per item), once there is one."""
+    g, out = bt.BatteryGuard("battery"), []
+    for k, dv in enumerate(seq):
+        g.update(float(k), {i: dv for i in range(1, 16)})
+        if g.judged_dv is not None:
+            out.append(g.judged_dv)
+    return out
+
+
+RUN_1122 = os.path.join(HERE, "battery_run_c1s1b_1122.json")
+
+
 class Guard(unittest.TestCase):
-    def test_warn_needs_two_samples_under_7_4v(self):
+    # warn, stop and floor judge the 10 s median (JUDGE_SAMPLES), from the 5th sample on (JUDGE_MIN_SAMPLES)
+    def test_warn_needs_two_judged_values_under_7_4v(self):
         g = bt.BatteryGuard("battery")
-        self.assertEqual(feed(g, [8.2, 7.4, 7.3]), [None, None, None])
-        self.assertEqual(g.state, "ok")
-        self.assertEqual(g.update(3.0, {i: 73 for i in range(1, 16)}), "warn")
+        self.assertEqual(feed(g, [8.2, 7.3, 7.3, 7.3, 7.3]), [None] * 5)  # median of 5: 7.3 V, the first judged value
+        self.assertEqual((g.state, g.judged_dv), ("ok", 73))
+        self.assertEqual(g.update(5.0, {i: 73 for i in range(1, 16)}), "warn")
         self.assertEqual(g.state, "warn")
 
-    def test_stop_needs_three_samples_at_or_under_7_2v_and_latches(self):
+    def test_stop_needs_three_judged_values_at_or_under_7_2v_and_latches(self):
         g = bt.BatteryGuard("battery")
-        events = feed(g, [7.3, 7.3, 7.2, 7.2, 7.2, 7.4, 8.0])
-        self.assertEqual(events, [None, "warn", None, None, "stop", None, None])
-        self.assertEqual((g.state, g.stop_t), ("stop", 4.0))
+        events = feed(g, [7.3] * 6 + [7.2] * 10 + [8.0] * 12)
+        self.assertEqual(events.index("warn"), 5)
+        # the 10 s median reaches 7.2 V on the 5th 7.2 V sample (index 10), the third such value is index 12
+        self.assertEqual(events.index("stop"), 12)
+        self.assertEqual(events.count("stop"), 1)
+        self.assertNotIn("clear", events)  # a stop latches, a charged reading afterwards changes nothing
+        self.assertEqual((g.state, g.stop_t), ("stop", 12.0))
 
     def test_floor_is_7_1v_well_above_the_xiao_hardware_cut(self):
         # 7.1 V leaves about 9 % of the pack for the standby drain after the A7Z poweroff (battery.py); the power V2
         # XIAO (PS-2/PV-2) cuts at 6.3 V held 3 s, far below
         self.assertEqual(bt.FLOOR_AT_DV, 71)
         g = bt.BatteryGuard("battery")
-        feed(g, [7.2, 7.2, 7.2])
-        self.assertEqual(g.state, "stop")
-        self.assertEqual(feed(g, [7.2, 7.2, 7.2], t0=3.0), [None, None, None])  # 7.2 V is above the floor
-        self.assertEqual(feed(g, [7.1, 7.1, 7.1], t0=6.0), [None, None, "floor"])
-        self.assertEqual(g.floor_t, 8.0)
-
-    def test_a_good_sample_restarts_the_count(self):
-        g = bt.BatteryGuard("battery")
-        events = feed(g, [7.2, 7.2, 7.3, 7.2, 7.2, 7.2])
-        self.assertEqual(events.count("stop"), 1)
-        self.assertEqual(events.index("stop"), 5)
+        events = feed(g, [7.2] * 7)
+        self.assertEqual(events[-1], "stop")
+        self.assertEqual(feed(g, [7.2] * 5, t0=7.0), [None] * 5)  # 7.2 V is above the floor
+        events = feed(g, [7.1] * 10, t0=12.0)
+        self.assertEqual(events.index("floor"), 6)  # median at 7.1 V from the 5th sample, then 3 judged values
+        self.assertEqual(g.floor_t, 18.0)
 
     def test_missed_samples_change_nothing(self):
         g = bt.BatteryGuard("battery")
-        events = feed(g, [6.5, None, 6.5, {1: 60, 2: 60}, 6.5])  # a miss and a two-servo answer are skipped
-        self.assertEqual(events, [None, None, "warn", None, "stop"])
-        self.assertEqual((g.misses, g.samples), (2, 3))
+        events = feed(g, [6.5, None, 6.5, {1: 60, 2: 60}, 6.5, 6.5, 6.5, 6.5, 6.5])  # a miss and a 2-servo answer
+        self.assertEqual(events, [None] * 7 + ["warn", "stop"])  # judged from the 5th good sample (index 6)
+        self.assertEqual((g.misses, g.samples), (2, 7))
+
+    def test_one_sample_sags_never_warn(self):
+        # a walk start or a fall landing: one or two samples far down, the rest at the loaded level
+        g = bt.BatteryGuard("battery")
+        events = feed(g, ([7.7] * 8 + [6.6, 6.8]) * 12)
+        self.assertEqual([e for e in events if e], [])
+        self.assertEqual(g.state, "ok")
+
+    def test_the_2026_11_22_run_never_warns(self):
+        # A7Z brain run c1s1b-1122: the 11-02 per-sample guard latched warn on 6.8 + 6.6 V at a walk start (426 s)
+        # and called out every 10 s afterwards; the 11-21 per-sample thresholds would also have stopped walking.
+        with open(RUN_1122) as fh:
+            run = json.load(fh)
+        for name, seq in (("tick log", [dv for _, dv, _ in run["tick_log_1hz"]]), ("status lines", run["status_lines"])):
+            self.assertLessEqual(min(seq), 66, name)  # the sags are in the sequence
+            g = bt.BatteryGuard("battery")
+            events = [g.update(float(k), {i: dv for i in range(1, 16)}) for k, dv in enumerate(seq)]
+            self.assertEqual([e for e in events if e], [], name)
+            self.assertEqual(g.state, "ok", name)
+            self.assertGreaterEqual(min(feed_judged(seq)), 75, name)  # the judged voltage never left 7.5 V
+
+    def test_a_real_low_pack_still_warns_and_stops(self):
+        # a pack sitting at 7.0 V at rest: under every line, so warn, stop and then the floor
+        g = bt.BatteryGuard("battery")
+        events = feed(g, [7.0] * 30)
+        self.assertEqual([e for e in events if e], ["warn", "stop", "floor"])
+        self.assertEqual(events.index("warn"), 5)
+        # a pack resting at 7.3 V warns and keeps warning (it never reaches the 7.5 V clear line)
+        g = bt.BatteryGuard("battery")
+        events = feed(g, [7.3] * 120)
+        self.assertEqual([e for e in events if e], ["warn"])
+        self.assertEqual(g.state, "warn")
+        # a pack at 6.6 V stops (and, below the floor, sits down)
+        g = bt.BatteryGuard("battery")
+        events = feed(g, [6.6] * 30)
+        self.assertIn("stop", events)
+        self.assertEqual(g.state, "floor")
+
+    def test_a_sag_long_enough_to_warn_clears_by_itself(self):
+        # seven seconds at 7.3 V (a long fall recovery) warn; back at the resting 7.7 V the warn clears
+        g = bt.BatteryGuard("battery")
+        events = feed(g, [7.7] * 10 + [7.3] * 7 + [7.7] * 30)
+        self.assertEqual([e for e in events if e], ["warn", "clear"])
+        self.assertEqual(g.state, "ok")
+        warn_k, clear_k = events.index("warn"), events.index("clear")
+        self.assertLessEqual(clear_k - warn_k, 20)
+        # and it can warn again afterwards
+        self.assertIn("warn", feed(g, [7.2] * 8, t0=50.0))
+
+    def test_slow_discharge_with_walk_start_sags(self):
+        # an hour from 8.2 V to 6.9 V at rest, walking load 0.1 V, a 1.0-1.2 V sag for one sample every 20 s
+        g = bt.BatteryGuard("battery")
+        events, rest = [], []
+        n = 3600
+        for k in range(n):
+            v_rest = 82 - 13 * k / n
+            v = v_rest - 1 - (11 if k % 20 == 0 else 0) - (1 if k % 20 == 1 else 0)
+            rest.append(v_rest)
+            events.append(g.update(float(k), {i: round(v) for i in range(1, 16)}))
+        fired = [(e, k) for k, e in enumerate(events) if e]
+        self.assertEqual([e for e, _ in fired], ["warn", "stop", "floor"])  # no warn and clear see-saw
+        at = {e: rest[k] / 10 for e, k in fired}
+        self.assertGreater(at["warn"], 7.35)   # warns while walking at 7.3 V, the pack resting at about 7.4 V
+        self.assertLess(at["warn"], 7.5)
+        self.assertGreater(at["stop"], 7.2)    # stops while walking at 7.2 V
+        self.assertLess(at["stop"], 7.35)
+        self.assertGreater(at["floor"], 7.05)  # floor at 7.1 V, still 3.5 V per cell and more at rest
+        self.assertLess(at["floor"], 7.25)
+
+    def test_describe_and_event_text_name_the_median(self):
+        g = bt.BatteryGuard("battery")
+        feed(g, [7.7, 7.7, 6.6])
+        self.assertEqual(g.describe(), "battery 6.6 V ok")
+        self.assertEqual(g.judged_text(), "6.6 V")  # no median yet: the sample
+        feed(g, [7.7, 7.7], t0=3.0)
+        self.assertEqual(g.describe(), "battery 7.7 V ok, 10 s median 7.7 V")
+        self.assertEqual(g.judged_text(), "7.7 V (10 s median)")
 
     def test_median_ignores_one_bad_servo(self):
         g = bt.BatteryGuard("battery")
@@ -689,7 +779,7 @@ class StandBatteryStop(unittest.TestCase):
         w, stand, text, marker = self.run_stand(lambda t: 76 if t < 5 else 65, targets, hooks=late_override)
         self.assertIn("battery guard armed", text)
         self.assertIn("BATTERY LOW", text)
-        self.assertIn("BATTERY STOP: 6.5 V; ramping to the stand pose and holding", text)
+        self.assertIn("BATTERY STOP: 6.5 V (10 s median); ramping to the stand pose and holding", text)
         self.assertIn("Hold the robot", text)
         self.assertEqual(marker["volts"], 6.5)
         torque_writes = [(k, i, v) for k, (a, i, v) in enumerate(w.log) if a == 64]

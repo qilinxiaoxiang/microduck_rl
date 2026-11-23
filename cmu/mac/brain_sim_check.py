@@ -1251,17 +1251,19 @@ def run(args):
         qm = d.qpos[qa] - z0
         dqm = d.qvel[va].copy()
         sample = (q_sensor, tuple(float(x) for x in g_sensor), qm.copy(), dqm)
+        # --imu-hz holds the last IMU sample between refreshes (a sensor stress case), before the sensor delay queue,
+        # so the brain gets the held reading --sensor-delay ticks late. The refresh index comes from the tick count
+        # (t * H drifts in floating point). The robot's current IMU rate lives in microduck-sim/CURRENT-STATE.json
+        imu_slot = tick if args.imu_hz <= 0 else int(tick * 0.02 * args.imu_hz + 1e-9)
+        if imu_hold is None or imu_slot != imu_hold[2]:
+            imu_hold, imu_t = (sample[0], sample[1], imu_slot), t
+        sample = (imu_hold[0], imu_hold[1]) + sample[2:] + (t - imu_t,)  # last: how long the IMU reading was held
         if not sq:
             sq.extend([sample] * sq.maxlen)
         sq.append(sample)
         if sp is not None:
             sp.sense()
-        # --imu-hz holds the last IMU sample between samples (a sensor stress case). The robot's current IMU rate lives in microduck-sim/CURRENT-STATE.json, never in this comment
-        imu_new = args.imu_hz <= 0 or tick == 0 or int(t * args.imu_hz) != int((t - 0.02) * args.imu_hz)
-        if imu_new:
-            imu_hold, imu_t = sample[:2], t
-        sample = imu_hold + sample[2:]
-        q_sensor, g_sensor, qm, dqm = sq[0]
+        q_sensor, g_sensor, qm, dqm, imu_held_s = sq[0]
         pos_t = [to_tick(n, float(qm[idx[n]])) for n in NAMES]
         vel_t = [int(round(float(dqm[idx[n]]) / VEL_UNIT / SIGN[n])) for n in NAMES]
         if t < args.stand_s:
@@ -1379,7 +1381,7 @@ def run(args):
         elif args.hold and want.get("mode") == "walk":
             want["hold"] = {"s": est.s, "kp": est.gains()}
         age = args.sensor_delay * 0.02 + 0.004
-        imu_age = age + (t - imu_t)
+        imu_age = age + imu_held_s
         fresh = rng.random() >= args.drop  # a dropped sync read (8 % on 10-15) leaves the brain holding its goal
         goal, kp, info = brain.tick(want, t, pos_t, vel_t, tuple(q_sensor), g_sensor, fresh, age, imu_age)
         if args.wired_guards:  # walk_wired.py's walk-mode stops, checked on the applied action before the goals go out
