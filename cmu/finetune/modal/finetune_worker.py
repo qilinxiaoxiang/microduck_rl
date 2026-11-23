@@ -27,6 +27,8 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from mjlab_microduck.robot_conditions import (LEG_JOINTS_RE, ROBOT_CONDITIONS, apply_robot_conditions,  # noqa: F401
+                                              make_drop_action_cfg, make_legspeed_gyro)
 
 TASK = "Mjlab-Velocity-Flat-MicroDuck"
 CURRICULA_DONE_STEP = 2000 * 24 + 24  # every velocity curriculum reaches its final stage by iter 2000
@@ -272,10 +274,116 @@ PLAY_HALF_DEG = {r"^(neck_pitch|head_pitch|head_yaw|head_roll)$": 4.0,
                  r"^(left|right)_(hip_yaw|hip_roll|hip_pitch|knee)$": 2.0}
 DELTA_PLAY = dict(play=dict(half_deg=PLAY_HALF_DEG, none_fraction=0.2),
                   track_lin_vel=dict(tau_s=0.5, std=math.sqrt(0.05)))
+# batshift (2026-11-22, battery-walk-20261122 TRAIN-CONTRACT.json stage C1): walk61 under the robot's condition with the
+# 3000 mAh battery backpack. Only the robot model changes (Shawn 2026-11-22: rewards and the exam stay as they are).
+# Run with --cmu-config current (battery-v2m5-20261121 masses). Changes from Pollen's recipe:
+#   zero_shift_deg  the brain's zero shift outside the policy (A7Z ~/duck-zero-offset.json, pi/joint_signs.py
+#                   MOTOR_OFFSET): motor = policy goal + shift, reading = true angle - shift. In this env that is the
+#                   default joint position + shift, used by the action offset, the joint observation (actor and
+#                   critic), the reset pose and the pose terms alike; the policy's frame is unchanged. The exported
+#                   ONNX metadata keeps the unshifted default (walk_brain.py reads it and applies the shift itself).
+#   foot_friction   the existing foot friction DR widened from (0.7, 1.3) to (0.4, 1.3): the foot geoms have contact
+#                   priority 1 over the floor, so the old range never reached the mu 0.4 floor of stage Y1.
+# Every reward term and weight, actuator, voltage, noise and push stays Pollen's.
+ZERO_SHIFT_DEG = {"left_hip_roll": 5.5, "right_hip_roll": -3.5, "head_roll": -3.5, "head_yaw": -5.0}
+DELTA_BATSHIFT = dict(zero_shift_deg=ZERO_SHIFT_DEG, foot_friction=(0.4, 1.3))
+# batreal (2026-11-22, battery-walk-20261122 TRAIN-CONTRACT.json stage C2): batshift plus the robot's measured sensor and
+# actuator conditions (extensions/battery-walk-20261122/GAP-AUDIT.md, gaps 1-6). One change against C1: what the policy
+# reads and how the servos answer; masses, shift, foot friction, rewards and commands stay C1's.
+#   gyro_noise_legspeed  gyro (actor base_ang_vel) noise, Gaussian per axis per tick with sd = K x rms true leg joint
+#                        speed (the 10 leg servos): robot gyro diff sd / leg rms 0.36-0.46, i.e. noise sd 0.25-0.33 x leg
+#                        rms; jitter_sim.py --gyro-noise-dq is the same model. Added on top of Pollen's +-0.03.
+#   joint_friction       BAM friction budget scale per episode (1.0, 1.5) (was (0.9, 1.1)): robot fits x1.25-1.4.
+#   joint_vel_noise_sd   actor joint_vel noise Gaussian sd 0.5 rad/s (was uniform +-0.25, sd 0.14): robot 0.63-0.65.
+#   servo_drop           fraction of policy ticks whose servo read is dropped: the brain skips the policy and holds the
+#                        last goals and its last action (walk_brain.py tick: no policy step without a fresh sample;
+#                        brain_sim_check.py --drop). Here the applied action and the last-action history keep the
+#                        previous tick's values on those ticks. Robot 2.2-4.4 % of walk ticks.
+#   gravity_noise        actor projected_gravity uniform +-0.02 (was +-0.01): robot diff sd 0.016-0.018.
+#   joint_pos_lag        actor joint_pos one policy tick old (was 0): robot joint reading 17 ms old, tick 21 ms.
+# Since 2026-11-22 these six values and their implementation (leg-speed gyro, servo-drop action term) live in
+# src/mjlab_microduck/robot_conditions.py (ROBOT_CONDITIONS), which the -CMU-Current tasks apply by default; batreal
+# reuses them so the fine-tune and the default training env never drift apart (docs/SIM-TO-REAL-GAPS.md).
+DELTA_BATREAL = dict(DELTA_BATSHIFT, **ROBOT_CONDITIONS)
 DELTAS = {"default": DELTA_DEFAULT, "staged": DELTA_STAGED, "lowcmd": DELTA_LOWCMD, "slip": DELTA_SLIP, "t1": DELTA_T1,
           "t2a": DELTA_T2A, "t2b": DELTA_T2B, "t3a": DELTA_T3A, "t3b": DELTA_T3B,
           "t3fric": DELTA_T3_FRIC, "t3vib": DELTA_T3_VIB, "tether": DELTA_TETHER, "play": DELTA_PLAY,
-          "playctl": dict(track_lin_vel=DELTA_PLAY["track_lin_vel"])}  # play's control arm: the same run without play
+          "playctl": dict(track_lin_vel=DELTA_PLAY["track_lin_vel"]),  # play's control arm: the same run without play
+          "batshift": DELTA_BATSHIFT, "batreal": DELTA_BATREAL}
+
+
+ZERO_SHIFT_ORIG: dict = {}  # the unshifted default joint position patterns of the last apply_zero_shift
+
+
+def apply_zero_shift(robot_cfg, shift_deg: dict):
+    """Return a copy of the robot EntityCfg whose default joint position is the original one + shift (deg) on the
+    named joints: exact-name patterns placed first, since mjlab's resolve_expr takes the first matching pattern."""
+    from mjlab.utils.string import resolve_expr
+    orig = dict(robot_cfg.init_state.joint_pos)
+    new = {}
+    for name, deg in shift_deg.items():
+        base = resolve_expr(orig, (name,), None)[0]
+        assert base is not None, f"zero shift: no default joint position pattern matches {name}"
+        new[f"^{name}$"] = float(base) + math.radians(deg)
+    new.update(orig)
+    init = dataclasses.replace(robot_cfg.init_state, joint_pos=new)
+    ZERO_SHIFT_ORIG.clear()
+    ZERO_SHIFT_ORIG.update(orig)  # for check_zero_shift (later robot cfg copies, e.g. the mass patch, drop attributes)
+    return dataclasses.replace(robot_cfg, init_state=init)
+
+
+def zero_shift_vector(joint_names, shift_deg: dict):
+    """shift in rad per joint, in the robot's joint order (0 for joints without a shift)"""
+    missing = sorted(set(shift_deg) - set(joint_names))
+    assert not missing, f"zero shift joints not in the robot: {missing}"
+    return [math.radians(shift_deg.get(n, 0.0)) for n in joint_names]
+
+
+def check_zero_shift(env, shift_deg: dict, orig_joint_pos: dict):
+    """after the env is built: default_joint_pos = original default + shift on every joint, and the action offset
+    of joint_pos is that default (motor goal = policy goal + shift)"""
+    from mjlab.utils.string import resolve_expr
+    robot = env.scene["robot"]
+    names = tuple(robot.joint_names)
+    want = torch.tensor([b + s for b, s in zip(resolve_expr(orig_joint_pos, names, 0.0), zero_shift_vector(names, shift_deg))],
+                        device=robot.data.default_joint_pos.device)
+    got = robot.data.default_joint_pos[0]
+    err = float((got - want).abs().max())
+    assert err < 1e-6, f"zero shift: default_joint_pos differs from original + shift by {err}"
+    term = env.action_manager.get_term("joint_pos")
+    off = term._offset[0] if isinstance(term._offset, torch.Tensor) else None  # noqa: SLF001
+    if off is not None:
+        exp = got[term._target_ids] if hasattr(term, "_target_ids") else got  # noqa: SLF001
+        err2 = float((off - exp).abs().max())
+        assert err2 < 1e-6, f"zero shift: action offset differs from the shifted default by {err2}"
+    print(f"[zero-shift] default + shift on {sorted(shift_deg)} ({shift_deg} deg); action offset follows", flush=True)
+
+
+def unshift_metadata(meta: dict, shift_deg: dict) -> dict:
+    """the exported default_joint_pos without the shift: the runtime reads it from the ONNX and adds the shift itself"""
+    names = meta["joint_names"]
+    sv = zero_shift_vector(names, shift_deg)
+    meta = dict(meta)
+    # rounded to 1e-9 and + 0.0: a float32 0 + shift - shift prints "-0.000", which walk_brain.py's string compare of
+    # default_joint_pos across policy slots would reject
+    meta["default_joint_pos"] = [round(float(v) - s, 9) + 0.0 for v, s in zip(meta["default_joint_pos"], sv)]
+    return meta
+
+
+def install_runtime_delta(env, delta):
+    """checks on a built env (ManagerBasedRlEnv, unwrapped) for the parts of a delta that need one"""
+    if delta and delta.get("zero_shift_deg"):
+        check_zero_shift(env, delta["zero_shift_deg"], ZERO_SHIFT_ORIG)
+
+
+def export_metadata(env, run_path: str, delta):
+    from mjlab.rl.exporter_utils import get_base_metadata
+    meta = get_base_metadata(env, run_path=run_path)
+    if delta and delta.get("zero_shift_deg"):
+        meta = unshift_metadata(meta, delta["zero_shift_deg"])
+    return meta
+
+
 PLAY_SUFFIX = "_play"
 PLAY_EPS = 1e-4  # rad; the half-width of a "no play" hinge (a zero range is degenerate)
 
@@ -483,6 +591,11 @@ def apply_delta(env_cfg, delta: dict):
                                                                  asset_cfg=SceneEntityCfg("robot")))
     if delta.get("play"):
         apply_play(env_cfg, delta["play"])
+    if delta.get("zero_shift_deg"):
+        env_cfg.scene.entities["robot"] = apply_zero_shift(env_cfg.scene.entities["robot"], delta["zero_shift_deg"])
+    # the robot's sensor and actuator conditions (batreal): the shared implementation the -CMU-Current tasks use;
+    # joint_friction was applied above with the other deltas' friction ranges
+    apply_robot_conditions(env_cfg, {k: delta[k] for k in ROBOT_CONDITIONS if k != "joint_friction" and delta.get(k)})
     if delta.get("track_lin_vel"):
         term = env_cfg.rewards["track_linear_velocity"]  # weight 2.0 unchanged: same reward mass, filtered velocity
         term.func = track_linear_velocity_ema
@@ -600,8 +713,9 @@ def compare_onnx(a: str, b: str, n: int = 256, seed: int = 0) -> float:
 
 
 # --------------------------------------------------------------------------------------------- eval
-def eval_policy(env, actor, steps: int, device: str) -> dict:
-    """Deterministic rollout (distribution mean) of the current actor: falls and episode lengths per variant."""
+def eval_policy(env, actor, steps: int, device: str, noise_std: float = 0.0) -> dict:
+    """Rollout of the current actor: falls and episode lengths per variant. Deterministic (distribution mean) by
+    default; noise_std > 0 adds Gaussian action noise of that sd, the sampling PPO's start policy sees in training."""
     obs = env.get_observations().to(device)
     n = env.num_envs
     age = torch.zeros(n, device=device)
@@ -617,6 +731,8 @@ def eval_policy(env, actor, steps: int, device: str) -> dict:
     with torch.inference_mode():
         for _ in range(steps):
             act = actor(obs)  # deterministic output
+            if noise_std:
+                act = act + noise_std * torch.randn_like(act)
             obs, rew, dones, extras = env.step(act.to(env.device))
             obs = obs.to(device)
             age += 1
@@ -652,6 +768,134 @@ def eval_policy(env, actor, steps: int, device: str) -> dict:
                 terms_per_s={name: round(float(x) / (n * steps), 4) for name, x in zip(rm.active_terms, term_sum)})
 
 
+# --------------------------------------------------------------------------------------------- stand-still guards
+# Fine-tunes of walk61 have learned "stand still when told to walk" four times: ft1 (2026-10-16, total reward tripled
+# while the robot stood), ft2, and battery-walk C2 (2026-11-22, delta batreal: the deploy gate's vx 0.25 walk moved
+# -0.002 m against walk61's 0.577 m). Two guards, each judged on the task metric, never on total reward:
+#   1. preflight (before training): under the run's own env, walk61 and two stand-still policies (stand61, and the zero
+#      action = hold the default pose) are rolled out with the training start's action noise; the run is refused when a
+#      stand-still policy earns >= --preflight-max-ratio of walk61's reward per second (PPO would be paid to stand).
+#      The same preflight reports walk61's speed along the command in the reference env (no delta), for reading only.
+#   2. tracking guard (during training, ON by default, factor 1.3, the value ft3-ft4 ran with): a save whose speed along
+#      the command, overall or at the robot's everyday 0.15-0.3 m/s commands, falls below the warm-up baseline (frozen
+#      walk61 in the same env) / factor or under --low-speed-floor, or whose tracking error rises above factor x
+#      baseline, is not a best candidate; two such saves in a row stop the run. C1 and C2 replayed through it pass
+#      (C2 walked on the robot 2026-11-22 although the sim deploy gate read dist_x -0.002 at vx 0.25).
+PREFLIGHT_MAX_RATIO = 0.9
+
+
+class ZeroActor:
+    """Stand-still policy: action 0 = the default joint pose (plus the delta's zero shift) on every joint."""
+
+    def __init__(self, num_actions: int):
+        self.num_actions = num_actions
+
+    def __call__(self, obs):
+        return torch.zeros(obs.shape[0], self.num_actions, device=obs.device)
+
+
+def degenerate_verdict(walk: dict, stills: dict, max_ratio: float = PREFLIGHT_MAX_RATIO) -> dict:
+    """FAIL when the best stand-still policy earns >= max_ratio of walk61's reward per second. A walk61 reward at or
+    below zero is compared on the same margin: stand-still fails when it is within (1 - max_ratio) x |walk| of it."""
+    w = float(walk["reward_per_s"])
+    name, best = max(stills.items(), key=lambda kv: kv[1]["reward_per_s"])
+    s = float(best["reward_per_s"])
+    limit = w - (1.0 - max_ratio) * abs(w)
+    return dict(walk61_reward_per_s=w, stand_still=name, stand_still_reward_per_s=s,
+                ratio=round(s / w, 3) if w > 0 else None, max_ratio=max_ratio, limit=round(limit, 4),
+                verdict="FAIL" if s >= limit else "PASS")
+
+
+def track_guard_check(factor, track, base, speed, sbase, low, lbase, floor, in_grace=False, rebasing=False):
+    """(ok, reasons) for one save, judged on the training env's own commanded-speed tracking against the warm-up
+    baseline (frozen walk61 in the same env). factor 0 = guard off."""
+    # no samples this save, or no baseline yet (first save, no warm-up): nothing to judge
+    if not factor or rebasing or track != track or base != base:
+        return True, []
+    reasons = []
+    if base == base and track == track and track > factor * base:
+        reasons.append(f"tracking error {track:.3f} > {factor} x {base:.3f}")
+    if not in_grace and speed == speed:
+        if sbase == sbase and sbase > 0:
+            if speed < sbase / factor:
+                reasons.append(f"speed along command {speed:.3f} < {sbase:.3f} / {factor}")
+        elif speed < floor:
+            reasons.append(f"speed along command {speed:.3f} < floor {floor}")
+    if not in_grace and low == low and lbase == lbase and (low < lbase / factor or low < floor):
+        reasons.append(f"low-command speed {low:.3f} < {lbase:.3f} / {factor} (floor {floor})")
+    return not reasons, reasons
+
+
+def build_eval_env(args, manifest, delta, device, num_envs):
+    """The worker's env (delta + as-built masses) at num_envs, wrapped, curricula at their final stage."""
+    from mjlab.envs import ManagerBasedRlEnv
+    from mjlab.rl import RslRlVecEnvWrapper
+    from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
+    cfg = load_env_cfg(TASK, play=False)
+    if delta is not None:
+        apply_delta(cfg, dict(delta))
+    if not args.no_asbuilt:
+        cfg.scene.entities["robot"] = apply_asbuilt_masses(cfg.scene.entities["robot"], manifest, args.audit, args.remove_battery_kg)
+    cfg.scene.num_envs = num_envs
+    cfg.seed = args.seed
+    env = ManagerBasedRlEnv(cfg=cfg, device=device)
+    install_runtime_delta(env, delta)
+    env = RslRlVecEnvWrapper(env, clip_actions=load_rl_cfg(TASK).clip_actions)
+    env.unwrapped.common_step_counter = CURRICULA_DONE_STEP
+    return env
+
+
+def preflight(args, manifest, delta, device, run_dir, stand_onnx=None) -> dict:
+    """Guard 1 (see above): degenerate-policy audit in the run's env plus walk61's tracking in the reference env."""
+    from mjlab.rl import MjlabOnPolicyRunner
+    from mjlab.tasks.registry import load_rl_cfg, load_runner_cls
+    stand_onnx = stand_onnx or str(Path(args.onnx).with_name("stand61.onnx"))
+    steps, n, noise = args.preflight_steps, args.preflight_envs, args.init_std
+    out = dict(key=preflight_key(args), delta=delta, steps=steps, envs=n, action_noise_std=noise,
+               max_ratio=args.preflight_max_ratio, time=time.strftime("%Y-%m-%dT%H:%M:%S"))
+
+    def rollouts(d, with_stills):
+        env = build_eval_env(args, manifest, d, device, n)
+        runner = (load_runner_cls(TASK) or MjlabOnPolicyRunner)(env, dataclasses.asdict(load_rl_cfg(TASK)), str(run_dir / "preflight-tmp"), device)
+        res = {}
+        pols = [("walk61", args.onnx)] + ([("stand61", stand_onnx)] if with_stills and Path(stand_onnx).exists() else [])
+        for name, path in pols:
+            load_walk61_into_actor(runner.alg.actor, path, args.init_std)
+            runner.alg.eval_mode()
+            with torch.inference_mode():  # the env's buffers became inference tensors in the previous rollout
+                env.reset()
+            res[name] = eval_policy(env, runner.alg.actor, steps, device, noise_std=noise)
+        if with_stills:
+            with torch.inference_mode():
+                env.reset()
+            res["zero_action"] = eval_policy(env, ZeroActor(env.num_actions), steps, device, noise_std=noise)
+        env.close()
+        return res
+
+    res = rollouts(delta, True)
+    out["delta_env"] = res
+    out["audit"] = degenerate_verdict(res["walk61"], {k: v for k, v in res.items() if k != "walk61"}, args.preflight_max_ratio)
+    ref = rollouts(None, False)["walk61"] if delta is not None else res["walk61"]
+    out["reference_env"] = dict(walk61=ref)
+    for name, r in res.items():
+        track = {k: v for k, v in r["terms_per_s"].items() if "track" in k}
+        print(f"[preflight] delta env {name}: reward/s {r['reward_per_s']} tracking terms/s {track} speed along cmd "
+              f"{r['speed_along_cmd']} low-cmd speed {r['low_cmd_speed']} falls/env-min {r['falls_per_env_minute']}", flush=True)
+    print(f"[preflight] reference env (no delta) walk61: speed along cmd {ref['speed_along_cmd']} low-cmd speed "
+          f"{ref['low_cmd_speed']} track err {ref['track_err_xy']} (report only)", flush=True)
+    a = out["audit"]
+    print(f"[preflight] audit: best stand-still {a['stand_still']} {a['stand_still_reward_per_s']} vs walk61 "
+          f"{a['walk61_reward_per_s']} reward/s (ratio {a['ratio']}, max {a['max_ratio']}) -> {a['verdict']}", flush=True)
+    (run_dir / "preflight.json").write_text(json.dumps(out, indent=1, default=str))
+    return out
+
+
+def preflight_key(args) -> dict:
+    """What a preflight record must match for kaggle_job.py to accept it for a run."""
+    return dict(delta=args.delta, cmu_config=args.cmu_config, no_asbuilt=bool(args.no_asbuilt),
+                onnx=Path(args.onnx).name, remove_battery_kg=args.remove_battery_kg)
+
+
 # --------------------------------------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
@@ -679,7 +923,13 @@ def main():
     ap.add_argument("--max-lr", type=float, default=0.0, help="clamp the adaptive PPO learning rate (0 = no clamp)")
     ap.add_argument("--low-speed-floor", type=float, default=0.03, help="m/s along a 0.15-0.3 m/s command below which the policy counts as not stepping")
     ap.add_argument("--rebaseline-saves", type=int, default=0, help="on a resume: discard the stored guard baseline and take the next N saves as the new one (guard off meanwhile)")
-    ap.add_argument("--track-guard", type=float, default=0.0, help="stop when the episode velocity-tracking error exceeds this factor x the warm-up (frozen walk61) value on two saves; 0 = off")
+    ap.add_argument("--track-guard", type=float, default=1.3, help="tracking guard factor (ON by default): a save whose speed along the command falls below baseline / factor or whose tracking error exceeds factor x baseline is not a best candidate, two in a row stop the run; baselines = max(warm-up walk61, preflight anchor). 0 = off, needs --track-guard-off-reason")
+    ap.add_argument("--track-guard-off-reason", default="", help="required with --track-guard 0: why this walking fine-tune may run without the stand-still guard")
+    ap.add_argument("--preflight-envs", type=int, default=256, help="envs of the preflight rollouts (degenerate-policy audit, tracking anchor)")
+    ap.add_argument("--preflight-steps", type=int, default=500, help="policy steps per preflight rollout (500 = 10 s)")
+    ap.add_argument("--preflight-max-ratio", type=float, default=PREFLIGHT_MAX_RATIO, help="refuse the run when a stand-still policy earns at least this fraction of walk61's reward per second in the run's env")
+    ap.add_argument("--allow-degenerate", default="", help="reason string: train although the preflight audit FAILs (the record and the log keep the FAIL)")
+    ap.add_argument("--preflight-only", action="store_true", help="run the preflight, write preflight.json and exit 0 (the kaggle_job.py audit preset)")
     ap.add_argument("--track-grace", type=int, default=0, help="iterations before the speed checks of --track-guard apply (start policies that cannot walk in the env yet)")
     ap.add_argument("--no-asbuilt", action="store_true")
     ap.add_argument("--guard-fraction", type=float, default=0.5, help="stop when mean reward < fraction * peak for two saves")
@@ -688,6 +938,9 @@ def main():
     ap.add_argument("--eval-steps", type=int, default=750)
     ap.add_argument("--audit-max-ratio", type=float, default=0.8, help="reward audit: a standing policy may collect at most this fraction of the walking policy's reward per second")
     args = ap.parse_args()
+    if not args.eval_variants and args.track_guard <= 0 and len(args.track_guard_off_reason.strip()) < 10:
+        raise SystemExit("--track-guard 0 turns off the stand-still guard of a walking fine-tune (ft1, ft2 and battery-walk C2 "
+                         "learned to stand when told to walk); give --track-guard-off-reason '<why, at least 10 characters>'")
     manifest = resolve_manifest(args.cmu_config, args.manifest)
     print(f"[asbuilt] cmu-config {args.cmu_config}: manifest {manifest}", flush=True)
 
@@ -715,10 +968,13 @@ def main():
             cfg_v = load_env_cfg(TASK, play=False)
             # variant = "<delta>[_asbuilt]" with <delta> a DELTAS key, "delta" (= default), "baseline" or "asbuilt"
             dname = variant.split("_")[0]
+            dv = None
             if dname == "delta":
-                apply_delta(cfg_v, dict(DELTA_DEFAULT))
+                dv = dict(DELTA_DEFAULT)
+                apply_delta(cfg_v, dv)
             elif dname in DELTAS:
-                apply_delta(cfg_v, dict(DELTAS[dname]))
+                dv = dict(DELTAS[dname])
+                apply_delta(cfg_v, dv)
             elif variant not in ("baseline", "asbuilt"):
                 raise SystemExit(f"unknown eval variant {variant!r}: use baseline, asbuilt, delta, or a DELTAS key, each optionally _asbuilt")
             if "asbuilt" in variant:
@@ -726,6 +982,7 @@ def main():
             cfg_v.scene.num_envs = args.num_envs
             cfg_v.seed = args.seed
             env_v = ManagerBasedRlEnv(cfg=cfg_v, device=device)
+            install_runtime_delta(env_v, dv)
             env_v = RslRlVecEnvWrapper(env_v, clip_actions=load_rl_cfg(TASK).clip_actions)
             env_v.unwrapped.common_step_counter = CURRICULA_DONE_STEP
             runner_v = (load_runner_cls(TASK) or MjlabOnPolicyRunner)(env_v, dataclasses.asdict(load_rl_cfg(TASK)), str(run_dir), device)
@@ -771,7 +1028,20 @@ def main():
     agent_cfg.run_name = args.run_name
     agent_cfg.max_iterations = args.max_iters
 
+    # guard 1: degenerate-policy audit + tracking anchor, once per run (a resume reuses the run's preflight.json)
+    pf_path = run_dir / "preflight.json"
+    pf = json.loads(pf_path.read_text()) if pf_path.exists() and not args.preflight_only else preflight(args, manifest, delta, device, run_dir)
+    if args.preflight_only:
+        print(f"[preflight] --preflight-only: {pf_path} written, verdict {pf['audit']['verdict']}", flush=True)
+        return
+    if pf["audit"]["verdict"] != "PASS":
+        if not args.allow_degenerate.strip():
+            raise SystemExit(f"[preflight] REFUSED: standing still pays in this env ({pf['audit']}); fix the reward or the "
+                             f"delta, or pass --allow-degenerate '<reason>'")
+        print(f"[preflight] audit FAIL overridden: --allow-degenerate {args.allow_degenerate!r}", flush=True)
+
     env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
+    install_runtime_delta(env, delta)
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
     runner_base = load_runner_cls(TASK) or MjlabOnPolicyRunner
     worker = {"stop": None}
@@ -898,15 +1168,17 @@ def main():
             base = float(np.mean(self.track_base)) if self.track_base else float("nan")
             sbase = float(np.mean(self.speed_base)) if self.speed_base else float("nan")
             lbase = float(np.nanmean(self.low_base)) if self.low_base else float("nan")
-            low_bad = bool(args.track_guard) and low == low and lbase == lbase and (low < lbase / args.track_guard or low < args.low_speed_floor)
             # --track-grace N: a start policy that cannot walk in this env (walk61 under the flight pack: speed along
             # the command -0.04 in the warm-up) fails both speed checks from the first save; until iteration N only
             # the tracking-error check applies, from N on the speed checks apply as usual (2026-11-19 ts3m-w61long
-            # was stopped at iteration 250, 150 actor iterations in)
+            # was stopped at iteration 250, 150 actor iterations in). Guard off (0) never divides (2026-11-22
+            # bw-c1-smoke ZeroDivisionError).
             in_grace = it < args.track_grace
-            speed_bad = (not in_grace) and (speed < sbase / args.track_guard if sbase > 0 else speed < args.low_speed_floor)
-            track_ok = not (args.track_guard and not self.rebase_left and base == base and track == track and
-                            (track > args.track_guard * base or speed_bad or (low_bad and not in_grace)))
+            track_ok, guard_reasons = track_guard_check(
+                args.track_guard, track, base, speed, sbase, low, lbase, args.low_speed_floor,
+                in_grace=in_grace, rebasing=bool(self.rebase_left))
+            if guard_reasons and not self.warm:
+                print(f"[cap] tracking guard: save at iter {it} rejected as a best candidate: {'; '.join(guard_reasons)}", flush=True)
             row = dict(iter=it, elapsed_s=round(elapsed, 1), dollars=round(dollars, 3), mean_reward=rew, mean_ep_len=length,
                        it_per_s=round(its, 3) if its == its else None, lr=self.alg.learning_rate, action_std=std, warmup=self.warm,
                        track_err=round(track, 4) if track == track else None, track_base=round(base, 4) if base == base else None,
@@ -944,8 +1216,8 @@ def main():
             elif self.below >= 2 and it >= args.warmup_iters + args.guard_after:
                 worker["stop"] = f"reward guard: {rew:.3f} < {args.guard_fraction} x peak {self.peak:.3f} on two saves at iter {it}"
             elif self.track_bad >= 2:
-                worker["stop"] = (f"tracking guard: error {track:.3f} vs warm-up {base:.3f}, speed along command {speed:.3f} vs {sbase:.3f}, "
-                                  f"low-command speed {low:.3f} vs {lbase:.3f} (factor {args.track_guard}, floor {args.low_speed_floor}) on two saves at iter {it}")
+                worker["stop"] = (f"tracking guard: {'; '.join(guard_reasons)} (warm-up error {base:.3f}, speed {sbase:.3f}, low-command speed {lbase:.3f}; "
+                                  f"factor {args.track_guard}, floor {args.low_speed_floor}) on two saves at iter {it}")
             if worker["stop"]:
                 print("[cap] STOP:", worker["stop"], flush=True)
                 raise StopTraining(worker["stop"])
@@ -1018,7 +1290,7 @@ def main():
     if not final_ckpt.exists():
         torch.save(runner.alg.save() | {"iter": final_it, "infos": {"env_state": {"common_step_counter": env.unwrapped.common_step_counter}}}, final_ckpt)
     runner.export_policy_to_onnx(str(run_dir), f"{args.run_name}.onnx")
-    meta = get_base_metadata(runner.env.unwrapped, run_path=str(final_ckpt))
+    meta = export_metadata(runner.env.unwrapped, str(final_ckpt), delta)
     attach_metadata_to_onnx(str(run_dir / f"{args.run_name}.onnx"), meta)
     if (run_dir / "model_best.pt").exists():
         # the normalizer buffers became inference tensors during the rollouts; clone them so load_state_dict can copy in place
@@ -1029,7 +1301,7 @@ def main():
                     setattr(norm, name, getattr(norm, name).detach().clone())
         runner.load(str(run_dir / "model_best.pt"))
         runner.export_policy_to_onnx(str(run_dir), f"{args.run_name}_best.onnx")
-        attach_metadata_to_onnx(str(run_dir / f"{args.run_name}_best.onnx"), get_base_metadata(runner.env.unwrapped, run_path=str(run_dir / "model_best.pt")))
+        attach_metadata_to_onnx(str(run_dir / f"{args.run_name}_best.onnx"), export_metadata(runner.env.unwrapped, str(run_dir / "model_best.pt"), delta))
     elapsed = elapsed_prev + (time.time() - t_start)
     record.update(finished=time.strftime("%Y-%m-%dT%H:%M:%S"), final_iter=final_it, stop_reason=stop_reason,
                   elapsed_s=round(elapsed, 1), dollars=round(elapsed / 3600 * args.rate_per_hour, 3),

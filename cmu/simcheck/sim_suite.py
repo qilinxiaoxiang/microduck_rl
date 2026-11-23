@@ -32,6 +32,16 @@ Cases and classes (the first eight as in sim_suite.sh):
   stress  floor_mu_bare, floor_mu_sole (0.25 m/s at the foot-floor friction of the bare printed foot and of the sole;
           estimates until the condition file carries the measured floor_mu_bare / floor_mu_sole, which make them real)
 
+Two starts for every real walk case (2026-11-22, START below). The robot starts walking either straight from open-loop
+stand mode, walk61 getting the command on its first tick (the main start: 3 of 4 standstill starts on 2026-11-22), or
+after a stand61 pause at zero command (1 of 4). The case under its own name is the paused start (brain_sim_check's
+default: 1 s stand mode, stand61 at zero command to 4 s, then the command); <name>/direct is the direct start (stand
+mode for 6 s, the command from the first policy tick). A candidate must walk in the direct start, whatever the
+reference does there. A paused start that does not walk after stand61 settled (settle time within 2 s) gets its own
+label, "freezes after a settled balance stand" (bw-c2-s1b's known defect, which C3 trains out): printed per case, never
+hidden, and not a failure on its own; a fall or worse walking in the paused start still fails. imu_pitch4/direct is
+stress (DIRECT_STRESS: the known-good walk61 on the 650 mAh model falls there).
+
 Real cases are the robot's condition: the verdict compares them with the reference rows (walk61 by default). Stress
 rows are harsher than the robot and are printed as "stress, report only"; they never accept or reject a policy.
 Each output row is the brain_sim_check JSON row with "case", "class" and "variant" prefixed; stderr of all cases goes to
@@ -84,7 +94,9 @@ CASES = [  # (class, name, extra flags)
     ("real", "nominal", []),
     ("real", "vx0.25", ["--vx", "0.25"]),
     ("real", "vx0.2", ["--vx", "0.2"]),
-    ("real", "com+5", ["--com-x", "5"]),
+    # stress since 2026-11-22: with the robot's sensor noise walk61 on the 650 mAh model, which stood and walked on the
+    # robot, falls here 3/3 at 1.3 s (stand61, before the command), so the case does not reproduce the robot
+    ("stress", "com+5", ["--com-x", "5"]),
     ("real", "imu_pitch4", ["--imu-pitch", "4"]),
     ("stress", "volt6.3", ["--volt", "6.3"]),
     ("stress", "drop8_imu35", ["--drop", "0.08", "--imu-hz", "35", "--seed", "0"]),
@@ -95,12 +107,52 @@ CASES = [  # (class, name, extra flags)
 # angle) goes into CURRENT-STATE.json and robot-condition.json as floor_mu_bare / floor_mu_sole. Until then the cases
 # run on these estimates and are stress; 0.7 is the lower edge of the training range (foot friction DR 0.7-1.3).
 FLOOR_MU_ESTIMATE = (("bare", 0.3), ("sole", 0.7))
-SUMMARY_KEYS = ("dist_x", "fell_at", "fall_dir", "max_tilt", "action_jumps", "max_action")
+SUMMARY_KEYS = ("outcome", "dist_x", "fell_at", "fall_dir", "max_tilt", "action_jumps", "max_action")
 
 # Verdict thresholds for a real case against its reference row (a candidate "matches or beats" the reference):
 TILT_SLACK_DEG = 2.0      # max_tilt may exceed the reference by this much
 DIST_FRACTION = 0.9       # dist_x must reach this fraction of the reference distance (when the reference walked)
-JUMP_SLACK = 2            # action_jumps may exceed the reference by this many
+JUMP_SLACK = 2            # action_jumps may exceed the reference by this many ...
+JUMP_RATIO = 1.5          # ... or by this factor, whichever is larger (with sensor noise walk61 itself jumps 50-100 times)
+
+# The robot's sensor noise and servo friction, on every case (2026-11-22). Until then the cases fed perfectly clean
+# sensors and got both directions wrong: bw-c2-s1b froze from standstill at vx 0.25 / 0.2 (it walks on the robot, and
+# in the sim with any noise), bw-c1-s1b passed and fell on the robot. Sources: microduck-sim/extensions/
+# battery-walk-20261122/GAP-AUDIT.md 1.1 and repro_cand_fit.sh (the sim cell fitted to the robot's walking).
+#   gyro_noise_dq 0.35  robot gyro tick-to-tick sd / rms leg speed 0.32-0.46 over every walking log 11-02..11-22
+#                       (gyro_spread_logs.txt); the fitted cell's K
+#   vel_noise_dq 0.26   robot reported dq minus the encoder's own difference: 0.32 per unit leg speed against the sim's
+#                       0.18, sqrt(0.32^2 - 0.18^2) = 0.26 (0.5 rad/s at the robot's 2 rad/s walking leg speed)
+#   gyro_noise, vel_noise  floors (rad/s) at rest; the robot's steady stands read 0.02 rad/s leg rms (stand_reference.txt)
+#   bam_friction_scale 1.25  the fitted cell's servo friction
+# A condition-file fact of the same name (cmu/robot-condition.json "facts") overrides each value.
+SENSOR_NOISE = {"gyro_noise_dq": 0.35, "vel_noise_dq": 0.26, "gyro_noise": 0.02, "vel_noise": 0.02}
+BAM_FRICTION = 1.25
+REAL_SEEDS = (0, 1, 2)    # every real case runs these seeds; its verdict is on the median
+JOBS = int(os.environ.get("SIM_SUITE_JOBS", "4"))  # sims at once (Mac mini: at most 4)
+NOISY = os.path.join(HERE, "noisy_check.py")
+# A walk case "did not start walking" when the trunk moved less than this forward (bw-c2-s1b frozen: -0.002 m)
+START_DIST_M = 0.1
+# Stand steadiness, gapcheck.py STEADY from stand_reference.txt (650 mAh stands p90: jumps 0.19/s, leg rms 0.22 rad/s,
+# still 81 %, settle 0.62 s; the 3000 mAh pack's struggling stands 2.9-14.4/s, 0.66-1.96 rad/s, 0-69 %, 3.4 s or never).
+# A struggling stand is not a stand (Shawn, 2026-11-22).
+STEADY = {"stand_jumps_s": 1.0, "stand_leg_rms": 0.30, "stand_still_frac": 0.75, "stand_settle_s": 2.0}
+# The balance-stand case: stand61 at zero command for 11 s from the first policy tick (walk_brain's walk mode at vx 0)
+STAND_CASES = [("real", "stand", ["--vx", "0", "--walk-s", "8"])]
+# The two ways the robot starts a walk (microduck-sim/extensions/battery-walk-20261122/start-sequence-20261122/,
+# robot_c2s1b_sequence.txt and results.txt): "direct", walk61 takes over from open-loop stand mode (KP 400) with the
+# command on its first tick, 3 of 4 standstill starts on 2026-11-22; "paused", stand61 at zero command first, 1 of 4.
+# Sim, 6 seeds each at vx 0.25 and 0.2: bw-c2-s1b walks 12/12 direct and 0/12 paused; walk61 on the 650 mAh model walks
+# in both. The case under its plain name is the paused start; <name>/direct the direct one.
+DIRECT = "/direct"
+DIRECT_STAND_S = 6.0      # seconds of open-loop stand mode before the direct start (robot: 7.9 and 12.1 s on 11-22)
+FREEZE = "freezes after a settled balance stand"
+# Direct-start twins that are stress, report only, because the known-good policy does not reproduce the robot there:
+# walk61 on the 650 mAh model, which walked on the robot from both starts, falls 3/3 backward at 1.3 s in
+# imu_pitch4/direct (Mac mini 2026-11-22; it walks 3/3 in imu_pitch4 paused). The robot's own IMU offset is about
+# -2 deg pitch, and direct with it walks 6/6 (start-sequence-20261122 results.txt, w650 rdirect_o).
+DIRECT_STRESS = ("imu_pitch4",)
+SEVERITY = {"walked": 0, "steady": 0, "did not start walking": 1, FREEZE: 1, "struggled": 1, "fell": 2}
 
 
 def base_flags(condition_path):
@@ -112,6 +164,9 @@ def base_flags(condition_path):
     delay_ms = float(facts["imu_added_delay_ms"]["value"])
     if delay_ms > 0:
         flags += ["--sensor-delay", str(1 + round(delay_ms / 20))]
+    for k, v in SENSOR_NOISE.items():
+        flags += ["--" + k.replace("_", "-"), str(facts[k]["value"] if k in facts else v)]
+    flags += ["--bam-friction-scale", str(facts["bam_friction_scale"]["value"] if "bam_friction_scale" in facts else BAM_FRICTION)]
     return flags
 
 
@@ -185,49 +240,186 @@ def row_prefix(variant, payload):
     return head
 
 
-def run_case(models, walk_s, base, cls, name, extra, err, variant="current", payload=None):
+def is_walk_case(extra):
+    """True when the case commands motion (every case but the balance stand)."""
+    def val(flag, default):
+        return float(extra[len(extra) - 1 - extra[::-1].index(flag) + 1]) if flag in extra else default
+    return abs(val("--vx", 0.3)) > 1e-9 or abs(val("--vtheta", 0.0)) > 1e-9
+
+
+def direct_flags(payload=None):
+    """brain_sim_check flags of the direct start: the walk command from the first policy tick. On the robot as it is
+    now that is after DIRECT_STAND_S of open-loop stand mode; with a payload the policy already runs from the first tick
+    (payload_flags: the open-loop pose cannot carry it), so the command comes at 0 s."""
+    s = 0.0 if payload else DIRECT_STAND_S
+    return ["--stand-s", str(s), "--walk-at", str(s)]
+
+
+def with_starts(cases, payload=None):
+    """The cases with a direct-start twin <name>/direct right after every real walk case (its plain name stays the
+    paused start). Stress and stand cases keep one start; a twin named in DIRECT_STRESS is stress."""
+    out = []
+    for cls, name, extra in cases:
+        out.append((cls, name, extra))
+        if cls == "real" and is_walk_case(extra):
+            out.append(("stress" if name in DIRECT_STRESS else cls, name + DIRECT, extra + direct_flags(payload)))
+    return out
+
+
+def start_of(name, walk):
+    """'direct' / 'paused' for a walk case, None for the stand case."""
+    return ("direct" if name.endswith(DIRECT) else "paused") if walk else None
+
+
+def stand_steady(row):
+    """(steady, reasons) of a stand stretch against STEADY; None when the row has no stand metrics."""
+    if row.get("stand_dur") is None:
+        return None, ["no stand stretch"]
+    bad = []
+    for k, lim in STEADY.items():
+        v = row.get(k)
+        if k == "stand_settle_s" and v is None:
+            bad.append("never settles")
+        elif v is None:
+            bad.append(f"{k} n/a")
+        elif (v < lim) if k == "stand_still_frac" else (v > lim):
+            bad.append(f"{k[len('stand_'):]} {v} (limit {lim})")
+    return not bad, bad
+
+
+def settled(row):
+    """True when stand61 settled before the walk command: gapcheck.py's settle time (the first still 1 s window) within
+    STEADY's 2 s. The whole-stretch bars do not fit the paused start's 3 s: its first second is the switch from
+    open-loop stand mode (bw-c2-s1b on 2026-11-22: settled at 0.6-0.9 s, leg rms over the 3 s 0.37-0.56 rad/s)."""
+    s = row.get("stand_settle_s")
+    return s is not None and s <= STEADY["stand_settle_s"]
+
+
+def outcome(row, walk):
+    """One run's label: walk cases fell / did not start walking / walked, and a paused start that did not walk after
+    stand61 settled FREEZE; the stand case fell / struggled / steady."""
+    if row.get("fell_at") is not None:
+        return "fell"
+    if walk:
+        if (row.get("dist_x") or 0.0) >= START_DIST_M:
+            return "walked"
+        return FREEZE if row.get("start") == "paused" and settled(row) else "did not start walking"
+    return "steady" if stand_steady(row)[0] else "struggled"
+
+
+def run_case(models, walk_s, base, cls, name, extra, err, variant="current", payload=None, seed=None):
     model = payload_flags(payload, variant) if payload else variant_flags(variant)
-    cmd = [sys.executable, CHECK, "--model", "asbuilt", "--walk-s", str(walk_s), "--models", models] + model + base + extra
-    err.write(f"== {name} ({cls}): {' '.join(cmd)}\n")
+    seed_flags = [] if seed is None else ["--seed", str(seed)]
+    cmd = ([sys.executable, NOISY, "--model", "asbuilt", "--walk-s", str(walk_s), "--models", models] + model + base
+           + extra + seed_flags)
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    tag = name if seed is None else f"{name} seed {seed}"
+    err.write(f"== {tag} ({cls}): {' '.join(cmd)}\n{p.stderr}")
     err.flush()
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=err, text=True)
     lines = [l for l in p.stdout.splitlines() if l.strip()]
     last = lines[-1] if lines else ""
     if p.returncode != 0 or not last.startswith("{"):
-        sys.exit(f"sim_suite: case {name} produced no result row (exit {p.returncode}); see {err.name}")
+        sys.exit(f"sim_suite: case {tag} produced no result row (exit {p.returncode}); see {err.name}")
     row = json.loads(last)
-    return {"case": name, "class": cls, **row_prefix(variant, payload), **row}
+    walk = is_walk_case(extra)
+    row = {"case": name, "class": cls, "seed": seed, **row_prefix(variant, payload), **row}
+    row["kind"] = "walk" if walk else "stand"
+    row["start"] = start_of(name, walk)
+    row["outcome"] = outcome(row, walk)
+    return row
 
 
 def fmt(row):
     return "  ".join(f"{k}={row.get(k)}" for k in SUMMARY_KEYS)
 
 
+def label_text(agg):
+    """'walked (3/3 walked)' for an aggregated case row."""
+    return f"{agg['outcome']} (" + ", ".join(f"{v}/{agg['seeds']} {k}" for k, v in agg["counts"].items()) + ")"
+
+
 def load_rows(path):
+    """case -> list of its rows (one per seed; older files hold one row per case)."""
     rows = {}
     for line in open(path):
         if line.strip():
             r = json.loads(line)
-            rows[r["case"]] = r
+            rows.setdefault(r["case"], []).append(r)
     return rows
 
 
+def _median(vals):
+    vals = sorted(v for v in vals if v is not None)
+    return None if not vals else round(float(vals[len(vals) // 2] if len(vals) % 2 else
+                                             (vals[len(vals) // 2 - 1] + vals[len(vals) // 2]) / 2), 3)
+
+
+def aggregate(rows):
+    """One summary row for a case from its seeds: the median outcome (by SEVERITY) and the medians of the measures
+    over the seeds that did not fall. Walk measures are taken after the walk command (max_tilt_cmd, action_jumps_cmd)
+    when the rows carry them, so the stand61 settle before the command no longer counts as walking tilt."""
+    if isinstance(rows, dict):
+        rows = [rows]
+    walk = rows[0].get("kind", "walk") == "walk"
+    labels = [r.get("outcome") or outcome(r, walk) for r in rows]
+    sev = sorted(SEVERITY[l] for l in labels)
+    med = sev[len(sev) // 2]  # the median; an even count rounds towards the worse label
+    label = next(l for l in labels if SEVERITY[l] == med)
+    up = [r for r in rows if r.get("fell_at") is None]
+    pick = lambda k, alt=None: _median([r.get(k, r.get(alt) if alt else None) for r in up])  # noqa: E731
+    agg = {"case": rows[0]["case"], "class": rows[0].get("class"), "kind": "walk" if walk else "stand",
+           "start": rows[0].get("start", start_of(rows[0]["case"], walk)), "outcome": label, "seeds": len(rows), "counts": {l: labels.count(l) for l in sorted(set(labels))},
+           "fell_at": _median([r["fell_at"] for r in rows if r.get("fell_at") is not None]) if label == "fell" else None,
+           "fall_dir": next((r.get("fall_dir") for r in rows if r.get("fell_at") is not None), None) if label == "fell" else None,
+           "dist_x": pick("dist_x"), "max_tilt": pick("max_tilt_cmd", "max_tilt") if walk else pick("max_tilt"),
+           "action_jumps": pick("action_jumps_cmd", "action_jumps") if walk else pick("action_jumps"),
+           "max_action": pick("max_action")}
+    for k in STEADY:
+        agg[k] = pick(k)
+    agg["stand_dur"] = pick("stand_dur")
+    return agg
+
+
 def judge(row, ref):
-    """Return (ok, reasons) for one real case against its reference row."""
+    """Return (ok, reasons) for one real case against its reference: rows or lists of seed rows (median verdict)."""
+    if isinstance(row, list) or isinstance(ref, list) or "counts" in row:
+        row, ref = aggregate(row) if not (isinstance(row, dict) and "counts" in row) else row, \
+            aggregate(ref) if not (isinstance(ref, dict) and "counts" in ref) else ref
     reasons = []
+    counts = lambda r: (" (" + ", ".join(f"{v}/{r['seeds']} {k}" for k, v in r["counts"].items()) + ")") if "counts" in r else ""  # noqa: E731
+    ref_label = ref.get("outcome") or ("fell" if ref.get("fell_at") is not None else None)
     ref_fell = ref.get("fell_at") is not None
     if row.get("fell_at") is not None:
         # a fall is never "as good as the reference": where the deployed set falls too (a payload it was not trained
         # for), a candidate that also falls has shown nothing and is not let through
-        return False, [f"fell at {row['fell_at']} s, " + ("reference fell too" if ref_fell else "reference did not fall")]
+        return False, [f"fell at {row['fell_at']} s{counts(row)}, " + ("reference fell too" if ref_fell else "reference did not fall")]
+    label = row.get("outcome")
+    if row.get("start") == "direct" and label != "walked":
+        # the robot's main start: a candidate must walk here, whatever the reference did
+        return False, [f"did not walk in the direct start (the robot's main start){counts(row)}: dist_x {row.get('dist_x')} m"]
     if ref_fell:
         return True, []  # the candidate stood where the reference fell; a fallen run sets no tilt, distance or jump bar
+    if label == FREEZE:
+        return True, []  # its own label, printed by main(); the direct start decides whether the candidate walks
+    if label == "did not start walking":
+        if ref_label == "did not start walking":
+            return True, []  # neither started: no distance, tilt or jump bar for a stand-in-place
+        return False, [f"did not start walking{counts(row)}: dist_x {row.get('dist_x')} m, reference walked {ref.get('dist_x')} m"]
+    if label == "struggled":
+        bad = stand_steady(row)[1]
+        return False, [f"struggling stand{counts(row)}: {', '.join(bad)}"
+                       + ("; reference struggled too" if ref_label == "struggled" else "; reference stood steady")]
+    if ref_label in ("did not start walking", "struggled", FREEZE):
+        return True, []  # the candidate walked / stood steady where the reference did not
+    if row.get("kind") == "stand":
+        return True, []  # a steady stand: STEADY is the bar, not the reference's tilt
     if (row.get("max_tilt") or 0) > (ref.get("max_tilt") or 0) + TILT_SLACK_DEG:
         reasons.append(f"max_tilt {row.get('max_tilt')} > reference {ref.get('max_tilt')} + {TILT_SLACK_DEG}")
     if (ref.get("dist_x") or 0) > 0 and (row.get("dist_x") or 0) < DIST_FRACTION * ref["dist_x"]:
         reasons.append(f"dist_x {row.get('dist_x')} < {DIST_FRACTION} x reference {ref['dist_x']}")
-    if (row.get("action_jumps") or 0) > (ref.get("action_jumps") or 0) + JUMP_SLACK:
-        reasons.append(f"action_jumps {row.get('action_jumps')} > reference {ref.get('action_jumps')} + {JUMP_SLACK}")
+    rj = ref.get("action_jumps") or 0
+    if (row.get("action_jumps") or 0) > max(rj + JUMP_SLACK, JUMP_RATIO * rj):
+        reasons.append(f"action_jumps {row.get('action_jumps')} > reference {rj} + max({JUMP_SLACK}, {JUMP_RATIO - 1:.0%})")
     return not reasons, reasons
 
 
@@ -270,38 +462,62 @@ def main():
                  f"{resolve_variant('current')}" + (f"; payload {a.payload_manifest})" if a.payload_manifest else ")"))
     print(f"sim_suite: models {a.models}, variant {shown}, walk {a.walk_s} s, base flags from {a.condition}: {' '.join(base)}")
     tag = "PLANNED " if planned else ""  # every printed row of a planned robot says so
-    rows = []
-    with open(a.out, "w") as out, open(a.out + ".err", "w") as err:
-        for cls, name, extra in CASES + floor_mu_cases(a.condition):
-            row = run_case(a.models, a.walk_s, base, cls, name, extra, err, a.variant, a.payload_manifest)
+    print(f"sensor noise and friction on every case: {' '.join(base[base.index('--gyro-noise-dq'):])}; real cases on "
+          f"seeds {', '.join(map(str, REAL_SEEDS))} (verdict on the median), {JOBS} sims at once")
+    from concurrent.futures import ThreadPoolExecutor
+    cases = with_starts(CASES[:5] + STAND_CASES + CASES[5:] + floor_mu_cases(a.condition), a.payload_manifest)
+    print(f"real walk cases run two starts: <name> paused (stand61 at zero command before the command), <name>{DIRECT} "
+          f"direct ({' '.join(direct_flags(a.payload_manifest))}: the command on the first policy tick)")
+    jobs = [(cls, name, extra, s) for cls, name, extra in cases for s in (REAL_SEEDS if cls == "real" else (None,))]
+    by_case = {}
+    with open(a.out, "w") as out, open(a.out + ".err", "w") as err, ThreadPoolExecutor(JOBS) as pool:
+        futs = [pool.submit(run_case, a.models, a.walk_s, base, cls, name, extra, err, a.variant, a.payload_manifest, s)
+                for cls, name, extra, s in jobs]
+        for f in futs:
+            row = f.result()
             out.write(json.dumps(row) + "\n")
             out.flush()
-            rows.append(row)
-            print(f"{tag}{cls:6s} {name:15s} {fmt(row)}")
+            by_case.setdefault(row["case"], []).append(row)
+    rows = [aggregate(by_case[name]) for _, name, _ in cases]
+    for row in rows:
+        print(f"{tag}{row['class']:6s} {row['case']:18s} {fmt(row)}  counts={row['counts']}")
+    print(f"\n{tag}start labels per real walk case (direct = the robot's main start, must walk):")
+    by_name = {r["case"]: r for r in rows}
+    for row in rows:
+        twin = by_name.get(row["case"] + DIRECT)
+        if twin is not None:
+            print(f"  {row['case']:15s} direct: {label_text(twin)}   paused: {label_text(row)}")
     if a.compare:
         other = load_rows(a.compare)
         print(f"\nside by side with {a.compare}:")
         for row in rows:
             o = other.get(row["case"])
-            print(f"{row['class']:6s} {row['case']:15s} new  {fmt(row)}")
-            print(f"{'':6s} {'':15s} ref  {fmt(o) if o else '(no row)'}")
+            print(f"{row['class']:6s} {row['case']:18s} new  {fmt(row)}")
+            print(f"{'':6s} {'':18s} ref  {fmt(aggregate(o)) if o else '(no row)'}")
     if os.path.exists(a.reference):
         ref = load_rows(a.reference)
         print(f"\n{tag}verdict against {a.reference} (real cases only"
               + (f"; PLANNED robot {a.variant}, not the robot as it is now):" if planned else "):"))
         verdict = True
+        freezes = []
         for row in rows:
             if row["class"] != "real":
-                print(f"  {row['case']:15s} stress, report only")
+                print(f"  {row['case']:18s} stress, report only")
                 continue
             r = ref.get(row["case"])
             if r is None:
-                print(f"  {row['case']:15s} no reference row")
+                print(f"  {row['case']:18s} no reference row")
                 verdict = False
                 continue
-            ok, reasons = judge(row, r)
+            ok, reasons = judge(row, aggregate(r))
             verdict &= ok
-            print(f"  {row['case']:15s} {'matches or beats the reference' if ok else 'worse: ' + '; '.join(reasons)}")
+            if ok and row["outcome"] == FREEZE:
+                freezes.append(row["case"])
+                print(f"  {row['case']:18s} {label_text(row)}: its own label, not a failure (the direct start must walk)")
+                continue
+            print(f"  {row['case']:18s} {'matches or beats the reference' if ok else 'worse: ' + '; '.join(reasons)}")
+        if freezes:
+            print(f"known defect: {FREEZE} in the paused start of {', '.join(freezes)}")
         # the verdict line keeps its exact wording (cmu/deploy/deploy_policy.py matches it); the header above names a plan
         print("verdict: " + ("candidate matches or beats the reference on every real case" if verdict
                             else "candidate is worse than the reference on at least one real case"))

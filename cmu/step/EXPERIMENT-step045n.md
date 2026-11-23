@@ -40,9 +40,11 @@ From the repo root. Each takes 15 s to 5 min on a 24-core CPU.
     uv run --no-sync --with pyserial python cmu/step/runtime_check.py --policy walk61=cmu/step/models/walk61.onnx \
         --policy step=cmu/step/models/step045n_v2m5.onnx --both-slots --stand-s 0 --out /tmp/bursts.json
 
-Expected (2026-11-23): diag 1 fall in 10 cases (floor_mu_bare, single seed; it does not repeat over 40 seeded runs),
-over the tilt and jump bars in the 4 real cases; noise_eval 0 falls at noise levels 0-3 and on floor_bare, 40 / 40
-in worst-at-2; bursts 0 falls in 80. A different answer means the code or the models changed: say which commit you ran.
+Expected (2026-11-23, after merging main's gate with the robot's sensor noise): diag 7 falls in 10 cases for the
+candidate and 6 for walk61 (before that change: 1 and 3); noise_eval 0 falls at noise levels 0-3 and on floor_bare,
+40 / 40 in worst-at-2 (walk61: 19 / 15 / 9 / 24, 40, 40). **The gate's sensor noise breaks every round 1-5 candidate**
+(`RESULTS.md`, "After merging main"): treat H1 as doubtful until a round trained under that noise. A different answer
+means the code or the models changed: say which commit you ran.
 
 Open sim questions anyone can take:
 - **Delay margin:** extra actuation delay is the single factor that breaks it (round 2 ablation). Sweep

@@ -7,10 +7,19 @@ Same worker, same flags as cmu/finetune/modal/finetune.py; only the launcher dif
   python3 cmu/finetune/kaggle/kaggle_job.py pack --dry-run        # stage the tarball only: file count, size, first paths; no Kaggle CLI, no upload
   python3 cmu/finetune/kaggle/kaggle_job.py push smoke            # 64 envs, 6 iterations: build + train + ONNX export
   python3 cmu/finetune/kaggle/kaggle_job.py push bench            # 4096 envs, 40 iterations: it/s for comparison with Modal
+  python3 cmu/finetune/kaggle/kaggle_job.py push audit --run-name bw-c3-audit -- --delta batreal --cmu-config current
+                                                                  # degenerate-policy audit only: walk61 vs stand61 vs zero
+                                                                  # action reward/s in that env; `push run` needs a fetched
+                                                                  # PASS record for the same env (or --allow-degenerate REASON)
   python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name ft4 -- --max-iters 1000 --max-hours 10 --delta default
   python3 cmu/finetune/kaggle/kaggle_job.py push run --run-name b1 -- --max-iters 1000 --max-hours 10 --delta lowcmd --cmu-config current
   python3 cmu/finetune/kaggle/kaggle_job.py push smoke --run-name a --pair-run-name b -- --seed 1 -- --seed 2
                                                                   # two jobs in one session, one per T4 (2nd group = job b)
+  python3 cmu/finetune/kaggle/kaggle_job.py push scratch --run-name bw-s1-cur-s1 --pair-run-name bw-s1-cur-s2 -- --model current --seed 1 -- --model current --seed 2
+                                                                  # Pollen's recipe from scratch (cmu/finetune/kaggle/scratch_worker.py); --model
+                                                                  # current|stock. No preflight record: the recipe's rewards are unchanged, and the
+                                                                  # worker's early stop at iteration 2000 (< 0.03 m/s) is the stand-still guard
+  python3 cmu/finetune/kaggle/kaggle_job.py push <preset> --dry-run ...   # flags checked, tarball staged, kernel folder written; nothing pushed
   python3 cmu/finetune/kaggle/kaggle_job.py status <run-name>     # QUEUED / RUNNING / COMPLETE / ERROR
   python3 cmu/finetune/kaggle/kaggle_job.py fetch <run-name>      # download /kaggle/working into cmu/finetune/kaggle/out/<run-name>/
 
@@ -60,6 +69,13 @@ PRESETS = {
     "smoke": ["--num-envs", "64", "--max-iters", "6", "--warmup-iters", "3", "--save-interval", "2", "--max-hours", "0.25", "--max-dollars", "1"],
     "bench": ["--num-envs", "4096", "--max-iters", "40", "--warmup-iters", "0", "--save-interval", "10", "--max-hours", "0.5", "--max-dollars", "1"],
     "run": ["--num-envs", "4096", "--save-interval", "25", "--max-dollars", "1"],
+    # degenerate-policy audit only (finetune_worker.py preflight): walk61 vs stand61 vs zero action in the run's env
+    "audit": ["--preflight-only", "--max-hours", "0.25", "--max-dollars", "1"],
+    # Pollen's recipe from scratch (scratch_worker.py, battery-walk stage S1): 4096 envs, 4000 iterations, a save and
+    # ONNX every 250, metrics every 50, 5.8 h wall cap (T4 paired: about 0.206 it/s, 4000 iterations = 5.4 h), early
+    # stop at 2000 below 0.03 m/s. The job's own group gives --model and --seed.
+    "scratch": ["--num-envs", "4096", "--max-iters", "4000", "--save-interval", "250", "--metric-interval", "50",
+                "--max-hours", "5.8", "--early-stop-iter", "2000", "--early-stop-speed", "0.03"],
 }
 # --worker grasp: cmu/grasp/grasp_worker.py (Pollen's ground / static grasp on the CMU masses, train CLI + ONNX export)
 GRASP_WORKER = REPO / "cmu/grasp/grasp_worker.py"
@@ -79,6 +95,42 @@ SEEING_EVAL_PRESETS = {"smoke": ["--num-envs", "16", "--steps", "60", "--max-hou
 WORKERS = {"finetune": (WORKER, PRESETS), "grasp": (GRASP_WORKER, GRASP_PRESETS),
            "seeing_audit": (SEEING_AUDIT_WORKER, SEEING_AUDIT_PRESETS),
            "seeing_eval": (SEEING_EVAL_WORKER, SEEING_EVAL_PRESETS)}
+# presets that run another worker than finetune_worker.py (kernel_entry.py's worker path is replaced for them)
+PRESET_WORKER = {"scratch": REPO / "cmu/finetune/kaggle/scratch_worker.py"}
+OUT = HERE / "out"
+
+
+def preflight_key(args):
+    """The worker's preflight_key() from its flags (same defaults as finetune_worker.py)."""
+    v = lambda name, default: flag_value(args, name) if flag_value(args, name) is not None else default  # noqa: E731
+    return dict(delta=v("--delta", "default"), cmu_config=v("--cmu-config", "asbuilt"), no_asbuilt="--no-asbuilt" in args,
+                onnx=Path(v("--onnx", "/root/assets/walk61.onnx")).name, remove_battery_kg=float(v("--remove-battery-kg", "0.09")))
+
+
+def preflight_records(out=None):
+    """Every fetched preflight.json under cmu/finetune/kaggle/out/<kernel>/runs/<run>/ (audit, smoke or run kernels)."""
+    for p in sorted((out or OUT).glob("*/runs/*/preflight.json")):
+        try:
+            yield p, json.loads(p.read_text())
+        except (OSError, ValueError):
+            continue
+
+
+def check_preflight(args, out=None):
+    """A full fine-tune launch needs a fetched preflight record for the same env whose audit PASSed, or an explicit
+    --allow-degenerate reason (the worker repeats the audit itself and refuses a FAIL in the run as well)."""
+    key = preflight_key(args)
+    if (flag_value(args, "--allow-degenerate") or "").strip():
+        return f"preflight override: --allow-degenerate {flag_value(args, '--allow-degenerate')!r}"
+    match = [(p, r) for p, r in preflight_records(out) if r.get("key") == key]
+    if not match:
+        sys.exit(f"no preflight record for {key} under {out or OUT}: run `kaggle_job.py push audit --run-name <bw-...-audit> -- "
+                 f"<the same env flags>` and fetch it first (degenerate-policy audit: does standing still pay in this env?)")
+    p, r = match[-1]
+    a = r.get("audit", {})
+    if a.get("verdict") != "PASS":
+        sys.exit(f"preflight {p}: standing still pays in this env ({a}); refused. Fix the reward or the delta, or pass --allow-degenerate '<reason>'")
+    return f"preflight {p}:{a.get('stand_still')} {a.get('stand_still_reward_per_s')} vs walk61 {a.get('walk61_reward_per_s')} reward/s -> PASS"
 MAX_HOURS = 11.5
 
 
@@ -199,7 +251,16 @@ def worker_args(preset, run_name, extra, worker="finetune"):
     """Full worker argument list for one job, checked before anything is uploaded."""
     path, presets = WORKERS[worker]
     args = ["--run-name", run_name] + presets[preset] + extra
+    path = job_worker(preset, worker)
     known = worker_flags(path)
+    if worker == "finetune" and preset in PRESET_WORKER:
+        if flag_value(args, "--model") is None:
+            sys.exit(f"push {preset} needs --model (stock or current) in each job's group")
+        cond = flag_value(args, "--conditions")
+        if cond not in (None, "official", "gyro", "robot"):
+            sys.exit(f"--conditions {cond!r}: choose from official, gyro, robot")
+        if cond not in (None, "official") and flag_value(args, "--model") != "current":
+            sys.exit(f"--conditions {cond} needs --model current (scratch_worker.py refuses it on the stock model)")
     unknown = sorted({a.split("=", 1)[0] for a in extra if a.startswith("--")} - known)
     if unknown:
         sys.exit(f"{path.name} has no flag {', '.join(unknown)}; it accepts: {' '.join(sorted(known))}")
@@ -211,7 +272,13 @@ def worker_args(preset, run_name, extra, worker="finetune"):
     return args
 
 
-def push(preset, run_name, extra, accelerator, pair_run_name="", pair_extra=None, worker="finetune"):
+def job_worker(preset, worker="finetune"):
+    """The script a job runs: the --worker's, or for a finetune preset in PRESET_WORKER (scratch) that preset's."""
+    return PRESET_WORKER[preset] if worker == "finetune" and preset in PRESET_WORKER else WORKERS[worker][0]
+
+
+def push(preset, run_name, extra, accelerator, pair_run_name="", pair_extra=None, worker="finetune", dry_run=False):
+    """dry_run: check the flags, stage the dataset tarball and write the kernel folder; no Kaggle CLI, no upload, no push."""
     if not run_name:
         run_name = f"{preset}-" + time.strftime("%m%d-%H%M")
     args = worker_args(preset, run_name, extra, worker)
@@ -225,12 +292,15 @@ def push(preset, run_name, extra, accelerator, pair_run_name="", pair_extra=None
             sys.exit("both jobs have identical flags; give the pair its own group after a second -- (e.g. another --seed)")
     elif pair_extra is not None:
         sys.exit("a second -- group needs --pair-run-name")
-    digest = pack()
-    user = username()
+    if preset == "run":
+        for a in [args] + ([pair] if pair else []):
+            print(check_preflight(a))
+    digest = pack(dry_run=dry_run)
+    user = "<kaggle-user>" if dry_run else username()
     name = slug(run_name)
     k = STAGE / "kernels" / name
     k.mkdir(parents=True, exist_ok=True)
-    job = {"run_name": run_name, "worker": str(WORKERS[worker][0].relative_to(REPO)), "worker_args": args, "source_digest": digest, "pushed": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
+    job = {"run_name": run_name, "worker": str(job_worker(preset, worker).relative_to(REPO)), "worker_args": args, "source_digest": digest, "pushed": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
     if pair:  # one job per T4; kernel_entry.py runs them in parallel with CUDA_VISIBLE_DEVICES=0 and 1
         job["jobs"] = [{"run_name": run_name, "worker_args": args}, {"run_name": pair_run_name, "worker_args": pair}]
     src = (HERE / "kernel_entry.py").read_text().replace("JOB = {}  # replaced by kaggle_job.py", "JOB = " + json.dumps(job))
@@ -239,6 +309,12 @@ def push(preset, run_name, extra, accelerator, pair_run_name="", pair_extra=None
         "id": f"{user}/{name}", "title": name, "code_file": "kernel_entry.py", "language": "python",
         "kernel_type": "script", "is_private": True, "enable_gpu": True, "enable_internet": True,
         "dataset_sources": [f"{user}/{DATASET_SLUG}"], "competition_sources": [], "kernel_sources": []}, indent=1))
+    if dry_run:
+        print(f"dry run: kernel folder {k} written (worker {job['worker']}), nothing pushed")
+        print(f"  job A (GPU 0): {' '.join(args)}")
+        if pair:
+            print(f"  job B (GPU 1): {' '.join(pair)}")
+        return
     print(kaggle("kernels", "push", "-p", str(k), "--accelerator", accelerator))
     print(f"pushed {user}/{name}: {' '.join(args)}")
     if pair:
@@ -283,6 +359,7 @@ def main():
     p.add_argument("--accelerator", default="NvidiaTeslaT4")
     p.add_argument("--pair-run-name", default="", help="second job on the second T4; its flags follow a second --")
     p.add_argument("--worker", default="finetune", choices=sorted(WORKERS), help="finetune: walk61 fine-tune; grasp: cmu/grasp/grasp_worker.py")
+    p.add_argument("--dry-run", action="store_true", help="check flags, stage the tarball, write the kernel folder; no Kaggle CLI, no push")
     for c in ("status", "fetch"):
         sub.add_parser(c).add_argument("run_name")
     argv = sys.argv[1:]
@@ -298,7 +375,7 @@ def main():
     elif a.cmd == "pack":
         pack(a.force, a.dry_run)
     elif a.cmd == "push":
-        push(a.preset, a.run_name, extra, a.accelerator, a.pair_run_name, pair_extra, a.worker)
+        push(a.preset, a.run_name, extra, a.accelerator, a.pair_run_name, pair_extra, a.worker, a.dry_run)
     elif a.cmd == "status":
         status(a.run_name)
     else:

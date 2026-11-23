@@ -184,3 +184,10 @@ def test_noise_variants_configure_servo_noise():
     assert torch.all(noisy.abs() <= s[:, None] + 1e-6)
     assert "Mjlab-WalkStep-SN3-FromWalk61-MicroDuck-CMU-Current" in list_tasks()
     assert "Mjlab-WalkStep-SNR13-FromWalk61-MicroDuck-CMU-Current" in list_tasks()
+
+
+def test_walk_step_keeps_its_own_conditions():
+    """rounds 1-5 trained without main's default robot conditions: the step task opts out (its own drop + servo noise)"""
+    cfg = ws.make_walk_step_env_cfg()
+    assert type(cfg.actions["joint_pos"]).__name__ == "DroppedReadJointPositionActionCfg"
+    assert "legspeed" not in cfg.observations["actor"].terms["base_ang_vel"].func.__name__

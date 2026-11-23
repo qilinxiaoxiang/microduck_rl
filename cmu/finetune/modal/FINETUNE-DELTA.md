@@ -912,3 +912,6 @@ shared EMA velocity fine-tune (ft3's recipe, which fell on the robot), not from 
 encoder-invisible play adds nothing measurable. Note for the sweep: 2-8 % of the sims abort at interpreter exit
 (onnxruntime `recursive_mutex lock failed`, exit -6) after writing their result; `gap_sweep.py` counts them when the
 result row is present.
+
+## Run bw-c1 (2026-11-22, battery-walk-20261122 stage C1): delta `batshift`, only the robot model changes
+`--cmu-config current` (battery-v2m5-20261121) plus the brain's zero shift (motor = policy + shift: left hip roll +5.5, right -3.5, head roll -3.5, head yaw -5 deg, as the shifted default; ONNX metadata keeps walk61's default) and the existing foot friction DR widened to (0.4, 1.3), since feet outrank the floor and Y1's mu 0.4 floor was out of reach; rewards unchanged (Shawn). Source: Y1 9/10 balance-stand falls in this condition; CPU check `test_batshift.py`.

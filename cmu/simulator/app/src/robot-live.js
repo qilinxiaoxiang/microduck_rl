@@ -565,4 +565,21 @@ loadModel();
 const remote = createRemote({root: $("#remote"), state: () => ({online, brain: lastBrain, health: latest, healthAge: (Date.now() - latestAt) / 1000}), log: event});
 setInterval(() => remote.refresh(), 250);
 
+// Policy set behind the remote's model lines (a7z-bridge.mjs GET /api/a7z/models, read over SSH and cached a few
+// seconds): read on load, when the brain starts, stops or starts a new log (a restart can load another set), and every
+// MODELS_EVERY_S while the page is visible, so a deploy shows within that.
+const MODELS_EVERY_S = 15;
+let modelsKey = null, modelsAt = 0, modelsBusy = false;
+async function loadModels() {
+  modelsBusy = true; modelsAt = Date.now();
+  try { remote.showModels(await (await fetch("/api/a7z/models", {cache: "no-store"})).json()); }
+  catch (e) { remote.showModels({ok: false, error: e.message}); }
+  finally { modelsBusy = false; }
+}
+setInterval(() => {
+  if (modelsBusy || document.hidden) return;
+  const key = `${online}|${lastBrain?.running ?? ""}|${lastBrain?.log ?? ""}`;
+  if (key !== modelsKey || Date.now() - modelsAt > MODELS_EVERY_S * 1000) { modelsKey = key; loadModels(); }
+}, 1000);
+
 window.robotLive = {ingest, get latest() { return latest; }, get brain() { return lastBrain; }, get health() { return health.length; }, get online() { return online; }};

@@ -32,6 +32,17 @@ candidates. Steps, each one stops the script when it fails:
 
 `rollback` deletes ~/duck-policy, so the next brain start loads walk61 again (with `--restart`, at once).
 
+A candidate the gate rejects is copied only on Shawn's word, and then through this script so the robot keeps the record:
+
+  uv run --no-sync python cmu/deploy/deploy_policy.py deploy path/to/walk.onnx --name my-walk --deploy-despite-gate "<his words>"
+
+It runs the same gate, prints the worse cases, copies anyway and writes the MANIFEST with "gate_passed": false, the worse
+rows and "forced" {reason, by, at}; the phone remote shows "gate failed, deployed anyway: <reason>". A set that was copied
+by hand (no MANIFEST on the A7Z) gets the same record afterwards from its gate run in cmu/deploy/runs/<name>/, without
+copying or restarting anything; the A7Z files must match the run's:
+
+  uv run --no-sync python cmu/deploy/deploy_policy.py record --name my-walk [--deploy-despite-gate "<his words>"]
+
 A policy for the robot carrying a payload (the flight pack) goes through the same steps on the model it was trained for:
 
   uv run --no-sync python cmu/deploy/deploy_policy.py deploy path/to/walk.onnx --name my-pack-walk \
@@ -138,7 +149,8 @@ def gate_label(variant, payload=None):
 def sim_hash():
     """Hash of everything the suite's walk61 rows depend on, so a cached baseline is reused only while it is current."""
     h = hashlib.sha256()
-    paths = [os.path.join(ROOT, "cmu", "robot-condition.json"), os.path.join(ROOT, "cmu", "simcheck", "sim_suite.py")]
+    paths = [os.path.join(ROOT, "cmu", "robot-condition.json"), os.path.join(ROOT, "cmu", "simcheck", "sim_suite.py"),
+             os.path.join(ROOT, "cmu", "simcheck", "noisy_check.py")]
     for top in ("cmu/mac", "cmu/model", "cmu/whole/delay-repair-20260912", "cmu/whole/dynamics", "cmu/pi",
                 "cmu/whole/runtime-overlay/models"):
         for d, _, files in os.walk(os.path.join(ROOT, top)):
@@ -172,7 +184,7 @@ def baseline(variant, payload=None):
     return out
 
 
-def gate(run, models, extras=(), payload=None, variant="current"):
+def gate(run, models, extras=(), payload=None, variant="current", despite=None):
     """Gate on GATE_VARIANTS (or on the planned robot `variant`, check only), carrying `payload` when one is given;
     `extras` (historical variants, never with the payload) are run and reported but never fail the gate."""
     verdicts = {}
@@ -191,13 +203,93 @@ def gate(run, models, extras=(), payload=None, variant="current"):
             fail(f"sim_suite on {label} gave no verdict (exit {p.returncode}); see {run}/suite-{label}.out")
         verdicts[label] = line
         print(f"  {label}{'' if (v, pl) in gates else ' (historical, report only)'}: {line}")
-        print("\n".join("    " + l for l in p.stdout.splitlines() if l.startswith("  ") and "worse" in l))
+        print("\n".join("    " + l for l in p.stdout.splitlines()
+                        if (l.startswith("  ") and "worse" in l) or l.startswith("known defect: ")))
     labels = [gate_label(v, pl) for v, pl in gates]
-    if any(verdicts[l] != PASS for l in labels):
+    passed = all(verdicts[l] == PASS for l in labels)
+    if not passed and not despite:
         fail(f"the candidate is worse than the deployed set in at least one real case on {', '.join(labels)}; rows in "
              f"{run}, the deployed set's in {os.path.dirname(baseline(gate_variants[0], payload))}")
-    return {"gate": {l: verdicts[l] for l in labels},
+    if not passed:
+        print(f"GATE FAILED on {', '.join(labels)}; going on because --deploy-despite-gate says: {despite}")
+    return {"gate": {l: verdicts[l] for l in labels}, "gate_passed": passed, "worse": worse_rows(run, labels),
             "historical_extras": {v: verdicts[v] for v in extras}}
+
+
+def worse_rows(run, labels):
+    """label -> the suite's "worse" lines for the real cases ("nominal: max_tilt 13.8 > reference 8.7 + 2.0")."""
+    rows = {}
+    for label in labels:
+        try:
+            with open(os.path.join(run, f"suite-{label}.out")) as f:
+                text = f.read()
+        except OSError:
+            continue
+        rows[label] = [" ".join(l.split()).replace(" worse:", ":", 1) for l in text.splitlines()
+                       if l.startswith("  ") and " worse: " in l]
+    return rows
+
+
+def recorded_gate(run):
+    """The gate a finished run in cmu/deploy/runs/<name>/ gave: {"gate", "gate_passed", "worse"} from its suite-*.out."""
+    verdicts = {}
+    for f in sorted(os.listdir(run)):
+        if f.startswith("suite-") and f.endswith(".out"):
+            with open(os.path.join(run, f)) as fh:
+                line = next((l.strip() for l in fh if l.startswith("verdict: ")), None)
+            if line:
+                verdicts[f[len("suite-"):-len(".out")]] = line
+    if "current" not in verdicts:
+        fail(f"{run} holds no suite-current.out with a verdict: no gate run to record")
+    labels = ["current"]  # the gate; any other label in the run was a report-only extra
+    return {"gate": {"current": verdicts["current"]}, "gate_passed": verdicts["current"] == PASS,
+            "worse": worse_rows(run, labels), "historical_extras": {k: v for k, v in verdicts.items() if k != "current"}}
+
+
+def forced_record(reason):
+    return {"reason": reason, "by": getpass.getuser(), "at": datetime.datetime.now().isoformat(timespec="seconds")}
+
+
+def record(name, reason):
+    """Write the MANIFEST for a set already on the A7Z (copied by hand) from its gate run; copies no policy, restarts nothing."""
+    run = os.path.join(RUNS, name)
+    models = os.path.join(run, "models")
+    if not os.path.isdir(models):
+        fail(f"{models} not found: record needs the gate run of that set")
+    verdicts = recorded_gate(run)
+    if not verdicts["gate_passed"] and not reason:
+        fail(f"the gate run in {run} failed ({verdicts['gate']['current']}); give --deploy-despite-gate with the words "
+             "that allowed the copy")
+    files = {f: sha256(os.path.join(models, f)) for f in sorted(os.listdir(models)) if f.endswith(".onnx")}
+    dest = f"{ssh('echo $HOME')}/policies/{name}"
+    remote = ssh(f"cd {dest} && sha256sum *.onnx")
+    got = {line.split()[1]: line.split()[0] for line in remote.splitlines()}
+    if got != files:
+        fail(f"{HOST}:{dest} does not hold the gated files of {run}: {got} vs {files}")
+    with open(os.path.join(ROOT, "cmu", "model", "current.json")) as f:
+        current = json.load(f)
+    with open(os.path.join(run, "suite-current.out")) as f:
+        head = f.readline()  # "sim_suite: models ..., variant current = <variant>, ..."
+    variant = head.split("variant current = ", 1)[1].split(",", 1)[0] if "variant current = " in head else current["variant"]
+    slots = sorted(f[:-5] for f in ("walk61.onnx", "stand61.onnx") if files.get(f) and files[f] != sha256(os.path.join(BASE, f)))
+    manifest = {"name": name, "source": None, "built": datetime.datetime.fromtimestamp(
+                    os.path.getmtime(os.path.join(run, "suite-current.out"))).isoformat(timespec="seconds"),
+                "by": getpass.getuser(), **verdicts,
+                "gate_model": {"variant": variant, **({"mass_manifest_sha256": current["mass_manifest_sha256"]}
+                                                      if variant == current["variant"] else {})},
+                "slots": slots, "files": files,
+                "recorded": {"at": datetime.datetime.now().isoformat(timespec="seconds"), "by": getpass.getuser(),
+                             "note": "MANIFEST written after a copy by hand, from the gate run in " + os.path.relpath(run, ROOT)}}
+    if not verdicts["gate_passed"]:
+        manifest["forced"] = forced_record(reason)
+    path = os.path.join(models, "MANIFEST.json")
+    with open(path, "w") as f:
+        json.dump(manifest, f, indent=1, ensure_ascii=False)
+    p = subprocess.run(["rsync", "-a", "--checksum", path, f"{HOST}:{dest}/MANIFEST.json"], capture_output=True, text=True)
+    if p.returncode:
+        fail(f"rsync of the MANIFEST to {HOST}:{dest} failed: {p.stderr.strip()}")
+    print(f"record: {dest}/MANIFEST.json written (gate {'passed' if verdicts['gate_passed'] else 'FAILED, forced'}); "
+          "no policy copied, no brain restarted")
 
 
 def ssh(cmd, check=True):
@@ -226,7 +318,7 @@ def restart_if_idle():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("action", choices=("check", "deploy", "status", "rollback"))
+    ap.add_argument("action", choices=("check", "deploy", "status", "rollback", "record"))
     ap.add_argument("onnx", nargs="?", help="the candidate walking policy (61 inputs, 14 outputs)")
     ap.add_argument("--name", help="a short name for this policy (letters, digits, - and _)")
     ap.add_argument("--restart", action="store_true", help="restart an idle brain so it loads the change now")
@@ -237,6 +329,9 @@ def main():
                          "current variant, e.g. the flight pack's flightpack-nominal.json) instead of the bare robot")
     ap.add_argument("--slots", default="walk61",
                     help=f"comma list of the deployed set's files the candidate replaces ({', '.join(SLOTS)}; default walk61)")
+    ap.add_argument("--deploy-despite-gate", metavar="REASON", default=None,
+                    help="deploy (or record) a candidate the gate rejects; REASON is the words that allowed it, kept in "
+                         "the MANIFEST with the failed verdict and the worse cases")
     ap.add_argument("--variant", default="current",
                     help=f"check only: gate on a planned robot that is not built yet ({', '.join(PLANNED)}) instead of "
                          "the robot as it is now (default current); deploy and rollback refuse it")
@@ -257,6 +352,13 @@ def main():
     if unknown:
         fail(f"--also {','.join(unknown)}: choose from {', '.join(HISTORICAL_VARIANTS)}")
 
+    if a.deploy_despite_gate is not None and (a.action not in ("deploy", "record") or not a.deploy_despite_gate.strip()):
+        fail("--deploy-despite-gate needs deploy or record and a non-empty reason")
+    if a.action == "record":
+        if not a.name:
+            fail("record needs --name (the set's folder in cmu/deploy/runs and ~/policies on the A7Z)")
+        record(a.name, a.deploy_despite_gate)
+        return
     if a.action == "status":
         active = ssh("cat ~/duck-policy 2>/dev/null || true")
         print(f"active policy: {active or 'walk61 (default, no ~/duck-policy)'}")
@@ -283,7 +385,7 @@ def main():
              "guide/firmware/a7z/install_teleop.sh from the robot's MacBook first")
     check_contract(a.onnx)
     run, models = build_set(os.path.abspath(a.onnx), a.name, slots, a.variant)
-    verdicts = gate(run, models, extras, payload, a.variant)
+    verdicts = gate(run, models, extras, payload, a.variant, a.deploy_despite_gate)
     with open(os.path.join(ROOT, "cmu", "model", "current.json")) as f:
         current = json.load(f)
     gate_model = {"variant": current["variant"], "mass_manifest_sha256": current["mass_manifest_sha256"]}
@@ -296,18 +398,22 @@ def main():
         gate_model["payload_manifest"] = {"file": os.path.basename(payload), "sha256": sha256(payload)}
         gate_model["note"] = "gated with this payload on the robot only; load it only with the payload fitted"
     manifest = {"name": a.name, "source": os.path.abspath(a.onnx), "built": datetime.datetime.now().isoformat(timespec="seconds"),
-                "by": getpass.getuser(), "gate": verdicts["gate"], "historical_extras": verdicts["historical_extras"],
+                "by": getpass.getuser(), "gate": verdicts["gate"], "gate_passed": verdicts["gate_passed"],
+                "worse": verdicts["worse"], "historical_extras": verdicts["historical_extras"],
                 "gate_model": gate_model, "slots": list(slots),
                 "files": {f: sha256(os.path.join(models, f)) for f in sorted(os.listdir(models)) if f != "MANIFEST.json"}}
+    if not verdicts["gate_passed"]:
+        manifest["forced"] = forced_record(a.deploy_despite_gate)
     with open(os.path.join(models, "MANIFEST.json"), "w") as f:
-        json.dump(manifest, f, indent=1)
+        json.dump(manifest, f, indent=1, ensure_ascii=False)
     robot = gate_model["variant"]
     on = f"{robot} carrying {os.path.basename(payload)}" if payload else robot
     if a.variant != "current":
         print(f"gate passed on the PLANNED robot ({on}), NOT the robot as it is now ({current['variant']}); "
               f"slots {', '.join(slots)}; policy set in {models}")
         return
-    print(f"gate passed on the current robot ({on}); slots {', '.join(slots)}; policy set in {models}")
+    print(f"gate {'passed' if verdicts['gate_passed'] else 'FAILED (deploying despite it)'} on the current robot ({on}); "
+          f"slots {', '.join(slots)}; policy set in {models}")
     if a.action == "check":
         print("send that directory (or the ONNX and this name) to whoever runs `deploy` on the robot's MacBook")
         return

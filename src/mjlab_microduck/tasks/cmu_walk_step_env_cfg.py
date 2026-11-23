@@ -121,8 +121,11 @@ MAX_ITERATIONS = 1000
 
 def make_walk_step_env_cfg(variant: str = CURRENT, play: bool = False, noise=(SERVO_NOISE_LEVEL, SERVO_NOISE_LEVEL)):
     """The step task on `variant`, timed as the robot's brain. noise (lo, hi): servo noise level, fixed when lo == hi,
-    else drawn per env at every reset (servo_noise.apply_servo_noise_range)."""
-    cfg = make_cmu_velocity_env_cfg(variant, play=play)
+    else drawn per env at every reset (servo_noise.apply_servo_noise_range).
+    robot_conditions=False: rounds 1-5 (cmu/step/RESULTS.md) trained without main's default -CMU-Current robot
+    conditions (robot_conditions.py, 2026-11-22); this task models dropped reads itself (DROP_RANGE) and servo read
+    noise through servo_noise.py. Adopting them is a new round, not a silent change to these tasks."""
+    cfg = make_cmu_velocity_env_cfg(variant, play=play, robot_conditions=False)
     _collapse_curricula_to_final(cfg)
     cfg.curriculum.pop("standing_envs", None)      # edits the velocity command's standing share
     cfg.curriculum.pop("head_pose_range", None)    # would widen the head to +-1.1

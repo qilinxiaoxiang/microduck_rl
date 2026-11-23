@@ -179,6 +179,26 @@ Longer training did not help; 10,250 ties 999 with shorter bursts, the last chec
   on this body: 26 / 80 falls and every burst backward.
 - `arms.json` carries it as an arm with its gate FAIL and `waived_by` empty: it is held back like step015_v2m5 was.
 
+# After merging main (2026-11-23): the deploy gate now adds the robot's sensor noise, and every candidate falls
+
+Main's deploy gate (55124046, 369f8114) now runs every case with the robot's measured, motion-driven sensor noise
+(gyro sd 0.35 x rms leg joint speed, joint velocity 0.26 x, 0.02 rad/s floors), servo friction x1.25, 3 seeds per real
+case, and 7.2 V. None of rounds 1-5 trained with gyro noise of that kind (servo_noise.py is joint position / velocity
+read noise only). The diagnostic (`diag_suite.py --stand-s 0`, Balance stand), falls of 10 cases:
+
+| policy | before the merge | after |
+|---|---|---|
+| walk61 | 3 | 6 |
+| step045n_v2m5 (round 4 snr_l45 @ 999) | 1 | 7 |
+| step015_v2m5 (round 3) | 0 | 7 |
+| round 4 snr_l30 @ 999 | 1 | 7 |
+| round 5 @ 10,250 | 1 | 9 |
+
+noise_eval.py (its own fixed conditions, 7.6 V, no gyro noise) is unchanged by the merge: step045n 0 falls at noise 0-3
+and on floor_bare. So the round 4/5 robustness holds for servo read noise but not for the gate's gyro noise; the next
+training round should use main's `robot_conditions.py` (the -CMU-Current default, which the step tasks opt out of to
+keep rounds 1-5 reproducible). Files: `results/after-main-merge/`.
+
 Correction to the noise estimate above (2026-11-22 night): on still moments the 10-18 robot logs read about 0.0002 rad
 of position noise in two logs (near the servo's resolution) and 0.011 rad in the other two (not understood yet), with
 velocity noise about 0.02 rad/s, far below training level 1. The earlier "about level 2" counted real joint motion.

@@ -24,27 +24,37 @@ INPUT_VOLTAGE_BIT = 0x01   # bit 0 of Shutdown and of Hardware Error Status
 ALERT_BIT = 0x80           # status packet error field: Hardware Error Status is non-zero
 
 # Voltages in 0.1 V, the unit of Present Input Voltage, so thresholds compare whole register values.
-# Capacity left is measured on the one charged-to-empty brain log (Mac mini ~/duck-walks/raw/duck_wired_log_app1112-002642,
+# Capacity left (measured for the 2026-11-21 lines: 7.3 V warn 42 %, 7.2 V stop 21 %, 7.1 V floor 9 %; the 2026-11-22
+# lines carry no measured figure) was taken on the one charged-to-empty brain log (Mac mini ~/duck-walks/raw/duck_wired_log_app1112-002642,
 # Tattu 2S 650, 8.2 V to 4.9 V, 93 % of the time walking): the share of the time from 8.2 V to the 10 s median staying at
 # or under 6.0 V (3.0 V per cell under load) that was still left when the 10 s median stayed at or under each value. Time
 # at near-constant load stands in for capacity (an approximation). Walking and standing in the same minute differ by
 # 0-0.1 V. Under 7.2 V the old packs fell fast: 7.0 V to 6.0 V in 84 s walking and in 93 s with torque off.
 # The 6.6/6.4 V stop and floor of 2026-11-02 left under 1 %: twelve runs from 11-02 to 11-20 then ended at about 4.6 V.
 BATTERY_WINDOW_DV = (64, 84)   # check_voltage_limit.py --rail battery: 6.4-8.4 V
-WARN_BELOW_DV = 74             # warn from 7.3 V (3.65 V per cell under load), 42 % left: about 6.5 min before the stop
-STOP_AT_DV = 72                # 3.6 V per cell under load, 21 % left: stop walking, hold a standing pose, signal shutdown
-FLOOR_AT_DV = 71               # 3.55 V per cell, after the stop, 9 % left: sit down, torque off, then the brain powers the
-                               # A7Z off; about 270 mAh of a 3000 mAh pack for the 0.23-0.26 A the OpenRB and servos draw
-                               # until the rocker switch is opened. Well above the power V2 XIAO hardware cut (6.3 V or a
+WARN_BELOW_DV = 70             # warn under 7.0 V judged (3.5 V per cell under load); 2026-11-22 Shawn: "低于7.4伏的，走路也应该要能走" (7.4 V is the 2S nominal)
+STOP_AT_DV = 68                # 3.4 V per cell under load: stop walking, hold a standing pose, signal shutdown
+FLOOR_AT_DV = 66               # 3.3 V per cell under load, after the stop: sit down, torque off, then the brain powers the
+                               # A7Z off; what is left of the pack then feeds the 0.23-0.26 A the OpenRB and servos draw
+                               # until the rocker switch is opened. 0.3 V above the power V2 XIAO hardware cut (6.3 V or a
                                # cell 3.1 V for 3 s, PS-2/PV-2), so the robot has sat down before the hardware removes power
 FLOOR_CONFIRM = 3              # consecutive samples at the floor
 FLOOR_SIT_S = 6.0              # sit prep 0.8 s + glide 2 s + margin; torque goes off by then even without a seat
 ALARM_S = {"warn": 10.0, "stop": 3.0, "floor": 1.5}  # s between duck calls, sound only: Shawn wants it heard (2026-11-02)
 ARM_ABOVE_DV = 75              # --supply auto: no bench supply reads this high (the 7 V rail 6.80 V; the charger
-                               # backpack's XL4015 rail idles at 7.2 V, 7.32 V no-load), so the 7.2 V stop never fires on it
+                               # backpack's XL4015 rail idles at 7.2 V, 7.32 V no-load), so the guard never warns or stops on it
 FRESH_PACK_DV = 78             # 3.9 V per cell: a charged pack (8.1-8.4 V) clears the stop marker; a pack that stopped and
                                # rested does not (2026-11-20: a run started at 7.5 V two minutes after one ended at 4.5 V)
-WARN_CONFIRM, STOP_CONFIRM = 2, 3   # consecutive low samples, so one sag at a foot strike does not count
+WARN_CONFIRM, STOP_CONFIRM = 2, 3   # consecutive judged values under the line
+# Warn, stop and floor judge the 10 s median of the once-a-second samples (JUDGE_SAMPLES), the measure the capacity
+# figures above were taken on, never one sample. A walk start or a fall landing sags the pack for a second: on
+# 2026-11-22 (Crazepony 2S 3000 mAh, 7.7-7.8 V at rest, brain run c1s1b-1122) single samples read 6.6, 6.6, 6.8 and
+# 7.1 V while the 10 s median stayed at 7.6-7.7 V; the per-sample rule latched warn on them and the duck called out every
+# 10 s for the rest of the run. A really low pack reads low in most samples, standing or walking, so its median is low.
+JUDGE_SAMPLES = 10             # samples in the judged median (10 s at the 1 s period)
+JUDGE_MIN_SAMPLES = 5          # no judgement from fewer samples (the first 5 s after a start)
+CLEAR_AT_DV = 72               # warn clears once the judged voltage is back at 7.2 V (0.2 V over the warn line) ...
+CLEAR_CONFIRM = 10             # ... for 10 consecutive judged values; stop and floor still latch (the stop marker)
 MIN_ANSWERS = 3                # fewer servos answering is a skipped sample
 SETTLE_S = 1.5                 # policy at zero command until the stop is signalled
 STOP_MARKER = "/tmp/duck_battery_stop.json"
@@ -128,9 +138,11 @@ class BatteryGuard:
 
     The loop calls due(now); when it is due, it reads Present Input Voltage from the servos and passes whatever
     answered ({id: value in 0.1 V}) to update(now, readings), which returns None, "unarmed" (auto, first sample under
-    ARM_ABOVE_DV), "armed", "warn", "stop" or "floor". The guard
-    never touches the bus or torque: a missed or partial read is a skipped sample, never a reason to release. Warn and
-    stop latch until the process restarts (a new pack), because the voltage recovers as soon as the load drops.
+    ARM_ABOVE_DV), "armed", "warn", "clear" (warn is over), "stop" or "floor". The guard
+    never touches the bus or torque: a missed or partial read is a skipped sample, never a reason to release.
+    dv is the latest sample (what the log records as battery_dv); judged_dv, the median of the last JUDGE_SAMPLES
+    samples, decides warn, stop and floor. Warn clears when judged_dv is back at CLEAR_AT_DV for CLEAR_CONFIRM values
+    (a sag that outlasted the median); stop and floor latch until the process restarts (a new pack).
 
     supply "battery" applies the thresholds from the first sample; "auto" applies them once the median reaches 7.5 V,
     which only a battery reads. A pack that starts under 7.5 V (3.75 V per cell, part used) looks like a bench rail
@@ -144,8 +156,9 @@ class BatteryGuard:
         self.armed = supply == "battery"
         self.state, self.dv, self.stop_t, self.signalled = "ok", None, None, False
         self.next_t, self.samples, self.misses = 0.0, 0, 0
-        self._low = self._empty = self._floor = 0
+        self._low = self._empty = self._floor = self._clear = 0
         self.floor_t = None
+        self.recent, self.judged_dv = [], None  # the last JUDGE_SAMPLES samples and their median
 
     def due(self, now: float) -> bool:
         return now >= self.next_t
@@ -158,34 +171,43 @@ class BatteryGuard:
             return None
         self.samples += 1
         self.dv = dv
+        self.recent = (self.recent + [dv])[-JUDGE_SAMPLES:]
+        if len(self.recent) >= JUDGE_MIN_SAMPLES:
+            ordered = sorted(self.recent)
+            self.judged_dv = ordered[(len(ordered) - 1) // 2]  # lower middle for an even count, like median_dv
         if not self.armed:
             if self.dv >= ARM_ABOVE_DV:
                 self.armed = True
                 return "armed"
             return "unarmed" if self.samples == 1 else None
-        if self.state == "floor":
+        if self.state == "floor" or self.judged_dv is None:
             return None
+        judged = self.judged_dv
         if self.state == "stop":
-            self._floor = self._floor + 1 if self.dv <= FLOOR_AT_DV else 0
+            self._floor = self._floor + 1 if judged <= FLOOR_AT_DV else 0
             if self._floor >= FLOOR_CONFIRM:
                 self.state, self.floor_t = "floor", now
                 return "floor"
             return None
-        self._low = self._low + 1 if self.dv < WARN_BELOW_DV else 0
-        self._empty = self._empty + 1 if self.dv <= STOP_AT_DV else 0
+        self._low = self._low + 1 if judged < WARN_BELOW_DV else 0
+        self._empty = self._empty + 1 if judged <= STOP_AT_DV else 0
+        self._clear = self._clear + 1 if judged >= CLEAR_AT_DV else 0
         if self._empty >= STOP_CONFIRM:
             self.state, self.stop_t = "stop", now
             return "stop"
         if self.state == "ok" and self._low >= WARN_CONFIRM:
-            self.state = "warn"
+            self.state, self._clear = "warn", 0
             return "warn"
+        if self.state == "warn" and self._clear >= CLEAR_CONFIRM:
+            self.state, self._low = "ok", 0
+            return "clear"
         return None
 
     def torque_block(self, marker: str = STOP_MARKER):
         """Why torque must not be switched on now, or None. Needs a reading (self.dv).
 
         A stop marker left by an earlier battery stop blocks until the servos read FRESH_PACK_DV (7.8 V) or more (a
-        charged or swapped pack), which deletes it; armed, a reading at or under STOP_AT_DV (7.2 V) blocks too.
+        charged or swapped pack), which deletes it; armed, a reading at or under STOP_AT_DV (6.8 V) blocks too.
         """
         if self.dv is None:
             return "no Present Input Voltage reading from the servos yet"
@@ -205,7 +227,14 @@ class BatteryGuard:
     def describe(self) -> str:
         if self.dv is None:
             return f"battery: no reading ({self.misses} missed)"
-        return f"battery {self.dv / 10:.1f} V {self.state if self.armed else 'not armed'}"
+        text = f"battery {self.dv / 10:.1f} V {self.state if self.armed else 'not armed'}"
+        return text + (f", 10 s median {self.judged_dv / 10:.1f} V" if self.judged_dv is not None else "")
+
+    def judged_text(self) -> str:
+        """The judged voltage for an event message, e.g. '7.3 V (10 s median)'; the latest sample before there is one."""
+        if self.judged_dv is None:
+            return "no reading" if self.dv is None else f"{self.dv / 10:.1f} V"
+        return f"{self.judged_dv / 10:.1f} V (10 s median)"
 
     def signal(self, path: str, holding: str):
         """Write the stop marker once and return the operator message; None when already signalled.
