@@ -27,7 +27,11 @@ import apply_masses  # noqa: E402
 MODEL_DIR = apply_masses.MODEL_DIR
 VARIANT_DIR = MODEL_DIR / "variants"
 MANIFEST_DIR = apply_masses.MANIFEST_DIR
-GENERATED = ("plugged", "battery", "battery-20261104", "battery-v2m5-20261121", "battery-v2m5-w918-20261123")
+GENERATED = ("plugged", "battery", "battery-20261104", "battery-v2m5-20261121", "battery-v2m5-w918-20261123",
+             # w918 + the flat-box foot-contact layer. Its sibling battery-v2m5-w918-sole1-20261123 (crowned sole) is
+             # written by extensions/battery-walk-20261122/com-tip-test-20261123/sim-foot-contact/build_sole_variant.py
+             # in the robotics checkout; its parts equal resolve_variant's (tests/test_foot_contact_training.py)
+             "battery-v2m5-w918-box1-20261123")
 
 
 def resolve_variant(path: Path) -> tuple[dict, list[dict], list[dict], list[dict], list[str]]:
@@ -75,7 +79,11 @@ def resolve_variant(path: Path) -> tuple[dict, list[dict], list[dict], list[dict
     return variant, kept + added, list(remove.values()), added, chain
 
 
-def write_manifest(name: str) -> Path:
+def manifest_dict(name: str) -> dict:
+    """The manifest write_manifest(name) writes, as a dict. A variant with a "foot_contact" key (a dated layer under
+    cmu/model/contact/, foot_contact.py) also carries that key and a "visual_variant" (the variant's own key, else its
+    base variant's name: the foot layer changes no part, so the robot looks like its base); every other variant gets
+    exactly the keys it got before (tests/test_foot_contact_training.py compares the written manifests)."""
     variant_path = VARIANT_DIR / f"{name}.json"
     variant, parts, removed, added, chain = resolve_variant(variant_path)
     base_manifest = apply_masses.load_manifest(apply_masses.BASE_MANIFEST)
@@ -100,6 +108,15 @@ def write_manifest(name: str) -> Path:
         },
         "parts": parts,
     }
+    if variant.get("foot_contact"):
+        assert (MODEL_DIR / variant["foot_contact"]).is_file(), f"{name}: foot_contact {variant['foot_contact']} missing"
+        manifest["visual_variant"] = variant.get("visual_variant", Path(variant["base"]).stem)
+        manifest["foot_contact"] = variant["foot_contact"]
+    return manifest
+
+
+def write_manifest(name: str) -> Path:
+    manifest = manifest_dict(name)
     MANIFEST_DIR.mkdir(exist_ok=True)
     out = MANIFEST_DIR / f"{name}.json"
     out.write_text(json.dumps(manifest, indent=1) + "\n")
@@ -120,7 +137,17 @@ def measure(variant: str) -> dict:
     return dict(variant=variant, total_g=total_g, com_mm=[float(x) for x in com_mm], report=report)
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["--only"]:  # write one generated manifest, leave the others' bytes (and current.json's hash) alone
+        name = argv[1]
+        assert name in GENERATED, f"{name} is not one of {GENERATED}"
+        out = write_manifest(name)
+        import hashlib
+        print(f"wrote {out.relative_to(apply_masses.REPO_ROOT)} sha256 {hashlib.sha256(out.read_bytes()).hexdigest()}")
+        r = measure(name)
+        print(f"{name}: total {r['total_g']:.2f} g, foot contact {r['report'].get('foot_contact')}")
+        return 0
     for name in GENERATED:
         out = write_manifest(name)
         print(f"wrote {out.relative_to(apply_masses.REPO_ROOT)} ({net_delta_g(name):+.2f} g net vs its base)")

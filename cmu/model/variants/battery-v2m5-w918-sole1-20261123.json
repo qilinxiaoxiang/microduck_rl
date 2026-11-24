@@ -1,0 +1,9 @@
+{
+ "variant": "battery-v2m5-w918-sole1-20261123",
+ "describes": "battery-v2m5-w918-20261123 (same parts, same 918 g) with the foot-contact layer cmu/model/contact/foot-sole1-20261123.json: a crowned effective sole fitted to the robot's measured fore-aft tip limits and unseen trunk rotation (2026-11-23 tip sweeps), with the 1 mm inner-tube rubber. Built 2026-11-23 by extensions/battery-walk-20261122/com-tip-test-20261123/sim-foot-contact/build_sole_variant.py; not current.",
+ "base": "battery-v2m5-w918-20261123.json",
+ "remove_ids": [],
+ "add": [],
+ "position_frame": "Each part position is in its named MuJoCo body frame, metres.",
+ "foot_contact": "contact/foot-sole1-20261123.json"
+}

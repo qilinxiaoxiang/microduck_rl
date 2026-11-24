@@ -1102,12 +1102,15 @@ def run(args):
             prm = getattr(bam, pname, None)
             if prm is not None:
                 prm.value = prm.value * args.bam_friction_scale
+    # the sole flags act on the printed-foot meshes and, when the manifest names a foot-contact layer (cmu/model/foot_contact.py), on its boxes
+    soles = [g for g in ("left_foot_collision", "right_foot_collision", "footc_left", "footc_right")
+             if mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, g) >= 0]
     if args.sole_solref:  # compliant sole (sim-ID 2026-10-21): the foot-floor contact's timeconst/dampratio, foot side dominant
-        for g in ("left_foot_collision", "right_foot_collision"):
+        for g in soles:
             m.geom_solref[m.geom(g).id] = args.sole_solref
             m.geom_solmix[m.geom(g).id] = 1e3
     if args.sole_torsion is not None:  # in-place turn check 2026-10-30: the model's condim 3 soles have no twisting friction
-        for g in ("left_foot_collision", "right_foot_collision"):
+        for g in soles:
             m.geom_condim[m.geom(g).id] = 4
             m.geom_friction[m.geom(g).id][1] = args.sole_torsion
     idx = {n: names.index(n) for n in NAMES}  # Brain order (servo IDs 1..14) -> model actuator order
@@ -1121,7 +1124,20 @@ def run(args):
     mujoco.mju_mat2Quat(q, Rt.ravel())
     ji = setup(m, d, names, true0, q)
     zmin = np.vstack(sole_points(m, d))[:, 2].min()
-    d.qpos[2] -= zmin - 0.0005
+    fc = [g for g in ("footc_left", "footc_right") if mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, g) >= 0]
+    if fc:  # a foot-contact layer (cmu/model/foot_contact.py) touches the floor, not the printed mesh: place on its boxes
+        mujoco.mj_forward(m, d)
+        zs = []
+        for gi in (m.geom(g).id for g in fc):
+            if m.geom_type[gi] == mujoco.mjtGeom.mjGEOM_MESH:
+                mid = m.geom_dataid[gi]
+                v = m.mesh_vert[m.mesh_vertadr[mid]:m.mesh_vertadr[mid] + m.mesh_vertnum[mid]]
+            else:  # box: its 8 corners
+                v = np.array(np.meshgrid([-1, 1], [-1, 1], [-1, 1])).T.reshape(-1, 3) * m.geom_size[gi]
+            zs.append((d.geom_xpos[gi] + v @ d.geom_xmat[gi].reshape(3, 3).T)[:, 2].min())
+        d.qpos[2] -= min(zs) - 0.0002
+    else:
+        d.qpos[2] -= zmin - 0.0005
     mujoco.mj_forward(m, d)
     if lead is not None:  # lay the lead and bank out from the standing robot; they settle during the stand before --walk-at
         import lead_model

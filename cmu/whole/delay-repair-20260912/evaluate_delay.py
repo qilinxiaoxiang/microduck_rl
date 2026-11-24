@@ -172,6 +172,10 @@ def load(config):
     if config.get('mass_manifest') or config.get('remove_old_battery_kg'):  # as-built, never the official robot
         from apply_masses import apply_ankle_heel_stop
         apply_ankle_heel_stop(spec)
+    # a manifest's dated foot-contact layer (cmu/model/foot_contact.py; none unless the manifest names one)
+    from foot_contact import foot_contact_for_manifest, apply_foot_contact
+    layer=foot_contact_for_manifest(config.get('mass_manifest'))
+    if layer:apply_foot_contact(spec,layer)
     m=spec.compile();m.opt.timestep=config.get('timestep',.0025)
     m.vis.global_.offwidth=960;m.vis.global_.offheight=720
     if 'friction' in config:

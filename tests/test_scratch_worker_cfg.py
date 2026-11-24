@@ -403,7 +403,7 @@ def test_current_model_differs_only_in_mass_and_ankle_stop(upstream):
     # collision set, actuators, joints, DOFs are the stock model's: the mass parts and the visual layer add no contact
     assert c0 == c1, "collision geoms differ"
     assert (m0.nu, m0.nq, m0.nv, m0.nbody) == (m1.nu, m1.nq, m1.nv, m1.nbody)
-    assert 1000 < m1.body_mass.sum() * 1000 < 1070  # 1034.8 g current robot (cmu/model/current.json)
+    assert abs(m1.body_mass.sum() * 1000 - 918.0) < 0.01  # 918 g weighed robot (cmu/model/current.json since 2026-11-23)
 
 
 def test_agent_cfg_is_the_official_runner_cfg():

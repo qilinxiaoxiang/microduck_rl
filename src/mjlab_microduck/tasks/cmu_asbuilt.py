@@ -30,7 +30,9 @@ _VISUAL = _REPO_ROOT / "cmu" / "model" / "visual.py"
 
 CURRENT = "current"
 # Dated variants that have their own visual layer. Older variants keep the legacy look they were trained with.
-_VISUAL_VARIANTS = ("battery-20261104", "battery-v2m5-20261121", "battery-v2m5-w918-20261123")
+_VISUAL_VARIANTS = ("battery-20261104", "battery-v2m5-20261121", "battery-v2m5-w918-20261123",
+                    # opt-in foot-contact siblings of w918 (never current, no task id): drawn as w918
+                    "battery-v2m5-w918-sole1-20261123", "battery-v2m5-w918-box1-20261123")
 # "current" first: the robot as it is now. The dated ones are historical.
 CMU_VARIANTS = (CURRENT, "plugged", "battery", "battery-20261104", "battery-v2m5-20261121",
                 "battery-v2m5-w918-20261123")
@@ -76,17 +78,79 @@ def cmu_robot_spec_fn(base_spec_fn, variant: str, tag: str = "cmu"):
         visual = load_visual()
         visual_variant = visual.visual_variant_for_manifest(apply_masses.variant_manifest_path(resolved))
     label = f"{variant}={resolved}" if variant != resolved else variant
+    # the manifest's dated foot-contact layer (cmu/model/foot_contact.py), the same one the judging sim
+    # (evaluate_delay.load, brain_sim_check.py) applies; None for every manifest without the key (current included)
+    foot_layer = apply_masses.variant_foot_contact(resolved)
 
     def spec_fn():
         spec = base_spec_fn()
         report = apply_masses.apply_parts_to_spec(spec, parts)
+        if foot_layer:
+            apply_masses.foot_contact_module().apply_foot_contact(spec, foot_layer)
         if visual_variant:
             load_visual().apply_visual_to_spec(spec, visual_variant)
         print(f"[{tag}:{label}] total mass {report['total_before_g']:.1f} g -> {report['total_after_g']:.1f} g; "
-              f"bodies patched: {sorted(report['bodies'])}")
+              f"bodies patched: {sorted(report['bodies'])}"
+              + (f"; foot contact {foot_layer['name']}" if foot_layer else ""), flush=True)
         return spec
 
+    spec_fn.foot_contact = foot_layer["name"] if foot_layer else None  # read by apply_foot_contact_to_cfg
     return spec_fn
+
+
+# A foot-contact layer turns the printed-foot meshes' floor contact off and adds footc_left / footc_right on the ankle
+# bodies. mjlab applies the robot's CollisionCfg AFTER spec_fn, and FULL_COLLISION (microduck_constants.py) would turn
+# the printed meshes back on (they match ".*_collision") and switch the footc geoms off (disable_other_geoms), so the
+# robot cfg gets this collision set instead: same values as FULL_COLLISION for every other geom, the footc geoms take
+# the printed feet's condim 3, priority 1 and friction 1.0, and the printed feet stay off. solref/solimp are left to
+# the layer (None here = untouched).
+FOOT_CONTACT_GEOMS = ("footc_left", "footc_right")
+_FOOTC_RE = r"^footc_(left|right)$"
+_PRINTED_FOOT_RE = r"^(left|right)_foot_collision$"
+
+
+def foot_contact_collision_cfg(base):
+    return dataclasses.replace(
+        base,
+        geom_names_expr=tuple(base.geom_names_expr) + (_FOOTC_RE,),
+        contype={_PRINTED_FOOT_RE: 0, ".*": 1},
+        conaffinity={_PRINTED_FOOT_RE: 0, ".*": 1},
+        condim={_FOOTC_RE: 3, **dict(base.condim)},
+        priority={_FOOTC_RE: 1, **dict(base.priority)},
+        friction={_FOOTC_RE: (1.0,), **dict(base.friction)},
+    )
+
+
+def apply_foot_contact_to_cfg(cfg, variant: str) -> str | None:
+    """When the variant's manifest names a foot-contact layer, make the rest of the env use it (in place): the robot's
+    collision set (above), the feet contact sensor (air time, contact rewards) and the foot friction randomisation
+    point at footc_left / footc_right (left first, as before), and the spawn height range rises by the layer's drop
+    below the printed soles (apply_masses.foot_contact_drop_m, about 1 mm), so the layer starts as high above the floor
+    as the printed soles did. Returns the layer name, or None and changes nothing."""
+    robot = cfg.scene.entities["robot"]
+    layer_name = getattr(robot.spec_fn, "foot_contact", None)
+    if not layer_name:
+        return None
+    collisions = tuple(robot.collisions)
+    assert len(collisions) == 1, f"foot contact expects one robot CollisionCfg, found {len(collisions)}"
+    cfg.scene.entities = {**cfg.scene.entities,
+                          "robot": dataclasses.replace(robot, collisions=(foot_contact_collision_cfg(collisions[0]),))}
+    sensors = []
+    for s in cfg.scene.sensors:
+        if getattr(s, "name", None) == "feet_ground_contact":
+            assert s.primary.pattern == r"^(left_foot_collision|right_foot_collision)$", s.primary.pattern
+            s = dataclasses.replace(s, primary=dataclasses.replace(s.primary, pattern=r"^(footc_left|footc_right)$"))
+        sensors.append(s)
+    cfg.scene.sensors = tuple(sensors)
+    ev = cfg.events["foot_friction"]
+    ev.params = dict(ev.params, asset_cfg=dataclasses.replace(ev.params["asset_cfg"], geom_names=FOOT_CONTACT_GEOMS))
+    drop = load_apply_masses().foot_contact_drop_m(robot.spec_fn())
+    assert 0.0 <= drop < 0.005, f"{layer_name}: layer {drop * 1000:.2f} mm below the printed soles; expected about 1 mm"
+    rb = cfg.events["reset_base"]
+    lo, hi = rb.params["pose_range"]["z"]
+    rb.params = dict(rb.params, pose_range=dict(rb.params["pose_range"], z=(lo + drop, hi + drop)))
+    cfg.__dict__["_foot_contact_drop_m"] = drop  # read by tests and the worker's record
+    return layer_name
 
 
 def make_cmu_velocity_env_cfg(variant: str = CURRENT, play: bool = False, rough: bool = False,
@@ -101,6 +165,7 @@ def make_cmu_velocity_env_cfg(variant: str = CURRENT, play: bool = False, rough:
     robot = cfg.scene.entities["robot"]
     spec_fn = cmu_robot_spec_fn(robot.spec_fn, variant)
     cfg.scene.entities = {**cfg.scene.entities, "robot": dataclasses.replace(robot, spec_fn=spec_fn)}
+    apply_foot_contact_to_cfg(cfg, variant)  # inert unless the variant's manifest names a foot-contact layer
     if robot_conditions is None:
         robot_conditions = variant == CURRENT
     if robot_conditions:

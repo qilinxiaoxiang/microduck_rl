@@ -53,6 +53,29 @@ Every run ends with STATUS (DONE / FAILED and the reason) and run_record.json.
   --metric-interval and --save-interval stay on the absolute iteration number.
   --init-sha256 HEX (optional) must match the file's sha256 (kaggle_job.py passes it).
 
+--model also takes the opt-in foot-contact variants FOOT_VARIANTS (battery-v2m5-w918-sole1-20261123 crowned sole,
+battery-v2m5-w918-box1-20261123 flat box): the current robot's parts and 918 g plus the layer their manifest's
+"foot_contact" key names (cmu/model/foot_contact.py, as the judging sim loads it; tasks/cmu_asbuilt.py
+apply_foot_contact_to_cfg points collisions, the feet contact sensor and the foot friction randomisation at the footc
+geoms and raises the spawn by the layer's drop). --model current builds exactly what it built before (no layer).
+
+Straight-walk commands as the robot's brain gives them (src/mjlab_microduck/heading_hold.py; all options at their
+defaults leave the recipe's command cfg untouched):
+  --press-speed-share Q, --press-speed V (0, 0.25): a forward zero-turn env gets vx = V with probability Q per resample.
+  --heading-hold SHARE (0): that share of the forward zero-turn envs gets its yaw command from heading feedback.
+  --heading-hold-law p|brain (p): p = clip(K * wrap(own heading at resample - heading), -1, 1); brain = walk_brain.py's
+      straight-walk PI law with its anti-windup, a trim and a 0-2 tick old heading (that module's docstring).
+  --heading-hold-gain LO HI (3.0 3.0 = HEADING_KP, fixed): with LO < HI, K is drawn per env at each resample.
+  --heading-hold-trim T (0.0, law brain only): trim uniform in [-T, T] per resample.
+  Every --metric-interval the metrics row carries hold_share, hold_abs_wz, hold_sd_wz, hold_clamp_share and
+  press_share (window means of per-tick values; shares of all envs); run_record.json "commands" holds the settings.
+
+Body check (written before any training step): run_record.json "body" holds the mass manifest path, its sha256, the
+foot-contact layer (or null) and the total mass of the built env model; the log prints them. --expect-manifest-sha HEX
+exits with status 3 before the env is built when the manifest's sha256 differs; status 3 also follows, before learning,
+when the built model's footc geoms do not match the layer the manifest names. The mass is recorded, not checked (the
+w918 manifests build 918.0 g; tests/test_foot_contact_training.py checks that).
+
 Kaggle: `kaggle_job.py push scratch ...` (cmu/finetune/kaggle/README.md). kernel_entry.py passes --root, --gpu and
 --rate-per-hour; the last is accepted and ignored (no dollar cap on Kaggle; --max-hours is the cap).
 """
@@ -70,7 +93,8 @@ import time
 from pathlib import Path
 
 TASK = "Mjlab-Velocity-Flat-MicroDuck"
-MODELS = ("stock", "current")
+FOOT_VARIANTS = ("battery-v2m5-w918-sole1-20261123", "battery-v2m5-w918-box1-20261123")  # opt-in, never the default
+MODELS = ("stock", "current") + FOOT_VARIANTS
 CONDITIONS = ("official", "gyro", "robot")
 FWD_CMD_MIN = 0.15  # m/s: an env counts as commanded forward above this (the worker's "moving" band)
 
@@ -79,9 +103,22 @@ class StopTraining(Exception):
     pass
 
 
-def make_env_cfg(model: str, play: bool = False, conditions: str = "official"):
+def make_env_cfg(model: str, play: bool = False, conditions: str = "official", heading_hold: float = 0.0,
+                 heading_hold_gain=(3.0, 3.0), heading_hold_law: str = "p", heading_hold_trim: float = 0.0,
+                 press_speed_share: float = 0.0, press_speed: float = 0.25):
     """The env cfg of the route: the upstream velocity cfg, with the current robot's masses for `current`, and for
-    `current` the robot conditions chosen by `conditions` (module docstring)."""
+    `current` the robot conditions chosen by `conditions` (module docstring); heading_hold > 0 or press_speed_share > 0
+    swaps in the straight-walk command (heading_hold.py), both 0 leave the cfg exactly as before."""
+    cfg = _make_env_cfg(model, play, conditions)
+    if heading_hold > 0.0 or press_speed_share > 0.0:
+        from mjlab_microduck.heading_hold import apply_heading_hold
+        cfg.__dict__["_heading_hold_record"] = apply_heading_hold(
+            cfg, heading_hold, heading_hold_gain, law=heading_hold_law, trim=heading_hold_trim,
+            press_share=press_speed_share, press_speed=press_speed)
+    return cfg
+
+
+def _make_env_cfg(model: str, play: bool = False, conditions: str = "official"):
     if conditions not in CONDITIONS:
         raise SystemExit(f"--conditions {conditions!r}: choose from {CONDITIONS}")
     if model == "stock":
@@ -90,9 +127,9 @@ def make_env_cfg(model: str, play: bool = False, conditions: str = "official"):
                              f"the current robot and no stock builder applies them")
         from mjlab_microduck.tasks.microduck_velocity_env_cfg import make_microduck_velocity_env_cfg
         return make_microduck_velocity_env_cfg(play=play)
-    if model == "current":
+    if model == "current" or model in FOOT_VARIANTS:
         from mjlab_microduck.tasks.cmu_asbuilt import make_cmu_velocity_env_cfg
-        cfg = make_cmu_velocity_env_cfg("current", play=play, robot_conditions=False)
+        cfg = make_cmu_velocity_env_cfg(model, play=play, robot_conditions=False)
         if conditions != "official":
             from mjlab_microduck.robot_conditions import apply_robot_conditions
             apply_robot_conditions(cfg, route_conditions(conditions))
@@ -114,6 +151,43 @@ def route_conditions(conditions: str) -> dict:
         return dict(c, gyro_noise_legspeed_range=GYRO_LEGSPEED_RANGE, zero_shift_range=dict(ZERO_SHIFT_RANGE),
                     imu_max_lag=IMU_MAX_LAG)
     raise SystemExit(f"--conditions {conditions!r}: choose from {CONDITIONS}")
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def body_manifest(model: str) -> dict:
+    """The mass manifest a --model builds from: repository path, sha256 and the foot-contact layer it names. Read from
+    the files the env builder reads (cmu/model/apply_masses.py), before anything is built."""
+    if model == "stock":
+        return dict(variant="stock", mass_manifest=None, mass_manifest_sha256=None, foot_contact=None)
+    from mjlab_microduck.tasks.cmu_asbuilt import load_apply_masses
+    am = load_apply_masses()
+    variant = am.resolve_variant(model)
+    path = am.variant_manifest_path(variant)
+    layer = am.variant_foot_contact(variant)
+    return dict(variant=variant, mass_manifest=str(Path(path).resolve().relative_to(REPO_ROOT)),
+                mass_manifest_sha256=sha256_file(path), foot_contact=layer["name"] if layer else None)
+
+
+def check_expected_manifest(body: dict, expect: str | None) -> None:
+    """--expect-manifest-sha: exit 3 before the env is built when the manifest is not the one the launch names."""
+    if expect is None:
+        return
+    if body["mass_manifest_sha256"] != expect.strip().lower():
+        print(f"[scratch] BODY CHECK FAILED: manifest {body['mass_manifest']} sha256 {body['mass_manifest_sha256']} "
+              f"!= --expect-manifest-sha {expect}", flush=True)
+        raise SystemExit(3)
+
+
+def built_body(env, body: dict) -> dict:
+    """What the built env model reports: total mass (g, nominal, before startup randomisation) and the footc geoms."""
+    import mujoco
+    m = env.sim.mj_model
+    names = [m.geom(i).name for i in range(m.ngeom)]
+    footc = sorted(n for n in names if n.split("/")[-1].startswith("footc_"))
+    return dict(total_mass_g=round(float(m.body_mass.sum()) * 1000, 2), footc_geoms=footc,
+                mujoco=mujoco.__version__)
 
 
 def make_agent_cfg(run_name: str, seed: int, max_iters: int, save_interval: int):
@@ -214,17 +288,55 @@ def main(argv=None):
     ap.add_argument("--early-stop-speed", type=float, default=0.03, help="m/s along the forward command")
     ap.add_argument("--gpu", default="?")
     ap.add_argument("--rate-per-hour", type=float, default=0.0, help="accepted for kernel_entry.py; unused")
+    ap.add_argument("--device", default="cuda:0", help="torch/warp device (default cuda:0; cpu for a local smoke)")
     ap.add_argument("--init-checkpoint", default=None,
                     help="continue a finished run of this worker: full rsl_rl checkpoint (model_<it>.pt); --max-iters "
                          "MORE iterations, numbering continues, curricula stay at the source's stage (docstring)")
     ap.add_argument("--init-sha256", default=None, help="expected sha256 of --init-checkpoint (optional)")
+    ap.add_argument("--heading-hold", type=float, default=0.0,
+                    help="share of forward zero-turn envs whose yaw command is heading feedback (0 = off, the recipe)")
+    ap.add_argument("--heading-hold-gain", type=float, nargs=2, default=[3.0, 3.0], metavar=("LO", "HI"),
+                    help="heading feedback gain K; LO < HI draws K per env at each resample (default 3.0 3.0, fixed)")
+    ap.add_argument("--heading-hold-law", choices=("p", "brain"), default="p",
+                    help="p = proportional (default); brain = walk_brain.py straight-walk PI law, trim, IMU age")
+    ap.add_argument("--heading-hold-trim", type=float, default=0.0,
+                    help="law brain: trim drawn uniform in [-T, T] at each resample (default 0)")
+    ap.add_argument("--press-speed-share", type=float, default=0.0,
+                    help="share of forward zero-turn envs commanded at --press-speed (default 0 = off)")
+    ap.add_argument("--press-speed", type=float, default=0.25, help="vx of the press-speed envs (m/s, default 0.25)")
+    ap.add_argument("--expect-manifest-sha", default=None,
+                    help="sha256 the body's mass manifest must have; exit 3 before training otherwise")
     args = ap.parse_args(argv)
+    if not 0.0 <= args.heading_hold <= 1.0:
+        ap.error("--heading-hold is a share in [0, 1]")
+    if not 0.0 < args.heading_hold_gain[0] <= args.heading_hold_gain[1]:
+        ap.error("--heading-hold-gain needs 0 < LO <= HI")
+    if args.heading_hold_gain != [3.0, 3.0] and args.heading_hold == 0.0:
+        ap.error("--heading-hold-gain needs --heading-hold > 0")
+    if args.heading_hold_law != "p" and args.heading_hold == 0.0:
+        ap.error("--heading-hold-law needs --heading-hold > 0")
+    if args.heading_hold_trim != 0.0 and args.heading_hold_law != "brain":
+        ap.error("--heading-hold-trim needs --heading-hold-law brain")
+    if not 0.0 <= args.heading_hold_trim <= 1.0:
+        ap.error("--heading-hold-trim is a turn input in [0, 1]")
+    if not 0.0 <= args.press_speed_share <= 1.0:
+        ap.error("--press-speed-share is a share in [0, 1]")
+    if args.press_speed != 0.25 and args.press_speed_share == 0.0:
+        ap.error("--press-speed needs --press-speed-share > 0")
+    if not 0.0 < args.press_speed <= 0.4:
+        ap.error("--press-speed must lie in the trained forward range (0, 0.4] m/s")
+    if args.model == "stock" and args.expect_manifest_sha:
+        ap.error("--expect-manifest-sha needs a CMU model (stock has no mass manifest)")
     if args.model == "stock" and args.conditions != "official":
         ap.error(f"--conditions {args.conditions} needs --model current (no stock builder applies robot conditions)")
     if args.init_sha256 and not args.init_checkpoint:
         ap.error("--init-sha256 needs --init-checkpoint")
     if args.max_iters < 1:
         ap.error("--max-iters must be >= 1")
+    body = body_manifest(args.model)
+    print(f"[scratch] body: variant {body['variant']}, manifest {body['mass_manifest']} sha256 "
+          f"{body['mass_manifest_sha256']}, foot contact {body['foot_contact']}", flush=True)
+    check_expected_manifest(body, args.expect_manifest_sha)
     init = check_init_checkpoint(args.init_checkpoint, args.init_sha256) if args.init_checkpoint else None
 
     import numpy as np
@@ -237,7 +349,7 @@ def main(argv=None):
 
     configure_torch_backends()
     os.environ.setdefault("MUJOCO_GL", "egl")
-    device = "cuda:0"
+    device = args.device
     t_start = time.time()
     run_dir = Path(args.root) / args.run_name
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -258,7 +370,10 @@ def main(argv=None):
 
     t0_iso = time.strftime("%Y-%m-%dT%H:%M:%S")
     status("build")
-    env_cfg = make_env_cfg(args.model, conditions=args.conditions)
+    env_cfg = make_env_cfg(args.model, conditions=args.conditions, heading_hold=args.heading_hold,
+                           heading_hold_gain=tuple(args.heading_hold_gain), heading_hold_law=args.heading_hold_law,
+                           heading_hold_trim=args.heading_hold_trim, press_speed_share=args.press_speed_share,
+                           press_speed=args.press_speed)
     env_cfg.scene.num_envs = args.num_envs
     env_cfg.seed = args.seed
     agent_cfg = make_agent_cfg(args.run_name, args.seed, args.max_iters, args.save_interval)
@@ -279,9 +394,25 @@ def main(argv=None):
         cur = Path(__file__).resolve().parents[3] / "cmu/model/current.json"
         record["current"] = dict(variant=resolve_variant("current"), **{k: json.loads(cur.read_text())[k]
                                                                         for k in ("mass_manifest", "mass_manifest_sha256")})
+    record["body"] = dict(body, expect_manifest_sha=args.expect_manifest_sha)
+    record["command_options"] = dict(heading_hold=args.heading_hold, heading_hold_law=args.heading_hold_law,
+                                     heading_hold_gain=list(args.heading_hold_gain),
+                                     heading_hold_trim=[-args.heading_hold_trim, args.heading_hold_trim],
+                                     heading_hold_imu_age_ticks=[0, 2] if args.heading_hold_law == "brain" else [0, 0],
+                                     press_speed_share=args.press_speed_share, press_speed=args.press_speed)
+    if args.heading_hold > 0.0 or args.press_speed_share > 0.0:
+        record["commands"] = env_cfg.__dict__["_heading_hold_record"]
     (run_dir / "run_record.json").write_text(json.dumps(record, indent=1, default=str))
 
     env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
+    record["body"].update(built_body(env, body))
+    print(f"[scratch] body built: total mass {record['body']['total_mass_g']:.2f} g, foot contact "
+          f"{body['foot_contact']}, footc geoms {record['body']['footc_geoms']}", flush=True)
+    (run_dir / "run_record.json").write_text(json.dumps(record, indent=1, default=str))
+    if bool(record["body"]["footc_geoms"]) != bool(body["foot_contact"]):
+        print(f"[scratch] BODY CHECK FAILED: manifest foot contact {body['foot_contact']} but built footc geoms "
+              f"{record['body']['footc_geoms']}", flush=True)
+        raise SystemExit(3)
     env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
     runner_base = load_runner_cls(TASK) or MjlabOnPolicyRunner
     out = {"stop": None, "failed": False, "onnx_missing": []}
@@ -294,6 +425,9 @@ def main(argv=None):
             names = list(rm.active_terms)
             idx = {n: names.index(n) for n in ("track_linear_velocity", "track_angular_velocity") if n in names}
             self.win = dict(speed=0.0, speed_n=0, steps=0, **{n: 0.0 for n in idx})
+            twist = cm.get_term("twist")
+            self.cmd_stats = getattr(twist, "tick_stats", None)  # heading_hold.py command only
+            self.cwin = {}  # name -> [sum, count] of per-tick command stats
             self.last_row = None
             self.first_it = 0  # this run's first iteration (source iteration + 1 after --init-checkpoint)
             self.saves = 0
@@ -308,6 +442,11 @@ def main(argv=None):
                 for n, i in idx.items():  # _step_reward = weighted term value per second
                     self.win[n] += float(rm._step_reward[:, i].mean())
                 self.win["steps"] += 1
+                if self.cmd_stats is not None:
+                    for k, val in self.cmd_stats().items():
+                        s = self.cwin.setdefault(k, [0.0, 0])
+                        s[0] += val
+                        s[1] += 1
                 return orig_step(rewards, dones, extras, intrinsic_rewards)
             self.logger.process_env_step = hooked_step
             orig_log = self.logger.log
@@ -329,7 +468,9 @@ def main(argv=None):
                            mean_reward=round(float(np.mean(self.logger.rewbuffer)), 4) if len(self.logger.rewbuffer) else None,
                            **{f"{n}_per_s": round(w[n] / w["steps"], 4) for n in w if n.startswith("track_") and w["steps"]},
                            action_std=round(float(self.alg.get_policy().output_std.mean()), 4),
-                           lr=self.alg.learning_rate, time=time.strftime("%Y-%m-%dT%H:%M:%S"))
+                           lr=self.alg.learning_rate, time=time.strftime("%Y-%m-%dT%H:%M:%S"),
+                           **{k: round(s / c, 4) for k, (s, c) in self.cwin.items() if c})
+                self.cwin = {}
                 with open(run_dir / "metrics.jsonl", "a") as f:
                     f.write(json.dumps(row) + "\n")
                 print(f"[scratch] {json.dumps(row)}", flush=True)
