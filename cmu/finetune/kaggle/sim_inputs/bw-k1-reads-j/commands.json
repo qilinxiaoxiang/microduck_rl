@@ -1,0 +1,21 @@
+[
+ {"name": "sit-ref-official",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "sitstand", "--model", "pollen",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-j/sitstand61.onnx",
+           "--iteration", "2250", "--episodes", "100", "--seed", "7", "--device", "cuda:0",
+           "--out", "{run_dir}/reads/sit_ref_official.json", "--episodes-out", "{run_dir}/reads/sit_ref_official_episodes.json",
+           "--ticks-out", "{run_dir}/reads/sit_ref_official_ticks.npz"]},
+ {"name": "sit-ref-current",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "sitstand", "--model", "current",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-j/sitstand61.onnx",
+           "--iteration", "2250", "--episodes", "100", "--seed", "7", "--device", "cuda:0",
+           "--out", "{run_dir}/reads/sit_ref_current.json", "--episodes-out", "{run_dir}/reads/sit_ref_current_episodes.json",
+           "--ticks-out", "{run_dir}/reads/sit_ref_current_ticks.npz"]},
+ {"name": "sit-ref-official-offcond",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "sitstand", "--model", "pollen",
+           "--conditions", "official",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-j/sitstand61.onnx",
+           "--iteration", "2250", "--episodes", "100", "--seed", "7", "--device", "cuda:0",
+           "--out", "{run_dir}/reads/sit_ref_official_offcond.json", "--episodes-out", "{run_dir}/reads/sit_ref_official_offcond_episodes.json",
+           "--ticks-out", "{run_dir}/reads/sit_ref_official_offcond_ticks.npz"]}
+]

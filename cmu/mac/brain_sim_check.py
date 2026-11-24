@@ -1438,17 +1438,18 @@ def run(args):
                 act, why = info.get("action"), None
                 if act is not None:
                     amax = max(abs(a) for a in act)
-                    guard["hard_hits"].append(amax > HARD_MAX_ACTION)
+                    hard = args.hard_max_action
+                    guard["hard_hits"].append(amax > hard)
                     if sum(guard["hard_hits"]) >= OVER_LIMIT_TICKS:
-                        why = f"action over {HARD_MAX_ACTION} rad in {sum(guard['hard_hits'])} of {len(guard['hard_hits'])} ticks"
-                    elif amax > HARD_MAX_ACTION:
-                        goal = walk_brain.clamp_goal({n: (brain.default[n] + max(-HARD_MAX_ACTION, min(HARD_MAX_ACTION, float(act[k])))
+                        why = f"action over {hard} rad in {sum(guard['hard_hits'])} of {len(guard['hard_hits'])} ticks"
+                    elif amax > hard:
+                        goal = walk_brain.clamp_goal({n: (brain.default[n] + max(-hard, min(hard, float(act[k])))
                                                           if n in brain.default else goal[n])
                                                       for k, n in enumerate(walk_brain.OBSERVATION_DOF_ORDER)})
                         brain.goal = dict(goal)
                         guard["clipped"] += 1
                 max_tilt = {"groundpick": MAX_TILT_GP_DEG, "seepick": MAX_TILT_GP_DEG,
-                            "sit": MAX_TILT_SIT_DEG}.get(brain.mode, MAX_TILT_DEG)
+                            "sit": args.max_tilt_sit}.get(brain.mode, MAX_TILT_DEG)
                 if why is None and info["gb"][2] > -math.cos(math.radians(max_tilt)):
                     if args.hold and est.e > 0.3:
                         guard["tilt_skipped"] += 1
@@ -1701,7 +1702,7 @@ def run(args):
                 quack_peak_tilt={str(k): round(max(h[1] for h in window(k, k + QUACK_HEAD_S + 1.0)), 1) for k in quack_ok},
                 seepick=None if sp is None else dict(sp.summary(brain), post_handback=sp_post(sp, window, stable_after, args), guard=dict(
                     wired=bool(args.wired_guards), stop_at=guard["stop"], why=guard["why"], clipped_ticks=guard["clipped"],
-                    hard_max_action=HARD_MAX_ACTION, max_tilt_deg=MAX_TILT_GP_DEG)),
+                    hard_max_action=args.hard_max_action, max_tilt_deg=MAX_TILT_GP_DEG)),
                 groundpick=None if gp_at is None else dict(gp, at=gp_at, phase=args.gp_phase, hold_s=args.gp_hold_s,
                                                            done_at=round(gp_done_at, 2)),
                 head=None if not (args.head_yaw or args.head_pitch is not None or args.neck_pitch is not None) else dict(head_yaw=args.head_yaw, head_pitch=args.head_pitch, neck_pitch=args.neck_pitch,
@@ -1710,7 +1711,7 @@ def run(args):
                 drop=args.drop, imu_hz=args.imu_hz, floor_mu=args.floor_mu, fell_at=fell, fall_dir=fall_dir,
                 max_tilt=round(maxtilt, 1), battery_stop_at=stop_at, stop_ramp=args.stop_ramp, settled_s=settled_at, end_mode=brain.mode,
                 wired_guards=bool(args.wired_guards), guard_stop_at=guard["stop"], guard_why=guard["why"],
-                guard_clipped_ticks=guard["clipped"],
+                guard_clipped_ticks=guard["clipped"], hard_max_action=args.hard_max_action,
                 max_tilt_after_stop=round(tilt_after_stop, 1) if stop_at is not None else None,
                 dist_x=None if x0 is None else round(float(d.xpos[trunk, 0] - x0), 3),
                 yaw_deg=None if x0 is None else round(math.degrees((_yaw(d.xquat[trunk]) - yaw0 + math.pi) % (2 * math.pi) - math.pi), 1),
@@ -1764,7 +1765,7 @@ def hold_summary(args, rows, hand, guard, stable_after, leg_names):
     out = dict(hold_set={k: v for k, v in args.hold_set}, hold_uncal=bool(args.hold_uncal), hand_krot=args.hand_krot, grip_at=args.grip_at, release_at=args.release_at, lift_at=args.lift_at, lower_at=args.lower_at,
                lift_height=args.lift_height, hold_on=bool(args.hold), hand_off_at=hand_off, lift_window=list(win),
                wired_guards=bool(args.wired_guards), guard_stop_at=guard["stop"], guard_why=guard["why"],
-               guard_clipped_ticks=guard["clipped"], guard_tilt_skipped_ticks=guard["tilt_skipped"],
+               guard_clipped_ticks=guard["clipped"], guard_tilt_skipped_ticks=guard["tilt_skipped"], hard_max_action=args.hard_max_action,
                max_raw_action_lift=r3(amax("raw", lw)), max_applied_action_lift=r3(amax("act", lw)),
                min_s=r3(min(r["est"]["s"] for r in rows)), max_e=r3(max(r["est"]["e"] for r in rows)),
                min_load=r3(min(r["load"] for r in rows)), min_kp_leg=min(r["est"]["kp_leg"] for r in rows),
@@ -1980,6 +1981,10 @@ def main():
                     help="gate the hold as walk_wired.py does: command smoothing, grip stop, hold_allowed, authority ramp")
     ap.add_argument("--no-settle", action="store_true", help="with --wired-hold: keep walk61 after a grip stop (GripStop.settle off)")
     ap.add_argument("--wired-guards", action="store_true", help="walk_wired.py's walk-mode stops (3.0 rad hard limit, 30 deg tilt)")
+    ap.add_argument("--max-tilt-sit", type=float, default=MAX_TILT_SIT_DEG,
+                    help="deg; with --wired-guards, the sit-mode tilt stop (walk_wired.py --max-tilt-sit, default MAX_TILT_SIT_DEG)")
+    ap.add_argument("--hard-max-action", type=float, default=HARD_MAX_ACTION,
+                    help="rad; with --wired-guards, the action-size stop (walk_wired.py --hard-max-action, default HARD_MAX_ACTION)")
     ap.add_argument("--until", type=float, default=0.0, help="s; run at least this long")
     ap.add_argument("--bvh-refit", action="store_true", help="accepted for older command lines, no effect: evaluate_delay.load refits the collision bounding volumes itself since 2026-10-29 (prints the empty change set)")
     ap.add_argument("--cone", choices=("pyramidal", "elliptic"), default="pyramidal",

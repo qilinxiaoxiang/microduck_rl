@@ -1,0 +1,16 @@
+[
+ {"name": "bend-p1-1750-training",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "groundpick", "--recipe", "pollen",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-l/bend-p1_model_1750.onnx",
+           "--iteration", "1750", "--episodes", "60", "--bend-schedule", "training", "--train-s", "12.0",
+           "--device", "cuda:0",
+           "--out", "{run_dir}/reads/bend_p1_1750_training.json",
+           "--ticks-out", "{run_dir}/reads/bend_p1_1750_training_ticks.npz"]},
+ {"name": "bend-p1-1999-training",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "groundpick", "--recipe", "pollen",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-l/bend-p1_model_1999.onnx",
+           "--iteration", "1999", "--episodes", "60", "--bend-schedule", "training", "--train-s", "12.0",
+           "--device", "cuda:0",
+           "--out", "{run_dir}/reads/bend_p1_1999_training.json",
+           "--ticks-out", "{run_dir}/reads/bend_p1_1999_training_ticks.npz"]}
+]

@@ -1,0 +1,20 @@
+[
+ {"name": "sit-rt-s1-1250",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "sitstand",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-i/sit-rt-s1_model_1250.onnx",
+           "--iteration", "1250", "--episodes", "100", "--seed", "7", "--device", "cuda:0",
+           "--sit-pose", "left_hip_pitch=-0.4879,left_ankle=-0.3572,right_hip_pitch=0.4879,right_ankle=0.3572",
+           "--stand-pose", "left_hip_pitch=-0.2554,left_ankle=0.2501,right_hip_pitch=0.2554,right_ankle=-0.2501",
+           "--stand-z", "0.1125", "--sit-z", "0.061", "--sit-spawn-z", "0.061:0.076",
+           "--out", "{run_dir}/reads/sit_rt_s1_1250.json", "--episodes-out", "{run_dir}/reads/sit_rt_s1_1250_episodes.json",
+           "--ticks-out", "{run_dir}/reads/sit_rt_s1_1250_ticks.npz"]},
+ {"name": "sit-rt-s2-1250",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "sitstand",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-i/sit-rt-s2_model_1250.onnx",
+           "--iteration", "1250", "--episodes", "100", "--seed", "7", "--device", "cuda:0",
+           "--sit-pose", "left_hip_pitch=-0.4879,left_ankle=-0.3572,right_hip_pitch=0.4879,right_ankle=0.3572",
+           "--stand-pose", "left_hip_pitch=-0.2554,left_ankle=0.2501,right_hip_pitch=0.2554,right_ankle=-0.2501",
+           "--stand-z", "0.1125", "--sit-z", "0.061", "--sit-spawn-z", "0.061:0.076",
+           "--out", "{run_dir}/reads/sit_rt_s2_1250.json", "--episodes-out", "{run_dir}/reads/sit_rt_s2_1250_episodes.json",
+           "--ticks-out", "{run_dir}/reads/sit_rt_s2_1250_ticks.npz"]}
+]

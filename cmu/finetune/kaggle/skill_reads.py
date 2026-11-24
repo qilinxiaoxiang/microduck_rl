@@ -33,6 +33,25 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
+POLLEN_BODY = "pollen"
+
+
+def pollen_body_cfg(task: str, recipe: str, conditions: str, sit_targets: dict | None):
+    """Pollen's own task cfg (no cmu_asbuilt body swap: his 737 g body, no CMU mass parts, heel stop or visual), with
+    the same conditions and sit-target helpers make_cmu_*_env_cfg apply after its swap."""
+    from mjlab_microduck.tasks import cmu_skill_env_cfg as sk
+    if recipe != "pollen":
+        raise SystemExit("--model pollen reads Pollen's own recipe only")
+    if task == "groundpick":
+        if sit_targets:
+            raise SystemExit("the sit-stand target flags need --task sitstand")
+        cfg = sk.make_microduck_ground_pick_env_cfg()
+    else:
+        cfg = sk.make_microduck_sitstand_env_cfg()
+        if sit_targets:
+            sk.apply_sit_targets(cfg, **sit_targets)
+    return sk.apply_skill_conditions(cfg, conditions)
+
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -62,6 +81,10 @@ def main(argv=None):
                     help="sit: also write one row per episode (knee and trunk z at the end of each command window, "
                          "max knee / min z / max tilt in the sit window, first seated time, seated, rose, fell)")
     import skill_worker as skw  # stdlib-only at import; the sit-target flags are skill_worker's (same targets as the run)
+    ap.add_argument("--model", choices=tuple(skw.MODELS) + (POLLEN_BODY,), default="current",
+                    help="body: a skill_worker MODELS entry (make_env_cfg, the CMU body swap), or 'pollen' = Pollen's "
+                         "own task cfg with no body swap (his 737 g official body, the one sitstand61/groundpick61 were "
+                         "trained on; same observations and actions), with the same --conditions and sit-target flags")
     skw.add_sit_target_args(ap)
     a = ap.parse_args(argv)
 
@@ -73,8 +96,11 @@ def main(argv=None):
     from mjlab_microduck.tasks import cmu_skill_env_cfg as sk
     bt = sk.load_bend_terms()
 
-    cfg = skw.make_env_cfg(a.task, "current", recipe=a.recipe, conditions=a.conditions,
-                           sit_targets=skw.sit_targets_from_args(a))
+    if a.model == POLLEN_BODY:
+        cfg = pollen_body_cfg(a.task, a.recipe, a.conditions, skw.sit_targets_from_args(a))
+    else:
+        cfg = skw.make_env_cfg(a.task, a.model, recipe=a.recipe, conditions=a.conditions,
+                               sit_targets=skw.sit_targets_from_args(a))
     sit_targets = cfg.__dict__.get("_sit_targets")
     cfg.scene.num_envs = a.episodes
     cfg.seed = a.seed
@@ -318,7 +344,7 @@ def main(argv=None):
         return round(float(torch.quantile(torch.cat(x), 0.99)), 3) if x else None
 
     secs = len(sched) * dt
-    r = dict(task=a.task, recipe=a.recipe, conditions=a.conditions, policy=a.policy, iteration=a.iteration,
+    r = dict(task=a.task, model=a.model, recipe=a.recipe, conditions=a.conditions, policy=a.policy, iteration=a.iteration,
              counter=a.iteration * 24, episodes=n, seed=a.seed, seconds=round(secs, 2), removed_terminations=removed,
              falls=int(fell.sum()), fall_t_s=sorted(round(float(t), 2) for t in fall_t[fell].cpu()),
              falls_per_env_minute=round(float(fell.sum()) / (n * secs / 60.0), 3),
