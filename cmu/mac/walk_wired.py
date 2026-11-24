@@ -519,6 +519,14 @@ def over_limit(amax, over, limit, ticks=OVER_LIMIT_TICKS, hard=HARD_MAX_ACTION):
     if over >= ticks:
         return over, f"policy action over {limit} rad for {over} ticks (last {amax:.2f})"
     return over, None
+
+
+def hard_limit(hard_max_action, hard_max_action_sit, mode, getup):
+    """The per-tick hard action limit, rad: --hard-max-action-sit while the sit policy runs (when set; 2026-11-24 the
+    sit-and-rise policy completes in sim only at 4.5 rad), --hard-max-action otherwise, widened to GETUP_MAX_ACTION
+    while the get-up recover sequence owns the robot."""
+    base = hard_max_action_sit if mode == "sit" and hard_max_action_sit is not None else hard_max_action
+    return base if getup is None else max(base, GETUP_MAX_ACTION)
 # Stepping needs more: the simulated walk61 gait at vx 0.25-0.3 peaks at 1.1-1.23 rad (2026-10-15), and the real
 # divergence passed 1.4 within 0.1 s of 1.29.
 MAX_WALK_ACTION = 1.8  # Shawn 2026-10-15: the as-built simulation peaks at 1.64 rad in a normal 0.25 m/s gait
@@ -817,6 +825,7 @@ def write_run_meta(args):
                     log=os.path.abspath(args.log), argv=sys.argv[1:], models_dir=os.path.abspath(args.models),
                     code_sha=code, model_sha=models, kp_rl=_wb.KP_RL, kp_stand=_wb.KP_DEFAULT,
                     max_action=args.max_action, max_walk_action=args.max_walk_action, max_tilt=args.max_tilt,
+                    hard_max_action=args.hard_max_action, hard_max_action_sit=args.hard_max_action_sit,
                     supply=args.supply, imu_pitch_trim_deg=getattr(_wb, "IMU_PITCH_TRIM_DEG", None),
                     imu_roll_trim_deg=getattr(_wb, "IMU_ROLL_TRIM_DEG", None),
                     zero_offset_deg=trial_file("~/duck-zero-offset.json"),
@@ -855,7 +864,9 @@ def main():
                     help="the same limit while a walking speed is commanded, rad")
     ap.add_argument("--hard-max-action", type=float, default=HARD_MAX_ACTION,
                     help="one action over this stops at once; the limits above need OVER_LIMIT_TICKS ticks in a row")
-    ap.add_argument("--max-tilt", type=float, default=MAX_TILT_DEG, help="walk stops into stand above this tilt, deg")
+    ap.add_argument("--hard-max-action-sit", type=float, default=None,
+                    help="the hard limit while the sit policy runs, rad (default: --hard-max-action)")
+    ap.add_argument("--max-tilt",type=float, default=MAX_TILT_DEG, help="walk stops into stand above this tilt, deg")
     ap.add_argument("--jaw-kp", type=int, default=jaw_ctl.KP_JAW, help="ID15 position P gain in mode 5")
     ap.add_argument("--max-tilt-gp", type=float, default=MAX_TILT_GP_DEG,
                     help="ground pick holds its last goals above this trunk tilt, deg (the crouch itself is 35 deg in the as-built sim)")
@@ -890,6 +901,8 @@ def main():
 
     brain = Brain(args.models, compensation=args.compensation, yaw_trim_file=args.yaw_trim_file)
     print(f"yaw trim {brain.yaw_trim:+.3f} rad/s from {args.yaw_trim_file}", flush=True)
+    if args.hard_max_action_sit is not None:
+        print(f"hard action limit {args.hard_max_action} rad, {args.hard_max_action_sit} rad in sit", flush=True)
     guard = None if args.supply == "bench" else BatteryGuard(args.supply)
     next_supply = next_alarm = 0.0
     hw_lock = take_hw_lock()  # noqa: F841  (held until exit)
@@ -1260,7 +1273,7 @@ def main():
                 amax = max(abs(a) for a in act)
                 # a rise from the floor (DUCK_GETUP=recover, brain.getup set) legitimately asks for more than the
                 # walking limit; the sequence's own 5 s give-up bounds a failed rise
-                hard = args.hard_max_action if brain.getup is None else max(args.hard_max_action, GETUP_MAX_ACTION)
+                hard = hard_limit(args.hard_max_action, args.hard_max_action_sit, brain.mode, brain.getup)
                 # 2026-10-16: the 1.8 rad limit stopped walks the policy was recovering (a 3-tick run to 2.03 rad at
                 # 15 deg; a 4 s walk cut at 1.3 s), and a single 3.16 rad tick at 4.4 deg tilt switched a steady 6 s
                 # walk to the open-loop STAND, which fell. Pollen's runtime has no action limit. An action under the

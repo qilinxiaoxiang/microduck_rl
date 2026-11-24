@@ -1438,7 +1438,8 @@ def run(args):
                 act, why = info.get("action"), None
                 if act is not None:
                     amax = max(abs(a) for a in act)
-                    hard = args.hard_max_action
+                    hard = (args.hard_max_action_sit if brain.mode == "sit" and args.hard_max_action_sit is not None
+                            else args.hard_max_action)  # walk_wired.py hard_limit, without the get-up case
                     guard["hard_hits"].append(amax > hard)
                     if sum(guard["hard_hits"]) >= OVER_LIMIT_TICKS:
                         why = f"action over {hard} rad in {sum(guard['hard_hits'])} of {len(guard['hard_hits'])} ticks"
@@ -1712,6 +1713,7 @@ def run(args):
                 max_tilt=round(maxtilt, 1), battery_stop_at=stop_at, stop_ramp=args.stop_ramp, settled_s=settled_at, end_mode=brain.mode,
                 wired_guards=bool(args.wired_guards), guard_stop_at=guard["stop"], guard_why=guard["why"],
                 guard_clipped_ticks=guard["clipped"], hard_max_action=args.hard_max_action,
+                hard_max_action_sit=args.hard_max_action_sit,
                 max_tilt_after_stop=round(tilt_after_stop, 1) if stop_at is not None else None,
                 dist_x=None if x0 is None else round(float(d.xpos[trunk, 0] - x0), 3),
                 yaw_deg=None if x0 is None else round(math.degrees((_yaw(d.xquat[trunk]) - yaw0 + math.pi) % (2 * math.pi) - math.pi), 1),
@@ -1766,6 +1768,7 @@ def hold_summary(args, rows, hand, guard, stable_after, leg_names):
                lift_height=args.lift_height, hold_on=bool(args.hold), hand_off_at=hand_off, lift_window=list(win),
                wired_guards=bool(args.wired_guards), guard_stop_at=guard["stop"], guard_why=guard["why"],
                guard_clipped_ticks=guard["clipped"], guard_tilt_skipped_ticks=guard["tilt_skipped"], hard_max_action=args.hard_max_action,
+               hard_max_action_sit=args.hard_max_action_sit,
                max_raw_action_lift=r3(amax("raw", lw)), max_applied_action_lift=r3(amax("act", lw)),
                min_s=r3(min(r["est"]["s"] for r in rows)), max_e=r3(max(r["est"]["e"] for r in rows)),
                min_load=r3(min(r["load"] for r in rows)), min_kp_leg=min(r["est"]["kp_leg"] for r in rows),
@@ -1985,6 +1988,12 @@ def main():
                     help="deg; with --wired-guards, the sit-mode tilt stop (walk_wired.py --max-tilt-sit, default MAX_TILT_SIT_DEG)")
     ap.add_argument("--hard-max-action", type=float, default=HARD_MAX_ACTION,
                     help="rad; with --wired-guards, the action-size stop (walk_wired.py --hard-max-action, default HARD_MAX_ACTION)")
+    ap.add_argument("--hard-max-action-sit", type=float, default=None,
+                    help="rad; with --wired-guards, the action-size stop while the brain is in sit mode "
+                         "(walk_wired.py --hard-max-action-sit, default --hard-max-action)")
+    ap.add_argument("--sit-prep-s", type=float, default=None,
+                    help="s; trial: time the sit policy runs with the posture flag at 0 before it is told to sit "
+                         "(walk_brain.SIT_PREP_S, 0.8 on the robot; the training reset gives it 2 s)")
     ap.add_argument("--until", type=float, default=0.0, help="s; run at least this long")
     ap.add_argument("--bvh-refit", action="store_true", help="accepted for older command lines, no effect: evaluate_delay.load refits the collision bounding volumes itself since 2026-10-29 (prints the empty change set)")
     ap.add_argument("--cone", choices=("pyramidal", "elliptic"), default="pyramidal",
@@ -2043,6 +2052,10 @@ def main():
         ap.error("--lead models the lead itself; it cannot combine with --tether, --yaw-spring or --yaw-torque")
     global tick_log
     tick_log = open(args.tick_log, "w") if args.tick_log else None
+    if args.sit_prep_s is not None:
+        print(f"TRIAL: walk_brain.SIT_PREP_S {walk_brain.SIT_PREP_S} -> {args.sit_prep_s} s (not the robot's value)",
+              file=sys.stderr)
+        walk_brain.SIT_PREP_S = args.sit_prep_s
     if args.volt is None:
         _state = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "CURRENT-STATE.json")
         args.volt = float(json.load(open(_state))["facts"]["servo_rail_v"]["value"])

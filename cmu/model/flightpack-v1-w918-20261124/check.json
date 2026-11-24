@@ -1,0 +1,232 @@
+{
+ "load": {
+  "manifest_equals_variant": true,
+  "unique_ids": true,
+  "chain_last": "cmu/model/variants/battery-v2m5-w918-20261123.json",
+  "removed": 0,
+  "added": 70,
+  "inertias_physical": true,
+  "untouched_bodies_identical": true,
+  "bodies_touched": [
+   "bearing_roll",
+   "hip_l",
+   "hip_l_2",
+   "jaw_soft",
+   "leg",
+   "leg_2",
+   "neck",
+   "neck_pitch",
+   "trunk_base",
+   "upper_leg_left",
+   "upper_leg_right",
+   "yaw2roll",
+   "yaw_roll_motion"
+  ],
+  "rollout_2s_finite": true,
+  "nu": 14,
+  "njnt": 15,
+  "njnt_equals_official": true,
+  "ngeom_equals": true,
+  "visual_geoms_swapped_as_base": 54
+ },
+ "mass": {
+  "pack_model_g": 1823.0,
+  "base_g": 918.0,
+  "added_g": 905.0,
+  "com_trunk_mm": [
+   -15.4,
+   -2.0,
+   26.5
+  ],
+  "base_com_trunk_mm": [
+   -12.2,
+   -0.2,
+   18.7
+  ],
+  "inertia_kgm2": {
+   "xx": 0.01163,
+   "yy": 0.00713,
+   "zz": 0.00907
+  },
+  "inertia_ratio_vs_base": {
+   "roll": 2.23,
+   "pitch": 1.32,
+   "yaw": 5.28
+  }
+ },
+ "stand": {
+  "pose": "guide/firmware/pi/stand_pose.py STAND_POSE, soles flat (predict_tip.py frame)",
+  "com_x_from_heel_mm": 6.0,
+  "com_z_mm": 142.53,
+  "base_com_x_from_heel_mm": 10.24,
+  "base_com_z_mm": 134.88,
+  "front_margin_mm": 22.5,
+  "back_margin_mm": -0.25,
+  "base_front_margin_mm": 18.26,
+  "base_back_margin_mm": 3.99,
+  "limits": "real robot tips back at model COM 6.25 mm, forward at 28.5 mm (918 g, 2026-11-23)"
+ },
+ "torque": {
+  "limit_nm": 0.538,
+  "feet_bodies": [
+   "ankle_left",
+   "ankle_right"
+  ],
+  "rows": {
+   "pack_lift0": {
+    "hip_roll": {
+     "two_feet_frac": 0.644,
+     "one_foot_left_stance_frac": 0.709,
+     "two_feet_nm": {
+      "left": -0.3109450695762515,
+      "right": 0.3466962080091647
+     },
+     "one_foot_nm": {
+      "left": 0.38142651650595966,
+      "right": -0.032682502944018116
+     }
+    },
+    "knee": {
+     "two_feet_frac": 0.058,
+     "one_foot_left_stance_frac": 0.133,
+     "two_feet_nm": {
+      "left": -0.031039311700122557,
+      "right": 0.031057638718034825
+     },
+     "one_foot_nm": {
+      "left": -0.07155084442612804,
+      "right": -0.010067406055558954
+     }
+    },
+    "ankle": {
+     "two_feet_frac": 0.228,
+     "one_foot_left_stance_frac": 0.452,
+     "two_feet_nm": {
+      "left": -0.12239658498404542,
+      "right": 0.12237684159957798
+     },
+     "one_foot_nm": {
+      "left": -0.2434256034956385,
+      "right": 0.001959744448030532
+     }
+    }
+   },
+   "pack_lift30": {
+    "hip_roll": {
+     "two_feet_frac": 0.444,
+     "one_foot_left_stance_frac": 0.535,
+     "two_feet_nm": {
+      "left": -0.20308687580496065,
+      "right": 0.23883801423787412
+     },
+     "one_foot_nm": {
+      "left": 0.28805179312129464,
+      "right": -0.032682502944018116
+     }
+    },
+    "knee": {
+     "two_feet_frac": 0.026,
+     "one_foot_left_stance_frac": 0.07,
+     "two_feet_nm": {
+      "left": -0.014120448470763344,
+      "right": 0.014138775488675571
+     },
+     "one_foot_nm": {
+      "left": -0.037713117967408054,
+      "right": -0.010067406055558954
+     }
+    },
+    "ankle": {
+     "two_feet_frac": 0.168,
+     "one_foot_left_stance_frac": 0.334,
+     "two_feet_nm": {
+      "left": -0.09046199604418632,
+      "right": 0.09044225265971889
+     },
+     "one_foot_nm": {
+      "left": -0.1795564256159215,
+      "right": 0.001959744448030532
+     }
+    }
+   },
+   "pack_lift60": {
+    "hip_roll": {
+     "two_feet_frac": 0.243,
+     "one_foot_left_stance_frac": 0.362,
+     "two_feet_nm": {
+      "left": -0.09522868203366941,
+      "right": 0.1309798204665832
+     },
+     "one_foot_nm": {
+      "left": 0.1946770697366309,
+      "right": -0.032682502944018116
+     }
+    },
+    "knee": {
+     "two_feet_frac": 0.005,
+     "one_foot_left_stance_frac": 0.007,
+     "two_feet_nm": {
+      "left": 0.002798414758596426,
+      "right": -0.002780087740684222
+     },
+     "one_foot_nm": {
+      "left": -0.0038753915086890776,
+      "right": -0.010067406055558954
+     }
+    },
+    "ankle": {
+     "two_feet_frac": 0.109,
+     "one_foot_left_stance_frac": 0.215,
+     "two_feet_nm": {
+      "left": -0.05852740710432765,
+      "right": 0.05850766371986019
+     },
+     "one_foot_nm": {
+      "left": -0.11568724773620354,
+      "right": 0.001959744448030532
+     }
+    }
+   },
+   "base_lift0": {
+    "hip_roll": {
+     "two_feet_frac": 0.279,
+     "one_foot_left_stance_frac": 0.357,
+     "two_feet_nm": {
+      "left": -0.14835467701523158,
+      "right": 0.15036458608159087
+     },
+     "one_foot_nm": {
+      "left": 0.19228866972606556,
+      "right": -0.03268250294401812
+     }
+    },
+    "knee": {
+     "two_feet_frac": 0.055,
+     "one_foot_left_stance_frac": 0.128,
+     "two_feet_nm": {
+      "left": -0.029663129889286436,
+      "right": 0.029626988894024965
+     },
+     "one_foot_nm": {
+      "left": -0.06905755363166315,
+      "right": -0.010067406055558954
+     }
+    },
+    "ankle": {
+     "two_feet_frac": 0.081,
+     "one_foot_left_stance_frac": 0.159,
+     "two_feet_nm": {
+      "left": -0.04360532831298473,
+      "right": 0.04360405828250197
+     },
+     "one_foot_nm": {
+      "left": -0.08554881233921391,
+      "right": 0.001959744448030534
+     }
+    }
+   }
+  },
+  "method": "quasi-static at STAND_POSE with gravity along the sole normal; two feet = least-norm 6D wrench split; one foot = all weight on the left foot (foot may carry any moment); lift = fraction of the total weight shared equally by the four fans along their axes"
+ },
+ "thrust_sites_vs_flight_py_max_dev": 2.3112741548425575e-07
+}

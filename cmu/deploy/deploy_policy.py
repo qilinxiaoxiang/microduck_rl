@@ -1,19 +1,39 @@
-"""Put a trained walking policy on the robot: check it, gate it in simulation, copy it to the A7Z, roll back.
+"""Put trained policies on the robot: check them, gate them in simulation, copy the set to the A7Z, switch back.
 
 Run from the repository root. The check and the gate run on any laptop; copying needs `ssh a7z` (the robot's MacBook).
 
   uv run --no-sync python cmu/deploy/deploy_policy.py check  path/to/walk.onnx --name my-walk   # contract + sim gate
   uv run --no-sync python cmu/deploy/deploy_policy.py deploy path/to/walk.onnx --name my-walk   # the same, then copy
   uv run --no-sync python cmu/deploy/deploy_policy.py status                                     # what the robot runs
+  uv run --no-sync python cmu/deploy/deploy_policy.py use --name bw-s2c-b2                       # an earlier set again
   uv run --no-sync python cmu/deploy/deploy_policy.py rollback                                   # back to walk61
 
-The candidate replaces walk61.onnx in a copy of the deployed policy set (cmu/whole/runtime-overlay/models: stand61,
-sitstand61, groundpick61 and the kicks stay Pollen's), the way cmu/finetune/kaggle/tether_accept.sh builds its
-candidates. Steps, each one stops the script when it fails:
+A policy set is the deployed set's files (walk61, stand61, sitstand61, groundpick61 and the kicks) with some of them
+replaced by candidates. The slots a candidate may fill are walk61, stand61, sitstand61 (sit and rise) and groundpick61
+(bend and rise). A candidate is given either as the positional ONNX with `--slots` (default walk61; walk61,stand61 for
+a policy that stands and walks as one network) or, several in one set, with repeated `--slot-file SLOT=PATH`; the two
+forms combine, and a slot is filled once. The set starts from Pollen's deployed set (cmu/whole/runtime-overlay/models)
+or, with `--base-set NAME`, from cmu/deploy/runs/NAME/models, an earlier gated set: its MANIFEST.json must be there and
+its .onnx files must match the hashes in it. The new MANIFEST records base_set (name, MANIFEST hash, its gate fields)
+and, in file_origin, whether each file came from the base set, from Pollen's set or from a candidate.
 
-1. Contract: one input named obs of shape [1, 61], one output named actions of shape [1, 14] (the robot's runtime
-   feeds exactly that; README "Conventions").
-2. Gate: cmu/simcheck/sim_suite.py on the robot as it is now, `--variant current` (cmu/model/current.json; on
+  uv run --no-sync python cmu/deploy/deploy_policy.py check --name bw-skills --base-set bw-s2c-b2 \
+      --slot-file groundpick61=bend.onnx --slot-file sitstand61=sit.onnx \
+      --brain-args "--hard-max-action-sit 4.5 --max-tilt-sit 45"
+
+`--brain-args` (check and deploy) carries walk_wired.py options the set needs, only --hard-max-action-sit (above 0, at
+most 6 rad) and --max-tilt-sit (above 0, at most 55 deg), one plain number each; anything else stops the script. They are
+kept in the MANIFEST as brain_args and in <set>/brain-args (one line), which is copied with the set; ~/duck-run.sh adds
+that line to the walk_wired.py command after checking that it holds only those two flags and numbers (otherwise it
+prints an error and starts the brain without extra options). The skill gate runs with exactly these options. `deploy`
+with brain args first checks that the robot's ~/duck-run.sh reads brain-args and that its walk_wired.py knows each flag,
+and stops with the install_teleop.sh instruction otherwise.
+
+Steps, each one stops the script when it fails:
+
+1. Contract: every candidate has one input named obs of shape [1, 61] and one output named actions of shape [1, 14]
+   (the robot's runtime feeds exactly that; README "Conventions").
+2. Walking gate, when walk61 or stand61 is replaced: cmu/simcheck/sim_suite.py on the robot as it is now, `--variant current` (cmu/model/current.json; on
    2026-11-11 battery-20261104: battery backpack, orange A7Z saddle, no charger box). `--also plugged,battery` adds
    historical models as report-only extras (written to the run and the MANIFEST, never the gate; until 2026-11-11 the
    gate ran on plugged and battery, both retired). The reference is walk61 run by the same code just before (cached in
@@ -28,11 +48,45 @@ candidates. Steps, each one stops the script when it fails:
    on the robot it tripped the stop and fell after every key release). Rows and logs go to cmu/deploy/runs/<name>/. A pass says the candidate
    is at least as good as walk61 in the simulation at the robot's measured condition; it does not predict the robot
    (ft3 passed and fell on the robot, cmu/real-logs/README.md), so the first robot run is still watched by hand.
-3. Copy (deploy only): the policy set to a7z:~/policies/<name>/ with a MANIFEST.json (sha256 of every file, the gate
-   verdicts, who deployed and when), then ~/duck-policy on the A7Z names that directory. ~/duck-run.sh, which starts
-   the brain when the phone remote's first command finds none running, passes it to walk_wired.py as --models.
+   When neither walk61 nor stand61 is replaced and `--base-set` is given, the walking gate is not rerun: its verdict is
+   carried from the base MANIFEST (walking_gate "carried from base set NAME"), only when the built set's walk61.onnx and
+   stand61.onnx hashes equal the base set's, the base was gated on the robot as it is now (same variant and mass
+   manifest hash, no payload, not planned) and its gate passed or was forced (the forced record is carried too). A set
+   that replaces neither and has no base set is refused: Pollen's walk61 and stand61 fall on this robot.
+3. Skill gate, for each of sitstand61 and groundpick61 that a candidate replaces: cmu/simcheck/skill_rehearsal.py runs
+   cmu/mac/brain_sim_check.py on the built set with the brain args under three conditions (nominal, --volt 8.2,
+   --floor-mu 0.6), one after another, and passes only when the skill completes in all three (sit: the Brain hands
+   back after the rise, no fall, no brain stop; bend: back in walk mode after the bend, no fall, no brain stop). Rows
+   and logs go to the run folder (skill-<slot>*.jsonl/.out); the MANIFEST keeps skill_gate per slot (conditions,
+   completes, largest action, peak tilt, brain args). Skill slots are gated on the bare robot as it is now only (no
+   --payload-manifest, no planned --variant). A failed skill gate stops the script like the walking gate does.
+   gate_passed in the MANIFEST is true only when the walking gate (run or carried) and every skill gate passed.
+4. Copy (deploy only): the policy set to a7z:~/policies/<name>/ with a MANIFEST.json (sha256 of every file, the gate
+   verdicts, who deployed and when) and brain-args when it has any, then ~/duck-policy on the A7Z names that directory.
+   ~/duck-run.sh, which starts the brain when the phone remote's first command finds none running, passes it to
+   walk_wired.py as --models, followed by the set's brain args.
    A brain that is already running keeps its policies until it restarts; `--restart` restarts it only when its control
    file holds {"mode": "monitor"} or {"mode": "off"} (nobody is driving), and torque stays as it was.
+
+The gates may run elsewhere: `check` writes into the MANIFEST the sim_hash() it gated at (the content of every sim
+file and model the gates depend on, see sim_hash), gated_host and gated_at (UTC). Run `check` on the Mac mini mirror
+(ssh mac-mini; the mirror must hold the same tree, untracked files included), copy cmu/deploy/runs/<name>/ back to the
+same place here, then
+
+  uv run --no-sync python cmu/deploy/deploy_policy.py deploy <the same candidate arguments> --name <name> --reuse-check
+
+copies that set without any simulation. It refuses, naming the condition, unless (a) every file of the run's models
+folder hashes to the MANIFEST's files, (b) name, slots, candidate files, base set (and its MANIFEST hash), brain args and
+payload manifest hash are what the command asks for, (c) the MANIFEST's sim_hash equals sim_hash() here, (d) gated_at is
+under 24 hours old, and (e) the gate record is complete (walking gate or its carried record, a skill_gate for every
+replaced skill slot) with gate_passed true or a forced record. The MANIFEST copied to the robot then also holds
+deploy_reused_check {host, at}. The robot checks, the copy, the hash compare, ~/duck-policy and --restart are as for a
+deploy that gates.
+
+`use --name NAME` makes a set already on the A7Z active again (back to bw-s2c-b2 after a trial): it checks that
+~/policies/NAME/*.onnx match that set's MANIFEST.json hashes and that its brain-args file matches the MANIFEST's
+brain_args, then writes ~/duck-policy as deploy does; `--restart` as for deploy. A set without a passing or forced gate
+record, or gated on a planned robot, is refused.
 
 `rollback` deletes ~/duck-policy, so the next brain start loads walk61 again (with `--restart`, at once).
 
@@ -52,7 +106,10 @@ A policy for the robot carrying a payload (the flight pack) goes through the sam
   uv run --no-sync python cmu/deploy/deploy_policy.py deploy path/to/walk.onnx --name my-pack-walk \
       --payload-manifest path/to/flightpack-nominal.json --slots walk61,stand61
 
-`--payload-manifest` is a signed-part mass manifest built on the current robot (cmu/model/current.json); the gate then
+`--payload-manifest` is a signed-part mass manifest built on the current robot (cmu/model/current.json): every part of
+the current robot's manifest is in it with the same body, mass, position and inertia, and it only adds parts
+(sim_suite.payload_differences; a manifest built on another variant is refused with the differing parts named). It
+needs walk61 or stand61 among the replaced slots and no skill slot. The gate then
 runs on the current robot with that payload, and the reference is the deployed set carrying the same payload, run by the
 same code and cached like the no-payload baseline. The no-payload gate is not run for such a policy: it is not meant to
 walk the bare robot, and the MANIFEST says which payload it was gated with. `--slots` names the files of the deployed
@@ -79,6 +136,7 @@ import hashlib
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
 
@@ -93,6 +151,9 @@ BRAIN = "'^/home/radxa/.venvs/duck-policy/bin/python walk_wired.py'"  # duck-run
 SSH = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", HOST]
 sys.path.insert(0, os.path.join(ROOT, "cmu", "simcheck"))
 from sim_suite import PLANNED, is_planned  # noqa: E402  (planned robots: check only, never deploy)
+import skill_rehearsal  # noqa: E402  (the skill gate and the brain-args whitelist)
+
+ROBOT_WALK_WIRED = "~/rt/microduck-sim/guide/firmware/mac/walk_wired.py"  # where ~/duck-run.sh runs the brain from
 
 
 def fail(msg):
@@ -114,7 +175,9 @@ def check_contract(onnx):
     print(f"contract: obs [1, 61] -> actions [1, 14] OK ({onnx})")
 
 
-SLOTS = ("walk61", "stand61")  # files of the deployed set a 61-input, 14-output candidate may replace
+SLOTS = ("walk61", "stand61", "sitstand61", "groundpick61")  # files of the set a 61-in, 14-out candidate may replace
+WALK_SLOTS = ("walk61", "stand61")  # gated by sim_suite
+SKILL_SLOTS = ("sitstand61", "groundpick61")  # gated by skill_rehearsal
 
 
 def parse_slots(text):
@@ -124,21 +187,129 @@ def parse_slots(text):
     return slots
 
 
+def parse_slot_files(items):
+    """['groundpick61=path', ...] -> {slot: absolute path}; each slot once."""
+    out = {}
+    for item in items or ():
+        slot, sep, path = item.partition("=")
+        if not sep or slot not in SLOTS or not path:
+            fail(f"--slot-file {item}: SLOT=PATH with SLOT one of {', '.join(SLOTS)}")
+        if slot in out:
+            fail(f"--slot-file: {slot} given twice")
+        out[slot] = os.path.abspath(path)
+    return out
+
+
+def candidates(onnx, slots_text, slot_files):
+    """{slot: absolute ONNX path} from the positional ONNX with --slots (default walk61) and the --slot-file items."""
+    cands = {}
+    if onnx:
+        cands = {s: os.path.abspath(onnx) for s in parse_slots(slots_text or "walk61")}
+    elif slots_text:
+        fail("--slots names the slots of the positional ONNX; with --slot-file alone give SLOT=PATH")
+    for slot, path in parse_slot_files(slot_files).items():
+        if slot in cands:
+            fail(f"{slot} is filled twice (positional ONNX with --slots and --slot-file)")
+        cands[slot] = path
+    for path in sorted(set(cands.values())):
+        if not os.path.isfile(path):
+            fail(f"{path} not found")
+    return {s: cands[s] for s in SLOTS if s in cands}
+
+
 def planned_suffix(variant):
     """'' for the current robot (names unchanged); '--planned-<variant>' for a planned robot's run and cache dirs."""
     return f"--planned-{variant}" if is_planned(variant) else ""
 
 
-def build_set(onnx, name, slots=("walk61",), variant="current"):
+def load_base_set(name):
+    """(models dir, MANIFEST dict) of the earlier gated set cmu/deploy/runs/<name>/models; its .onnx must match it."""
+    models = os.path.join(RUNS, name, "models")
+    path = os.path.join(models, "MANIFEST.json")
+    if not os.path.isdir(models):
+        fail(f"--base-set {name}: {models} not found")
+    if not os.path.isfile(path):
+        fail(f"--base-set {name}: {path} not found; a base set must carry the MANIFEST of its gate")
+    with open(path) as f:
+        manifest = json.load(f)
+    want = {f: h for f, h in (manifest.get("files") or {}).items() if f.endswith(".onnx")}
+    got = {f: sha256(os.path.join(models, f)) for f in sorted(os.listdir(models)) if f.endswith(".onnx")}
+    if not want or got != want:
+        fail(f"--base-set {name}: the .onnx files in {models} do not match its MANIFEST.json "
+             f"({sorted(f for f in set(got) | set(want) if got.get(f) != want.get(f))})")
+    return models, manifest
+
+
+def build_set_from(cands, name, variant="current", base=None):
+    """Copy the base (Pollen's set, or `base` = (models dir, MANIFEST, name)) into cmu/deploy/runs/<name>/models and put
+    each candidate in its slot. Returns (run, models, file_origin)."""
     run = os.path.join(RUNS, name + planned_suffix(variant))
     models = os.path.join(run, "models")
     os.makedirs(models, exist_ok=True)
-    for f in sorted(os.listdir(BASE)):
+    for f in sorted(os.listdir(models)):  # a rebuild under the same name starts clean
+        if f.endswith(".onnx") or f in ("MANIFEST.json", "brain-args"):
+            os.remove(os.path.join(models, f))
+    src, origin = (BASE, "Pollen's deployed set (cmu/whole/runtime-overlay/models)") if base is None else \
+        (base[0], f"base set {base[2]}")
+    file_origin = {}
+    for f in sorted(os.listdir(src)):
         if f.endswith(".onnx"):
-            shutil.copy2(os.path.join(BASE, f), models)
-    for slot in slots:
+            shutil.copy2(os.path.join(src, f), models)
+            file_origin[f] = origin
+    for slot, onnx in cands.items():
         shutil.copy2(onnx, os.path.join(models, f"{slot}.onnx"))
+        file_origin[f"{slot}.onnx"] = f"candidate {onnx}"
+    return run, models, file_origin
+
+
+def build_set(onnx, name, slots=("walk61",), variant="current"):
+    run, models, _ = build_set_from({s: onnx for s in slots}, name, variant)
     return run, models
+
+
+def write_brain_args(models, brain_args):
+    """<set>/brain-args: one line of walk_wired.py options, only when the set has any."""
+    if brain_args:
+        with open(os.path.join(models, "brain-args"), "w") as f:
+            f.write(" ".join(brain_args) + "\n")
+
+
+def carried_gate(base_name, base_manifest, models):
+    """The base set's walking gate for a set whose walk61 and stand61 are the base set's own files."""
+    files = base_manifest.get("files") or {}
+    for f in ("walk61.onnx", "stand61.onnx"):
+        if files.get(f) is None or sha256(os.path.join(models, f)) != files[f]:
+            fail(f"cannot carry the walking gate of base set {base_name}: the built set's {f} is not the one its "
+                 "MANIFEST records")
+    with open(os.path.join(ROOT, "cmu", "model", "current.json")) as f:
+        current = json.load(f)
+    gm = base_manifest.get("gate_model") or {}
+    if (gm.get("variant") != current["variant"] or gm.get("mass_manifest_sha256") != current["mass_manifest_sha256"]
+            or gm.get("payload_manifest") or gm.get("planned")):
+        fail(f"cannot carry the walking gate of base set {base_name}: it was gated on {gm or 'an unrecorded model'}, "
+             f"not the bare robot as it is now ({current['variant']}, {current['mass_manifest_sha256'][:12]})")
+    passed, forced = base_manifest.get("gate_passed") is True, base_manifest.get("forced")
+    if not passed and not forced:
+        fail(f"cannot carry the walking gate of base set {base_name}: it neither passed nor was forced")
+    source = f"carried from base set {base_name}"
+    print(f"walking gate: {source} ({'passed' if passed else 'FAILED, forced: ' + str(forced.get('reason'))}); "
+          "walk61.onnx and stand61.onnx hashes equal the base set's")
+    return {"gate": base_manifest.get("gate") or {}, "gate_passed": passed, "worse": base_manifest.get("worse") or {},
+            "historical_extras": base_manifest.get("historical_extras") or {}, "source": source,
+            **({"forced": dict(forced, carried_from=base_name)} if forced and not passed else {})}
+
+
+def skill_gates(run, models, slots, brain_args, despite=None):
+    """skill_rehearsal on every skill slot in `slots`; stops on a failure unless `despite`. {slot: record}."""
+    out = {}
+    for slot in (s for s in SKILL_SLOTS if s in slots):
+        out[slot] = skill_rehearsal.skill_gate(slot, models, run, brain_args)
+    bad = [f"{s} ({', '.join(r['fails'])})" for s, r in out.items() if not r["passed"]]
+    if bad and not despite:
+        fail(f"skill gate: {'; '.join(bad)} did not complete; rows in {run}/skill-*.jsonl")
+    if bad:
+        print(f"SKILL GATE FAILED on {'; '.join(bad)}; going on because --deploy-despite-gate says: {despite}")
+    return out
 
 
 def gate_label(variant, payload=None):
@@ -151,19 +322,26 @@ def gate_label(variant, payload=None):
 
 
 def sim_hash():
-    """Hash of everything the suite's walk61 rows depend on, so a cached baseline is reused only while it is current."""
+    """Hash of everything the gates depend on (the suite's walk61 rows, the candidate's suite rows and the skill
+    rehearsal), so a cached baseline, or a gate run by `check` on another machine (deploy --reuse-check), is reused only
+    while it is current. Content only: each file's path relative to the repository root and its sha256, in sorted
+    order; no absolute path, mtime or host enters it. It reads the listed simcheck files and every .py/.json/.onnx/.xml
+    under the listed trees (untracked files included, so a mirror must carry them too), skipping __pycache__, scenes and
+    visual folders; the git-ignored run folders (cmu/deploy/runs) are outside every tree."""
     h = hashlib.sha256()
     paths = [os.path.join(ROOT, "cmu", "robot-condition.json"), os.path.join(ROOT, "cmu", "simcheck", "sim_suite.py"),
              os.path.join(ROOT, "cmu", "simcheck", "noisy_check.py"),
+             os.path.join(ROOT, "cmu", "simcheck", "skill_rehearsal.py"),  # the skill gate's flags and its "completes"
              os.path.join(ROOT, "cmu", "simcheck", "schedule-walk-zero-walk.json")]  # the brain-stop case's commands
     for top in ("cmu/mac", "cmu/model", "cmu/whole/delay-repair-20260912", "cmu/whole/dynamics", "cmu/pi",
                 "cmu/whole/runtime-overlay/models"):
         for d, _, files in os.walk(os.path.join(ROOT, top)):
-            if "__pycache__" in d or "/scenes" in d or "/visual" in d:
+            rel = "/" + os.path.relpath(d, ROOT).replace(os.sep, "/")
+            if "__pycache__" in rel or "/scenes" in rel or "/visual" in rel:
                 continue
             paths += [os.path.join(d, f) for f in files if f.endswith((".py", ".json", ".onnx", ".xml"))]
-    for path in sorted(paths):
-        h.update(os.path.relpath(path, ROOT).encode()); h.update(sha256(path).encode())
+    for path in sorted(paths, key=lambda p: os.path.relpath(p, ROOT)):
+        h.update(os.path.relpath(path, ROOT).replace(os.sep, "/").encode()); h.update(sha256(path).encode())
     return h.hexdigest()[:12]
 
 
@@ -276,7 +454,7 @@ def record(name, reason):
     with open(os.path.join(run, "suite-current.out")) as f:
         head = f.readline()  # "sim_suite: models ..., variant current = <variant>, ..."
     variant = head.split("variant current = ", 1)[1].split(",", 1)[0] if "variant current = " in head else current["variant"]
-    slots = sorted(f[:-5] for f in ("walk61.onnx", "stand61.onnx") if files.get(f) and files[f] != sha256(os.path.join(BASE, f)))
+    slots = [s for s in SLOTS if files.get(f"{s}.onnx") and files[f"{s}.onnx"] != sha256(os.path.join(BASE, f"{s}.onnx"))]
     manifest = {"name": name, "source": None, "built": datetime.datetime.fromtimestamp(
                     os.path.getmtime(os.path.join(run, "suite-current.out"))).isoformat(timespec="seconds"),
                 "by": getpass.getuser(), **verdicts,
@@ -321,10 +499,147 @@ def restart_if_idle():
     print(f"restart: brain restarted in monitor mode, log ~/duck-logs/duck_wired_log_{suffix}.jsonl")
 
 
+REUSE_MAX_AGE_H = 24.0
+
+
+def now_utc():
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+def reused_check(name, cands, base, brain_args, payload):
+    """The MANIFEST of a gate `check` ran earlier (possibly on another machine) for exactly this set, or SystemExit
+    naming the first condition that fails: (a) files, (b) request, (c) sim_hash, (d) age, (e) gate record."""
+    models = os.path.join(RUNS, name, "models")
+    path = os.path.join(models, "MANIFEST.json")
+
+    def refuse(cond, why):
+        fail(f"--reuse-check refused, condition ({cond}): {why}. Rerun deploy without --reuse-check to gate here")
+
+    if not os.path.isfile(path):
+        refuse("a", f"{path} not found; run `check` with the same arguments first (here or on the Mac mini mirror, "
+                    "then copy the run folder back)")
+    with open(path) as f:
+        m = json.load(f)
+    want = m.get("files") or {}
+    got = {f: sha256(os.path.join(models, f)) for f in sorted(os.listdir(models)) if f != "MANIFEST.json"}
+    if not want or got != want:
+        refuse("a", f"the files in {models} do not hash to its MANIFEST: "
+                    f"{sorted(f for f in set(got) | set(want) if got.get(f) != want.get(f))}")
+    gm = m.get("gate_model") or {}
+    asked_payload = sha256(payload) if payload else None
+    recorded_base = m.get("base_set") or None
+    diffs = []
+    if m.get("name") != name:
+        diffs.append(f"name {m.get('name')} vs {name}")
+    if list(m.get("slots") or []) != list(cands):
+        diffs.append(f"slots {m.get('slots')} vs {list(cands)}")
+    diffs += [f"{s}.onnx is not {p}" for s, p in cands.items() if want.get(f"{s}.onnx") != sha256(p)]
+    if (recorded_base or {}).get("name") != (base[2] if base else None):
+        diffs.append(f"base_set {(recorded_base or {}).get('name')} vs {base[2] if base else None}")
+    elif base and recorded_base.get("manifest_sha256") != sha256(os.path.join(base[0], "MANIFEST.json")):
+        diffs.append(f"base set {base[2]}'s MANIFEST here differs from the one gated on")
+    if list(m.get("brain_args") or []) != list(brain_args):
+        diffs.append(f"brain_args {m.get('brain_args')} vs {list(brain_args)}")
+    if (gm.get("payload_manifest") or {}).get("sha256") != asked_payload:
+        diffs.append(f"payload manifest {(gm.get('payload_manifest') or {}).get('file')} vs "
+                     f"{os.path.basename(payload) if payload else None} (by sha256)")
+    if gm.get("planned"):
+        diffs.append("gated on a planned robot")
+    if diffs:
+        refuse("b", "the gated set is not what this command asks for: " + "; ".join(diffs))
+    here = sim_hash()
+    if m.get("sim_hash") != here:
+        refuse("c", f"sim_hash {m.get('sim_hash')} of the gate differs from {here} here (the sim code, models or "
+                    "robot condition the gate depends on are not identical)")
+    try:
+        at = datetime.datetime.fromisoformat(m["gated_at"])
+        age_h = (now_utc() - at).total_seconds() / 3600
+    except (KeyError, TypeError, ValueError):
+        refuse("d", f"gated_at {m.get('gated_at')!r} is missing or not an ISO time with a zone")
+    if not -0.25 <= age_h < REUSE_MAX_AGE_H:
+        refuse("d", f"the gate ran at {m['gated_at']}, {age_h:.1f} h ago (limit {REUSE_MAX_AGE_H:g} h)")
+    wg = m.get("walking_gate") or {}
+    skills = m.get("skill_gate") or {}
+    missing = ([] if m.get("gate") and wg.get("source") and "passed" in wg else ["walking gate"]) \
+        + [f"skill_gate {s}" for s in SKILL_SLOTS if s in cands and "passed" not in (skills.get(s) or {})]
+    if missing:
+        refuse("e", f"the MANIFEST lacks {', '.join(missing)}")
+    consistent = m.get("gate_passed") is (wg.get("passed") is True and all(
+        (skills.get(s) or {}).get("passed") is True for s in SKILL_SLOTS if s in cands))
+    if not consistent:
+        refuse("e", "gate_passed does not follow from the walking and skill gate records")
+    if m.get("gate_passed") is not True and not m.get("forced"):
+        refuse("e", "the gate failed and the MANIFEST carries no forced record")
+    return models, m
+
+
+def check_robot_launcher(brain_args):
+    """Before a copy or switch: the robot's ~/duck-run.sh reads ~/duck-policy, and with brain args it reads brain-args
+    and its walk_wired.py knows each flag (the exact reads, since the venv path .venvs/duck-policy is in every launcher)."""
+    if ssh("grep -c 'cat ~/duck-policy' ~/duck-run.sh || true") in ("", "0"):
+        fail("~/duck-run.sh on the A7Z predates policy deployment and would ignore ~/duck-policy: rerun "
+             "guide/firmware/a7z/install_teleop.sh from the robot's MacBook first")
+    if not brain_args:
+        return
+    if ssh("grep -c 'brain-args' ~/duck-run.sh || true") in ("", "0"):
+        fail("~/duck-run.sh on the A7Z predates brain-args and would start this set without "
+             f"{' '.join(brain_args)}: rerun guide/firmware/a7z/install_teleop.sh from the robot's MacBook first")
+    for flag in brain_args[::2]:
+        if ssh(f"grep -c -- '{flag}' {ROBOT_WALK_WIRED} || true") in ("", "0"):
+            fail(f"{ROBOT_WALK_WIRED} on the A7Z does not know {flag}: rerun guide/firmware/a7z/install_teleop.sh "
+                 "from the robot's MacBook first")
+
+
+def remote_hashes(dest):
+    remote = ssh(f"cd {dest} && sha256sum *.onnx")
+    return {line.split()[1]: line.split()[0] for line in remote.splitlines()}
+
+
+def activate(dest, restart, said):
+    ssh(f"echo {dest} > ~/duck-policy.tmp && mv ~/duck-policy.tmp ~/duck-policy")
+    print(said)
+    if restart:
+        restart_if_idle()
+    else:
+        print("a running brain keeps its old policies until it restarts; rerun with --restart once nobody is driving")
+
+
+def use(name, restart):
+    """Make the set ~/policies/<name> on the A7Z active again after checking it against its own MANIFEST."""
+    dest = f"{ssh('echo $HOME')}/policies/{name}"
+    text = ssh(f"cat {dest}/MANIFEST.json 2>/dev/null || true")
+    if not text:
+        fail(f"{HOST}:{dest}/MANIFEST.json not found: `use` switches only to a set deployed with its record")
+    try:
+        manifest = json.loads(text)
+    except ValueError:
+        fail(f"{HOST}:{dest}/MANIFEST.json is not JSON")
+    want = {f: h for f, h in (manifest.get("files") or {}).items() if f.endswith(".onnx")}
+    got = remote_hashes(dest)
+    if not want or got != want:
+        fail(f"{HOST}:{dest} does not hold the files its MANIFEST records: "
+             f"{sorted(f for f in set(got) | set(want) if got.get(f) != want.get(f))} differ")
+    brain_args = list(manifest.get("brain_args") or [])
+    remote_args = ssh(f"cat {dest}/brain-args 2>/dev/null || true").split()
+    if remote_args != brain_args:
+        fail(f"{HOST}:{dest}/brain-args holds {remote_args}, its MANIFEST brain_args {brain_args}")
+    if (manifest.get("gate_model") or {}).get("planned"):
+        fail(f"{name} was gated on a planned robot, never deployed")
+    if manifest.get("gate_passed") is not True and not manifest.get("forced"):
+        fail(f"{name}'s MANIFEST has neither a passed gate nor a forced record")
+    check_robot_launcher(brain_args)
+    print(f"use: {dest} matches its MANIFEST (gate {'passed' if manifest.get('gate_passed') else 'FAILED, forced'}"
+          + (f", brain args {' '.join(brain_args)}" if brain_args else "") + ")")
+    payload = (manifest.get("gate_model") or {}).get("payload_manifest")
+    if payload:
+        print(f"note: gated carrying {payload.get('file')}; load it only with that payload fitted")
+    activate(dest, restart, f"use: {dest} is the active policy set")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("action", choices=("check", "deploy", "status", "rollback", "record"))
-    ap.add_argument("onnx", nargs="?", help="the candidate walking policy (61 inputs, 14 outputs)")
+    ap.add_argument("action", choices=("check", "deploy", "status", "use", "rollback", "record"))
+    ap.add_argument("onnx", nargs="?", help="a candidate policy (61 inputs, 14 outputs) for the slots in --slots")
     ap.add_argument("--name", help="a short name for this policy (letters, digits, - and _)")
     ap.add_argument("--restart", action="store_true", help="restart an idle brain so it loads the change now")
     ap.add_argument("--also", default="", help=f"comma list of historical models to run as report-only extras "
@@ -332,8 +647,19 @@ def main():
     ap.add_argument("--payload-manifest", default=None,
                     help="gate on the current robot carrying this payload (a signed-part mass manifest built on the "
                          "current variant, e.g. the flight pack's flightpack-nominal.json) instead of the bare robot")
-    ap.add_argument("--slots", default="walk61",
-                    help=f"comma list of the deployed set's files the candidate replaces ({', '.join(SLOTS)}; default walk61)")
+    ap.add_argument("--slots", default=None,
+                    help=f"comma list of the set's files the positional ONNX replaces ({', '.join(SLOTS)}; default walk61)")
+    ap.add_argument("--slot-file", action="append", default=[], metavar="SLOT=PATH",
+                    help=f"a candidate for one slot ({', '.join(SLOTS)}); repeat for several candidates in one set")
+    ap.add_argument("--base-set", default=None, metavar="NAME",
+                    help="build on the gated set cmu/deploy/runs/NAME/models (with its MANIFEST.json) instead of "
+                         "Pollen's deployed set")
+    ap.add_argument("--reuse-check", action="store_true",
+                    help="deploy only: copy the set a `check` with the same arguments gated within 24 h (here or on "
+                         "the Mac mini mirror, run folder copied back) instead of gating again; runs no simulation")
+    ap.add_argument("--brain-args", default=None,
+                    help="walk_wired.py options the set runs with: only --hard-max-action-sit V (0 < V <= 6) and "
+                         "--max-tilt-sit V (0 < V <= 55)")
     ap.add_argument("--deploy-despite-gate", metavar="REASON", default=None,
                     help="deploy (or record) a candidate the gate rejects; REASON is the words that allowed it, kept in "
                          "the MANIFEST with the failed verdict and the worse cases")
@@ -348,7 +674,6 @@ def main():
         if not is_planned(a.variant):
             fail(f"--variant {a.variant}: not a planned robot ({', '.join(PLANNED) or 'none'}); historical models go "
                  "to --also, the current robot is the default")
-    slots = parse_slots(a.slots)
     payload = os.path.abspath(a.payload_manifest) if a.payload_manifest else None
     if payload and not os.path.isfile(payload):
         fail(f"--payload-manifest {a.payload_manifest} not found")
@@ -359,6 +684,18 @@ def main():
 
     if a.deploy_despite_gate is not None and (a.action not in ("deploy", "record") or not a.deploy_despite_gate.strip()):
         fail("--deploy-despite-gate needs deploy or record and a non-empty reason")
+    if a.reuse_check and (a.action != "deploy" or a.deploy_despite_gate is not None):
+        fail("--reuse-check goes with deploy only, without --deploy-despite-gate (it takes the gate as recorded)")
+    if a.brain_args is not None and a.action not in ("check", "deploy"):
+        fail("--brain-args goes with check or deploy (a deployed set keeps its own brain-args)")
+    brain_args = skill_rehearsal.parse_brain_args(a.brain_args) if a.brain_args else []
+    if a.name is not None and (not a.name or not all(c.isalnum() or c in "-_" for c in a.name)):
+        fail("--name may hold letters, digits, - and _ only")
+    if a.action == "use":
+        if not a.name:
+            fail("use needs --name (a set in ~/policies on the A7Z, e.g. bw-s2c-b2)")
+        use(a.name, a.restart)
+        return
     if a.action == "record":
         if not a.name:
             fail("record needs --name (the set's folder in cmu/deploy/runs and ~/policies on the A7Z)")
@@ -378,19 +715,50 @@ def main():
             restart_if_idle()
         return
 
-    if not a.onnx or not a.name:
-        fail("check and deploy need the ONNX path and --name")
-    if not all(c.isalnum() or c in "-_" for c in a.name):
-        fail("--name may hold letters, digits, - and _ only")
-    if not os.path.isfile(a.onnx):
-        fail(f"{a.onnx} not found")
-    # before minutes of gating; the exact read, since the venv path .venvs/duck-policy is in every launcher
-    if a.action == "deploy" and ssh("grep -c 'cat ~/duck-policy' ~/duck-run.sh || true") in ("", "0"):
-        fail("~/duck-run.sh on the A7Z predates policy deployment and would ignore ~/duck-policy: rerun "
-             "guide/firmware/a7z/install_teleop.sh from the robot's MacBook first")
-    check_contract(a.onnx)
-    run, models = build_set(os.path.abspath(a.onnx), a.name, slots, a.variant)
-    verdicts = gate(run, models, extras, payload, a.variant, a.deploy_despite_gate)
+    if not a.name or not (a.onnx or a.slot_file):
+        fail("check and deploy need --name and a candidate (the ONNX path, or --slot-file SLOT=PATH)")
+    cands = candidates(a.onnx, a.slots, a.slot_file)
+    slots = tuple(cands)
+    walk_replaced = any(s in WALK_SLOTS for s in slots)
+    skill_slots = [s for s in SKILL_SLOTS if s in slots]
+    if payload and not walk_replaced:
+        fail("--payload-manifest gates walk61/stand61 on the payload; this set replaces neither")
+    if skill_slots and (payload or a.variant != "current"):
+        fail(f"{', '.join(skill_slots)}: the skill gate runs on the bare robot as it is now only (no --payload-manifest, "
+             "no planned --variant)")
+    if not walk_replaced and not a.base_set:
+        fail("a set that replaces neither walk61 nor stand61 needs --base-set NAME (the gated set whose walking it keeps); "
+             "Pollen's walk61 and stand61 fall on this robot")
+    if a.base_set and a.base_set == a.name:
+        fail("--base-set and --name must differ (the build would overwrite its own base)")
+    if a.action == "deploy":  # before minutes of gating
+        check_robot_launcher(brain_args)
+    base = None
+    if a.base_set:
+        base_models, base_manifest = load_base_set(a.base_set)
+        base = (base_models, base_manifest, a.base_set)
+    for path in sorted(set(cands.values())):
+        check_contract(path)
+    if a.reuse_check:
+        models, manifest = reused_check(a.name, cands, base, brain_args, payload)
+        manifest["deploy_reused_check"] = {"host": socket.gethostname(), "at": now_utc().isoformat(timespec="seconds")}
+        with open(os.path.join(models, "MANIFEST.json"), "w") as f:
+            json.dump(manifest, f, indent=1, ensure_ascii=False)
+        print(f"gate reused: it was run on {manifest.get('gated_host')} at {manifest.get('gated_at')} (gate "
+              f"{'passed' if manifest['gate_passed'] else 'FAILED, forced: ' + str(manifest['forced'].get('reason'))}; "
+              f"sim_hash {manifest['sim_hash']} matches here); no simulation run; policy set in {models}")
+        copy_to_robot(models, manifest, a.name, brain_args, a.restart)
+        return
+    gated_hash = sim_hash()  # at gate time; deploy --reuse-check compares it with its own machine's
+    run, models, file_origin = build_set_from(cands, a.name, a.variant, base)
+    write_brain_args(models, brain_args)
+    if walk_replaced:
+        verdicts = gate(run, models, extras, payload, a.variant, a.deploy_despite_gate)
+        verdicts["source"] = "run"
+    else:
+        verdicts = carried_gate(a.base_set, base[1], models)
+    skills = skill_gates(run, models, slots, brain_args, a.deploy_despite_gate)
+    skills_passed = all(r["passed"] for r in skills.values())
     with open(os.path.join(ROOT, "cmu", "model", "current.json")) as f:
         current = json.load(f)
     gate_model = {"variant": current["variant"], "mass_manifest_sha256": current["mass_manifest_sha256"]}
@@ -402,44 +770,69 @@ def main():
     if payload:
         gate_model["payload_manifest"] = {"file": os.path.basename(payload), "sha256": sha256(payload)}
         gate_model["note"] = "gated with this payload on the robot only; load it only with the payload fitted"
-    manifest = {"name": a.name, "source": os.path.abspath(a.onnx), "built": datetime.datetime.now().isoformat(timespec="seconds"),
-                "by": getpass.getuser(), "gate": verdicts["gate"], "gate_passed": verdicts["gate_passed"],
+    walking_passed = verdicts["gate_passed"]
+    gate_passed = walking_passed and skills_passed
+    manifest = {"name": a.name, "source": os.path.abspath(a.onnx) if a.onnx else None,
+                "candidates": {s: {"file": p, "sha256": sha256(p)} for s, p in cands.items()},
+                "built": datetime.datetime.now().isoformat(timespec="seconds"),
+                "by": getpass.getuser(), "gate": verdicts["gate"], "gate_passed": gate_passed,
+                "walking_gate": {"source": verdicts["source"], "passed": walking_passed},
                 "worse": verdicts["worse"], "historical_extras": verdicts["historical_extras"],
+                "skill_gate": skills, "brain_args": brain_args,
                 "gate_model": gate_model, "slots": list(slots),
-                "files": {f: sha256(os.path.join(models, f)) for f in sorted(os.listdir(models)) if f != "MANIFEST.json"}}
-    if not verdicts["gate_passed"]:
-        manifest["forced"] = forced_record(a.deploy_despite_gate)
+                "base_set": None if base is None else {
+                    "name": a.base_set, "manifest_sha256": sha256(os.path.join(base[0], "MANIFEST.json")),
+                    **{k: base[1].get(k) for k in ("gate", "gate_passed", "worse", "gate_model", "forced", "skill_gate",
+                                                   "brain_args", "slots", "built") if k in base[1]}},
+                "file_origin": file_origin,
+                "files": {f: sha256(os.path.join(models, f)) for f in sorted(os.listdir(models)) if f != "MANIFEST.json"},
+                "sim_hash": gated_hash, "gated_host": socket.gethostname(),
+                "gated_at": now_utc().isoformat(timespec="seconds")}
+    if not gate_passed:
+        if a.deploy_despite_gate:
+            manifest["forced"] = dict(forced_record(a.deploy_despite_gate),
+                                      **({"carried": verdicts["forced"]} if "forced" in verdicts else {}))
+        else:  # only a carried, forced walking gate gets here (every other failure stopped the script)
+            manifest["forced"] = verdicts["forced"]
     with open(os.path.join(models, "MANIFEST.json"), "w") as f:
         json.dump(manifest, f, indent=1, ensure_ascii=False)
     robot = gate_model["variant"]
     on = f"{robot} carrying {os.path.basename(payload)}" if payload else robot
+    what = (f"walking gate {'passed' if walking_passed else 'FAILED'} ({verdicts['source']})"
+            + "".join(f", {s} skill gate {'passed' if r['passed'] else 'FAILED'} ({len(r['completes'])} of "
+                      f"{len(r['conditions'])} complete, largest action {r['largest_action']} rad)" for s, r in skills.items())
+            + (f", brain args {' '.join(brain_args)}" if brain_args else ""))
     if a.variant != "current":
         print(f"gate passed on the PLANNED robot ({on}), NOT the robot as it is now ({current['variant']}); "
               f"slots {', '.join(slots)}; policy set in {models}")
         return
-    print(f"gate {'passed' if verdicts['gate_passed'] else 'FAILED (deploying despite it)'} on the current robot ({on}); "
-          f"slots {', '.join(slots)}; policy set in {models}")
+    print(f"{what}; gate {'passed' if gate_passed else 'FAILED (going on with a forced record)'} on the current robot "
+          f"({on}); slots {', '.join(slots)}; policy set in {models}")
     if a.action == "check":
-        print("send that directory (or the ONNX and this name) to whoever runs `deploy` on the robot's MacBook")
+        print("send that directory (or the ONNX and this name) to whoever runs `deploy` on the robot's MacBook; "
+              "within 24 h and with identical sim code there, `deploy ... --reuse-check` copies it without gating again")
         return
+    copy_to_robot(models, manifest, a.name, brain_args, a.restart)
 
+
+def copy_to_robot(models, manifest, name, brain_args, restart):
+    """rsync the set to ~/policies/<name>, compare hashes, settle brain-args, then make it the active set."""
     home = ssh("echo $HOME")
-    dest = f"{home}/policies/{a.name}"
+    dest = f"{home}/policies/{name}"
     ssh(f"mkdir -p {dest}")
     p = subprocess.run(["rsync", "-a", "--checksum", models + "/", f"{HOST}:{dest}/"], capture_output=True, text=True)
     if p.returncode:
         fail(f"rsync to {HOST}:{dest} failed: {p.stderr.strip()}")
-    remote = ssh(f"cd {dest} && sha256sum *.onnx")
-    got = {line.split()[1]: line.split()[0] for line in remote.splitlines()}
+    got = remote_hashes(dest)
     want = {f: h for f, h in manifest["files"].items() if f.endswith(".onnx")}
     if got != want:
         fail(f"the copy on {HOST} differs from the gated files: {got} vs {want}")
-    ssh(f"echo {dest} > ~/duck-policy.tmp && mv ~/duck-policy.tmp ~/duck-policy")
-    print(f"deploy: {dest} is the active policy set (hashes match)")
-    if a.restart:
-        restart_if_idle()
-    else:
-        print("a running brain keeps its old policies until it restarts; rerun with --restart once nobody is driving")
+    if not brain_args and ssh(f"test -e {dest}/brain-args && echo yes || echo no") == "yes":
+        ssh(f"rm -f {dest}/brain-args")  # left by an earlier deploy under this name; this set runs without options
+    if ssh(f"cat {dest}/brain-args 2>/dev/null || true").split() != brain_args:
+        fail(f"{HOST}:{dest}/brain-args does not hold {brain_args}")
+    activate(dest, restart, f"deploy: {dest} is the active policy set (hashes match"
+             + (f", brain args {' '.join(brain_args)})" if brain_args else ")"))
 
 
 if __name__ == "__main__":

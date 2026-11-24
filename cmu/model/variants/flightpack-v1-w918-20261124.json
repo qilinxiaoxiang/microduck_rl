@@ -1,0 +1,1959 @@
+{
+ "variant": "flightpack-v1-w918-20261124",
+ "describes": "the 918 g robot (battery-v2m5-w918-20261123, 3000 mAh battery backpack kept on under the wing plate) wearing the assembled FlightPack-D2 four-EDF pack, pack mass matched to the weighed 905 g (both CNHL 4S 1300 packs included, CURRENT-STATE.json parts_flight_pack.assembled_pack_mass, Shawn 2026-11-23). Generator total 953.62 g; the 48.62 g above 905 g is taken off the printed parts only (x0.7338); listing masses kept. Not current: the robot is not wearing the pack. Built 2026-11-24 by cmu/model/flightpack-v1-w918-20261124/build_variant.py.",
+ "base": "battery-v2m5-w918-20261123.json",
+ "position_frame": "Each part position is in its named MuJoCo body frame (trunk_base = CAD guide frame), metres.",
+ "estimation": {
+  "date": "2026-11-24",
+  "weighed": "pack 905 g (Shawn's scale, batteries in); robot 918 g (2026-11-23)",
+  "generator": "extensions/flight-20261110/sim/manifest.py --base-variant battery-v2m5-w918-20261123 (unchanged)",
+  "generator_pack_g": 953.616,
+  "printed_generated_g": 182.6,
+  "printed_factor": 0.733757,
+  "printed_removed_g": 48.616,
+  "rule": "listing masses (fans 77 g, batteries 151 g, FC/ESC stack, MTF-01, straps) and non-printed estimates (wires, connectors, capacitor, screws) kept; printed parts scaled by one factor, positions unchanged",
+  "uncertainty": "the 48.6 g gap is not located; it may sit partly in wire, connector or screw estimates or in the 77 g fan listing (fans not weighed); the backpack shift pair is geometry only"
+ },
+ "add": [
+  {
+   "id": "add-fp-fan-front-L",
+   "body": "trunk_base",
+   "mass_kg": 0.077,
+   "position_m": [
+    0.024704,
+    0.11,
+    0.027194
+   ],
+   "basis": "vendor+estimate",
+   "label": "vendor+estimate",
+   "source": "cad/flight_params.FAN mass_g 77.0 (FAN_ID ARESWEI_HDS001, seller listing incl. leads); mass centre t 45 mm on the canted axis (cad/flight_params.fan_point); cylinder inertia estimate",
+   "group": "pack",
+   "inertia_about_com_kg_m2": [
+    [
+     4.6076512e-05,
+     0.0,
+     2.884324e-06
+    ],
+    [
+     0.0,
+     4.6379667e-05,
+     0.0
+    ],
+    [
+     2.884324e-06,
+     0.0,
+     1.8937155e-05
+    ]
+   ],
+   "mass_note": "sourced (listing): kept"
+  },
+  {
+   "id": "add-fp-fan-front-R",
+   "body": "trunk_base",
+   "mass_kg": 0.077,
+   "position_m": [
+    0.024704,
+    -0.11,
+    0.027194
+   ],
+   "basis": "vendor+estimate",
+   "label": "vendor+estimate",
+   "source": "cad/flight_params.FAN mass_g 77.0 (FAN_ID ARESWEI_HDS001, seller listing incl. leads); mass centre t 45 mm on the canted axis (cad/flight_params.fan_point); cylinder inertia estimate",
+   "group": "pack",
+   "inertia_about_com_kg_m2": [
+    [
+     4.6076512e-05,
+     0.0,
+     2.884324e-06
+    ],
+    [
+     0.0,
+     4.6379667e-05,
+     0.0
+    ],
+    [
+     2.884324e-06,
+     0.0,
+     1.8937155e-05
+    ]
+   ],
+   "mass_note": "sourced (listing): kept"
+  },
+  {
+   "id": "add-fp-fan-rear-L",
+   "body": "trunk_base",
+   "mass_kg": 0.077,
+   "position_m": [
+    -0.048704,
+    0.11,
+    0.027194
+   ],
+   "basis": "vendor+estimate",
+   "label": "vendor+estimate",
+   "source": "cad/flight_params.FAN mass_g 77.0 (FAN_ID ARESWEI_HDS001, seller listing incl. leads); mass centre t 45 mm on the canted axis (cad/flight_params.fan_point); cylinder inertia estimate",
+   "group": "pack",
+   "inertia_about_com_kg_m2": [
+    [
+     4.6076512e-05,
+     0.0,
+     -2.884324e-06
+    ],
+    [
+     0.0,
+     4.6379667e-05,
+     0.0
+    ],
+    [
+     -2.884324e-06,
+     0.0,
+     1.8937155e-05
+    ]
+   ],
+   "mass_note": "sourced (listing): kept"
+  },
+  {
+   "id": "add-fp-fan-rear-R",
+   "body": "trunk_base",
+   "mass_kg": 0.077,
+   "position_m": [
+    -0.048704,
+    -0.11,
+    0.027194
+   ],
+   "basis": "vendor+estimate",
+   "label": "vendor+estimate",
+   "source": "cad/flight_params.FAN mass_g 77.0 (FAN_ID ARESWEI_HDS001, seller listing incl. leads); mass centre t 45 mm on the canted axis (cad/flight_params.fan_point); cylinder inertia estimate",
+   "group": "pack",
+   "inertia_about_com_kg_m2": [
+    [
+     4.6076512e-05,
+     0.0,
+     -2.884324e-06
+    ],
+    [
+     0.0,
+     4.6379667e-05,
+     0.0
+    ],
+    [
+     -2.884324e-06,
+     0.0,
+     1.8937155e-05
+    ]
+   ],
+   "mass_note": "sourced (listing): kept"
+  },
+  {
+   "id": "add-fp-battery-L",
+   "body": "trunk_base",
+   "mass_kg": 0.151,
+   "position_m": [
+    0.003,
+    0.059,
+    0.0415
+   ],
+   "basis": "vendor",
+   "label": "vendor",
+   "source": "CNHL 4S 1300 130C, 151 g +-5 (procurement.json fit quote); centre of cad/build/dummy_battery_L-world.stl",
+   "group": "pack",
+   "dimensions_m": [
+    0.074,
+    0.033,
+    0.031
+   ],
+   "mass_note": "sourced (listing): kept"
+  },
+  {
+   "id": "add-fp-battery-R",
+   "body": "trunk_base",
+   "mass_kg": 0.151,
+   "position_m": [
+    0.003,
+    -0.059,
+    0.0415
+   ],
+   "basis": "vendor",
+   "label": "vendor",
+   "source": "CNHL 4S 1300 130C, 151 g +-5 (procurement.json fit quote); centre of cad/build/dummy_battery_R-world.stl",
+   "group": "pack",
+   "dimensions_m": [
+    0.074,
+    0.033,
+    0.031
+   ],
+   "mass_note": "sourced (listing): kept"
+  },
+  {
+   "id": "add-fp-print-wing_plate",
+   "body": "trunk_base",
+   "mass_kg": 0.04791432201533407,
+   "position_m": [
+    -0.0505,
+    -0.0015,
+    0.02
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "cad/build/build.json wing_plate: H2S slicer 65.3 g (cad/slices/grams.json); CAD centroid",
+   "group": "pack",
+   "dimensions_m": [
+    0.0114,
+    0.0948,
+    0.0621
+   ],
+   "mass_note": "adjusted: slicer 65.30 g x 0.7338 -> 47.91 g (pack weighed 905 g)"
+  },
+  {
+   "id": "add-fp-print-tray_L",
+   "body": "trunk_base",
+   "mass_kg": 0.015262142387732752,
+   "position_m": [
+    -0.0092,
+    0.0577,
+    0.0263
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "cad/build/build.json tray_L: H2S slicer 20.8 g (cad/slices/grams.json); CAD centroid",
+   "group": "pack",
+   "dimensions_m": [
+    0.05244,
+    0.02556,
+    0.0168
+   ],
+   "mass_note": "adjusted: slicer 20.80 g x 0.7338 -> 15.26 g (pack weighed 905 g)"
+  },
+  {
+   "id": "add-fp-print-tray_R",
+   "body": "trunk_base",
+   "mass_kg": 0.015262142387732752,
+   "position_m": [
+    -0.0093,
+    -0.0577,
+    0.0264
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "cad/build/build.json tray_R: H2S slicer 20.8 g (cad/slices/grams.json); CAD centroid",
+   "group": "pack",
+   "dimensions_m": [
+    0.05244,
+    0.02556,
+    0.0168
+   ],
+   "mass_note": "adjusted: slicer 20.80 g x 0.7338 -> 15.26 g (pack weighed 905 g)"
+  },
+  {
+   "id": "add-fp-print-nacelle_inner_L",
+   "body": "trunk_base",
+   "mass_kg": 0.025314611171960575,
+   "position_m": [
+    -0.0135,
+    0.0934,
+    0.0517
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "cad/build/build.json nacelle_inner_L: H2S slicer 34.5 g (cad/slices/grams.json); CAD centroid",
+   "group": "pack",
+   "dimensions_m": [
+    0.092016,
+    0.02346,
+    0.018306
+   ],
+   "mass_note": "adjusted: slicer 34.50 g x 0.7338 -> 25.31 g (pack weighed 905 g)"
+  },
+  {
+   "id": "add-fp-print-nacelle_inner_R",
+   "body": "trunk_base",
+   "mass_kg": 0.025314611171960575,
+   "position_m": [
+    -0.0135,
+    -0.0934,
+    0.0517
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "cad/build/build.json nacelle_inner_R: H2S slicer 34.5 g (cad/slices/grams.json); CAD centroid",
+   "group": "pack",
+   "dimensions_m": [
+    0.092016,
+    0.02346,
+    0.018306
+   ],
+   "mass_note": "adjusted: slicer 34.50 g x 0.7338 -> 25.31 g (pack weighed 905 g)"
+  },
+  {
+   "id": "add-fp-print-fc_bracket",
+   "body": "trunk_base",
+   "mass_kg": 0.0049161708652793,
+   "position_m": [
+    -0.0719,
+    -0.0559,
+    0.0293
+   ],
+   "basis": "slicer",
+   "label": "slicer",
+   "source": "cad/build/build.json fc_bracket: H2S slicer 6.7 g (cad/slices/grams.json); CAD centroid",
+   "group": "pack",
+   "dimensions_m": [
+    0.0228,
+    0.02265,
+    0.0276
+   ],
+   "mass_note": "adjusted: slicer 6.70 g x 0.7338 -> 4.92 g (pack weighed 905 g)"
+  },
+  {
+   "id": "add-fp-fc-esc-stack",
+   "body": "trunk_base",
+   "mass_kg": 0.03,
+   "position_m": [
+    -0.0848,
+    -0.05975,
+    0.04175
+   ],
+   "basis": "vendor+estimate",
+   "label": "vendor+estimate",
+   "source": "MicoAir743v2 10 g + AM32 55A 14 g (procurement.json cad_handoff) + 6 g standoffs/hardware (flight_params.FC hw_g); dummy_fc_esc_stack box",
+   "group": "pack",
+   "dimensions_m": [
+    0.0156,
+    0.0485,
+    0.0445
+   ],
+   "mass_note": "sourced (listing): kept"
+  },
+  {
+   "id": "add-fp-mtf01",
+   "body": "trunk_base",
+   "mass_kg": 0.0045,
+   "position_m": [
+    -0.086,
+    -0.059,
+    0.00745
+   ],
+   "basis": "vendor",
+   "label": "vendor",
+   "source": "MTF-01 4.5 g (micoair.com, procurement.json)",
+   "group": "pack",
+   "dimensions_m": [
+    0.0293,
+    0.017,
+    0.0121
+   ],
+   "mass_note": "sourced (listing): kept"
+  },
+  {
+   "id": "add-fp-capacitor",
+   "body": "trunk_base",
+   "mass_kg": 0.005,
+   "position_m": [
+    -0.0611,
+    -0.056,
+    0.067
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "Rubycon 1000 uF 35 V 12.5 x 20 mm with leads, 5 g (estimate)",
+   "group": "pack",
+   "dimensions_m": [
+    0.025,
+    0.013,
+    0.013
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-wire-left-fan-ext",
+   "body": "trunk_base",
+   "mass_kg": 0.026999999999999996,
+   "position_m": [
+    -0.045,
+    0.055,
+    0.025
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "6 x 16 AWG x 0.30 m, left fans to the ESC on the right (front of the tray, through the web, cross harness behind the backpack); 15 g/m silicone estimate; centroid of the route",
+   "group": "pack",
+   "dimensions_m": [
+    0.06,
+    0.12,
+    0.025
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-wire-right-fan-ext",
+   "body": "trunk_base",
+   "mass_kg": 0.013499999999999998,
+   "position_m": [
+    -0.05,
+    -0.085,
+    0.035
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "6 x 16 AWG x 0.15 m, right fans to the ESC; 15 g/m estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.06,
+    0.05,
+    0.025
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-wire-battery-pigtails",
+   "body": "trunk_base",
+   "mass_kg": 0.02016,
+   "position_m": [
+    -0.06,
+    -0.005,
+    0.03
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "2 x 14 AWG pairs, left 0.30 m (crosses), right 0.12 m; 24 g/m estimate (RoboClub wire)",
+   "group": "pack",
+   "dimensions_m": [
+    0.04,
+    0.12,
+    0.03
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-xt60-male-x2",
+   "body": "trunk_base",
+   "mass_kg": 0.006,
+   "position_m": [
+    -0.055,
+    0.0,
+    0.045
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "two XT60 male housings with contacts, 3 g each (estimate; RoboClub stock)",
+   "group": "pack",
+   "dimensions_m": [
+    0.02,
+    0.1,
+    0.015
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-bullet-connectors",
+   "body": "trunk_base",
+   "mass_kg": 0.012,
+   "position_m": [
+    -0.02,
+    0.0,
+    0.03
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "12 pairs 3.5 mm bullets at the fan leads, 1 g per pair (estimate)",
+   "group": "pack",
+   "dimensions_m": [
+    0.06,
+    0.2,
+    0.02
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-signal-leads",
+   "body": "trunk_base",
+   "mass_kg": 0.003,
+   "position_m": [
+    -0.085,
+    -0.04,
+    0.03
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "SH1.0 ESC 8-pin, MTF-01 4-pin, FC to A7Z UART 4-pin, 3 g (estimate)",
+   "group": "pack",
+   "dimensions_m": [
+    0.03,
+    0.06,
+    0.03
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-solder-heatshrink-ties",
+   "body": "trunk_base",
+   "mass_kg": 0.006,
+   "position_m": [
+    -0.055,
+    0.0,
+    0.03
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "solder, heat shrink and zip ties, 6 g (estimate)",
+   "group": "pack",
+   "dimensions_m": [
+    0.04,
+    0.15,
+    0.03
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-strap-L",
+   "body": "trunk_base",
+   "mass_kg": 0.004,
+   "position_m": [
+    0.003,
+    0.059,
+    0.0415
+   ],
+   "basis": "vendor",
+   "label": "vendor",
+   "source": "Pyrodrone strap 16 x 250 mm, 4 g (listing)",
+   "group": "pack",
+   "dimensions_m": [
+    0.04,
+    0.04,
+    0.04
+   ],
+   "mass_note": "sourced (listing): kept"
+  },
+  {
+   "id": "add-fp-strap-R",
+   "body": "trunk_base",
+   "mass_kg": 0.004,
+   "position_m": [
+    0.003,
+    -0.059,
+    0.0415
+   ],
+   "basis": "vendor",
+   "label": "vendor",
+   "source": "Pyrodrone strap 16 x 250 mm, 4 g (listing)",
+   "group": "pack",
+   "dimensions_m": [
+    0.04,
+    0.04,
+    0.04
+   ],
+   "mass_note": "sourced (listing): kept"
+  },
+  {
+   "id": "add-fp-screw-post-0-upgrade",
+   "body": "trunk_base",
+   "mass_kg": 0.00016,
+   "position_m": [
+    -0.0539,
+    0.0161,
+    0.026
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 12 (existing backpack screw position; Zuorery M2 kit): shared post screw M2 x 6 -> M2 x 12, mass difference",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-post-1-upgrade",
+   "body": "trunk_base",
+   "mass_kg": 0.00016,
+   "position_m": [
+    -0.0539,
+    0.0161,
+    -0.0365
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 12 (existing backpack screw position; Zuorery M2 kit): shared post screw M2 x 6 -> M2 x 12, mass difference",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-post-2-upgrade",
+   "body": "trunk_base",
+   "mass_kg": 0.00016,
+   "position_m": [
+    -0.0539,
+    -0.0161,
+    0.026
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 12 (existing backpack screw position; Zuorery M2 kit): shared post screw M2 x 6 -> M2 x 12, mass difference",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-post-3-upgrade",
+   "body": "trunk_base",
+   "mass_kg": 0.00016,
+   "position_m": [
+    -0.0539,
+    -0.0161,
+    -0.0365
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 12 (existing backpack screw position; Zuorery M2 kit): shared post screw M2 x 6 -> M2 x 12, mass difference",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-tray-L-0",
+   "body": "trunk_base",
+   "mass_kg": 0.000316,
+   "position_m": [
+    -0.0502,
+    0.046,
+    0.031
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 10; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-tray-L-1",
+   "body": "trunk_base",
+   "mass_kg": 0.000316,
+   "position_m": [
+    -0.0502,
+    0.063,
+    0.031
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 10; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-tray-L-2",
+   "body": "trunk_base",
+   "mass_kg": 0.000316,
+   "position_m": [
+    -0.0502,
+    0.046,
+    0.045
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 10; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-tray-R-0",
+   "body": "trunk_base",
+   "mass_kg": 0.000316,
+   "position_m": [
+    -0.0502,
+    -0.046,
+    0.031
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 10; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-tray-R-1",
+   "body": "trunk_base",
+   "mass_kg": 0.000316,
+   "position_m": [
+    -0.0502,
+    -0.063,
+    0.031
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 10; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-tray-R-2",
+   "body": "trunk_base",
+   "mass_kg": 0.000316,
+   "position_m": [
+    -0.0502,
+    -0.046,
+    0.045
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 10; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-L-0",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    0.05065,
+    0.1115,
+    0.05204
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6 (with M2 washer); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-L-1",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    -0.00584,
+    0.1115,
+    0.04611
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6 (with M2 washer); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-L-2",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    -0.01816,
+    0.1115,
+    0.04611
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6 (with M2 washer); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-L-3",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    -0.07465,
+    0.1115,
+    0.05204
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6 (with M2 washer); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-lug-L-0",
+   "body": "trunk_base",
+   "mass_kg": 0.001,
+   "position_m": [
+    -0.0502,
+    0.074,
+    0.04163
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 12; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-lug-L-1",
+   "body": "trunk_base",
+   "mass_kg": 0.001,
+   "position_m": [
+    -0.0502,
+    0.074,
+    0.04729
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 12; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-lug-L-2",
+   "body": "trunk_base",
+   "mass_kg": 0.001,
+   "position_m": [
+    -0.0502,
+    0.074,
+    0.05295
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 12; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-R-0",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    0.05065,
+    -0.1115,
+    0.05204
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6 (with M2 washer); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-R-1",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    -0.00584,
+    -0.1115,
+    0.04611
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6 (with M2 washer); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-R-2",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    -0.01816,
+    -0.1115,
+    0.04611
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6 (with M2 washer); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-R-3",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    -0.07465,
+    -0.1115,
+    0.05204
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6 (with M2 washer); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-lug-R-0",
+   "body": "trunk_base",
+   "mass_kg": 0.001,
+   "position_m": [
+    -0.0502,
+    -0.074,
+    0.04163
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 12; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-lug-R-1",
+   "body": "trunk_base",
+   "mass_kg": 0.001,
+   "position_m": [
+    -0.0502,
+    -0.074,
+    0.04729
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 12; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-lug-R-2",
+   "body": "trunk_base",
+   "mass_kg": 0.001,
+   "position_m": [
+    -0.0502,
+    -0.074,
+    0.05295
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 12; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fcb-0",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    -0.066,
+    -0.048,
+    0.02175
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fcb-1",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    -0.066,
+    -0.064,
+    0.02175
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fcb-2",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    -0.066,
+    -0.0485,
+    0.05575
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fcb-3",
+   "body": "trunk_base",
+   "mass_kg": 0.00020999999999999998,
+   "position_m": [
+    -0.066,
+    -0.0635,
+    0.05575
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 6; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fc-standoff-0",
+   "body": "trunk_base",
+   "mass_kg": 0.0012,
+   "position_m": [
+    -0.071,
+    -0.07125,
+    0.02475
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 6 male-female metal standoff (male end into the pilot); brass estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-esc-fc-spacer-0",
+   "body": "trunk_base",
+   "mass_kg": 0.0015,
+   "position_m": [
+    -0.0786,
+    -0.07125,
+    0.02475
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 8 male-female metal spacer (male end through the ESC into the standoff); brass estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fc-screw-0",
+   "body": "trunk_base",
+   "mass_kg": 0.00085,
+   "position_m": [
+    -0.0892,
+    -0.07125,
+    0.02475
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 8 metal screw into the spacer's female end (the spacer chain ends female, so a nut has no thread to sit on); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fc-standoff-1",
+   "body": "trunk_base",
+   "mass_kg": 0.0012,
+   "position_m": [
+    -0.071,
+    -0.07125,
+    0.05525
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 6 male-female metal standoff (male end into the pilot); brass estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-esc-fc-spacer-1",
+   "body": "trunk_base",
+   "mass_kg": 0.0015,
+   "position_m": [
+    -0.0786,
+    -0.07125,
+    0.05525
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 8 male-female metal spacer (male end through the ESC into the standoff); brass estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fc-screw-1",
+   "body": "trunk_base",
+   "mass_kg": 0.00085,
+   "position_m": [
+    -0.0892,
+    -0.07125,
+    0.05525
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 8 metal screw into the spacer's female end (the spacer chain ends female, so a nut has no thread to sit on); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fc-standoff-2",
+   "body": "trunk_base",
+   "mass_kg": 0.0012,
+   "position_m": [
+    -0.071,
+    -0.04075,
+    0.02475
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 6 male-female metal standoff (male end into the pilot); brass estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-esc-fc-spacer-2",
+   "body": "trunk_base",
+   "mass_kg": 0.0015,
+   "position_m": [
+    -0.0786,
+    -0.04075,
+    0.02475
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 8 male-female metal spacer (male end through the ESC into the standoff); brass estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fc-screw-2",
+   "body": "trunk_base",
+   "mass_kg": 0.00085,
+   "position_m": [
+    -0.0892,
+    -0.04075,
+    0.02475
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 8 metal screw into the spacer's female end (the spacer chain ends female, so a nut has no thread to sit on); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fc-standoff-3",
+   "body": "trunk_base",
+   "mass_kg": 0.0012,
+   "position_m": [
+    -0.071,
+    -0.04075,
+    0.05525
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 6 male-female metal standoff (male end into the pilot); brass estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-esc-fc-spacer-3",
+   "body": "trunk_base",
+   "mass_kg": 0.0015,
+   "position_m": [
+    -0.0786,
+    -0.04075,
+    0.05525
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 8 male-female metal spacer (male end through the ESC into the standoff); brass estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-fc-screw-3",
+   "body": "trunk_base",
+   "mass_kg": 0.00085,
+   "position_m": [
+    -0.0892,
+    -0.04075,
+    0.05525
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M3 x 8 metal screw into the spacer's female end (the spacer chain ends female, so a nut has no thread to sit on); steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-mtf-0",
+   "body": "trunk_base",
+   "mass_kg": 0.00015,
+   "position_m": [
+    -0.09815,
+    -0.065,
+    0.0119
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 4; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-mtf-1",
+   "body": "trunk_base",
+   "mass_kg": 0.00015,
+   "position_m": [
+    -0.09815,
+    -0.053,
+    0.0119
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 4; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-mtf-2",
+   "body": "trunk_base",
+   "mass_kg": 0.00015,
+   "position_m": [
+    -0.07385,
+    -0.065,
+    0.0119
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 4; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-screw-mtf-3",
+   "body": "trunk_base",
+   "mass_kg": 0.00015,
+   "position_m": [
+    -0.07385,
+    -0.053,
+    0.0119
+   ],
+   "basis": "estimate",
+   "label": "estimate",
+   "source": "cad/build/screws.json M2 x 4; steel estimate",
+   "group": "pack",
+   "dimensions_m": [
+    0.004,
+    0.004,
+    0.01
+   ],
+   "mass_note": "estimate, not printed: kept as generated"
+  },
+  {
+   "id": "add-fp-backpack-shift-minus",
+   "body": "trunk_base",
+   "mass_kg": -0.17462436481475493,
+   "position_m": [
+    -0.060285,
+    -0.002481,
+    -0.002213
+   ],
+   "basis": "geometry",
+   "label": "geometry",
+   "source": "battery backpack parts of battery-v2m5-w918-20261123 (174.6 g) removed at their COM ...",
+   "group": "shift",
+   "dimensions_m": [
+    0.001,
+    0.001,
+    0.001
+   ],
+   "mass_note": "geometry (battery backpack moved behind the wing plate, signed pair, net 0 g)"
+  },
+  {
+   "id": "add-fp-backpack-shift-plus",
+   "body": "trunk_base",
+   "mass_kg": 0.17462436481475493,
+   "position_m": [
+    -0.067185,
+    -0.002481,
+    -0.002213
+   ],
+   "basis": "geometry",
+   "label": "geometry",
+   "source": "... and put back 6.9 mm behind (wing plate centre, cad/flight_params.WING x_front - x_centre_back)",
+   "group": "shift",
+   "dimensions_m": [
+    0.001,
+    0.001,
+    0.001
+   ],
+   "mass_note": "geometry (battery backpack moved behind the wing plate, signed pair, net 0 g)"
+  }
+ ],
+ "mass_rows": [
+  {
+   "id": "add-fp-fan-front-L",
+   "generated_g": 77.0,
+   "model_g": 77.0,
+   "basis": "vendor+estimate",
+   "role": "sourced (listing)"
+  },
+  {
+   "id": "add-fp-fan-front-R",
+   "generated_g": 77.0,
+   "model_g": 77.0,
+   "basis": "vendor+estimate",
+   "role": "sourced (listing)"
+  },
+  {
+   "id": "add-fp-fan-rear-L",
+   "generated_g": 77.0,
+   "model_g": 77.0,
+   "basis": "vendor+estimate",
+   "role": "sourced (listing)"
+  },
+  {
+   "id": "add-fp-fan-rear-R",
+   "generated_g": 77.0,
+   "model_g": 77.0,
+   "basis": "vendor+estimate",
+   "role": "sourced (listing)"
+  },
+  {
+   "id": "add-fp-battery-L",
+   "generated_g": 151.0,
+   "model_g": 151.0,
+   "basis": "vendor",
+   "role": "sourced (listing)"
+  },
+  {
+   "id": "add-fp-battery-R",
+   "generated_g": 151.0,
+   "model_g": 151.0,
+   "basis": "vendor",
+   "role": "sourced (listing)"
+  },
+  {
+   "id": "add-fp-print-wing_plate",
+   "generated_g": 65.3,
+   "model_g": 47.914,
+   "basis": "slicer",
+   "role": "adjusted"
+  },
+  {
+   "id": "add-fp-print-tray_L",
+   "generated_g": 20.8,
+   "model_g": 15.262,
+   "basis": "slicer",
+   "role": "adjusted"
+  },
+  {
+   "id": "add-fp-print-tray_R",
+   "generated_g": 20.8,
+   "model_g": 15.262,
+   "basis": "slicer",
+   "role": "adjusted"
+  },
+  {
+   "id": "add-fp-print-nacelle_inner_L",
+   "generated_g": 34.5,
+   "model_g": 25.315,
+   "basis": "slicer",
+   "role": "adjusted"
+  },
+  {
+   "id": "add-fp-print-nacelle_inner_R",
+   "generated_g": 34.5,
+   "model_g": 25.315,
+   "basis": "slicer",
+   "role": "adjusted"
+  },
+  {
+   "id": "add-fp-print-fc_bracket",
+   "generated_g": 6.7,
+   "model_g": 4.916,
+   "basis": "slicer",
+   "role": "adjusted"
+  },
+  {
+   "id": "add-fp-fc-esc-stack",
+   "generated_g": 30.0,
+   "model_g": 30.0,
+   "basis": "vendor+estimate",
+   "role": "sourced (listing)"
+  },
+  {
+   "id": "add-fp-mtf01",
+   "generated_g": 4.5,
+   "model_g": 4.5,
+   "basis": "vendor",
+   "role": "sourced (listing)"
+  },
+  {
+   "id": "add-fp-capacitor",
+   "generated_g": 5.0,
+   "model_g": 5.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-wire-left-fan-ext",
+   "generated_g": 27.0,
+   "model_g": 27.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-wire-right-fan-ext",
+   "generated_g": 13.5,
+   "model_g": 13.5,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-wire-battery-pigtails",
+   "generated_g": 20.16,
+   "model_g": 20.16,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-xt60-male-x2",
+   "generated_g": 6.0,
+   "model_g": 6.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-bullet-connectors",
+   "generated_g": 12.0,
+   "model_g": 12.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-signal-leads",
+   "generated_g": 3.0,
+   "model_g": 3.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-solder-heatshrink-ties",
+   "generated_g": 6.0,
+   "model_g": 6.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-strap-L",
+   "generated_g": 4.0,
+   "model_g": 4.0,
+   "basis": "vendor",
+   "role": "sourced (listing)"
+  },
+  {
+   "id": "add-fp-strap-R",
+   "generated_g": 4.0,
+   "model_g": 4.0,
+   "basis": "vendor",
+   "role": "sourced (listing)"
+  },
+  {
+   "id": "add-fp-screw-post-0-upgrade",
+   "generated_g": 0.16,
+   "model_g": 0.16,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-post-1-upgrade",
+   "generated_g": 0.16,
+   "model_g": 0.16,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-post-2-upgrade",
+   "generated_g": 0.16,
+   "model_g": 0.16,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-post-3-upgrade",
+   "generated_g": 0.16,
+   "model_g": 0.16,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-tray-L-0",
+   "generated_g": 0.316,
+   "model_g": 0.316,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-tray-L-1",
+   "generated_g": 0.316,
+   "model_g": 0.316,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-tray-L-2",
+   "generated_g": 0.316,
+   "model_g": 0.316,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-tray-R-0",
+   "generated_g": 0.316,
+   "model_g": 0.316,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-tray-R-1",
+   "generated_g": 0.316,
+   "model_g": 0.316,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-tray-R-2",
+   "generated_g": 0.316,
+   "model_g": 0.316,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-L-0",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-L-1",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-L-2",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-L-3",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-lug-L-0",
+   "generated_g": 1.0,
+   "model_g": 1.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-lug-L-1",
+   "generated_g": 1.0,
+   "model_g": 1.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-lug-L-2",
+   "generated_g": 1.0,
+   "model_g": 1.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-R-0",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-R-1",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-R-2",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-nac-ear-R-3",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-lug-R-0",
+   "generated_g": 1.0,
+   "model_g": 1.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-lug-R-1",
+   "generated_g": 1.0,
+   "model_g": 1.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-lug-R-2",
+   "generated_g": 1.0,
+   "model_g": 1.0,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fcb-0",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fcb-1",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fcb-2",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fcb-3",
+   "generated_g": 0.21,
+   "model_g": 0.21,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fc-standoff-0",
+   "generated_g": 1.2,
+   "model_g": 1.2,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-esc-fc-spacer-0",
+   "generated_g": 1.5,
+   "model_g": 1.5,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fc-screw-0",
+   "generated_g": 0.85,
+   "model_g": 0.85,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fc-standoff-1",
+   "generated_g": 1.2,
+   "model_g": 1.2,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-esc-fc-spacer-1",
+   "generated_g": 1.5,
+   "model_g": 1.5,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fc-screw-1",
+   "generated_g": 0.85,
+   "model_g": 0.85,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fc-standoff-2",
+   "generated_g": 1.2,
+   "model_g": 1.2,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-esc-fc-spacer-2",
+   "generated_g": 1.5,
+   "model_g": 1.5,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fc-screw-2",
+   "generated_g": 0.85,
+   "model_g": 0.85,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fc-standoff-3",
+   "generated_g": 1.2,
+   "model_g": 1.2,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-esc-fc-spacer-3",
+   "generated_g": 1.5,
+   "model_g": 1.5,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-fc-screw-3",
+   "generated_g": 0.85,
+   "model_g": 0.85,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-mtf-0",
+   "generated_g": 0.15,
+   "model_g": 0.15,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-mtf-1",
+   "generated_g": 0.15,
+   "model_g": 0.15,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-mtf-2",
+   "generated_g": 0.15,
+   "model_g": 0.15,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-screw-mtf-3",
+   "generated_g": 0.15,
+   "model_g": 0.15,
+   "basis": "estimate",
+   "role": "estimate, not printed"
+  },
+  {
+   "id": "add-fp-backpack-shift-minus",
+   "generated_g": -174.624,
+   "model_g": -174.624,
+   "basis": "geometry",
+   "role": "geometry (battery backpack moved behind the wing plate, signed pair, net 0 g)"
+  },
+  {
+   "id": "add-fp-backpack-shift-plus",
+   "generated_g": 174.624,
+   "model_g": 174.624,
+   "basis": "geometry",
+   "role": "geometry (battery backpack moved behind the wing plate, signed pair, net 0 g)"
+  }
+ ]
+}
