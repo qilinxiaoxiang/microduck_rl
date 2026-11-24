@@ -9,6 +9,7 @@
 #   cmu/step/step.sh run              the loop
 #   cmu/step/step.sh stop             zero-command walk now (ends a run)
 #   cmu/step/step.sh fetch            copy the step traces and their brain logs to this laptop
+#   cmu/step/step.sh upload [NOTES]   fetch, report, and push them to GitHub's step-runs branch (upload_runs.sh)
 #   cmu/step/step.sh live             restart the brain on the live code (before hand-off)
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -79,10 +80,11 @@ fetch)
   duck "cd ~/duck-logs && ls steplook_* duck_wired_log_step* 2>/dev/null | tar -czf - -T -" | tar -xzf - -C "$out"
   echo "copied to $out"
   ;;
+upload) shift; exec "$HERE/upload_runs.sh" "$@" ;;
 live)
   held
   duck "~/duck-run.sh app\$(date +%m%d-%H%M%S)"
   echo "live brain restarted"
   ;;
-*) sed -n 2,13p "$0"; exit 2 ;;
+*) sed -n 2,14p "$0"; exit 2 ;;
 esac

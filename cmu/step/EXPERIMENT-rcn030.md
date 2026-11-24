@@ -85,13 +85,20 @@ fault, or rocking that does not settle (as `RUNBOOK.md`). Film the stop too: a f
 ## Afterwards
 
     cmu/step/step.sh stop
-    cmu/step/step.sh fetch        # brain logs into cmu/step/robot-runs/<session>/
-    cmu/step/step.sh live         # HOLD the duck: back to the live code
-    uv run --no-sync --with pyserial python cmu/step/odom_report.py cmu/step/robot-runs/<session>/*.jsonl*
-    uv run --no-sync --with pyserial python cmu/step/trial_report.py cmu/step/robot-runs/<session>/*.jsonl* \
-        --out cmu/step/results/experiment-rcn030/<session>.json
+    cmu/step/step.sh upload score-sheet.md videos.txt   # BEFORE `live`: fetches the brain logs and pushes them
+    cmu/step/step.sh live                               # HOLD the duck: back to the live code
 
-Send the videos, the filled score sheet and the `robot-runs/<session>/` folder.
+`step.sh upload` sends the session to GitHub by itself, so Michael can check it right away:
+- fetches the step traces and brain logs from the duck into `cmu/step/robot-runs/<session>/` and gzips them;
+- runs `odom_report.py` (distance per burst) and `trial_report.py` (jumps, tilt, falls, stale reads, read noise)
+  into `cmu/step/results/experiment-rcn030/<session>-{odom,trial}.{json,txt}`;
+- copies any files named after it (the filled score sheet, a text file with the video links) into the session folder;
+- commits only those files to the **`step-runs`** branch and pushes. Your checkout and its branch are not touched.
+
+It needs push access to the repo from the laptop. Run it after each session, or several times in one: logs already
+on `step-runs` are skipped. Check it with `git fetch origin step-runs && git log --stat origin/step-runs`. Without
+network, `step.sh fetch` now and `cmu/step/upload_runs.sh --dir cmu/step/robot-runs/<session>` later does the same.
+Videos are too big for git: put them in the shared drive and their links in `videos.txt`.
 
 **Decision rule:** rcn030_w918 is better if over V1-V3 it has fewer falls and catches than walk61, its bursts go
 forward and get longer with T, and it looks calmer on video (`trial_report.py` jumps per 10 s backs that up).

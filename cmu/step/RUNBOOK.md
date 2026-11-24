@@ -69,7 +69,8 @@ Stop the session after **one fall, two catches, any servo fault, or visible rock
 
 ## Afterwards
 
-    cmu/step/step.sh fetch        # traces and brain logs into cmu/step/robot-runs/
+    cmu/step/step.sh upload score-sheet.md videos.txt   # traces and brain logs, reports, pushed to the step-runs branch
     cmu/step/step.sh live         # HOLD the duck: back to the live code
 
-Send the filled table, the videos and that folder.
+`upload` = `fetch` + the reports + a push to GitHub's `step-runs` branch (details: EXPERIMENT-rcn030.md, "Afterwards").
+Send the video links (or put them in videos.txt).
