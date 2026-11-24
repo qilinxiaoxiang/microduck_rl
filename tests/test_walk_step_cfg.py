@@ -191,3 +191,20 @@ def test_walk_step_keeps_its_own_conditions():
     cfg = ws.make_walk_step_env_cfg()
     assert type(cfg.actions["joint_pos"]).__name__ == "DroppedReadJointPositionActionCfg"
     assert "legspeed" not in cfg.observations["actor"].terms["base_ang_vel"].func.__name__
+
+
+def test_rc_variants_use_main_robot_conditions():
+    """round 6: the -RC- step tasks take robot_conditions.py as it is; RCSNR13 adds servo position noise only"""
+    from mjlab_microduck.robot_conditions import ROBOT_CONDITIONS
+    from mjlab_microduck.tasks.servo_noise import EpisodeScaledUniformNoiseCfg
+    for tag, noise in ws.RC_VARIANTS.items():
+        cfg = ws.make_walk_step_env_cfg(noise=noise, robot_conditions=True)
+        t = cfg.observations["actor"].terms
+        assert "legspeed" in t["base_ang_vel"].func.__name__
+        assert type(t["joint_vel"].noise).__name__ == "GaussianNoiseCfg" and t["joint_vel"].noise.std == 0.5
+        assert t["joint_pos"].delay_min_lag == t["joint_pos"].delay_max_lag == 1
+        assert cfg.actions["joint_pos"].drop == ROBOT_CONDITIONS["servo_drop"]
+        assert cfg.events["randomize_joint_friction"].params["scale_range"] == ROBOT_CONDITIONS["joint_friction"]
+        assert isinstance(t["joint_pos"].noise, EpisodeScaledUniformNoiseCfg) == (noise is not None)
+    for tag in ws.RC_VARIANTS:
+        assert f"Mjlab-WalkStep-{tag}-FromWalk61-MicroDuck-CMU-Current" in list_tasks()

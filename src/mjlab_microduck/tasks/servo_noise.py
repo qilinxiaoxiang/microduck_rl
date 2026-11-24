@@ -37,9 +37,9 @@ SERVO_NOISE = {
 }
 
 
-def apply_servo_noise(cfg, level: int):
+def apply_servo_noise(cfg, level: int, vel: bool = True):
     """Set every corrupted obs group's joint readings to `level` (in place; returns cfg). Critic groups (no
-    corruption) keep the true state."""
+    corruption) keep the true state. vel=False leaves joint_vel's noise as it is (robot_conditions.py sets it)."""
     if not level:
         return cfg
     lv = SERVO_NOISE[level]
@@ -47,6 +47,8 @@ def apply_servo_noise(cfg, level: int):
         if not grp.enable_corruption:
             continue
         for name, amp in (("joint_pos", lv["pos"]), ("joint_vel", lv["vel"]), ("head_joints", lv["pos"])):
+            if name == "joint_vel" and not vel:
+                continue
             term = grp.terms.get(name)
             if term is None:
                 continue
@@ -93,16 +95,18 @@ def draw_noise_level(env, env_ids, key: str, lo: float, hi: float):
     NOISE_SCALE[key][env_ids] = torch.pow(2.0, t - hi)
 
 
-def apply_servo_noise_range(cfg, lo: float, hi: int, key: str = "servo"):
-    """Like apply_servo_noise(cfg, hi), but each env draws its level in [lo, hi] at every reset."""
+def apply_servo_noise_range(cfg, lo: float, hi: int, key: str = "servo", vel: bool = True):
+    """Like apply_servo_noise(cfg, hi, vel), but each env draws its level in [lo, hi] at every reset."""
     from mjlab.managers import EventTermCfg
 
-    apply_servo_noise(cfg, hi)
+    apply_servo_noise(cfg, hi, vel)
     lv = SERVO_NOISE[hi]
     for grp in cfg.observations.values():
         if not grp.enable_corruption:
             continue
         for name, amp in (("joint_pos", lv["pos"]), ("joint_vel", lv["vel"]), ("head_joints", lv["pos"])):
+            if name == "joint_vel" and not vel:
+                continue
             if name in grp.terms:
                 grp.terms[name].noise = EpisodeScaledUniformNoiseCfg(n_min=-amp, n_max=amp, key=key)
     cfg.events["servo_noise_level"] = EventTermCfg(func=draw_noise_level, mode="reset",

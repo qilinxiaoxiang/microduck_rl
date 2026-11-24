@@ -113,19 +113,26 @@ STEP_OVER_WEIGHT = -10.0
 CAPS = (0.05, 0.10, 0.15, 0.20, 0.30)              # rad per joint
 # round 4 (2026-11-22 night): servo noise for cautious steps, as task variants (cap and L1 come from the CLI)
 NOISE_VARIANTS = {"SN3": (3, 3), "SNR13": (1, 3)}
+# round 6: main's robot conditions (robot_conditions.py), alone and with servo position read noise drawn in [1, 3]
+RC_VARIANTS = {"RC": None, "RCSNR13": (1, 3)}
 L1 = 0.1
 INIT_STD = 0.05
 LEARNING_RATE = 3e-4
 MAX_ITERATIONS = 1000
 
 
-def make_walk_step_env_cfg(variant: str = CURRENT, play: bool = False, noise=(SERVO_NOISE_LEVEL, SERVO_NOISE_LEVEL)):
+def make_walk_step_env_cfg(variant: str = CURRENT, play: bool = False, noise=(SERVO_NOISE_LEVEL, SERVO_NOISE_LEVEL),
+                           robot_conditions: bool = False):
     """The step task on `variant`, timed as the robot's brain. noise (lo, hi): servo noise level, fixed when lo == hi,
     else drawn per env at every reset (servo_noise.apply_servo_noise_range).
     robot_conditions=False: rounds 1-5 (cmu/step/RESULTS.md) trained without main's default -CMU-Current robot
     conditions (robot_conditions.py, 2026-11-22); this task models dropped reads itself (DROP_RANGE) and servo read
-    noise through servo_noise.py. Adopting them is a new round, not a silent change to these tasks."""
-    cfg = make_cmu_velocity_env_cfg(variant, play=play, robot_conditions=False)
+    noise through servo_noise.py. Adopting them is a new round, not a silent change to these tasks.
+    robot_conditions=True (round 6, the -RC- tasks): main's conditions as they are (leg-speed gyro noise, joint_vel
+    Gaussian 0.5, gravity noise, joint_pos one tick old, 4 % dropped reads, BAM friction x1.0-1.5); this task's own
+    drop range, joint friction and joint_vel noise are then not applied, and `noise` (None for none) adds servo position
+    read noise only."""
+    cfg = make_cmu_velocity_env_cfg(variant, play=play, robot_conditions=robot_conditions)
     _collapse_curricula_to_final(cfg)
     cfg.curriculum.pop("standing_envs", None)      # edits the velocity command's standing share
     cfg.curriculum.pop("head_pose_range", None)    # would widen the head to +-1.1
@@ -134,9 +141,10 @@ def make_walk_step_env_cfg(variant: str = CURRENT, play: bool = False, noise=(SE
         first_rest_s=FIRST_REST_S, land_s=LAND_S, ref_speed=REF_SPEED, cmd_alpha=CMD_ALPHA,
         idle_prob=IDLE_PROB, long_prob=LONG_PROB, long_pulse_s=LONG_PULSE_S, long_vx=LONG_VX,
     )
-    old = cfg.actions["joint_pos"]
-    cfg.actions["joint_pos"] = microduck_mdp.DroppedReadJointPositionActionCfg(
-        **{f.name: getattr(old, f.name) for f in dataclasses.fields(old) if f.init}, drop_range=DROP_RANGE)
+    if not robot_conditions:   # robot_conditions.py brings its own 4 % drop action
+        old = cfg.actions["joint_pos"]
+        cfg.actions["joint_pos"] = microduck_mdp.DroppedReadJointPositionActionCfg(
+            **{f.name: getattr(old, f.name) for f in dataclasses.fields(old) if f.init}, drop_range=DROP_RANGE)
     cfg.commands["head_pose"] = microduck_mdp.StepLookHeadCommandCfg(
         ranges=HEAD_RANGES, zero_command_prob=0.5, look_ranges=LOOK_RANGES, look_prob=LOOK_PROB,
         look_after_s=LOOK_AFTER_S, lead_s=LOOK_LEAD_S, alpha=HEAD_ALPHA,
@@ -169,6 +177,10 @@ def make_walk_step_env_cfg(variant: str = CURRENT, play: bool = False, noise=(SE
     r["fall"] = RewardTermCfg(func=envs_mdp.is_terminated, weight=FALL_WEIGHT)
     _runtime_loop(cfg)
     _narrow_randomisation(cfg)
+    if robot_conditions:
+        if noise is not None:
+            apply_servo_noise_range(cfg, noise[0], int(noise[1]), vel=False)
+        return cfg
     if noise[0] == noise[1]:
         apply_servo_noise(cfg, int(noise[1]))
     else:

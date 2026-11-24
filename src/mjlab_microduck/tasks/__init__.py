@@ -843,3 +843,14 @@ for _tag, _noise in _WS_NOISE.items():
         rl_cfg=walk_step_rl_cfg(MicroduckRlCfg, 0.15),
         runner_cls=WalkStepResidualRunner,
     )
+
+from .cmu_walk_step_env_cfg import RC_VARIANTS as _WS_RC
+
+for _tag, _noise in _WS_RC.items():
+    register_mjlab_task(
+        task_id=f"Mjlab-WalkStep-{_tag}-FromWalk61-MicroDuck-CMU-Current",
+        env_cfg=make_walk_step_env_cfg(noise=_noise, robot_conditions=True),
+        play_env_cfg=make_walk_step_env_cfg(play=True, noise=_noise, robot_conditions=True),
+        rl_cfg=walk_step_rl_cfg(MicroduckRlCfg, 0.15),
+        runner_cls=WalkStepResidualRunner,
+    )
