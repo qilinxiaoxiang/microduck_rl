@@ -314,7 +314,7 @@ def restart_if_idle():
     if running == "no":
         print("restart: no brain runs; the next command from the phone remote starts one with this policy")
         return
-    if mode not in ("monitor", "off"):
+    if mode not in ("monitor", "off", "stand"):  # the phone app's 停 writes {"mode": "stand"}
         fail(f"not restarting: the brain's command is {cmd} (someone is driving); press 停 first, then rerun with --restart")
     suffix = "deploy" + datetime.datetime.now().strftime("%m%d-%H%M%S")
     ssh(f"~/duck-run.sh {suffix}")
