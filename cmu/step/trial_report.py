@@ -1,4 +1,4 @@
-"""Per-log metrics for the step045n_v2m5 experiment (EXPERIMENT-step045n.md): the same measures as the sim checks, so
+"""Per-log metrics for the step-look-step robot experiments (EXPERIMENT-rcn030.md, earlier EXPERIMENT-step045n.md): the same measures as the sim checks, so
 robot and sim compare directly.
 
     uv run --no-sync --with pyserial python cmu/step/trial_report.py <brain log .jsonl[.gz]> [...] [--out r.json]

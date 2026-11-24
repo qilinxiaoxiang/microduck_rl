@@ -1,5 +1,5 @@
 {
- "about": "Arms of step-look-step (steplook.py, step.sh). bursts = [seconds, the furthest it has been seen to move, m]: the planner never picks a burst that could pass the stop. Round 2 (2026-11-22): the robot carries the 3000 mAh backpack (battery-v2m5-20261121). The step015_v2m5 table (round 3; step045n_v2m5, round 4, replaced it in the experiment on 2026-11-23) is the robot-brain sim's furthest per duration over 7 conditions (cmu/step/results/round2/runtime_bursts_candidate.json); replace it with servo odometry from the first robot logs (odom_report.py). walk61's table is from the old body; on this body walk61 creeps backward at zero command in the sim.",
+ "about": "Arms of step-look-step (steplook.py, step.sh). bursts = [seconds, the furthest it has been seen to move, m]: the planner never picks a burst that could pass the stop. Round 2 (2026-11-22): the robot carries the 3000 mAh backpack (battery-v2m5-20261121). The step015_v2m5 table (round 3; step045n_v2m5, round 4, replaced it in the experiment on 2026-11-23) is the robot-brain sim's furthest per duration over 7 conditions (cmu/step/results/round2/runtime_bursts_candidate.json); replace it with servo odometry from the first robot logs (odom_report.py). walk61's table is from the old body; on this body walk61 creeps backward at zero command in the sim. rcn030_w918 (round 7, 2026-11-23, 918 g body) replaced step045n_v2m5 in the experiment; its table is the furthest per duration over 10 brain-sim conditions x 8 seeds (results/round7/runtime_bursts_rcn030.json); bursts under 0.8 s are left out because they went backward up to 6 cm.",
  "arms": [
   {
    "name": "walk61",
@@ -121,6 +121,33 @@
    "waived_by": "",
    "trained": "walk_step_r4 snr_l45 @ 999: task Mjlab-WalkStep-SNR13-FromWalk61-MicroDuck-CMU-Current (servo read noise level drawn per episode in [1, 3]), lambda (cap) 0.45 rad, L1 0.3, base pitch trim 6 deg, fresh from walk61",
    "bursts_from": "furthest of 8 runs per duration, robot-brain sim, Balance stand, nominal (runtime_check.py, 2026-11-23); replace with servo odometry from the first robot logs"
+  },
+  {
+   "name": "rcn030_w918",
+   "file": "models/rcn030_w918.onnx",
+   "sha": "e77abb228c975be2",
+   "slots": [
+    "walk61",
+    "stand61"
+   ],
+   "base_trim_deg": 6.0,
+   "bursts": [
+    [
+     0.8,
+     0.046
+    ],
+    [
+     1.0,
+     0.058
+    ],
+    [
+     1.3,
+     0.087
+    ]
+   ],
+   "gate": "FAIL deploy gate 2026-11-23 (diagnostic, Balance stand, 918 g body, against walk61 on the old body): no fall in the 5 real cases; tilt over the +2 deg bar by 2.4-3.8 deg in nominal, vx0.25 and vx0.2 (the 6 deg trim's forward lean); distance 0.59 / 0.45 m at vx0.25 / 0.2 against 0.69 / 0.48; falls in the stress cases drop8_imu35 x2 and floor_mu_bare (report only). walk61 on this body: no walk in nominal and vx0.2, falls in vx0.25 and imu_pitch4",
+   "waived_by": "",
+   "trained": "walk_step_r7 rcn_l30 @ 1499: Mjlab-WalkStep-RCSNR13 (main's robot conditions + servo read noise 1-3x), lambda 0.30, L1 0.3, base pitch trim 6 deg, fresh from walk61, battery-v2m5-w918-20261123"
   }
  ],
  "not_an_arm": {

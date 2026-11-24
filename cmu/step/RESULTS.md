@@ -203,3 +203,54 @@ Correction to the noise estimate above (2026-11-22 night): on still moments the 
 of position noise in two logs (near the servo's resolution) and 0.011 rad in the other two (not understood yet), with
 velocity noise about 0.02 rad/s, far below training level 1. The earlier "about level 2" counted real joint motion.
 `trial_report.py` measures it; EXPERIMENT-step045n.md B4 records a fresh log for it.
+
+# Round 6 / 7 (2026-11-23): training under main's robot conditions, on the 918 g body
+
+Round 6 trained the step task under main's `robot_conditions.py` on the 1035 g body; main then corrected the current
+model to 918 g (4cc1397e), so round 6 is not kept. **Round 7 is round 6 redone on battery-v2m5-w918-20261123**
+(`queues/round7.sh`): tasks `Mjlab-WalkStep-RC-...` (main's robot conditions alone) and `-RCSNR13-` (plus servo
+position read noise drawn per episode in [1, 3]), lambda 0.30 / 0.45 / 0.60 fresh from walk61 and one warm start from
+round 4's snr_l45 @ 999, L1 0.3, trim 6, 1500 iterations at 2048 envs; model_750 and model_1499 of each evaluated.
+
+Deploy-gate diagnostic on the 918 g body (`diag_suite.py --stand-s 0`, Balance stand, main's gate noise), falls of 10
+cases; noise_eval (40 runs per condition); `results/round7/`, baselines in `results/w918-baseline/diag.json`:
+
+| checkpoint | gate falls (any case) | backward at noise 2 | jumps / 10 s at noise 2 | 1.0 s burst at noise 1 | worst_sn2 falls |
+|---|---|---|---|---|---|
+| rc_l60 @ 750 | 2 | 8 | 8.5 | 2.6 cm | 37 |
+| **rcn_l30 @ 1499** | 3 | **2** | **6.5** | 4.6 cm | 29 |
+| rc_l30 @ 1499 | 3 | 5 | 8.0 | 0.8 cm | 28 |
+| rc_l45 @ 1499 | 3 | 10 | 9.7 | 2.6 cm | 31 |
+| rc_l45 @ 750 | 3 | 13 | 10.3 | 2.8 cm | 32 |
+| rcn_l45 @ 750 / 1499 | 4 / 4 | 2 / 3 | 6.3 / 7.2 | 4.0 / 5.8 cm | 28 / 28 |
+| rcn_w45 (warm) @ 750 / 1499 | 5 / 5 | 2 / 3 | 7.1 / 10.0 | 6.2 / 4.8 cm | 28 / 30 |
+| rc_l60 @ 1499 | 5 | 13 | 8.9 | 2.2 cm | 35 |
+| rcn_l60 @ 750 / 1499 | 7 / 8 (nominal walk fails) | 3 / 3 | 8.2 / 8.8 | 6.4 / 6.8 cm | 27 / 24 |
+| walk61 / step045n_v2m5 | 6 / 6 | | | | |
+
+- **The falls above are all in the gate's stress cases (report only).** The gate's verdict comes from the 5 real
+  cases, which no round 7 checkpoint falls in: rcn_l30 @ 1499 fails them on tilt (12.4-14.7 deg against the
+  old-body reference's 8.0-9.4 + 2: the trim's forward lean) and on distance at vx 0.25 / 0.2 (0.59 / 0.45 m against
+  0.69 / 0.48). walk61 on the 918 g body fails its real cases outright (no walk in nominal and vx0.2, falls in vx0.25
+  and imu_pitch4).
+- Every checkpoint falls in both drop8_imu35 cases; all but rc_l60 @ 750 also on the bare floor (friction 0.3).
+  The stacked worst case still knocks over 24-37 of 40.
+- No checkpoint falls at noise 0-3 except one fall at 3 for rcn_l30 @ 750 and rcn_l45 @ 750.
+- rc_l60 got worse with training (2 -> 5); the warm start from round 4 did not help; read noise at lambda 0.60 broke
+  nominal walking.
+
+rcn_l30 @ 1499 across noise levels 0 / 1 / 2 / 3: falls 0 / 0 / 0 / 0, backward 0 / 1 / 2 / 16 of 40, jumps 0.4 / 1.6 /
+6.5 / 55.5 per 10 s, 1.0 s burst 3.7 / 4.6 / 3.5 / -1.1 cm. step045n (1035 g body) at level 3: 4 backward, +5.6 cm.
+The robot's still-moment read noise is below level 1 (above), so level 3 is the less relevant end.
+
+## The pick: rcn_l30 @ 1499 as `models/rcn030_w918.onnx` (sha e77abb228c975be2), replacing step045n_v2m5
+
+Chosen over rc_l60 @ 750 (one fewer gate fall) for cautious, correctable steps: the fewest backward bursts and jumps
+under noise, and it does not degrade with training as rc_l60 does. Gate FAIL, `waived_by` empty: held back.
+Video test: `EXPERIMENT-rcn030.md`.
+
+Bursts through the brain (`runtime_check.py --cases all --stand-s 0`, 10 conditions x 8 seeds per duration,
+`results/round7/runtime_bursts_rcn030.json`): rcn030 0 falls in 800, never backward from 0.8 s up; typical (furthest)
+2.4 (4.6) / 4.8 (5.8) / 6.5 (8.7) / 19.4 (23.4) cm for 0.8 / 1.0 / 1.3 / 3 s; 0.4-0.6 s barely move and went back
+up to 6 cm, so `arms.json` lists 0.8-1.3 s only. Peak tilt as the brain reads it: 9.1 deg (the gate sim's trunk:
+12-15). walk61 on the 918 g body: 69 falls in 800, nearly every burst backward (about -22 cm).

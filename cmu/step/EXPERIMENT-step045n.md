@@ -1,5 +1,7 @@
 # Experiment: does step045n_v2m5 (round 4's best) walk better than walk61 on the robot?
 
+**Superseded 2026-11-23 by `EXPERIMENT-rcn030.md`** (step045n was trained on the 1035 g body; the robot is 918 g). Never run.
+
 Open to anyone, human or agent. Set up 2026-11-22 for round 3's step015_v2m5; on 2026-11-23, before anyone had run
 it, the candidate was replaced by round 4's best, step045n_v2m5 (why: `RESULTS.md`, "The pick"). Results go in
 `cmu/step/results/experiment-step045n/` and a short section at the end of this file.
