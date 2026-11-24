@@ -24,6 +24,10 @@ Same worker, same flags as cmu/finetune/modal/finetune.py; only the launcher dif
                                                                   # --init-checkpoint): the local file is checked, shipped as
                                                                   # dataset asset init-<sha16>.pt, and the worker gets
                                                                   # /root/assets/init-<sha16>.pt plus --init-sha256
+  python3 cmu/finetune/kaggle/kaggle_job.py push skill --run-name sk-sit-s1 --pair-run-name sk-sit-s2 -- --task sitstand --seed 1 --max-iters 2250 --max-hours 11 -- --task sitstand --seed 2 --max-iters 2250 --max-hours 11
+                                                                  # Pollen's skill recipe on the current body
+                                                                  # (skill_worker.py); --bend-recipe bend4 ships the
+                                                                  # hand-back walker, --init-onnx-actor its ONNX, as assets
   python3 cmu/finetune/kaggle/kaggle_job.py push <preset> --dry-run ...   # flags checked, tarball staged, kernel folder written; nothing pushed
   python3 cmu/finetune/kaggle/kaggle_job.py status <run-name>     # QUEUED / RUNNING / COMPLETE / ERROR
   python3 cmu/finetune/kaggle/kaggle_job.py fetch <run-name>      # download /kaggle/working into cmu/finetune/kaggle/out/<run-name>/
@@ -76,9 +80,17 @@ PRESETS = {
     # stop at 2000 below 0.03 m/s. The job's own group gives --model and --seed.
     "scratch": ["--num-envs", "4096", "--max-iters", "4000", "--save-interval", "250", "--metric-interval", "50",
                 "--max-hours", "5.8", "--early-stop-iter", "2000", "--early-stop-speed", "0.03"],
+    # Pollen's ground-pick / sit-stand recipe on the current body (skill_worker.py): 4096 envs, a save and ONNX every
+    # 250, metrics every 50. The job's own group gives --task, --max-iters and --max-hours (and --bend-recipe,
+    # --conditions, --init-onnx-actor / --init-checkpoint, which are shipped as dataset assets here).
+    "skill": ["--model", "current", "--num-envs", "4096", "--save-interval", "250", "--metric-interval", "50"],
 }
 # presets that run another worker than finetune_worker.py (kernel_entry.py's worker path is replaced for them)
-PRESET_WORKER = {"scratch": REPO / "cmu/finetune/kaggle/scratch_worker.py"}
+PRESET_WORKER = {"scratch": REPO / "cmu/finetune/kaggle/scratch_worker.py",
+                 "skill": REPO / "cmu/finetune/kaggle/skill_worker.py"}
+# modules whose add_*_arguments(parser) the preset's worker calls: their flags are the worker's flags too
+PRESET_FLAG_MODULES = {"scratch": [REPO / "src/mjlab_microduck/tasks/cmu_press_commands.py"]}
+SKILL_DEFAULT_WALKER = REPO / "cmu/whole/runtime-overlay/models-bw-s2c/bw-s2c-b2.onnx"  # bend4 hand-back walker
 OUT = HERE / "out"
 
 
@@ -239,7 +251,8 @@ def worker_args(preset, run_name, extra):
     """Full worker argument list for one job, checked before anything is uploaded."""
     args = ["--run-name", run_name] + PRESETS[preset] + extra
     if preset in PRESET_WORKER:
-        known = set(re.findall(r'add_argument\("(--[a-z0-9-]+)"', PRESET_WORKER[preset].read_text()))
+        sources = [PRESET_WORKER[preset]] + [m for m in PRESET_FLAG_MODULES.get(preset, []) if m.exists()]
+        known = set().union(*(re.findall(r'add_argument\("(--[a-z0-9-]+)"', s.read_text()) for s in sources))
         if flag_value(args, "--model") is None:
             sys.exit(f"push {preset} needs --model (stock or current) in each job's group")
         cond = flag_value(args, "--conditions")
@@ -250,6 +263,15 @@ def worker_args(preset, run_name, extra):
                      f"refuses it on the stock model)")
         if flag_value(args, "--init-sha256") is not None:
             sys.exit("--init-sha256 is set by kaggle_job.py from --init-checkpoint; do not pass it")
+        if preset == "skill":
+            if flag_value(args, "--task") not in ("groundpick", "sitstand"):
+                sys.exit("push skill needs --task groundpick or --task sitstand in each job's group")
+            if flag_value(args, "--max-hours") is None or flag_value(args, "--max-iters") is None:
+                sys.exit("push skill needs --max-iters and --max-hours in each job's group")
+            if flag_value(args, "--init-onnx-sha256") is not None:
+                sys.exit("--init-onnx-sha256 is set by kaggle_job.py from --init-onnx-actor; do not pass it")
+            if flag_value(args, "--bend-recipe") == "bend4" and flag_value(args, "--handback-walker") is None:
+                args = args + ["--handback-walker", str(SKILL_DEFAULT_WALKER)]
     else:
         known = worker_flags()
     unknown = sorted({a.split("=", 1)[0] for a in extra if a.startswith("--")} - known)
@@ -262,7 +284,39 @@ def worker_args(preset, run_name, extra):
         sys.exit(f"--max-hours {hours} exceeds {MAX_HOURS}: Kaggle would kill the session before the worker saves")
     if preset in PRESET_WORKER and flag_value(args, "--init-checkpoint") is not None:
         args = ship_init_checkpoint(args)
+    if preset == "skill":
+        if flag_value(args, "--init-onnx-actor") is not None:
+            args = ship_file_flag(args, "--init-onnx-actor", "init-onnx", "--init-onnx-sha256")
+        if flag_value(args, "--handback-walker") is not None:
+            args = ship_file_flag(args, "--handback-walker", "walker", None)
     return args
+
+
+def ship_file_flag(args, flag, prefix, sha_flag):
+    """A local file named by a worker flag -> dataset asset <prefix>-<sha16><suffix>; the worker gets the kernel path
+    (and the sha256 under sha_flag when given), as ship_init_checkpoint does for --init-checkpoint."""
+    local = flag_value(args, flag)
+    p = Path(local)
+    if not p.is_absolute() and not p.exists() and (REPO / p).exists():
+        p = REPO / p
+    if not p.is_file():
+        sys.exit(f"{flag} {local}: no such file")
+    sha = hashlib.sha256(p.read_bytes()).hexdigest()
+    name = f"{prefix}-{sha[:16]}{p.suffix}"
+    EXTRA_ASSETS[name] = p.resolve()
+    out, skip = [], False
+    for a in args:
+        if skip:
+            skip = False
+            continue
+        if a == flag:
+            skip = True
+            continue
+        if a.startswith(flag + "="):
+            continue
+        out.append(a)
+    out += [flag, f"{INIT_ASSET_DIR}/{name}"]
+    return out + ([sha_flag, sha] if sha_flag else [])
 
 
 # per-push assets (--init-checkpoint files): dataset assets/<name> -> /root/assets/<name> in the kernel

@@ -1059,6 +1059,8 @@ def run(args):
     # sliding friction of the floor and of every geom on both foot bodies: all geoms share priority 0, so MuJoCo takes
     # the larger of the two and the foot-floor contact gets exactly this value (1.0 is the model's own)
     c0["friction"] = args.floor_mu
+    if args.current_limit is not None:  # explicit servo current limit (A); otherwise the model config's value
+        c0["current_limit"] = args.current_limit
     if args.foot_play:  # sim-ID 2026-10-21: free play between ankle horn and foot (deg, centring stiffness N m/rad, damping)
         fp = args.foot_play + [0.05, 0.002][len(args.foot_play) - 1:]
         c0["foot_play"] = dict(deg=fp[0], stiffness=fp[1], damping=fp[2], axis=FOOT_PLAY_AXES[args.foot_play_axis])
@@ -1076,6 +1078,35 @@ def run(args):
     sp_model = sp_install_model_hook(args, sp_obj) if args.sp_at is not None else None
     lead = lead_install_model_hook(args) if args.lead is not None else None
     m, d, c, names, bam = ev.load(c0)
+    clamp = None
+    if args.current_limit is not None:  # walk-window share of physics steps where the firmware current limiter binds
+        groups = {g: np.array([i for i, n in enumerate(names) if g in n]) for g in ("hip", "knee", "ankle")}
+        clamp = dict(active={g: 0 for g in groups}, total={g: 0 for g in groups},
+                     run_active={g: 0 for g in groups}, run_total={g: 0 for g in groups},
+                     recent=collections.deque())  # (time, per-joint on) over the last 0.5 s, for the pre-fall share
+        act_ = bam.actuator
+        orig_cc = act_.compute_control
+
+        def counted_control(q_target, q, dq, dt):
+            if act_.max_current is not None:
+                raw = (np.asarray(q_target) - np.asarray(q)) * np.asarray(act_.kp) * act_.error_gain
+                cen = act_.model.kt.value * np.asarray(dq) / act_.vin
+                span = act_.model.R.value * act_.max_current / act_.vin
+                lim = np.clip(raw, cen - span, cen + span)
+                on = (np.abs(lim - raw) > 1e-12) & (np.abs(lim) <= act_.max_pwm)
+                on = np.broadcast_to(on, (len(names),)).copy()
+                walk_w = args.walk_at <= d.time < args.walk_at + args.walk_s
+                for g, ix in groups.items():
+                    clamp["run_active"][g] += int(on[ix].sum())
+                    clamp["run_total"][g] += len(ix)
+                    if walk_w:
+                        clamp["active"][g] += int(on[ix].sum())
+                        clamp["total"][g] += len(ix)
+                clamp["recent"].append((d.time, on))
+                while clamp["recent"] and clamp["recent"][0][0] < d.time - 0.5:
+                    clamp["recent"].popleft()
+            return orig_cc(q_target, q, dq, dt)
+        act_.compute_control = counted_control
     if args.bvh_refit:  # no-op since ev.load refits (2026-10-29); a second refit must find nothing to change
         print("bvh refit:", json.dumps(refit_body_bvh(m)), flush=True)
     if sp_model is not None:  # the training env's contact solver settings on request (gap study 2026-10-29)
@@ -1656,7 +1687,15 @@ def run(args):
         holdr.update(wired_hold=True, grip_stop_at=grip_stop_at, grip_stop_end=grip_stop.on, stand61_from=settled_at,
                      applied_s_below_0p5_after_grip_s=None if half is None else round(half - g0, 2),
                      min_applied_s=round(min(r["s_applied"] for r in hrows), 3))
-    return dict(model=args.model, volt=args.volt, walk_ramp=args.walk_ramp, com_x_mm=args.com_x, zero=zero, imu_pitch=args.imu_pitch,
+    return dict(model=args.model, volt=args.volt,
+                current_limit=args.current_limit,
+                clamp_share=None if clamp is None else {g: round(clamp["active"][g] / clamp["total"][g], 4)
+                                                        if clamp["total"][g] else None for g in clamp["total"]},
+                clamp_share_run=None if clamp is None else {g: round(clamp["run_active"][g] / clamp["run_total"][g], 4)
+                                                            if clamp["run_total"][g] else None for g in clamp["run_total"]},
+                clamp_prefall_joint=None if clamp is None or fell is None or not clamp["recent"] else {
+                    n: round(float(np.mean([on[k] for _, on in clamp["recent"]])), 4) for k, n in enumerate(names)},
+                walk_ramp=args.walk_ramp, com_x_mm=args.com_x, zero=zero, imu_pitch=args.imu_pitch,
                 kick=kick, sit=sitr, hold=holdr, quack_head_ran={str(k): v for k, v in quack_ok.items()},
                 quack_head_reached={str(k): {n: round(v, 3) for n, v in r.items()} for k, r in quack_reach.items()},
                 quack_peak_tilt={str(k): round(max(h[1] for h in window(k, k + QUACK_HEAD_S + 1.0)), 1) for k in quack_ok},
@@ -1816,6 +1855,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--volt", type=float, default=None,
                     help="servo supply; default: servo_rail_v in microduck-sim/CURRENT-STATE.json (the as-run rail)")
+    ap.add_argument("--current-limit", type=float, default=None,
+                    help="servo firmware current limit (A) for the BAM limiter and the actuator force range; default: the "
+                         "model config's current_limit (1.47 A today). The robot's factory XL330 limit is 1.75 A "
+                         "(CURRENT-STATE.json leg_torque_limit). The row then reports the walk-window share of steps "
+                         "where the current limiter binds, per leg group (clamp_share)")
     ap.add_argument("--model", choices=("v19", "asbuilt"), default="v19",
                     help="mass model: v19 (default) or asbuilt (2026-10-15, D-007 bench backpack)")
     ap.add_argument("--manifest", default=None,

@@ -286,3 +286,7 @@ register_cmu_tasks(MicroduckOnPolicyRunner)
 # CMU aiming crouch (cmu_aim_pick_env_cfg.py): the ground pick with an object the beak has to reach.
 from .cmu_aim_pick_env_cfg import register_aim_pick_tasks
 register_aim_pick_tasks(MicroduckOnPolicyRunner)
+
+# CMU current-body ground pick and sit-stand (cmu_skill_env_cfg.py): Pollen's skill cfgs with only the body swapped.
+from .cmu_skill_env_cfg import register_cmu_skill_tasks
+register_cmu_skill_tasks(MicroduckOnPolicyRunner)
