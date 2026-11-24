@@ -1,0 +1,125 @@
+{
+ "run_name": "bw-s2c-a1",
+ "task": "Mjlab-Velocity-Flat-MicroDuck",
+ "route": "continue (Pollen recipe unchanged, from a finished run's checkpoint)",
+ "model": "current",
+ "conditions": "robot",
+ "seed": 1,
+ "num_envs": 4096,
+ "max_iters": 1000,
+ "save_interval": 250,
+ "max_hours": 2.0,
+ "early_stop": {
+  "iter": 0,
+  "speed": 0.03
+ },
+ "gpu": "kaggle-Tesla-T4",
+ "started": "2026-11-24T01:15:46",
+ "init_checkpoint": {
+  "path": "/root/assets/init-d121cbcdcdc35f0e.pt",
+  "sha256": "d121cbcdcdc35f0e5b8cb746d1ee8b1aaa61c8390d38a64b3a9f6e3fc0cf9a59",
+  "source_iter": 3999,
+  "source_common_step_counter": 96000,
+  "common_step_counter_after_load": 96000,
+  "first_iteration": 4000,
+  "lr_restored": 0.00017085937500000009,
+  "lr_cfg": 0.001,
+  "action_std_mean": 0.1757,
+  "action_std_min": 0.1374,
+  "action_std_max": 0.2289
+ },
+ "robot_conditions": {
+  "joint_friction": [
+   1.0,
+   1.5
+  ],
+  "joint_vel_noise_sd": 0.5,
+  "servo_drop": 0.04,
+  "gravity_noise": 0.02,
+  "joint_pos_lag": 1,
+  "gyro_noise_legspeed_range": [
+   0.15,
+   0.3
+  ],
+  "zero_shift_range": {
+   "left_hip_roll": [
+    0.0,
+    0.09599310885968812
+   ],
+   "right_hip_roll": [
+    -0.061086523819801536,
+    0.0
+   ],
+   "head_roll": [
+    -0.061086523819801536,
+    0.0
+   ],
+   "head_yaw": [
+    -0.08726646259971647,
+    0.0
+   ]
+  },
+  "imu_max_lag": 2
+ },
+ "gyro_noise_legspeed_range_note": "leg-speed gyro factor K drawn once per env at env creation, uniform in gyro_noise_legspeed_range",
+ "current": {
+  "variant": "battery-v2m5-w918-20261123",
+  "mass_manifest": "cmu/model/manifests/battery-v2m5-w918-20261123.json",
+  "mass_manifest_sha256": "be3d2984a64972c21c6919fee8b548da2a3dade7574f0bb5c64a363405b73d0a"
+ },
+ "body": {
+  "variant": "battery-v2m5-w918-20261123",
+  "mass_manifest": "cmu/model/manifests/battery-v2m5-w918-20261123.json",
+  "mass_manifest_sha256": "be3d2984a64972c21c6919fee8b548da2a3dade7574f0bb5c64a363405b73d0a",
+  "foot_contact": null,
+  "expect_manifest_sha": "be3d2984a64972c21c6919fee8b548da2a3dade7574f0bb5c64a363405b73d0a",
+  "total_mass_g": 918.0,
+  "footc_geoms": [],
+  "mujoco": "3.10.0"
+ },
+ "command_options": {
+  "heading_hold": 0.0,
+  "heading_hold_law": "p",
+  "heading_hold_gain": [
+   3.0,
+   3.0
+  ],
+  "heading_hold_trim": [
+   -0.0,
+   0.0
+  ],
+  "heading_hold_imu_age_ticks": [
+   0,
+   0
+  ],
+  "press_speed_share": 0.5,
+  "press_speed": 0.25
+ },
+ "commands": {
+  "forward_bucket": "is_forward_env, not standing, vx > 0, vy = wz = 0 (rel_forward_envs 0.2)",
+  "press_speed": {
+   "share_of_bucket": 0.5,
+   "vx": 0.25,
+   "expected_share_of_all_envs": 0.1
+  }
+ },
+ "finished": "2026-11-24T02:35:49",
+ "final_iter": 4999,
+ "stop_reason": "max_iters reached",
+ "elapsed_s": 4803.5,
+ "onnx_missing": [],
+ "last_metrics": {
+  "iter": 4950,
+  "elapsed_s": 4571.1,
+  "speed_along_fwd_cmd": 0.0715,
+  "mean_ep_len_steps": 857.1,
+  "mean_reward": 82.2069,
+  "track_linear_velocity_per_s": 1.3112,
+  "track_angular_velocity_per_s": 0.6262,
+  "action_std": 0.2217,
+  "lr": 0.00017085937500000009,
+  "time": "2026-11-24T02:31:57",
+  "press_share": 0.0645,
+  "hold_share": 0.0
+ }
+}
