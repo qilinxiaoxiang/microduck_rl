@@ -209,7 +209,9 @@ def test_brain_law_matches_the_brain_transcription():
         h0 = trace[0] - 0.01
         term.robot = type("R", (), {"data": fake})()  # the command reads this heading; nothing else is stepped
         fake.heading_w[:] = h0
-        _force_some_hold_envs(term, n, want=4)  # resamples on the fake heading: target = h0 for every hold env
+        term.heading_hist[:] = h0  # the heading has been h0 for the last ticks
+        term._anchor_pending[:] = False  # noqa: SLF001
+        _force_some_hold_envs(term, n, want=4)  # resamples on that history: target = h0 for every hold env
         ids = term.is_heading_hold_env.nonzero().flatten()
         assert len(ids) >= 3
         term.time_left[:] = 1e9  # no further resample during the trace
@@ -329,3 +331,37 @@ def test_target_is_the_new_heading_after_an_episode_reset():
             assert seen >= 30 and spread > 1.0, (seen, spread)  # the resets did move the heading
         finally:
             env.close()
+
+
+def test_timed_resample_latches_the_aged_heading():
+    """A resample in the middle of an episode keeps the heading history and takes the target from the env's age slot
+    (the yaw the brain would read then), not from the true heading. GPT 6.2 Astra review 2026-11-23: the history was
+    refilled with the current yaw, so an env of age 2 latched 0.04 where the brain would have read 0.00."""
+    from mjlab.envs import ManagerBasedRlEnv
+    n = 64
+    cfg = sw.make_env_cfg("current", heading_hold=1.0, heading_hold_gain=(3.0, 4.5), heading_hold_law="brain",
+                          heading_hold_trim=0.35)
+    cfg.scene.num_envs = n
+    cfg.seed = 9
+    env = ManagerBasedRlEnv(cfg=cfg, device="cpu")
+    try:
+        term = env.command_manager.get_term("twist")
+        fake = _FakeData(n)
+        term.robot = type("R", (), {"data": fake})()
+        term.time_left[:] = 1e9
+        for h in (0.0, 0.0, 0.0, 0.02, 0.04):
+            fake.heading_w[:] = h
+            term.compute(0.02)
+        want = torch.tensor([0.04, 0.02, 0.0])
+        assert torch.allclose(term.heading_hist, want.expand(n, 3), atol=1e-6)
+        _force_some_hold_envs(term, n, want=8)
+        ids = term.is_heading_hold_env.nonzero().flatten()
+        ages = term.heading_hold_age[ids]
+        assert len(torch.unique(ages)) >= 2, ages
+        assert torch.allclose(term.heading_hold_target[ids], want[ages], atol=1e-6)
+        assert torch.allclose(term.heading_hist, want.expand(n, 3), atol=1e-6)  # the resample did not touch it
+        term.compute(0.02)  # same true heading: error 0 only once the aged slot reaches 0.04
+        fake.heading_w[:] = 0.04
+        assert torch.allclose(term.heading_hist[:, 0], torch.full((n,), 0.04))
+    finally:
+        env.close()

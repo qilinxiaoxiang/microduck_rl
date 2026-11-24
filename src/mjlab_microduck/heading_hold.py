@@ -27,6 +27,8 @@ walk_brain.py HEADING_KP, fixed). Two laws (--heading-hold-law):
          KP = K, KI = K * 2/3 (brain 3.0 and 2.0), I_MAX 1.5 rad s, TURN_MAX 1.0. At the resample: i = 0, target =
          heading_used, trim uniform in [-T, T] (--heading-hold-trim T, default 0), and heading_used = the heading 0, 1
          or 2 control ticks old (age drawn per env; the brain reads an IMU yaw 0 to 2 ticks old), from a 3-slot history.
+         The history runs for every env on every step and is kept across a resample, so the target is the aged
+         heading at the resample, not the true one.
          The history and the integral advance only on real env steps (dt > 0), not on the reset-time compute(0).
          After an episode reset the target and history are taken from the heading after mjlab's sim.forward()
          (reset() below), never from the ended episode's.
@@ -120,9 +122,10 @@ class HeadingHoldVelocityCommand(VelocityCommandCommandOnly):
         else:
             self.heading_hold_gain[env_ids] = lo
         self.heading_hold_error[env_ids] = 0.0
-        h = self.robot.data.heading_w[env_ids]
         if self.cfg.heading_hold_law == "brain":
-            self.heading_hist[env_ids] = h[:, None].expand(n, HIST)
+            # the history is kept across a resample in the middle of an episode: the target is the heading the brain
+            # would read at that moment (the env's age slot), as walk_brain.py latches its held heading from the IMU
+            # yaw it has. Only an episode reset refills the history (reset() and _update_command).
             self.heading_hold_age[env_ids] = torch.randint(0, BRAIN_IMU_AGE_MAX + 1, (n,), device=self.device)
             self.heading_hold_i[env_ids] = 0.0
             t = float(self.cfg.heading_hold_trim)
