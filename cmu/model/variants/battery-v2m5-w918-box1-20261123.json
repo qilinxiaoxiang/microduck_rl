@@ -1,0 +1,17 @@
+{
+ "variant": "battery-v2m5-w918-box1-20261123",
+ "describes": "battery-v2m5-w918-20261123 (same parts, same 918 g) with the foot-contact layer cmu/model/contact/foot-box1-20261123.json: a flat box per foot 1.0 mm below the printed sole, 27 mm wide, 6.0-33.7 mm from the heel, fitted to the robot's measured fore-aft tip limits (2026-11-23 tip sweeps), not to its trunk-rotation curve (the alternative to battery-v2m5-w918-sole1-20261123). Built 2026-11-23; not current",
+ "base": "battery-v2m5-w918-20261123.json",
+ "remove_ids": [],
+ "add": [],
+ "position_frame": "Each part position is in its named MuJoCo body frame, metres.",
+ "excluded": [
+  "No unconfirmed Dual Lock plate/strips or -8.7 mm mounting shift; four existing pack mounting screws retained.",
+  "Saddle lid not fitted; no lid added.",
+  "Ordered replacement camera cables are not installed; 1 m existing cable retained.",
+  "Full outer-shell and camera extrinsic scan registration remains independent of mass estimation.",
+  "NP-F970 90 g removal is applied by apply_masses.variant_parts, not repeated in this parts list.",
+  "Visual layer: cmu/model/visual-20261122 (fitted-20261122.json) draws the new backpack; physics does not use visual geoms."
+ ],
+ "foot_contact": "contact/foot-box1-20261123.json"
+}

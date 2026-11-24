@@ -271,8 +271,9 @@ def worker_args(preset, run_name, extra, worker="finetune"):
         cond = flag_value(args, "--conditions")
         if cond not in (None, "official", "gyro", "robot"):
             sys.exit(f"--conditions {cond!r}: choose from official, gyro, robot")
-        if cond not in (None, "official") and flag_value(args, "--model") != "current":
-            sys.exit(f"--conditions {cond} needs --model current (scratch_worker.py refuses it on the stock model)")
+        if cond not in (None, "official") and flag_value(args, "--model") == "stock":
+            sys.exit(f"--conditions {cond} needs a CMU --model (current or a foot-contact variant; scratch_worker.py "
+                     f"refuses it on the stock model)")
         if flag_value(args, "--init-sha256") is not None:
             sys.exit("--init-sha256 is set by kaggle_job.py from --init-checkpoint; do not pass it")
     unknown = sorted({a.split("=", 1)[0] for a in extra if a.startswith("--")} - known)

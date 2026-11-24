@@ -1,0 +1,107 @@
+{
+ "name": "foot-box1-20261123",
+ "kind": "box",
+ "date": "2026-11-23",
+ "replace": true,
+ "describes": "ALTERNATIVE (not used by the variant): flat box per foot, parallel to the printed face, 1.0 mm below it, 27 mm wide, 6.0-33.7 mm from the heel. Matches the tip limits, not the trunk rotation curve.",
+ "params": {
+  "x_rear_mm": 6.0,
+  "x_front_mm": 33.7,
+  "drop_mm": 1.0,
+  "half_width_mm": 13.5
+ },
+ "geoms": [
+  {
+   "name": "footc_left",
+   "body": "ankle_left",
+   "type": "box",
+   "pos": [
+    0.0005743678911977945,
+    -0.02331844104317314,
+    -0.014183974339899028
+   ],
+   "quat": [
+    -0.005540696570721686,
+    -0.007730226738149546,
+    0.7368086140428488,
+    0.6760344743785951
+   ],
+   "size": [
+    0.013850000000000001,
+    0.013499999999999998,
+    0.001
+   ],
+   "face_tilt_deg": 1.1261248760109834,
+   "face_y_mm": [
+    28.22380490295473,
+    55.223804902954726
+   ]
+  },
+  {
+   "name": "footc_right",
+   "body": "ankle_right",
+   "type": "box",
+   "pos": [
+    -0.0005736051361851574,
+    -0.02329706171006607,
+    -0.014235599586169372
+   ],
+   "quat": [
+    0.6765671512229586,
+    -0.7363124973058828,
+    0.00808953874759839,
+    -0.0059460541600750835
+   ],
+   "size": [
+    0.013850000000000001,
+    0.013499999999999998,
+    0.001
+   ],
+   "face_tilt_deg": 1.0642209866318875,
+   "face_y_mm": [
+    -55.25788123049029,
+    -28.25788123049029
+   ]
+  }
+ ],
+ "evidence": {
+  "method": "extensions/battery-walk-20261122/com-tip-test-20261123/sim-foot-contact/sim_tip.py: MuJoCo replay of the logged joint positions of the tip sweeps (results.jsonl lines 2, 5, 6, 7, 14) on evaluate_delay.load, BAM KP 400, 7.2 V, floor mu 1.0; cx = model COM from the heel in com_solution.txt's flat-foot frame; r = sim trunk pitch minus flat-foot encoder pitch; fall/held as analyse4.py (summarize.py). Robot numbers: com_solution_headposes.txt, com_solution_play.txt, com-solution-work/analyse_play.txt.",
+  "robot": {
+   "fall_cx_mm": {
+    "2": 5.23,
+    "5": 5.88,
+    "6": 28.41,
+    "7": 28.16,
+    "14": 26.52
+   },
+   "r_fit_base": "r = -1.20 + 0.132 cx (44 static rows, rms 0.57; per-line offsets: slope 0.151, rms 0.26)",
+   "held_r_deg": {
+    "2": -2.65,
+    "5": -2.17,
+    "6": 2.38,
+    "7": 2.5,
+    "14": 3.0
+   }
+  },
+  "mesh_sim": {
+   "fall_cx_mm": {
+    "2": 7.82,
+    "5": 7.0,
+    "6": 34.28,
+    "7": 35.35,
+    "14": 34.88
+   },
+   "r_curve": "rms 1.14 deg vs the robot fit, slope 0.080 deg/mm"
+  },
+  "this_layer_sim": {
+   "fall_cx_mm": {
+    "2": 5.67,
+    "5": 6.12,
+    "6": 28.34,
+    "7": 27.99,
+    "14": 28.34
+   },
+   "r_curve": "rms 0.17 deg vs the robot fit, slope 0.096 deg/mm"
+  }
+ }
+}

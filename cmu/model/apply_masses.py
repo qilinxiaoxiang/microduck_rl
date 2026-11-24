@@ -54,7 +54,10 @@ MANIFEST_DIR = MODEL_DIR / "manifests"
 SCENE_XML = REPO_ROOT / "src/mjlab_microduck/robot/microduck/scene.xml"
 BATTERY_REMOVE_KG = 0.090
 VARIANTS = ("official", "asbuilt", "plugged", "battery", "battery-20261104", "battery-v2m5-20261121",
-            "battery-v2m5-w918-20261123")  # dated variants (make_variants measures each)
+            "battery-v2m5-w918-20261123",
+            # the w918 robot (same parts, same 918 g) with a dated foot-contact layer named by the manifest's
+            # "foot_contact" key (foot_contact.py): sole1 = crowned sole, box1 = flat box; neither is current
+            "battery-v2m5-w918-sole1-20261123", "battery-v2m5-w918-box1-20261123")  # dated variants (make_variants measures each)
 CURRENT = "current"  # alias for the variant named in current.json
 CHOICES = (CURRENT,) + VARIANTS
 CURRENT_FILE = MODEL_DIR / "current.json"
@@ -227,9 +230,67 @@ def mass_and_com(model: mujoco.MjModel, root: str = "trunk_base") -> tuple[float
     return float(model.body_mass.sum()) * 1000, com_body * 1000
 
 
+def variant_foot_contact(variant: str) -> dict | None:
+    """The foot-contact layer (cmu/model/contact/*.json, as a dict) the variant's manifest names, or None (every
+    manifest without a "foot_contact" key, the current one included)."""
+    path = variant_manifest_path(variant)
+    if path is None or path == BASE_MANIFEST:
+        return None
+    return foot_contact_module().foot_contact_for_manifest(path)
+
+
+def foot_contact_module():
+    """cmu/model/foot_contact.py, loaded by file path (this module is itself loaded by path from the training tasks,
+    so cmu/model is not on sys.path); the judging sim (evaluate_delay.load) imports the same file."""
+    import importlib.util
+    import sys
+    mod = sys.modules.get("cmu_model_foot_contact")
+    if mod is None:
+        spec = importlib.util.spec_from_file_location("cmu_model_foot_contact", MODEL_DIR / "foot_contact.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        sys.modules["cmu_model_foot_contact"] = mod
+    return mod
+
+
+PRINTED_FOOT_GEOMS = ("left_foot_collision", "right_foot_collision")
+FOOT_CONTACT_GEOMS = ("footc_left", "footc_right")  # the names every foot-contact layer gives its geoms
+
+
+def _geom_points_world(model: mujoco.MjModel, data: mujoco.MjData, name: str) -> np.ndarray:
+    gi = model.geom(name).id
+    if model.geom_type[gi] == mujoco.mjtGeom.mjGEOM_MESH:
+        mid = model.geom_dataid[gi]
+        v = model.mesh_vert[model.mesh_vertadr[mid]:model.mesh_vertadr[mid] + model.mesh_vertnum[mid]]
+    elif model.geom_type[gi] == mujoco.mjtGeom.mjGEOM_BOX:
+        v = np.array(np.meshgrid([-1, 1], [-1, 1], [-1, 1])).T.reshape(-1, 3) * model.geom_size[gi]
+    else:
+        raise ValueError(f"{name}: geom type {model.geom_type[gi]} not handled")
+    return data.geom_xpos[gi] + v @ data.geom_xmat[gi].reshape(3, 3).T
+
+
+def foot_contact_drop_m(spec: mujoco.MjSpec) -> float:
+    """How far the foot-contact layer's lowest point lies below the printed soles' lowest point at HOME (m; > 0 means
+    the layer is lower). 0.0 for a spec without footc_* geoms. A trainer that drops the robot from a height chosen
+    for the printed soles raises its spawn by this much, so the layer starts as far above the floor as the soles did
+    (the judging sim, brain_sim_check.py, places on the footc geoms for the same reason)."""
+    model = _compile(spec)
+    names = {model.geom(i).name for i in range(model.ngeom)}
+    if not all(g in names for g in FOOT_CONTACT_GEOMS):
+        return 0.0
+    data = mujoco.MjData(model)
+    home_qpos(model, data)
+    printed = min(_geom_points_world(model, data, g)[:, 2].min() for g in PRINTED_FOOT_GEOMS)
+    layer = min(_geom_points_world(model, data, g)[:, 2].min() for g in FOOT_CONTACT_GEOMS)
+    return float(printed - layer)
+
+
 def build_scene(variant: str, scene_xml: Path = SCENE_XML) -> tuple[mujoco.MjSpec, dict]:
     spec = mujoco.MjSpec.from_file(str(scene_xml))
     report = apply_parts_to_spec(spec, variant_parts(variant))
+    layer = variant_foot_contact(variant)
+    if layer:  # a manifest without the key builds exactly what it built before
+        report["foot_contact"] = dict(name=layer["name"], geoms=foot_contact_module().apply_foot_contact(spec, layer))
     return spec, report
 
 
