@@ -1,0 +1,122 @@
+{
+ "bursts": [
+  {
+   "t": 1795557688.77,
+   "seconds": 1.32,
+   "for_s": 1.3,
+   "cm_at_stop": 11.8,
+   "cm": 13.3,
+   "turn_deg": 3.1,
+   "foot_switches": 12,
+   "settled_s": 2.5,
+   "peak_tilt": 8.9,
+   "guard": false,
+   "log": "duck_wired_log_steprcn030-1124-170111.jsonl.gz"
+  },
+  {
+   "t": 1795557694.39,
+   "seconds": 1.31,
+   "for_s": 1.3,
+   "cm_at_stop": 14.0,
+   "cm": 15.8,
+   "turn_deg": 12.8,
+   "foot_switches": 8,
+   "settled_s": 2.5,
+   "peak_tilt": 8.1,
+   "guard": false,
+   "log": "duck_wired_log_steprcn030-1124-170111.jsonl.gz"
+  },
+  {
+   "t": 1795557752.9,
+   "seconds": 1.31,
+   "for_s": 1.3,
+   "cm_at_stop": 12.3,
+   "cm": 18.3,
+   "turn_deg": -6.5,
+   "foot_switches": 8,
+   "settled_s": 2.5,
+   "peak_tilt": 8.9,
+   "guard": false,
+   "log": "duck_wired_log_steprcn030-1124-170111.jsonl.gz"
+  },
+  {
+   "t": 1795557758.46,
+   "seconds": 1.32,
+   "for_s": 1.3,
+   "cm_at_stop": 10.8,
+   "cm": 16.5,
+   "turn_deg": -4.3,
+   "foot_switches": 8,
+   "settled_s": 2.5,
+   "peak_tilt": 11.2,
+   "guard": false,
+   "log": "duck_wired_log_steprcn030-1124-170111.jsonl.gz"
+  },
+  {
+   "t": 1795557764.11,
+   "seconds": 0.82,
+   "for_s": 0.8,
+   "cm_at_stop": 4.1,
+   "cm": 10.8,
+   "turn_deg": -7.8,
+   "foot_switches": 6,
+   "settled_s": 2.5,
+   "peak_tilt": 9.2,
+   "guard": false,
+   "log": "duck_wired_log_steprcn030-1124-170111.jsonl.gz"
+  },
+  {
+   "t": 1795557899.63,
+   "seconds": 1.01,
+   "for_s": 1.0,
+   "cm_at_stop": 6.4,
+   "cm": 9.1,
+   "turn_deg": 8.0,
+   "foot_switches": 6,
+   "settled_s": 2.5,
+   "peak_tilt": 9.2,
+   "guard": false,
+   "log": "duck_wired_log_steprcn030-1124-170111.jsonl.gz"
+  },
+  {
+   "t": 1795557907.43,
+   "seconds": 1.31,
+   "for_s": 1.3,
+   "cm_at_stop": 16.3,
+   "cm": 18.5,
+   "turn_deg": -0.9,
+   "foot_switches": 8,
+   "settled_s": 2.5,
+   "peak_tilt": 10.3,
+   "guard": false,
+   "log": "duck_wired_log_steprcn030-1124-170111.jsonl.gz"
+  },
+  {
+   "t": 1795557929.22,
+   "seconds": 1.31,
+   "for_s": 1.3,
+   "cm_at_stop": 12.3,
+   "cm": 15.9,
+   "turn_deg": -7.8,
+   "foot_switches": 6,
+   "settled_s": 2.5,
+   "peak_tilt": 8.1,
+   "guard": false,
+   "log": "duck_wired_log_steprcn030-1124-170111.jsonl.gz"
+  }
+ ],
+ "table": [
+  [
+   0.8,
+   0.108
+  ],
+  [
+   1.0,
+   0.108
+  ],
+  [
+   1.3,
+   0.185
+  ]
+ ]
+}

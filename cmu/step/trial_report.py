@@ -53,8 +53,10 @@ def report(path):
         if prev is not None and max(abs(a - b) for a, b in zip(r["action"], prev)) > JUMP_RAD:
             jumps += 1
         prev = r["action"]
+    # tilt only from valid IMU reads: before the IMU's first read the brain logs gb = [0, -1, 0] (90 deg), not a fall
+    imu = [r for r in rows if r.get("imu_valid", True)]
     falls, over = 0, False
-    for r in rows:
+    for r in imu:
         if tilt(r) > 45 and not over:
             falls += 1
         over = tilt(r) > 45
@@ -74,7 +76,7 @@ def report(path):
     return dict(log=str(path), rows=len(rows), walk_s=round(len(walk) / 50, 1), action_jumps=jumps,
                 jumps_per_10s=round(10 * jumps / (len(walk) / 50), 1) if walk else None,
                 max_abs_action=round(max((max(abs(a) for a in r["action"]) for r in walk), default=0.0), 2),
-                max_tilt_deg=round(max((tilt(r) for r in rows), default=0.0), 1), falls=falls,
+                max_tilt_deg=round(max((tilt(r) for r in imu), default=0.0), 1), falls=falls,
                 stale_ticks=stale, read_noise=noise)
 
 

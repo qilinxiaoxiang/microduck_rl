@@ -1,0 +1,9 @@
+duck_wired_log_steprcn030-11   1.32 s  stop   11.8  settled   13.3 cm  turn    3.1  switches 12  tilt  8.9
+duck_wired_log_steprcn030-11   1.31 s  stop   14.0  settled   15.8 cm  turn   12.8  switches  8  tilt  8.1
+duck_wired_log_steprcn030-11   1.31 s  stop   12.3  settled   18.3 cm  turn   -6.5  switches  8  tilt  8.9
+duck_wired_log_steprcn030-11   1.32 s  stop   10.8  settled   16.5 cm  turn   -4.3  switches  8  tilt 11.2
+duck_wired_log_steprcn030-11   0.82 s  stop    4.1  settled   10.8 cm  turn   -7.8  switches  6  tilt  9.2
+duck_wired_log_steprcn030-11   1.01 s  stop    6.4  settled    9.1 cm  turn    8.0  switches  6  tilt  9.2
+duck_wired_log_steprcn030-11   1.31 s  stop   16.3  settled   18.5 cm  turn   -0.9  switches  8  tilt 10.3
+duck_wired_log_steprcn030-11   1.31 s  stop   12.3  settled   15.9 cm  turn   -7.8  switches  6  tilt  8.1
+table [[0.8, 0.108], [1.0, 0.108], [1.3, 0.185]]

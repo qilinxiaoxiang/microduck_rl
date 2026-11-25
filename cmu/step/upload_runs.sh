@@ -44,15 +44,15 @@ git fetch -q origin "$BRANCH" 2>/dev/null && base=origin/$BRANCH || { git fetch 
 known=$(git ls-tree -r "$base" -- cmu/step/robot-runs | awk '{print $3}' | sort -u)
 logs=()
 while IFS= read -r f; do
-  mb=$(( $(stat -c %s "$f") / 1048576 ))
+  mb=$(( $(wc -c < "$f") / 1048576 ))  # wc, not stat -c: the laptop may be a Mac
   [ "$mb" -lt "$MAX_MB" ] || { echo "skip (${mb} MB, too big for GitHub): $f"; continue; }
   h=$(git hash-object "$f")
   if grep -qx "$h" <<< "$known"; then rm "$f"; else logs+=("$f"); fi
 done < <(find "$DIR" -type f | sort)
 jsonl=()
-for f in "${logs[@]}"; do case "$f" in *.jsonl.gz) jsonl+=("$f") ;; esac; done
+for f in "${logs[@]}"; do case "$f" in *.meta.jsonl.gz) ;; */duck_wired_log_*.jsonl.gz) jsonl+=("$f") ;; esac; done
 [ ${#logs[@]} -gt 0 ] || { echo "nothing new to upload (every log is already on $BRANCH)"; exit 0; }
-echo "${#logs[@]} new file(s), ${#jsonl[@]} log(s), $(du -sh "$DIR" | cut -f1) in $REL"
+echo "${#logs[@]} new file(s), ${#jsonl[@]} brain log(s), $(du -sh "$DIR" | cut -f1) in $REL"
 
 # 2. reports
 out=cmu/step/results/experiment-$EXP
@@ -60,7 +60,9 @@ mkdir -p "$out"
 reports=() failed=()
 if [ ${#jsonl[@]} -gt 0 ]; then
   for r in odom trial; do
-    if uv run --no-sync --with pyserial python "cmu/step/${r}_report.py" "${jsonl[@]}" --out "$out/$SESSION-$r.json" \
+    # --no-project: the reports need only numpy (and pyserial for walk_brain's imports), not the training env, which
+    # a laptop that only drives the duck may never have synced (2026-11-24: odom failed on "No module named numpy")
+    if uv run --no-project --with numpy --with pyserial python "cmu/step/${r}_report.py" "${jsonl[@]}" --out "$out/$SESSION-$r.json" \
          > "$out/$SESSION-$r.txt" 2>&1; then
       reports+=("$out/$SESSION-$r.json" "$out/$SESSION-$r.txt")
     else
