@@ -76,6 +76,25 @@ exits with status 3 before the env is built when the manifest's sha256 differs; 
 when the built model's footc geoms do not match the layer the manifest names. The mass is recorded, not checked (the
 w918 manifests build 918.0 g; tests/test_foot_contact_training.py checks that).
 
+Flight pack (--model flightpack-v1-w918-20261124, PACK_VARIANTS; every option off by default, other models refuse them;
+terms in tasks/mdp.py pack_thrust / pack_mass_ramp, wired by tasks/cmu_asbuilt.py apply_pack_options):
+  --thrust-lift LO HI       fan thrust event: lift/weight target per env in [LO, HI] (<= 0.75), redrawn every 2-6 s,
+                            --thrust-zero-share (0.25) envs at zero, --thrust-drop-share (0.15) of redraws drop to zero
+                            mid-hold, --thrust-lag (thrust_sites.json, 0.10 s) first-order, --thrust-imbalance (0.10)
+                            per-fan share spread; force at each fan site along its trunk-fixed axis.
+  --thrust-told             62nd actor input: lift estimate 2-6 ticks old with sd 0.05 noise (0 while fans are off);
+                            critic gets the true lift; a 61-input --init-checkpoint is padded (pad_checkpoint_for_told).
+  --pack-ramp-iters N       pack mass, COM, inertia ramp from the 918 g base to full over this run's first N iterations.
+  --pack-levels N           per-env pack levels 0..N-1 (fraction k/(N-1)) instead of the ramp: start 0..--pack-level-init-max,
+                            at each episode end up one (no fall, speed along forward command >= --pack-gate-speed),
+                            down one (fall, or speed < half the gate), only for envs with >= 2 s of forward command;
+                            past the top redrawn over all levels. Metrics rows: level mean, top share, per-band
+                            (levels 0-3, 4-7, 8-10) forward speed and falls per episode.
+  --cmd-progress-weight W   reward W x clip(v along command / commanded speed, 0, 1) per s on ticks with a planar
+                            command above 0.1 m/s (mdp.cmd_progress; any model).
+  --max-lr X                cap on the adaptive learning rate (any model).
+Walking command options of tasks/cmu_press_commands.py are added when that module exists (press_module()).
+
 Kaggle: `kaggle_job.py push scratch ...` (cmu/finetune/kaggle/README.md). kernel_entry.py passes --root, --gpu and
 --rate-per-hour; the last is accepted and ignored (no dollar cap on Kaggle; --max-hours is the cap).
 """
@@ -94,7 +113,8 @@ from pathlib import Path
 
 TASK = "Mjlab-Velocity-Flat-MicroDuck"
 FOOT_VARIANTS = ("battery-v2m5-w918-sole1-20261123", "battery-v2m5-w918-box1-20261123")  # opt-in, never the default
-MODELS = ("stock", "current") + FOOT_VARIANTS
+PACK_VARIANTS = ("flightpack-v1-w918-20261124",)  # opt-in flight-pack body (tasks/cmu_asbuilt.py PACK_VARIANTS)
+MODELS = ("stock", "current") + FOOT_VARIANTS + PACK_VARIANTS
 CONDITIONS = ("official", "gyro", "robot")
 FWD_CMD_MIN = 0.15  # m/s: an env counts as commanded forward above this (the worker's "moving" band)
 
@@ -127,7 +147,7 @@ def _make_env_cfg(model: str, play: bool = False, conditions: str = "official"):
                              f"the current robot and no stock builder applies them")
         from mjlab_microduck.tasks.microduck_velocity_env_cfg import make_microduck_velocity_env_cfg
         return make_microduck_velocity_env_cfg(play=play)
-    if model == "current" or model in FOOT_VARIANTS:
+    if model == "current" or model in FOOT_VARIANTS or model in PACK_VARIANTS:
         from mjlab_microduck.tasks.cmu_asbuilt import make_cmu_velocity_env_cfg
         cfg = make_cmu_velocity_env_cfg(model, play=play, robot_conditions=False)
         if conditions != "official":
@@ -270,6 +290,91 @@ def load_init_checkpoint(runner, info: dict, num_steps_per_env: int) -> dict:
                 action_std_max=round(float(std.max()), 4))
 
 
+def press_module():
+    """tasks/cmu_press_commands.py (owned by the command work) or None when it is absent."""
+    try:
+        from mjlab_microduck.tasks import cmu_press_commands
+    except ImportError:
+        return None
+    return cmu_press_commands
+
+
+def pad_checkpoint_for_told(src: str, dst) -> dict:
+    """Write a copy of a 61-input checkpoint whose actor and critic take one more input at the end (the lift estimate):
+    first-layer weight gets a zero column, the obs normaliser mean 0 / var 1 / std 1 for it, and Adam's moments for
+    those two weights a zero column, so the actor's output is unchanged while the new input is 0. Returns the widths."""
+    import torch
+    d = torch.load(src, map_location="cpu", weights_only=False)
+    widths = {}
+    for key in ("actor_state_dict", "critic_state_dict"):
+        sd = d[key]
+        w = sd["mlp.0.weight"]
+        widths[key] = (int(w.shape[1]), int(w.shape[1]) + 1)
+        sd["mlp.0.weight"] = torch.cat([w, torch.zeros(w.shape[0], 1, dtype=w.dtype)], dim=1)
+        for name, fill in (("obs_normalizer._mean", 0.0), ("obs_normalizer._var", 1.0), ("obs_normalizer._std", 1.0)):
+            if name in sd:
+                v = sd[name]
+                sd[name] = torch.cat([v, torch.full((*v.shape[:-1], 1), fill, dtype=v.dtype)], dim=-1)
+    st = d["optimizer_state_dict"]["state"]
+    old = {widths["actor_state_dict"][0], widths["critic_state_dict"][0]}
+    hit = 0
+    for i, s in st.items():
+        for k in ("exp_avg", "exp_avg_sq"):
+            v = s.get(k)
+            if v is not None and v.dim() == 2 and v.shape[1] in old and v.shape[0] == 512:
+                s[k] = torch.cat([v, torch.zeros(v.shape[0], 1, dtype=v.dtype)], dim=1)
+                hit += 1
+    if hit != 4:
+        raise SystemExit(f"pad_checkpoint_for_told: expected 4 first-layer Adam moments, padded {hit}")
+    torch.save(d, dst)
+    return dict(path=str(dst), widths=widths)
+
+
+def cap_learning_rate(alg, max_lr: float) -> None:
+    """Upper bound on PPO's adaptive learning rate: every assignment to alg.learning_rate (rsl_rl's adaptive schedule,
+    the worker's resume sync) is clamped to max_lr, and the optimizer follows."""
+    cls = type(alg)
+
+    class CappedLr(cls):
+        @property
+        def learning_rate(self):
+            return self.__dict__["_capped_lr"]
+
+        @learning_rate.setter
+        def learning_rate(self, v):
+            self.__dict__["_capped_lr"] = min(float(v), float(max_lr))
+
+    lr = alg.__dict__.pop("learning_rate")
+    alg.__class__ = CappedLr
+    alg.learning_rate = lr
+    for g in alg.optimizer.param_groups:
+        g["lr"] = alg.learning_rate
+
+
+def fall_cost_term(env, term_name: str = "fell_over"):
+    """1 / step_dt on the tick an env terminates by its fell_over termination (not on a tick that is also a time-out),
+    else 0. The termination manager runs before the reward manager in the same step (mjlab ManagerBasedRlEnv.step),
+    so this reads the current tick's termination. With weight -C and the reward manager's dt scaling
+    (scale_rewards_by_dt), the reward PPO receives on that tick is exactly -C."""
+    tm = env.termination_manager
+    fell = tm.get_term(term_name) & ~tm.time_outs
+    return fell.float() / env.step_dt
+
+
+def apply_fall_cost(cfg, cost: float) -> dict:
+    """--fall-cost C: add reward term fall_cost (weight -C on fall_cost_term). 0 = no term (cfg unchanged)."""
+    if not cost:
+        return {}
+    from mjlab.managers import RewardTermCfg
+    assert cost > 0 and "fell_over" in cfg.terminations and not cfg.terminations["fell_over"].time_out, cost
+    assert "fall_cost" not in cfg.rewards
+    assert getattr(cfg, "scale_rewards_by_dt", True), "fall_cost_term assumes dt-scaled rewards"
+    cfg.rewards["fall_cost"] = RewardTermCfg(func=fall_cost_term, weight=-float(cost),
+                                             params=dict(term_name="fell_over"))
+    return dict(cost=float(cost), term="fell_over", rule="reward -C once on the tick an env terminates by fell_over "
+                "(bad_orientation), not on time-outs; value 1/step_dt x weight -C, scaled by dt -> -C per fall")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--run-name", required=True)
@@ -306,7 +411,89 @@ def main(argv=None):
     ap.add_argument("--press-speed", type=float, default=0.25, help="vx of the press-speed envs (m/s, default 0.25)")
     ap.add_argument("--expect-manifest-sha", default=None,
                     help="sha256 the body's mass manifest must have; exit 3 before training otherwise")
+    # flight-pack options (PACK_VARIANTS only; all off by default)
+    ap.add_argument("--thrust-lift", type=float, nargs=2, default=None, metavar=("LO", "HI"),
+                    help="pack model: fan lift as a fraction of weight, target drawn per env in [LO, HI] (<= 0.75) and "
+                         "redrawn every 2-6 s (default off = no thrust event)")
+    ap.add_argument("--thrust-zero-share", type=float, default=0.25, help="share of envs (per episode) held at zero lift")
+    ap.add_argument("--thrust-drop-share", type=float, default=0.15,
+                    help="share of redraws whose target drops to zero at a random time inside the hold")
+    ap.add_argument("--thrust-lag", type=float, default=None, help="first-order thrust lag, s (default thrust_sites.json)")
+    ap.add_argument("--thrust-imbalance", type=float, default=0.10, help="per-episode fan share spread (fraction)")
+    ap.add_argument("--thrust-told", action="store_true",
+                    help="append a delayed (2-6 ticks) noisy (sd 5 %% of weight) lift estimate as the 62nd actor input "
+                         "(critic: true lift); a 61-input --init-checkpoint is padded with a zero column")
+    ap.add_argument("--pack-ramp-iters", type=int, default=0,
+                    help="pack model: the pack's mass, COM and inertia ramp from the base robot to full over the first "
+                         "N iterations of this run (0 = full pack from the first step)")
+    ap.add_argument("--pack-levels", type=int, default=0,
+                    help="pack model: per-env pack levels 0..N-1 (fraction k/(N-1) of the pack's mass, COM, inertia), "
+                         "set at reset, promoted/demoted at episode end (mdp.pack_mass_ramp.update_levels); 0 = off")
+    ap.add_argument("--pack-level-init-max", type=int, default=5, help="start levels drawn uniformly in 0..this")
+    ap.add_argument("--pack-gate-speed", type=float, default=0.04,
+                    help="promotion speed along the forward command (m/s); below half of it counts as standing")
+    ap.add_argument("--cmd-progress-weight", type=float, default=0.0,
+                    help="weight (per s) of the command-progress reward term mdp.cmd_progress (0 = off)")
+    ap.add_argument("--upright-progress-gate", action="store_true",
+                    help="under a walk command multiply the positive upright reward by clip(mean speed along the "
+                         "command over the last --upright-gate-window s / --upright-gate-vref, 0, 1); unchanged at "
+                         "zero command (mdp.upright_progress_gate; default off)")
+    ap.add_argument("--progress-gate-terms", default=None,
+                    help="comma list of positive reward terms to gate the same way as --upright-progress-gate (same "
+                         "multiplier, window and v_ref; unchanged at zero command), e.g. "
+                         "upright,track_angular_velocity,pose,head_pose_tracking; replaces --upright-progress-gate")
+    ap.add_argument("--fall-cost", type=float, default=0.0,
+                    help="one-off reward cost C (reward units, as PPO receives it) on the tick an env terminates by "
+                         "falling over (fell_over), never on time-outs (default 0 = off, cfg unchanged)")
+    ap.add_argument("--upright-gate-window", type=float, default=1.0, help="gate window, s (default 1.0)")
+    ap.add_argument("--upright-gate-vref", type=float, default=0.10, help="gate reference speed, m/s (default 0.10)")
+    ap.add_argument("--max-lr", type=float, default=None, help="upper bound on the adaptive learning rate (default none)")
+    press = press_module()
+    if press is not None:
+        press.add_press_arguments(ap)
     args = ap.parse_args(argv)
+    pack = args.model in PACK_VARIANTS
+    if not pack and (args.thrust_lift is not None or args.thrust_told or args.pack_ramp_iters):
+        ap.error(f"--thrust-lift / --thrust-told / --pack-ramp-iters need --model {PACK_VARIANTS[0]}")
+    if args.thrust_lift is not None and not 0.0 <= args.thrust_lift[0] <= args.thrust_lift[1] <= 0.75:
+        ap.error("--thrust-lift needs 0 <= LO <= HI <= 0.75")
+    if args.thrust_told and args.thrust_lift is None:
+        ap.error("--thrust-told needs --thrust-lift")
+    for name in ("thrust_zero_share", "thrust_drop_share"):
+        if not 0.0 <= getattr(args, name) <= 1.0:
+            ap.error(f"--{name.replace('_', '-')} is a share in [0, 1]")
+    if not 0.0 <= args.thrust_imbalance < 1.0:
+        ap.error("--thrust-imbalance must lie in [0, 1)")
+    if args.thrust_lag is not None and not 0.0 < args.thrust_lag <= 1.0:
+        ap.error("--thrust-lag must lie in (0, 1] s")
+    if args.pack_ramp_iters < 0:
+        ap.error("--pack-ramp-iters must be >= 0")
+    if args.pack_levels and not pack:
+        ap.error(f"--pack-levels needs --model {PACK_VARIANTS[0]}")
+    if args.pack_levels and args.pack_ramp_iters:
+        ap.error("--pack-levels replaces --pack-ramp-iters; give one")
+    if args.pack_levels and not (2 <= args.pack_levels <= 101 and 0 <= args.pack_level_init_max < args.pack_levels):
+        ap.error("--pack-levels needs 2..101 levels and 0 <= --pack-level-init-max < --pack-levels")
+    if not 0.0 < args.pack_gate_speed <= 1.0:
+        ap.error("--pack-gate-speed must lie in (0, 1] m/s")
+    if args.cmd_progress_weight < 0.0:
+        ap.error("--cmd-progress-weight must be >= 0")
+    if not (0.0 < args.upright_gate_window <= 10.0 and 0.0 < args.upright_gate_vref <= 1.0):
+        ap.error("--upright-gate-window must lie in (0, 10] s and --upright-gate-vref in (0, 1] m/s")
+    if not 0.0 <= args.fall_cost <= 1000.0:
+        ap.error("--fall-cost must lie in [0, 1000]")
+    gate_terms = None
+    if args.progress_gate_terms is not None:
+        if args.upright_progress_gate:
+            ap.error("--progress-gate-terms replaces --upright-progress-gate; give one")
+        gate_terms = tuple(t.strip() for t in args.progress_gate_terms.split(",") if t.strip())
+        if not gate_terms or len(set(gate_terms)) != len(gate_terms):
+            ap.error("--progress-gate-terms needs one or more distinct reward term names")
+    if not (args.upright_progress_gate or gate_terms) and (args.upright_gate_window != 1.0
+                                                            or args.upright_gate_vref != 0.10):
+        ap.error("--upright-gate-window / --upright-gate-vref need --upright-progress-gate or --progress-gate-terms")
+    if args.max_lr is not None and not 0.0 < args.max_lr <= 1e-2:
+        ap.error("--max-lr must lie in (0, 0.01]")
     if not 0.0 <= args.heading_hold <= 1.0:
         ap.error("--heading-hold is a share in [0, 1]")
     if not 0.0 < args.heading_hold_gain[0] <= args.heading_hold_gain[1]:
@@ -374,9 +561,36 @@ def main(argv=None):
                            heading_hold_gain=tuple(args.heading_hold_gain), heading_hold_law=args.heading_hold_law,
                            heading_hold_trim=args.heading_hold_trim, press_speed_share=args.press_speed_share,
                            press_speed=args.press_speed)
+    if press is not None:
+        press.apply_press_options(env_cfg, args)
     env_cfg.scene.num_envs = args.num_envs
     env_cfg.seed = args.seed
     agent_cfg = make_agent_cfg(args.run_name, args.seed, args.max_iters, args.save_interval)
+    pack_record = None
+    if pack:
+        from mjlab_microduck.tasks.cmu_asbuilt import apply_pack_options
+        pack_record = apply_pack_options(
+            env_cfg, args.model, thrust_lift=args.thrust_lift, zero_share=args.thrust_zero_share,
+            drop_share=args.thrust_drop_share, lag=args.thrust_lag, imbalance=args.thrust_imbalance,
+            told=args.thrust_told, ramp_steps=args.pack_ramp_iters * agent_cfg.num_steps_per_env,
+            levels=args.pack_levels, level_init_max=args.pack_level_init_max, gate_speed=args.pack_gate_speed)
+    progress_record = None
+    if args.cmd_progress_weight:
+        from mjlab_microduck.tasks.cmu_asbuilt import apply_cmd_progress
+        progress_record = apply_cmd_progress(env_cfg, args.cmd_progress_weight)
+    gate_record = None
+    if args.upright_progress_gate:
+        from mjlab_microduck.tasks.cmu_asbuilt import apply_upright_progress_gate
+        gate_record = apply_upright_progress_gate(env_cfg, window_s=args.upright_gate_window,
+                                                  v_ref=args.upright_gate_vref)
+    elif gate_terms:
+        from mjlab_microduck.tasks.cmu_asbuilt import apply_upright_progress_gate
+        missing = [t for t in gate_terms if t not in env_cfg.rewards]
+        if missing:
+            raise SystemExit(f"--progress-gate-terms: no reward term {missing} (have {sorted(env_cfg.rewards)})")
+        gate_record = apply_upright_progress_gate(env_cfg, window_s=args.upright_gate_window,
+                                                  v_ref=args.upright_gate_vref, terms=gate_terms)
+    fall_record = apply_fall_cost(env_cfg, args.fall_cost)
 
     record = dict(run_name=args.run_name, task=TASK, route="scratch (Pollen recipe unchanged)", model=args.model,
                   conditions=args.conditions, seed=args.seed, num_envs=args.num_envs, max_iters=args.max_iters, save_interval=args.save_interval,
@@ -402,6 +616,19 @@ def main(argv=None):
                                      press_speed_share=args.press_speed_share, press_speed=args.press_speed)
     if args.heading_hold > 0.0 or args.press_speed_share > 0.0:
         record["commands"] = env_cfg.__dict__["_heading_hold_record"]
+    if press is not None:
+        record["press"] = press.press_record(args)
+    if pack:
+        record["pack"] = dict(pack_record, thrust_lift=args.thrust_lift, thrust_told=args.thrust_told,
+                              pack_ramp_iters=args.pack_ramp_iters, pack_levels=args.pack_levels)
+    if progress_record:
+        record["cmd_progress"] = progress_record
+    if gate_record:
+        record["upright_progress_gate"] = gate_record
+    if fall_record:
+        record["fall_cost"] = fall_record
+    if args.max_lr is not None:
+        record["max_lr"] = args.max_lr
     (run_dir / "run_record.json").write_text(json.dumps(record, indent=1, default=str))
 
     env = ManagerBasedRlEnv(cfg=env_cfg, device=device)
@@ -471,6 +698,16 @@ def main(argv=None):
                            lr=self.alg.learning_rate, time=time.strftime("%Y-%m-%dT%H:%M:%S"),
                            **{k: round(s / c, 4) for k, (s, c) in self.cwin.items() if c})
                 self.cwin = {}
+                if pack:  # flight-pack state at this iteration (instantaneous, all envs)
+                    u = self.env.unwrapped
+                    lift = getattr(u, "_pack_thrust_lift", None)
+                    if lift is not None:
+                        row["pack_lift_mean"] = round(float(lift.mean()), 4)
+                    if args.pack_ramp_iters:
+                        row["pack_ramp_fraction"] = round(
+                            u.event_manager.get_term_cfg("pack_mass_ramp").func.last_fraction, 4)
+                    if args.pack_levels:
+                        row.update(u.event_manager.get_term_cfg("pack_mass_ramp").func.metrics())
                 with open(run_dir / "metrics.jsonl", "a") as f:
                     f.write(json.dumps(row) + "\n")
                 print(f"[scratch] {json.dumps(row)}", flush=True)
@@ -502,8 +739,22 @@ def main(argv=None):
             self.saves += 1
 
     runner = ScratchRunner(env, dataclasses.asdict(agent_cfg), str(run_dir), device)
+    if args.max_lr is not None:
+        cap_learning_rate(runner.alg, args.max_lr)
     if init:
-        loaded = load_init_checkpoint(runner, init, agent_cfg.num_steps_per_env)
+        load_info = init
+        if args.thrust_told:
+            import torch
+            w = torch.load(init["path"], map_location="cpu", weights_only=False)["actor_state_dict"]["mlp.0.weight"]
+            want = env.unwrapped.observation_manager.group_obs_dim["actor"][0]
+            if w.shape[1] == want - 1:
+                padded = pad_checkpoint_for_told(init["path"], run_dir / "init_padded_told.pt")
+                record["init_checkpoint_padded"] = padded
+                load_info = dict(init, path=padded["path"])
+            elif w.shape[1] != want:
+                raise SystemExit(f"--init-checkpoint actor takes {w.shape[1]} inputs; the env gives {want}")
+        loaded = load_init_checkpoint(runner, load_info, agent_cfg.num_steps_per_env)
+        loaded["path"], loaded["sha256"] = init["path"], init["sha256"]
         runner.first_it = loaded["first_iteration"]
         record["init_checkpoint"] = loaded
         (run_dir / "run_record.json").write_text(json.dumps(record, indent=1, default=str))
@@ -513,6 +764,17 @@ def main(argv=None):
               f"action std mean {loaded['action_std_mean']} (min {loaded['action_std_min']}, max {loaded['action_std_max']}, "
               f"not reset), lr {loaded['lr_restored']:.3g} (cfg {loaded['lr_cfg']:.3g}); iterations "
               f"{runner.first_it}..{runner.first_it + args.max_iters - 1}", flush=True)
+    if args.max_lr is not None:
+        for g in runner.alg.optimizer.param_groups:  # the restored optimizer's lr, clamped as well
+            g["lr"] = runner.alg.learning_rate
+        print(f"[scratch] adaptive lr capped at {args.max_lr:.3g}; starts at {runner.alg.learning_rate:.3g}", flush=True)
+    if pack and args.pack_ramp_iters:
+        ramp = env.unwrapped.event_manager.get_term_cfg("pack_mass_ramp").func
+        ramp.start_counter = int(env.unwrapped.common_step_counter)  # counted from this run's start, not the source's
+        record["pack"]["mass_ramp_start_counter"] = ramp.start_counter
+        (run_dir / "run_record.json").write_text(json.dumps(record, indent=1, default=str))
+        print(f"[scratch] pack mass ramp over {args.pack_ramp_iters} iterations from step counter {ramp.start_counter}",
+              flush=True)
     print(f"[scratch] {TASK} {'continued' if init else 'from scratch'}, model {args.model}, conditions {args.conditions}, "
           f"seed {args.seed}, {args.num_envs} envs, {args.max_iters} iterations, common_step_counter "
           f"{env.unwrapped.common_step_counter}", flush=True)

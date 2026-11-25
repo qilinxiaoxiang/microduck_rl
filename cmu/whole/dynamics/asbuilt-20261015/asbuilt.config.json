@@ -1,7 +1,7 @@
 {
  "voltage": 5,
  "kp": 200,
- "current_limit": 1.47,
+ "current_limit": 1.75,
  "duration": 30,
  "command": [
   0.3,

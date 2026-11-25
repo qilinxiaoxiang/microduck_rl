@@ -13,7 +13,8 @@ reference-walk61-<variant>.jsonl otherwise (none is stored for the current robot
 walk61 at the current code as its reference).
 
 A planned robot (PLANNED; none since 2026-11-22, when battery-v2m5-20261121 became current) is checked on purpose
-before a trial with --variant X, alone or with a --payload-manifest whose "build" string starts with X. Its rows carry
+before a trial with --variant X, alone or with a --payload-manifest built on X (every part of manifests/X.json in it
+unchanged, payload_flags). Its rows carry
 "robot": "PLANNED, not fitted: NOT the robot as it is now" and current_robot false, the printed header and rows say
 PLANNED, brain_sim_check gets --historical-model "sim_suite --variant X (planned robot, not fitted)", and its default
 reference is reference-walk61-planned-<X>[+<payload stem>].jsonl, a name no current-robot reference can take.
@@ -59,6 +60,7 @@ Each output row is the brain_sim_check JSON row with "case", "class" and "varian
 <out>.err, and a case without a result row stops the suite with a non-zero exit.
 """
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -234,11 +236,51 @@ def payload_label(path, variant="current"):
     return f"planned-{label}" if is_planned(variant) else label
 
 
+PART_KEYS = ("body", "mass_kg", "position_m", "inertia_about_com_kg_m2")  # a robot part the payload may not change
+
+
+def robot_manifest(variant="current"):
+    """Path of the mass manifest of the robot a payload must be built on: the one cmu/model/current.json names (its
+    sha256 checked against current.json), or cmu/model/manifests/<X>.json for a planned robot X."""
+    if is_planned(variant):
+        return os.path.join(MANIFESTS, f"{resolve_variant(variant)}.json")
+    cur = json.load(open(CURRENT_FILE))
+    path = os.path.join(os.path.dirname(CMU), cur["mass_manifest"])
+    if hashlib.sha256(open(path, "rb").read()).hexdigest() != cur["mass_manifest_sha256"]:
+        sys.exit(f"sim_suite: {path} does not match the mass_manifest_sha256 in {CURRENT_FILE}")
+    return path
+
+
+def payload_differences(payload, robot):
+    """(differences, added) of a payload manifest against the robot's own manifest, both dicts. Every robot part must be
+    in the payload under its id with the same body, mass, position and inertia, and the frames must match; the payload
+    may only add parts with new ids. differences: one line per robot part missing or changed (empty = built on it);
+    added: the payload's new parts (a negative-mass one moves robot mass, e.g. the backpack shifted by the pack mount)."""
+    diffs = []
+    if payload.get("frame") != robot.get("frame"):
+        diffs.append("frame differs")
+    ids = [p.get("id") for p in payload.get("parts", [])]
+    diffs += [f"{i}: listed {ids.count(i)} times in the payload" for i in sorted({i for i in ids if ids.count(i) > 1})]
+    have = {p.get("id"): p for p in payload.get("parts", [])}
+    for part in robot.get("parts", []):
+        got = have.get(part["id"])
+        if got is None:
+            diffs.append(f"{part['id']}: missing from the payload")
+            continue
+        changed = [k for k in PART_KEYS if (k in part or k in got) and part.get(k) != got.get(k)]
+        if changed:
+            diffs.append(f"{part['id']}: " + ", ".join(f"{k} {part.get(k)} -> {got.get(k)}" for k in changed))
+    own = {p["id"] for p in robot.get("parts", [])}
+    return diffs, [p for p in payload.get("parts", []) if p.get("id") not in own]
+
+
 def payload_flags(path, variant="current"):
     """brain_sim_check.py flags for the robot as it is now carrying a payload (the flight pack): a signed-part manifest
-    built on the current variant, which says so at the start of its "build" string ("battery-20261104 + flight pack
-    ..."). brain_sim_check treats such a manifest as the current robot (cmu/model/visual.py visual_variant_for_manifest);
-    a manifest built on another robot is refused here, before any case runs.
+    built on the current variant, checked by content (payload_differences): every part of the manifest that
+    cmu/model/current.json names is in the payload with the same body, mass, position and inertia, and the payload only
+    adds parts. A manifest built on another robot variant differs in some part and is refused here, before any case
+    runs, with the differing parts named. brain_sim_check treats such a manifest as the current robot
+    (cmu/model/visual.py visual_variant_for_manifest).
     The policy runs from the first tick (--stand-s 0): the opening second of open-loop stand is not a property of any
     policy, and the open-loop pose cannot carry a payload on the back (microduck-sim/CURRENT-STATE.json
     open_loop_stand_pose: it rests only within about a millimetre of COM shift). On 2026-11-21 the deployed set and the
@@ -248,17 +290,16 @@ def payload_flags(path, variant="current"):
     brain_sim_check runs it with a "planned robot" --historical-model reason."""
     if not os.path.isfile(path):
         sys.exit(f"sim_suite: payload manifest {path} not found")
-    build = str(json.load(open(path)).get("build", ""))
-    cur = resolve_variant("current")
-    if is_planned(variant):
+    robot_path = robot_manifest(variant)
+    diffs, _ = payload_differences(json.load(open(path)), json.load(open(robot_path)))
+    if diffs:
         want = resolve_variant(variant)
-        if not (build.startswith(want + " ") or build.startswith(want + ":")):
-            sys.exit(f"sim_suite: payload manifest {path} is built on '{build[:60]}', not on the planned robot {want} "
-                     f"named by --variant; rebuild the payload manifest on {want}")
+        where = f"the planned robot {want} named by --variant" if is_planned(variant) else f"the robot as it is now ({want})"
+        sys.exit(f"sim_suite: payload manifest {path} is not on {where}: {len(diffs)} part(s) of "
+                 f"{os.path.basename(robot_path)} differ: " + "; ".join(diffs[:12]) + ("; ..." if len(diffs) > 12 else "")
+                 + f". Rebuild the payload manifest on {want}")
+    if is_planned(variant):
         return ["--manifest", os.path.abspath(path), "--stand-s", "0", "--historical-model", planned_reason(variant)]
-    if not (build.startswith(cur + " ") or build.startswith(cur + ":")):
-        sys.exit(f"sim_suite: payload manifest {path} is built on '{build[:60]}', not on the robot as it is now ({cur}); "
-                 f"rebuild the payload manifest on {cur}")
     return ["--manifest", os.path.abspath(path), "--stand-s", "0"]
 
 
@@ -493,7 +534,8 @@ def main():
     ap.add_argument("--compare", default=None, help="print this JSONL side by side with the new rows, per case")
     ap.add_argument("--payload-manifest", default=None,
                     help="the robot as it is now carrying a payload: a signed-part manifest built on the current variant "
-                         "(the flight pack: flightpack-nominal.json). With --variant current, or with a planned --variant X "
+                         "(every part of the current manifest unchanged, only parts added; the flight pack: "
+                         "flightpack-v1-w918-20261124.json). With --variant current, or with a planned --variant X "
                          "and a manifest built on X (never a historical variant); no stored reference "
                          "exists for a payload, so pass --reference (cmu/deploy/deploy_policy.py does)")
     a = ap.parse_args()

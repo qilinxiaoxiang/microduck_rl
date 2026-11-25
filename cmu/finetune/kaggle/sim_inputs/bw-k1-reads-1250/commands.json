@@ -1,0 +1,10 @@
+[
+ {"name": "reads-sit-s1-1250",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "sitstand",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-1250/sit-s1_model_1250.onnx",
+           "--iteration", "1250", "--device", "cuda:0", "--out", "{run_dir}/reads/sit_s1_1250.json"]},
+ {"name": "reads-sit-s2-1250",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "sitstand",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-1250/sit-s2_model_1250.onnx",
+           "--iteration", "1250", "--device", "cuda:0", "--out", "{run_dir}/reads/sit_s2_1250.json"]}
+]

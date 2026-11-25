@@ -1,0 +1,39 @@
+{
+ "run_name": "bw-s1-cur-s2",
+ "task": "Mjlab-Velocity-Flat-MicroDuck",
+ "route": "scratch (Pollen recipe unchanged)",
+ "model": "current",
+ "seed": 2,
+ "num_envs": 4096,
+ "max_iters": 4000,
+ "save_interval": 250,
+ "max_hours": 5.8,
+ "early_stop": {
+  "iter": 0,
+  "speed": 0.03
+ },
+ "gpu": "kaggle-Tesla-T4",
+ "started": "2026-11-23T04:54:28",
+ "current": {
+  "variant": "battery-v2m5-20261121",
+  "mass_manifest": "cmu/model/manifests/battery-v2m5-20261121.json",
+  "mass_manifest_sha256": "534b61351a215894a937c11c701a60fd976c487f8375c7a9d0bc52719774a0cb"
+ },
+ "finished": "2026-11-23T10:10:15",
+ "final_iter": 3999,
+ "stop_reason": "max_iters reached",
+ "elapsed_s": 18947.3,
+ "onnx_missing": [],
+ "last_metrics": {
+  "iter": 3950,
+  "elapsed_s": 18712.2,
+  "speed_along_fwd_cmd": 0.1347,
+  "mean_ep_len_steps": 945.1,
+  "mean_reward": 113.9339,
+  "track_linear_velocity_per_s": 1.358,
+  "track_angular_velocity_per_s": 0.9616,
+  "action_std": 0.1839,
+  "lr": 0.0002562890625000001,
+  "time": "2026-11-23T10:06:20"
+ }
+}

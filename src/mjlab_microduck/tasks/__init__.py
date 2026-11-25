@@ -854,3 +854,7 @@ for _tag, _noise in _WS_RC.items():
         rl_cfg=walk_step_rl_cfg(MicroduckRlCfg, 0.15),
         runner_cls=WalkStepResidualRunner,
     )
+
+# CMU current-body ground pick and sit-stand (cmu_skill_env_cfg.py): Pollen's skill cfgs with only the body swapped.
+from .cmu_skill_env_cfg import register_cmu_skill_tasks
+register_cmu_skill_tasks(MicroduckOnPolicyRunner)

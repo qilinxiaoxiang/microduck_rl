@@ -1,0 +1,19 @@
+[
+ {"name": "gp-pollen",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_audit.py", "--task", "groundpick", "--recipe", "pollen",
+           "--conditions", "robot", "--num-envs", "1024", "--steps", "400", "--device", "cuda:0",
+           "--squat", "cmu/finetune/kaggle/sim_inputs/bw-k1-audit/fk-bend-a2.onnx",
+           "--walker", "cmu/whole/runtime-overlay/models-bw-s2c/bw-s2c-b2.onnx",
+           "--out", "{run_dir}/gp_pollen.json"]},
+ {"name": "gp-bend4",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_audit.py", "--task", "groundpick", "--recipe", "bend4",
+           "--conditions", "robot", "--num-envs", "1024", "--steps", "400", "--device", "cuda:0",
+           "--squat", "cmu/finetune/kaggle/sim_inputs/bw-k1-audit/fk-bend-a2.onnx",
+           "--walker", "cmu/whole/runtime-overlay/models-bw-s2c/bw-s2c-b2.onnx",
+           "--out", "{run_dir}/gp_bend4.json"]},
+ {"name": "sit",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_audit.py", "--task", "sitstand",
+           "--conditions", "robot", "--num-envs", "1024", "--steps", "400", "--device", "cuda:0",
+           "--walker", "cmu/whole/runtime-overlay/models-bw-s2c/bw-s2c-b2.onnx",
+           "--out", "{run_dir}/sit.json"]}
+]

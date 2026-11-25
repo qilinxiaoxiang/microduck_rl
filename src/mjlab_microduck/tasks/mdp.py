@@ -8629,3 +8629,391 @@ class DroppedReadJointPositionActionCfg(_JointPositionActionCfg):
 
     def build(self, env: ManagerBasedRlEnv) -> DroppedReadJointPositionAction:
         return DroppedReadJointPositionAction(self, env)
+
+# ============================================================================
+# Flight pack (CMU): fan thrust while walking, and a mass ramp onto the pack body.
+# Both are opt-in (tasks/cmu_asbuilt.py apply_pack_options); nothing else uses them.
+# ============================================================================
+
+_G = 9.81
+
+
+def _robot_weight_n(env, asset) -> torch.Tensor:
+    """(num_envs,) robot weight in N from the live (possibly randomised or ramped) body masses."""
+    m = env.sim.model.body_mass
+    gids = asset.indexing.body_ids
+    w = (m[..., gids].sum(-1) if m.dim() > 1 else m[gids].sum().expand(env.num_envs)) * _G
+    return w.expand(env.num_envs) if w.numel() == 1 else w
+
+
+class pack_thrust:
+    """Step event: fan thrust on the trunk, off unless the pack options add it.
+
+    Per environment a target lift level (total thrust / robot weight) is drawn uniformly in `lift_range` at each
+    episode start and redrawn after a hold of `hold_s` seconds; in a `drop_share` of redraws the target falls to zero
+    at a random time inside that hold (sudden lift loss). A `zero_share` of environments (drawn per episode) stays at
+    zero lift. Each fan's share of the total differs from 1/F by up to `imbalance` (drawn per episode, renormalised so
+    the shares sum to 1). Each fan's thrust follows its target through a first-order lag `tau` (exact discretisation,
+    1 - exp(-dt / tau) per control tick) and acts at its site (trunk frame) along its axis (trunk frame), so the force
+    turns with the trunk; the wrench is written to the trunk's xfrc_applied (world frame, about the trunk COM) once per
+    control tick and held over the decimation substeps.
+    Readable by terms: env._pack_thrust_lift (true delivered lift fraction, (N,)) and env._pack_thrust_lift_est (the
+    delayed noisy estimate: delay drawn per episode in `est_delay_ticks`, Gaussian noise sd `est_noise` of weight,
+    exactly 0 while the delivered lift is 0)."""
+
+    def __init__(self, cfg, env: ManagerBasedRlEnv):
+        p = cfg.params
+        self._asset: Entity = env.scene[p["asset_cfg"].name]
+        ids, _ = self._asset.find_bodies(p.get("body_name", "trunk_base"))
+        assert len(ids) == 1, ids
+        self._body = ids[0]
+        dev, n = env.device, env.num_envs
+        self._pos = torch.tensor(p["positions"], dtype=torch.float32, device=dev)          # (F, 3) trunk frame
+        ax = torch.tensor(p["axes"], dtype=torch.float32, device=dev)
+        self._axis = ax / ax.norm(dim=-1, keepdim=True)                                    # (F, 3) trunk frame
+        nf = self._pos.shape[0]
+        self._nf, self._n, self._dev = nf, n, dev
+        self._T = torch.zeros(n, nf, device=dev)
+        self._share = torch.full((n, nf), 1.0 / nf, device=dev)
+        self._level = torch.zeros(n, device=dev)
+        self._zero = torch.zeros(n, dtype=torch.bool, device=dev)
+        self._hold_left = torch.zeros(n, device=dev)
+        self._drop_left = torch.full((n,), float("inf"), device=dev)
+        d_lo, d_hi = p.get("est_delay_ticks", (2, 6))
+        self._hist = torch.zeros(n, int(d_hi) + 1, device=dev)                             # newest first
+        self._delay = torch.zeros(n, dtype=torch.long, device=dev)
+        env._pack_thrust_lift = torch.zeros(n, device=dev)
+        env._pack_thrust_lift_est = torch.zeros(n, 1, device=dev)
+        self._env = env
+
+    def _redraw(self, ids, p):
+        k = len(ids)
+        lo, hi = p["lift_range"]
+        self._level[ids] = lo + (hi - lo) * torch.rand(k, device=self._dev)
+        h_lo, h_hi = p.get("hold_s", (2.0, 6.0))
+        hold = h_lo + (h_hi - h_lo) * torch.rand(k, device=self._dev)
+        self._hold_left[ids] = hold
+        drop = torch.rand(k, device=self._dev) < p.get("drop_share", 0.0)
+        self._drop_left[ids] = torch.where(drop, hold * torch.rand(k, device=self._dev),
+                                           torch.full_like(hold, float("inf")))
+
+    def reset(self, env_ids=None):
+        p = self._p_cache if hasattr(self, "_p_cache") else None
+        if env_ids is None or isinstance(env_ids, slice):
+            env_ids = torch.arange(self._n, device=self._dev)
+        if len(env_ids) == 0:
+            return
+        self._T[env_ids] = 0.0
+        self._hist[env_ids] = 0.0
+        self._env._pack_thrust_lift[env_ids] = 0.0
+        self._env._pack_thrust_lift_est[env_ids] = 0.0
+        self._pending = env_ids if p is None else None
+        if p is not None:
+            self._episode_draws(env_ids, p)
+
+    def _episode_draws(self, ids, p):
+        k = len(ids)
+        imb = float(p.get("imbalance", 0.0))
+        s = 1.0 + imb * (2 * torch.rand(k, self._nf, device=self._dev) - 1)
+        self._share[ids] = s / s.sum(-1, keepdim=True)
+        self._zero[ids] = torch.rand(k, device=self._dev) < p.get("zero_share", 0.0)
+        d_lo, d_hi = p.get("est_delay_ticks", (2, 6))
+        self._delay[ids] = torch.randint(int(d_lo), int(d_hi) + 1, (k,), device=self._dev)
+        self._redraw(ids, p)
+
+    def __call__(self, env, env_ids, positions, axes, lift_range, tau, asset_cfg, zero_share=0.0, drop_share=0.0,
+                 imbalance=0.0, hold_s=(2.0, 6.0), est_delay_ticks=(2, 6), est_noise=0.05, body_name="trunk_base",
+                 hold_level=None):
+        p = dict(lift_range=lift_range, zero_share=zero_share, drop_share=drop_share, imbalance=imbalance,
+                 hold_s=hold_s, est_delay_ticks=est_delay_ticks)
+        if not hasattr(self, "_p_cache"):  # first tick: draws for every env (resets before this had no params yet)
+            self._p_cache = p
+            self._episode_draws(torch.arange(self._n, device=self._dev), p)
+        elif getattr(self, "_pending", None) is not None:
+            self._episode_draws(self._pending, p)
+            self._pending = None
+        dt = env.step_dt
+        self._hold_left -= dt
+        self._drop_left -= dt
+        exp = (self._hold_left <= 0).nonzero(as_tuple=False).squeeze(-1)
+        if len(exp):
+            self._redraw(exp, p)
+        dropped = self._drop_left <= 0
+        self._level[dropped] = 0.0
+        self._drop_left[dropped] = float("inf")
+        level = self._level if hold_level is None else torch.full_like(self._level, float(hold_level))
+        level = torch.where(self._zero, torch.zeros_like(level), level)
+        w = _robot_weight_n(env, self._asset)
+        target = (level * w).unsqueeze(-1) * self._share                                    # (N, F) N
+        alpha = 1.0 - math.exp(-dt / float(tau))
+        self._T += (target - self._T) * alpha
+        q = self._asset.data.body_link_quat_w[:, self._body]                                # (N, 4)
+        x = self._asset.data.body_link_pos_w[:, self._body]
+        com = self._asset.data.body_com_pos_w[:, self._body]
+        qn = q.unsqueeze(1).expand(-1, self._nf, -1)
+        a_w = quat_apply(qn, self._axis.unsqueeze(0).expand(self._n, -1, -1))              # (N, F, 3)
+        p_w = x.unsqueeze(1) + quat_apply(qn, self._pos.unsqueeze(0).expand(self._n, -1, -1))
+        f_i = self._T.unsqueeze(-1) * a_w
+        force = f_i.sum(1)
+        torque = torch.cross(p_w - com.unsqueeze(1), f_i, dim=-1).sum(1)
+        self._asset.write_external_wrench_to_sim(force.unsqueeze(1), torque.unsqueeze(1), body_ids=[self._body])
+        lift = self._T.sum(-1) / w
+        env._pack_thrust_lift = lift
+        self._hist = torch.cat([lift.unsqueeze(-1), self._hist[:, :-1]], dim=-1)
+        est = self._hist.gather(1, self._delay.unsqueeze(-1))                               # (N, 1)
+        noisy = est + float(est_noise) * torch.randn_like(est)
+        env._pack_thrust_lift_est = torch.where(est > 1e-6, noisy, torch.zeros_like(est))
+
+
+def pack_thrust_lift(env: ManagerBasedRlEnv, estimate: bool = True) -> torch.Tensor:
+    """(N, 1) lift fraction for an observation: the delayed noisy estimate (actor) or the true value (critic);
+    zeros when no pack_thrust event runs."""
+    if estimate:
+        v = getattr(env, "_pack_thrust_lift_est", None)
+        return v if v is not None else torch.zeros(env.num_envs, 1, device=env.device)
+    v = getattr(env, "_pack_thrust_lift", None)
+    return v.unsqueeze(-1) if v is not None else torch.zeros(env.num_envs, 1, device=env.device)
+
+
+def _pseudo_inertia_helpers():
+    from mjlab.envs.mdp.dr.body import _decompose_pseudo_inertia_J, _reconstruct_pseudo_inertia_J
+    return _reconstruct_pseudo_inertia_J, _decompose_pseudo_inertia_J
+
+
+from mjlab.managers.event_manager import RecomputeLevel as _RecomputeLevel  # noqa: E402
+
+
+@requires_model_fields("body_mass", "body_ipos", "body_inertia", "body_iquat", recompute=_RecomputeLevel.set_const)
+class pack_mass_ramp:
+    """Reset event: the bodies the pack changes go from the base robot's inertials (fraction 0) to the pack body's
+    (fraction 1), f = clip((common_step_counter - start_counter) / ramp_steps, 0, 1), set at each env's reset.
+    start_counter defaults to 0; the worker sets it to the restored counter after --init-checkpoint, so the ramp counts
+    from this run's start. Interpolation is on the pseudo-inertia matrix (linear in the mass distribution, so mass,
+    first moment and second moment all move linearly and the result is exact for "base + f x pack parts"). Startup mass
+    DR (pseudo_inertia alpha) is kept as the per-env mass ratio captured at the first call; reset COM DR (body_ipos add,
+    which runs before this term) is kept as its offset from the default. Values are recomputed from stored arrays every
+    time, so nothing accumulates across resets."""
+
+    def __init__(self, cfg, env: ManagerBasedRlEnv):
+        p = cfg.params
+        self._asset: Entity = env.scene[p["asset_cfg"].name]
+        names = list(p["base_inertials"])
+        local, _ = self._asset.find_bodies(names, preserve_order=True)
+        self._gids = self._asset.indexing.body_ids[local]
+        dev = env.device
+        rec, _ = _pseudo_inertia_helpers()
+        b = p["base_inertials"]
+        bm = torch.tensor([b[k]["mass"] for k in names], dtype=torch.float32, device=dev)
+        bp = torch.tensor([b[k]["ipos"] for k in names], dtype=torch.float32, device=dev)
+        bi = torch.tensor([b[k]["inertia"] for k in names], dtype=torch.float32, device=dev)
+        bq = torch.tensor([b[k]["iquat"] for k in names], dtype=torch.float32, device=dev)
+        self._J0 = rec(bm, bp, bi, bq)
+        g = env.sim.get_default_field
+        self._def_mass = g("body_mass")[self._gids].float()
+        self._def_ipos = g("body_ipos")[self._gids].float()
+        self._J1 = rec(self._def_mass, self._def_ipos, g("body_inertia")[self._gids].float(),
+                       g("body_iquat")[self._gids].float())
+        nb, n = len(names), env.num_envs
+        self._scale = None
+        self._last_ipos = torch.full((n, nb, 3), float("nan"), device=dev)
+        self._last_delta = torch.zeros(n, nb, 3, device=dev)
+        self.start_counter = 0
+        self.last_fraction = 0.0
+        # per-env pack levels (levels > 0): level k of `levels` is fraction k / (levels - 1), held per env and updated
+        # at each episode end by update_levels (the promote/demote rule); the iteration ramp is then unused
+        self.n_levels = int(p.get("levels", 0) or 0)
+        if self.n_levels:
+            lo_hi = p.get("level_init", (0, min(5, self.n_levels - 1)))
+            g = torch.Generator(device="cpu").manual_seed(int(getattr(env.cfg, "seed", 0) or 0) + 7919)
+            self.levels = torch.randint(int(lo_hi[0]), int(lo_hi[1]) + 1, (n,), generator=g).to(dev)
+            self.gate_speed = float(p.get("gate_speed", 0.04))
+            self.min_fwd_s = float(p.get("min_fwd_s", 2.0))
+            self.fwd_ticks = torch.zeros(n, device=dev)
+            self.fwd_speed = torch.zeros(n, device=dev)
+            self._gen = g
+            self.reset_window()
+
+    # ---- per-env levels ------------------------------------------------------------------------------------------
+    BANDS = ((0, 3), (4, 7), (8, 10))
+
+    def reset_window(self):
+        """Metrics window: per band (levels 0-3, 4-7, 8-10) episodes ended, falls, forward-speed sum and count."""
+        k = len(self.BANDS)
+        self.win = dict(eps=[0] * k, falls=[0] * k, spd=[0.0] * k, spd_n=[0] * k)
+
+    def band(self, lv: int) -> int:
+        for i, (a, b) in enumerate(self.BANDS):
+            if a <= lv <= b:
+                return i
+        return len(self.BANDS) - 1
+
+    def track(self, env, cmd_xy, vel_xy):
+        """Step accumulation (called by the pack_level_track step event): ticks with a forward command (vx >= 0.1)
+        and the speed along the command direction on those ticks."""
+        fwd = cmd_xy[:, 0] >= 0.1
+        s = torch.linalg.vector_norm(cmd_xy, dim=1).clamp_min(1e-6)
+        along = (vel_xy * cmd_xy).sum(1) / s
+        self.fwd_ticks += fwd.float()
+        self.fwd_speed += torch.where(fwd, along, torch.zeros_like(along))
+
+    def update_levels(self, env_ids, fell, dt):
+        """The promote/demote rule for the envs whose episode just ended (fell: bool per env_ids). Envs with at
+        least min_fwd_s of forward command: promoted one level if they did not fall and their mean speed along the
+        command is >= gate_speed; demoted one level if they fell or stood (mean speed < gate_speed / 2). Others keep
+        their level. Promoted past the top: redrawn uniformly over all levels. Clears the envs' step stats."""
+        ticks = self.fwd_ticks[env_ids]
+        has = ticks * dt >= self.min_fwd_s
+        spd = self.fwd_speed[env_ids] / ticks.clamp_min(1.0)
+        lv = self.levels[env_ids]
+        for j in range(len(env_ids)):  # metrics window, by the level the episode ran at
+            b = self.band(int(lv[j]))
+            self.win["eps"][b] += 1
+            self.win["falls"][b] += int(bool(fell[j]))
+            if bool(has[j]):
+                self.win["spd"][b] += float(spd[j])
+                self.win["spd_n"][b] += 1
+        up = has & ~fell & (spd >= self.gate_speed)
+        down = has & (fell | (spd < 0.5 * self.gate_speed))
+        new = lv + up.long() - (down & ~up).long()
+        new = new.clamp_min(0)
+        over = new > self.n_levels - 1
+        if over.any():
+            draw = torch.randint(0, self.n_levels, (int(over.sum()),), generator=self._gen).to(new.device)
+            new[over] = draw
+        self.levels[env_ids] = new
+        self.fwd_ticks[env_ids] = 0.0
+        self.fwd_speed[env_ids] = 0.0
+        return new
+
+    def metrics(self) -> dict:
+        """Row fields for the worker's metrics (instantaneous level state plus the window since the last call)."""
+        lv = self.levels.float()
+        top = self.n_levels - 2
+        names = ("0_3", "4_7", "8_10")
+        row = dict(pack_level_mean=round(float(lv.mean()), 3),
+                   pack_level_share_top=round(float((self.levels >= top).float().mean()), 4))
+        for i, nm in enumerate(names):
+            w = self.win
+            row[f"pack_speed_l{nm}"] = round(w["spd"][i] / w["spd_n"][i], 4) if w["spd_n"][i] else None
+            row[f"pack_falls_per_ep_l{nm}"] = round(w["falls"][i] / w["eps"][i], 4) if w["eps"][i] else None
+            row[f"pack_eps_l{nm}"] = w["eps"][i]
+        self.reset_window()
+        return row
+
+    def fraction(self, env, ramp_steps) -> float:
+        if ramp_steps <= 0:
+            return 1.0
+        return float(min(1.0, max(0.0, (env.common_step_counter - self.start_counter) / float(ramp_steps))))
+
+    def __call__(self, env, env_ids, base_inertials, ramp_steps, asset_cfg, fraction=None, levels=0,
+                 level_init=None, gate_speed=0.04, min_fwd_s=2.0):
+        del base_inertials, asset_cfg, levels, level_init, gate_speed, min_fwd_s
+        if env_ids is None:
+            env_ids = torch.arange(env.num_envs, device=env.device)
+        env_ids = env_ids.to(env.device, dtype=torch.long)
+        m = env.sim.model
+        if self._scale is None:  # startup DR has run: per-env mass ratio against the pack default
+            self._scale = (m.body_mass[:, self._gids] / self._def_mass).float()
+        _, dec = _pseudo_inertia_helpers()
+        if self.n_levels and fraction is None:
+            term = getattr(env, "reset_terminated", None)
+            if term is not None and getattr(env, "_pack_levels_started", False):  # a real episode end, not the first reset
+                self.update_levels(env_ids, term[env_ids].bool(), env.step_dt)
+            env._pack_levels_started = True
+            f = self.levels[env_ids].float() / float(self.n_levels - 1)                       # (k,)
+            self.last_fraction = float(self.levels.float().mean()) / float(self.n_levels - 1)
+            J = self._J0.unsqueeze(0) + f[:, None, None, None] * (self._J1 - self._J0).unsqueeze(0)  # (k, nb, 4, 4)
+            J = self._scale[env_ids][..., None, None] * J
+        else:
+            f = self.fraction(env, ramp_steps) if fraction is None else float(fraction)
+            self.last_fraction = f
+            J = self._J0 + f * (self._J1 - self._J0)                                         # (nb, 4, 4)
+            J = self._scale[env_ids][..., None, None] * J.unsqueeze(0)                       # (k, nb, 4, 4)
+        mass, ipos, inertia, iquat = dec(J)
+        eg, bg = torch.meshgrid(env_ids, torch.as_tensor(self._gids, device=env.device, dtype=torch.long),
+                                indexing="ij")
+        cur = m.body_ipos[eg, bg].float()
+        last = self._last_ipos[env_ids]
+        same = torch.isclose(cur, last, atol=1e-7).all(-1, keepdim=True)
+        delta = torch.where(same, self._last_delta[env_ids], cur - self._def_ipos)
+        new_ipos = ipos + delta
+        m.body_mass[eg, bg] = mass.to(m.body_mass.dtype)
+        m.body_ipos[eg, bg] = new_ipos.to(m.body_ipos.dtype)
+        m.body_inertia[eg, bg] = inertia.to(m.body_inertia.dtype)
+        m.body_iquat[eg, bg] = iquat.to(m.body_iquat.dtype)
+        self._last_ipos[env_ids] = new_ipos
+        self._last_delta[env_ids] = delta
+
+
+def pack_level_track(env: ManagerBasedRlEnv, env_ids, command_name: str = "twist",
+                     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+    """Step event for --pack-levels: hands the planar command and the trunk's planar body-frame velocity to the
+    pack_mass_ramp term, which counts forward-command ticks and the speed along the command per env."""
+    del env_ids
+    ramp = env.event_manager.get_term_cfg("pack_mass_ramp").func
+    cmd = env.command_manager.get_command(command_name)[:, :2]
+    v = env.scene[asset_cfg.name].data.root_link_lin_vel_b[:, :2]
+    ramp.track(env, cmd, v)
+
+
+def cmd_progress(env: ManagerBasedRlEnv, command_name: str = "twist", min_speed: float = 0.1,
+                 asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Command-progress reward (positive weight, per s): on ticks whose planar velocity command exceeds min_speed,
+    clip(v along the command direction / commanded speed, 0, 1); zero on other ticks. Standing under a walk command
+    earns 0, walking at the commanded speed or faster earns 1."""
+    cmd = env.command_manager.get_command(command_name)[:, :2]
+    s = torch.linalg.vector_norm(cmd, dim=1)
+    v = env.scene[asset_cfg.name].data.root_link_lin_vel_b[:, :2]
+    along = (v * cmd).sum(1) / s.clamp_min(1e-6)
+    val = (along / s.clamp_min(1e-6)).clamp(0.0, 1.0)
+    return torch.where(s > min_speed, val, torch.zeros_like(val))
+
+
+class upright_progress_gate:
+    """Reward wrapper (battery-walk P1): on ticks whose planar velocity command exceeds gate_min_speed, the positive
+    part of the wrapped term (the upright reward) is multiplied by
+        g = clip(mean speed along the command over the last N control steps / gate_v_ref, 0, 1),
+    N = round(gate_window_s / step_dt). The window holds this episode's ticks only (cleared at reset; missing ticks
+    count as 0, so g starts at 0 after a reset under a walk command). On other ticks (zero command) the term is
+    unchanged. All params not starting with gate_ go to the wrapped function (so SceneEntityCfg params resolve as
+    usual). Installed by cmu_asbuilt.apply_upright_progress_gate (terms=("upright",) by default; scratch_worker
+    --progress-gate-terms wraps several positive terms, each with its own identical window); off unless called."""
+
+    def __init__(self, cfg, env: ManagerBasedRlEnv):
+        p = cfg.params
+        self.n = max(1, int(round(float(p["gate_window_s"]) / env.step_dt)))
+        self.buf = torch.zeros(env.num_envs, self.n, device=env.device)
+        self.pos = 0
+        self.last_g = torch.ones(env.num_envs, device=env.device)
+        self.last_inner = None
+        import inspect as _inspect
+        inner = p.get("gate_inner")
+        # a class term (mjlab's upright is one) is built here with the same cfg, as the manager would have built it
+        self.inner = inner(cfg=cfg, env=env) if _inspect.isclass(inner) else None
+
+    def reset(self, env_ids=None):
+        if env_ids is None:
+            env_ids = slice(None)
+        self.buf[env_ids] = 0.0
+        if self.inner is not None and callable(getattr(self.inner, "reset", None)):
+            self.inner.reset(env_ids=env_ids)
+
+    def gate(self, env, command_name, v_ref, min_speed):
+        cmd = env.command_manager.get_command(command_name)[:, :2]
+        s = torch.linalg.vector_norm(cmd, dim=1)
+        v = env.scene["robot"].data.root_link_lin_vel_b[:, :2]
+        along = (v * cmd).sum(1) / s.clamp_min(1e-6)
+        self.buf[:, self.pos] = along
+        self.pos = (self.pos + 1) % self.n
+        g = (self.buf.sum(1) / self.n / float(v_ref)).clamp(0.0, 1.0)
+        g = torch.where(s > min_speed, g, torch.ones_like(g))
+        self.last_g = g
+        return g
+
+    def __call__(self, env, gate_inner, gate_command="twist", gate_window_s=1.0, gate_v_ref=0.10,
+                 gate_min_speed=0.1, **inner_params):
+        del gate_window_s
+        value = (self.inner if self.inner is not None else gate_inner)(env, **inner_params)
+        self.last_inner = value  # the ungated value of this tick (read by tests and audits only)
+        g = self.gate(env, gate_command, gate_v_ref, gate_min_speed)
+        return torch.where(value > 0, value * g, value)

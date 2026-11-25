@@ -1,0 +1,14 @@
+[
+ {"name": "bw-k1-targets",
+  "argv": ["{python}", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-b/bw-k1-targets.py", "--device", "cuda:0",
+           "--out", "{run_dir}/reads/bw-k1-targets.json"]},
+ {"name": "reads-sit-s1-1250-episodes",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "sitstand",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-b/sit-s1_model_1249.onnx",
+           "--iteration", "1250", "--device", "cuda:0", "--out", "{run_dir}/reads/bw-k1-sit-s1_1250b.json",
+           "--episodes-out", "{run_dir}/reads/bw-k1-sit-s1_1250_episodes.json"]},
+ {"name": "reads-bend4-s1b-1500",
+  "argv": ["{python}", "cmu/finetune/kaggle/skill_reads.py", "--task", "groundpick", "--recipe", "bend4",
+           "--policy", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-b/bend4-s1b_model_1500.onnx",
+           "--iteration", "1500", "--device", "cuda:0", "--out", "{run_dir}/reads/bw-k1-bend4-s1b_1500.json"]}
+]

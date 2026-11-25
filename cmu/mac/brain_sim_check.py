@@ -1179,6 +1179,8 @@ def run(args):
     # sliding friction of the floor and of every geom on both foot bodies: all geoms share priority 0, so MuJoCo takes
     # the larger of the two and the foot-floor contact gets exactly this value (1.0 is the model's own)
     c0["friction"] = args.floor_mu
+    if args.current_limit is not None:  # explicit servo current limit (A); otherwise the model config's value
+        c0["current_limit"] = args.current_limit
     if args.foot_play:  # sim-ID 2026-10-21: free play between ankle horn and foot (deg, centring stiffness N m/rad, damping)
         fp = args.foot_play + [0.05, 0.002][len(args.foot_play) - 1:]
         c0["foot_play"] = dict(deg=fp[0], stiffness=fp[1], damping=fp[2], axis=FOOT_PLAY_AXES[args.foot_play_axis])
@@ -1196,6 +1198,35 @@ def run(args):
     sp_model = sp_install_model_hook(args, sp_obj) if args.sp_at is not None else None
     lead = lead_install_model_hook(args) if args.lead is not None else None
     m, d, c, names, bam = ev.load(c0)
+    clamp = None
+    if args.current_limit is not None:  # walk-window share of physics steps where the firmware current limiter binds
+        groups = {g: np.array([i for i, n in enumerate(names) if g in n]) for g in ("hip", "knee", "ankle")}
+        clamp = dict(active={g: 0 for g in groups}, total={g: 0 for g in groups},
+                     run_active={g: 0 for g in groups}, run_total={g: 0 for g in groups},
+                     recent=collections.deque())  # (time, per-joint on) over the last 0.5 s, for the pre-fall share
+        act_ = bam.actuator
+        orig_cc = act_.compute_control
+
+        def counted_control(q_target, q, dq, dt):
+            if act_.max_current is not None:
+                raw = (np.asarray(q_target) - np.asarray(q)) * np.asarray(act_.kp) * act_.error_gain
+                cen = act_.model.kt.value * np.asarray(dq) / act_.vin
+                span = act_.model.R.value * act_.max_current / act_.vin
+                lim = np.clip(raw, cen - span, cen + span)
+                on = (np.abs(lim - raw) > 1e-12) & (np.abs(lim) <= act_.max_pwm)
+                on = np.broadcast_to(on, (len(names),)).copy()
+                walk_w = args.walk_at <= d.time < args.walk_at + args.walk_s
+                for g, ix in groups.items():
+                    clamp["run_active"][g] += int(on[ix].sum())
+                    clamp["run_total"][g] += len(ix)
+                    if walk_w:
+                        clamp["active"][g] += int(on[ix].sum())
+                        clamp["total"][g] += len(ix)
+                clamp["recent"].append((d.time, on))
+                while clamp["recent"] and clamp["recent"][0][0] < d.time - 0.5:
+                    clamp["recent"].popleft()
+            return orig_cc(q_target, q, dq, dt)
+        act_.compute_control = counted_control
     if args.bvh_refit:  # no-op since ev.load refits (2026-10-29); a second refit must find nothing to change
         print("bvh refit:", json.dumps(refit_body_bvh(m)), flush=True)
     if sp_model is not None:  # the training env's contact solver settings on request (gap study 2026-10-29)
@@ -1551,17 +1582,19 @@ def run(args):
                 act, why = info.get("action"), None
                 if act is not None:
                     amax = max(abs(a) for a in act)
-                    guard["hard_hits"].append(amax > HARD_MAX_ACTION)
+                    hard = (args.hard_max_action_sit if brain.mode == "sit" and args.hard_max_action_sit is not None
+                            else args.hard_max_action)  # walk_wired.py hard_limit, without the get-up case
+                    guard["hard_hits"].append(amax > hard)
                     if sum(guard["hard_hits"]) >= OVER_LIMIT_TICKS:
-                        why = f"action over {HARD_MAX_ACTION} rad in {sum(guard['hard_hits'])} of {len(guard['hard_hits'])} ticks"
-                    elif amax > HARD_MAX_ACTION:
-                        goal = walk_brain.clamp_goal({n: (brain.default[n] + max(-HARD_MAX_ACTION, min(HARD_MAX_ACTION, float(act[k])))
+                        why = f"action over {hard} rad in {sum(guard['hard_hits'])} of {len(guard['hard_hits'])} ticks"
+                    elif amax > hard:
+                        goal = walk_brain.clamp_goal({n: (brain.default[n] + max(-hard, min(hard, float(act[k])))
                                                           if n in brain.default else goal[n])
                                                       for k, n in enumerate(walk_brain.OBSERVATION_DOF_ORDER)})
                         brain.goal = dict(goal)
                         guard["clipped"] += 1
                 max_tilt = {"groundpick": MAX_TILT_GP_DEG, "seepick": MAX_TILT_GP_DEG,
-                            "sit": MAX_TILT_SIT_DEG}.get(brain.mode, MAX_TILT_DEG)
+                            "sit": args.max_tilt_sit}.get(brain.mode, MAX_TILT_DEG)
                 if why is None and info["gb"][2] > -math.cos(math.radians(max_tilt)):
                     if args.hold and est.e > 0.3:
                         guard["tilt_skipped"] += 1
@@ -1813,14 +1846,22 @@ def run(args):
         holdr.update(wired_hold=True, grip_stop_at=grip_stop_at, grip_stop_end=grip_stop.on, stand61_from=settled_at,
                      applied_s_below_0p5_after_grip_s=None if half is None else round(half - g0, 2),
                      min_applied_s=round(min(r["s_applied"] for r in hrows), 3))
-    return dict(model=args.model, volt=args.volt, walk_ramp=args.walk_ramp, com_x_mm=args.com_x, zero=zero, imu_pitch=args.imu_pitch,
+    return dict(model=args.model, volt=args.volt,
+                current_limit=args.current_limit,
+                clamp_share=None if clamp is None else {g: round(clamp["active"][g] / clamp["total"][g], 4)
+                                                        if clamp["total"][g] else None for g in clamp["total"]},
+                clamp_share_run=None if clamp is None else {g: round(clamp["run_active"][g] / clamp["run_total"][g], 4)
+                                                            if clamp["run_total"][g] else None for g in clamp["run_total"]},
+                clamp_prefall_joint=None if clamp is None or fell is None or not clamp["recent"] else {
+                    n: round(float(np.mean([on[k] for _, on in clamp["recent"]])), 4) for k, n in enumerate(names)},
+                walk_ramp=args.walk_ramp, com_x_mm=args.com_x, zero=zero, imu_pitch=args.imu_pitch,
                 kick=kick, small_steps=[{k: v for k, v in st_.items() if k not in ("mid0", "yaw0")} for st_ in steps] or None,
                 sit=sitr, hold=holdr, quack_head_ran={str(k): v for k, v in quack_ok.items()},
                 quack_head_reached={str(k): {n: round(v, 3) for n, v in r.items()} for k, r in quack_reach.items()},
                 quack_peak_tilt={str(k): round(max(h[1] for h in window(k, k + QUACK_HEAD_S + 1.0)), 1) for k in quack_ok},
                 seepick=None if sp is None else dict(sp.summary(brain), post_handback=sp_post(sp, window, stable_after, args), guard=dict(
                     wired=bool(args.wired_guards), stop_at=guard["stop"], why=guard["why"], clipped_ticks=guard["clipped"],
-                    hard_max_action=HARD_MAX_ACTION, max_tilt_deg=MAX_TILT_GP_DEG)),
+                    hard_max_action=args.hard_max_action, max_tilt_deg=MAX_TILT_GP_DEG)),
                 groundpick=None if gp_at is None else dict(gp, at=gp_at, phase=args.gp_phase, hold_s=args.gp_hold_s,
                                                            done_at=round(gp_done_at, 2)),
                 head=None if not (args.head_yaw or args.head_pitch is not None or args.neck_pitch is not None) else dict(head_yaw=args.head_yaw, head_pitch=args.head_pitch, neck_pitch=args.neck_pitch,
@@ -1830,7 +1871,8 @@ def run(args):
                 fell_at=fell, fall_dir=fall_dir,
                 max_tilt=round(maxtilt, 1), battery_stop_at=stop_at, stop_ramp=args.stop_ramp, settled_s=settled_at, end_mode=brain.mode,
                 wired_guards=bool(args.wired_guards), guard_stop_at=guard["stop"], guard_why=guard["why"],
-                guard_clipped_ticks=guard["clipped"],
+                guard_clipped_ticks=guard["clipped"], hard_max_action=args.hard_max_action,
+                hard_max_action_sit=args.hard_max_action_sit,
                 max_tilt_after_stop=round(tilt_after_stop, 1) if stop_at is not None else None,
                 dist_x=None if x0 is None else round(float(d.xpos[trunk, 0] - x0), 3),
                 yaw_deg=None if x0 is None else round(math.degrees((_yaw(d.xquat[trunk]) - yaw0 + math.pi) % (2 * math.pi) - math.pi), 1),
@@ -1884,7 +1926,8 @@ def hold_summary(args, rows, hand, guard, stable_after, leg_names):
     out = dict(hold_set={k: v for k, v in args.hold_set}, hold_uncal=bool(args.hold_uncal), hand_krot=args.hand_krot, grip_at=args.grip_at, release_at=args.release_at, lift_at=args.lift_at, lower_at=args.lower_at,
                lift_height=args.lift_height, hold_on=bool(args.hold), hand_off_at=hand_off, lift_window=list(win),
                wired_guards=bool(args.wired_guards), guard_stop_at=guard["stop"], guard_why=guard["why"],
-               guard_clipped_ticks=guard["clipped"], guard_tilt_skipped_ticks=guard["tilt_skipped"],
+               guard_clipped_ticks=guard["clipped"], guard_tilt_skipped_ticks=guard["tilt_skipped"], hard_max_action=args.hard_max_action,
+               hard_max_action_sit=args.hard_max_action_sit,
                max_raw_action_lift=r3(amax("raw", lw)), max_applied_action_lift=r3(amax("act", lw)),
                min_s=r3(min(r["est"]["s"] for r in rows)), max_e=r3(max(r["est"]["e"] for r in rows)),
                min_load=r3(min(r["load"] for r in rows)), min_kp_leg=min(r["est"]["kp_leg"] for r in rows),
@@ -1979,6 +2022,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--volt", type=float, default=None,
                     help="servo supply; default: servo_rail_v in microduck-sim/CURRENT-STATE.json (the as-run rail)")
+    ap.add_argument("--current-limit", type=float, default=None,
+                    help="servo firmware current limit (A) for the BAM limiter and the actuator force range; default: the "
+                         "model config's current_limit (1.47 A today). The robot's factory XL330 limit is 1.75 A "
+                         "(CURRENT-STATE.json leg_torque_limit). The row then reports the walk-window share of steps "
+                         "where the current limiter binds, per leg group (clamp_share)")
     ap.add_argument("--model", choices=("v19", "asbuilt"), default="v19",
                     help="mass model: v19 (default) or asbuilt (2026-10-15, D-007 bench backpack)")
     ap.add_argument("--manifest", default=None,
@@ -2106,6 +2154,16 @@ def main():
                     help="gate the hold as walk_wired.py does: command smoothing, grip stop, hold_allowed, authority ramp")
     ap.add_argument("--no-settle", action="store_true", help="with --wired-hold: keep walk61 after a grip stop (GripStop.settle off)")
     ap.add_argument("--wired-guards", action="store_true", help="walk_wired.py's walk-mode stops (3.0 rad hard limit, 30 deg tilt)")
+    ap.add_argument("--max-tilt-sit", type=float, default=MAX_TILT_SIT_DEG,
+                    help="deg; with --wired-guards, the sit-mode tilt stop (walk_wired.py --max-tilt-sit, default MAX_TILT_SIT_DEG)")
+    ap.add_argument("--hard-max-action", type=float, default=HARD_MAX_ACTION,
+                    help="rad; with --wired-guards, the action-size stop (walk_wired.py --hard-max-action, default HARD_MAX_ACTION)")
+    ap.add_argument("--hard-max-action-sit", type=float, default=None,
+                    help="rad; with --wired-guards, the action-size stop while the brain is in sit mode "
+                         "(walk_wired.py --hard-max-action-sit, default --hard-max-action)")
+    ap.add_argument("--sit-prep-s", type=float, default=None,
+                    help="s; trial: time the sit policy runs with the posture flag at 0 before it is told to sit "
+                         "(walk_brain.SIT_PREP_S, 0.8 on the robot; the training reset gives it 2 s)")
     ap.add_argument("--until", type=float, default=0.0, help="s; run at least this long")
     ap.add_argument("--bvh-refit", action="store_true", help="accepted for older command lines, no effect: evaluate_delay.load refits the collision bounding volumes itself since 2026-10-29 (prints the empty change set)")
     ap.add_argument("--cone", choices=("pyramidal", "elliptic"), default="pyramidal",
@@ -2204,6 +2262,10 @@ def main():
         ap.error("--lead models the lead itself; it cannot combine with --tether, --yaw-spring or --yaw-torque")
     global tick_log
     tick_log = open(args.tick_log, "w") if args.tick_log else None
+    if args.sit_prep_s is not None:
+        print(f"TRIAL: walk_brain.SIT_PREP_S {walk_brain.SIT_PREP_S} -> {args.sit_prep_s} s (not the robot's value)",
+              file=sys.stderr)
+        walk_brain.SIT_PREP_S = args.sit_prep_s
     if args.volt is None:
         _state = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "CURRENT-STATE.json")
         args.volt = float(json.load(open(_state))["facts"]["servo_rail_v"]["value"])

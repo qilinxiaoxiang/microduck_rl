@@ -1,0 +1,87 @@
+{
+ "variant": "flightpack-v1-w918-20261124",
+ "body": "trunk_base",
+ "frame": "trunk_base = CAD guide frame, metres, x forward y left z up; position = lip-face centre on the fan axis; thrust_axis = unit direction of the force on the robot (exhaust is -thrust_axis)",
+ "source": "extensions/flight-20261110/sim/flight.py FANS (from cad/flight_params.py: CANT_DEG, FAN_X, FAN_Y, LIP_TOP_Z, FAN lip_od); force applied as Tf[i] * (R @ a) at xpos[trunk] + R @ p (flight.py lines 505-509)",
+ "fans": [
+  {
+   "name": "1 RF",
+   "which": "front",
+   "side": "right",
+   "position_m": [
+    0.02,
+    -0.11,
+    0.071948
+   ],
+   "thrust_axis": [
+    -0.104528463,
+    0.0,
+    0.994521895
+   ],
+   "spin": 1
+  },
+  {
+   "name": "2 LR",
+   "which": "rear",
+   "side": "left",
+   "position_m": [
+    -0.044,
+    0.11,
+    0.071948
+   ],
+   "thrust_axis": [
+    0.104528463,
+    0.0,
+    0.994521895
+   ],
+   "spin": 1
+  },
+  {
+   "name": "3 LF",
+   "which": "front",
+   "side": "left",
+   "position_m": [
+    0.02,
+    0.11,
+    0.071948
+   ],
+   "thrust_axis": [
+    -0.104528463,
+    0.0,
+    0.994521895
+   ],
+   "spin": -1
+  },
+  {
+   "name": "4 RR",
+   "which": "rear",
+   "side": "right",
+   "position_m": [
+    -0.044,
+    -0.11,
+    0.071948
+   ],
+   "thrust_axis": [
+    0.104528463,
+    0.0,
+    0.994521895
+   ],
+   "spin": -1
+  }
+ ],
+ "lag": {
+  "model": "first-order on rotor speed w: dw = (w_ss - w) dt / tau, w_ss = clip(u,0,1) W_REF v_bus/V_REF; thrust T = T_REF scale (w/W_REF)^2 (flight.py FanSet.step)",
+  "tau_up_s": 0.1,
+  "tau_down_s": 0.1,
+  "note": "FanSet default tau=0.10 and flight.py --tau default 0.10 s; tau_down defaults to tau. Spin-up time constant of rotor speed, estimate (no bench measurement)"
+ },
+ "vendor_point": {
+  "fan": "ARESWEI HDS001 (flight.py FAN_POINTS['areswei'])",
+  "thrust_kgf": 0.98,
+  "volts": 16.8,
+  "amps": 40.0,
+  "kv": 4650,
+  "note": "seller claim, not measured"
+ },
+ "spin_reaction": "body torque about the axis = -spin x 0.3 x rotor drag torque (flight.py FanSet resid 0.3)"
+}

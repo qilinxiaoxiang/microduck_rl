@@ -1,0 +1,7 @@
+[
+ {"name": "poses-retarget-current",
+  "argv": ["{python}", "cmu/finetune/kaggle/sim_inputs/bw-k1-reads-f/bw-k1-poses.py", "--variant", "current",
+           "--per", "20", "--hold-s", "3.0", "--device", "cuda:0",
+           "--cands", "stand:-0.2029:-0.2025:0.02:0.1159,stand:-0.1089:0:6.22:0.1177,stand:0:0:0:0.1182,sit:-0.3572:0.08:14.75:0.0628,sit:-0.18:0.04:10.0:0.0644,sit:0:0:5.5:0.0657",
+           "--out", "{run_dir}/reads/bw-k1-poses-retarget.json"]}
+]
