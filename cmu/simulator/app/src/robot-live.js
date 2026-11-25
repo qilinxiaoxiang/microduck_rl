@@ -1,4 +1,4 @@
-import { batteryPercent } from "./battery-percent.js";
+import { batteryText } from "./battery-percent.js";
 // Live MicroDuck view: A7Z health charts plus the robot's pose on the simulator model.
 // Data arrives as Server-Sent Events from the dev-server bridge (a7z-bridge.mjs), which runs
 // desktop/duck-telemetry.py on the A7Z over SSH.
@@ -261,7 +261,7 @@ function watch() {
     const up = latest?.up ?? 0;
     link.className = "online"; document.title = "MicroDuck robot";
     link.textContent = `A7Z online · up ${Math.floor(up / 3600) ? Math.floor(up / 3600) + " h " : ""}${Math.floor(up / 60) % 60} min`
-      + (lastBrain?.running && lastBrain.battery_dv != null ? ` · battery ${(lastBrain.battery_dv / 10).toFixed(1)} V, about ${batteryPercent(lastBrain.battery_dv)}%` : "");
+      + (lastBrain?.running && batteryText(lastBrain) ? ` · battery ${batteryText(lastBrain)}` : "");
   } else if (lostSeconds() > LOST_S) {
     const gone = lostSeconds();
     link.className = "lost";
@@ -458,7 +458,7 @@ function showNow() {
   if (b.running || b.standby) {
     items.push(["IMU latency", fmt(b.imu_age_ms, 0) + " ms"]);
     if (b.running) items.push(["Servo faults", b.hw_faults?.length ? b.hw_faults.join(", ") : "none"]);
-    if (b.running && b.battery_dv != null) items.push(["Battery", `${fmt(b.battery_dv / 10, 1)} V, about ${batteryPercent(b.battery_dv)}%`]);
+    if (b.running && batteryText(b)) items.push(["Battery (3000 mAh pack, 10 s median)", batteryText(b)]);
     items.push([b.running ? "Missed reads this tick" : "Servos not answering", b.missing?.length ? b.missing.join(", ") : "none"]);
   }
   if (cpuStart && r.t - cpuStart.t >= 10) items.push(["A7Z cost of this monitor", `${fmt((r.cpu_s - cpuStart.cpu_s) / (r.t - cpuStart.t) * 100, 1)}% of one core (${Math.round(r.t - cpuStart.t)} s average)`]);

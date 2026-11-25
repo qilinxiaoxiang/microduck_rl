@@ -65,6 +65,12 @@ servo_v = {}  # servo ID -> (volts, time read), from the brain's round-robin vol
 TICK_WINDOW_S = 2.0
 TICK_T = re.compile(rb'"t": ([0-9.]+)')
 ticks = []
+# battery_dv of every row from the last BATTERY_WINDOW_S, for the judged value the battery guard decides on (battery.py:
+# the 10 s median). A single sample sags 0.5-1 V for a second at a walk start or a fall landing; the remote's charge and
+# minutes-left estimate use this median (app/src/battery-percent.js).
+BATTERY_WINDOW_S = 10.0
+BATTERY_DV = re.compile(rb'"battery_dv": (\d+)')
+battery_seen = []  # (time read, battery_dv)
 
 
 HW_LOCK = "/tmp/duck-hw.lock"  # walk_wired.py and duck_sense.py share it: one process on the servo bus and IMU
@@ -356,6 +362,7 @@ def brain_log(now):
             log_path, log_offset, last_row = newest, 0, None
             servo_v.clear()
             ticks.clear()
+            battery_seen.clear()
     if log_path is None:
         return {"running": False}
     try:
@@ -378,6 +385,8 @@ def brain_log(now):
     ticks.extend(float(t) for t in TICK_T.findall(chunk))
     if ticks:
         del ticks[:next((i for i, t in enumerate(ticks) if t > ticks[-1] - TICK_WINDOW_S), len(ticks))]
+    battery_seen.extend((now, int(v)) for v in BATTERY_DV.findall(chunk))
+    del battery_seen[:next((i for i, (t, _) in enumerate(battery_seen) if t > now - BATTERY_WINDOW_S), len(battery_seen))]
     for sid, volts in SERVO_V.findall(chunk):
         servo_v[int(sid)] = (float(volts), now)
     for line in reversed(chunk.rsplit(b"\n", 2)[-2:]):  # the newest complete row; the last piece may be partial
@@ -397,6 +406,7 @@ def brain_log(now):
                imu_age_ms=None if row.get("imu_age") is None else row["imu_age"] * 1000,
                hw_faults=row.get("hw_faults") or [], missing=row.get("missing") or [],
                battery=row.get("battery"), battery_dv=row.get("battery_dv"),
+               battery_judged_dv=sorted(v for _, v in battery_seen)[(len(battery_seen) - 1) // 2] if len(battery_seen) >= 5 else None,
                joints={n: round(v, 4) for n, v in zip(NAMES, q)},  # rad, the simulator's joint convention
                jaw_deg=row.get("jaw_deg"),
                servo_v_min=min(recent) if recent else None, servo_v_max=max(recent) if recent else None,

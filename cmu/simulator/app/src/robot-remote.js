@@ -1,4 +1,4 @@
-import { batteryPercent } from "./battery-percent.js";
+import { batteryText } from "./battery-percent.js";
 // Remote control for the real robot on robot-live.html: buttons and keys that write walk_wired.py's control file on
 // the A7Z through the dev-server bridge (POST /api/a7z/cmd, a7z-bridge.mjs -> desktop/duck-command.py).
 //
@@ -592,7 +592,7 @@ export function createRemote({root, state, log}) {
       if (head && !headMode(running && brain)) headForget();
       if (gate.blocked !== was) log(gate.blocked ? `Overheat guard: ${gate.reasons.join("; ")}` : "Overheat guard cleared");
       const pack = running && ["warn", "stop", "floor"].includes(brain.battery) ? brain.battery : null;
-      const packText = pack && `Battery ${(brain.battery_dv / 10).toFixed(1)} V: ` + {warn: "almost empty, stop and charge soon", stop: "stopped and holding its stand, hold the duck and shut down",
+      const packText = pack && `Battery ${((brain.battery_judged_dv ?? brain.battery_dv) / 10).toFixed(1)} V: ` + {warn: "almost empty, stop and charge soon", stop: "stopped and holding its stand, hold the duck and shut down",
         floor: "empty, the duck sat down and turned torque off; shut down and charge"}[pack];
       heatEl.hidden = !gate.blocked && !pack;
       heatEl.textContent = (packText ? packText + ". " : "")
@@ -600,7 +600,7 @@ export function createRemote({root, state, log}) {
         + "Stop, Fixed stand, Torque off and Quack still work." : "");
       modeEl.textContent = !online ? "Brain: A7Z offline" : !brain?.running ? "Brain: not running (a stand button starts walk_wired.py first)"
         : `Brain: ${MODE_NAMES[brain.mode] ?? brain.mode} · torque ${brain.torque ? "on" : "off"}`
-          + (brain.battery_dv != null ? ` · battery ${(brain.battery_dv / 10).toFixed(1)} V, about ${batteryPercent(brain.battery_dv)}%` : "");
+          + (batteryText(brain) ? ` · battery ${batteryText(brain)}` : "");
       root.classList.toggle("off", !running);
       showModelHeader();
       stickEl.classList.toggle("disabled", !online || (gate.blocked && gated("walk")));
