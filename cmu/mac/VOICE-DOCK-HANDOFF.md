@@ -95,6 +95,9 @@ fixtures, provenance and documentation. It is not in this Git branch, contains
 no API key or live robot integration, and needs its licenses and permissions
 reviewed before redistribution. Some older bundle documents describe Stop
 without a wake; the **wake-before-every-Stop rule above supersedes them**.
+See [VOICE-MODELS-AND-DESIGN.md](VOICE-MODELS-AND-DESIGN.md) for exact model
+hashes, how to obtain the bundle from Ryan, test results and architecture
+decisions.
 
 ## Existing workflow
 
