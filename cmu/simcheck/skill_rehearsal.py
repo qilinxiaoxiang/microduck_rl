@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
-"""Skill gate: rehearse a sit (sitstand61) or bend (groundpick61) policy in the Brain sim under three conditions.
+"""Skill gate: rehearse a sit (sitstand61), bend (groundpick61) or seeing-pick (seepick61) policy in the Brain sim.
 
   uv run --no-sync python cmu/simcheck/skill_rehearsal.py --skill sit|bend --models <set dir> --out <dir> \
         [--brain-args "--hard-max-action-sit 4.5 --max-tilt-sit 45"]
+  uv run --no-sync python cmu/simcheck/skill_rehearsal.py --skill pick --models <set dir> \
+        --replaced-models <the same set with the replaced seepick61.onnx> --out <dir> [--brain-args ...]
 
-cmu/deploy/deploy_policy.py runs this for every sitstand61 / groundpick61 slot a candidate replaces. Each trial runs
+Pick (pick_gate): the ball and camera are drawn per seed, so the candidate set and the set holding the file it
+replaces each run seeds 0..7 under every condition (48 trials, serial). An episode is completed with no fall, no brain
+stop, the hand-back (seepick.handback_at) and end_mode walk; held is seepick.at_handback.held. It passes when, summed
+over its 24 episodes, the candidate completes at least as many as the replaced file, falls no more often, and completes
+at least one (PICK_RULE: not worse than the file it replaces on the same seeds; not a safety pass). Trial flags are
+q1_pick_judge.py SP_FLAGS with the ball at the trained spot; no lean or IMU offset patch (the gate's --imu-pitch is
+walk_brain's trim, as for the other skills).
+
+cmu/deploy/deploy_policy.py runs this for every sitstand61 / groundpick61 / seepick61 slot a candidate replaces. Each trial runs
 cmu/mac/brain_sim_check.py on the whole policy set (walk61, stand61 and the skill slot, as the robot loads them) on the
 robot as it is now:
 
@@ -46,7 +56,7 @@ REPO = os.path.dirname(CMU)
 BSC = os.path.join(CMU, "mac", "brain_sim_check.py")
 WALK_BRAIN = os.path.join(CMU, "mac", "walk_brain.py")
 
-SLOT = {"bend": "groundpick61", "sit": "sitstand61"}
+SLOT = {"bend": "groundpick61", "sit": "sitstand61", "pick": "seepick61"}
 SKILL = {v: k for k, v in SLOT.items()}
 MOUTH_FLOOR_M, LOW_PHASE = 0.03, (0.375, 0.425)
 SAT_Z_M = 0.08
@@ -64,7 +74,17 @@ TRIAL_FLAGS = {
     "sit": ["--vx", "0", "--walk-at", "1", "--walk-s", "0", "--after-walk", "24", "--sit-at", "4", "--unsit-at", "12"],
     "bend": ["--vx", "0", "--walk-at", "1", "--walk-s", "0", "--after-walk", "20", "--gp-at", "5", "--gp-phase", "0.4",
              "--gp-hold-s", "4"],
+    # the seeing pick: q1_pick_judge.py SP_FLAGS (battery-walk-20261122/q1-20261127, copied 2026-11-27), the ball at
+    # the trained spot (offset 0 0 from brain_sim_check SP_LANDING_XY, the static pose's pad midpoint)
+    "pick": ["--stand-s", "0", "--walk-at", "1", "--walk-s", "0", "--wired-guards", "--sp-at", "3.0",
+             "--sp-cone", "elliptic", "--sp-impratio", "10", "--sp-shape", "ball", "--sp-size", "0.012",
+             "--sp-after", "5.0", "--sp-offset", "0", "0"],
 }
+# the pick draws ball mass and friction and the camera's delay, drop and bias per seed: 8 fixed seeds per condition,
+# the same for the candidate and the file it replaces
+PICK_SEEDS = tuple(range(8))
+PICK_TRIAL_S = 35  # estimate: q1 bw-q0b-1 ran 32 pick episodes in 133-200 s on 8 workers (33-50 worker-s each)
+PICK_RULE = "not worse than the file it replaces on the same seeds; this is not a safety pass"
 # walk_wired.py / brain_sim_check.py options a policy set may carry (<set>/brain-args, MANIFEST brain_args): flag ->
 # largest allowed value; each takes one plain decimal number above 0. duck-run.sh accepts the same two flags.
 BRAIN_ARGS = {"--hard-max-action-sit": 6.0, "--max-tilt-sit": 55.0}
@@ -105,9 +125,9 @@ def base_flags():
             "--imu-pitch", f"{imu_pitch_trim():g}"]
 
 
-def trial_argv(skill, models, condition, brain_args):
+def trial_argv(skill, models, condition, brain_args, seed=0):
     return ([sys.executable, BSC] + base_flags() + list(brain_args) + TRIAL_FLAGS[skill] + VARIATIONS[condition]
-            + ["--models", models, "--seed", "0", "--trace"])
+            + ["--models", models, "--seed", str(seed), "--trace"])
 
 
 def run_trial(argv):
@@ -145,6 +165,17 @@ def score(skill, row, stdout):
                  mouth_floor=mz is not None and mz <= MOUTH_FLOOR_M and ph is not None and LOW_PHASE[0] <= ph <= LOW_PHASE[1],
                  did_motion=mz is not None and mz <= BEND_DOWN_M,
                  completed=fell is None and guard is None and end_walk and handback is not None)
+    elif skill == "pick":
+        sp = row.get("seepick") or {}
+        handback = sp.get("handback_at")  # the phase reached walk_wired.SP_DONE_PHASE: the Brain handed back to stand61
+        post = sp.get("post_handback") or {}
+        s.update(handback_at=handback, peak_tilt=(sp.get("events") or {}).get("max_tilt"),
+                 post_peak_tilt=post.get("peak_tilt"), stable_after_s=post.get("stable_after_s"),
+                 fall_dir=row.get("fall_dir"),
+                 held=bool((sp.get("at_handback") or {}).get("held")),  # pinched, off the floor, lifted > SP_HELD_LIFT
+                 held_end=bool((sp.get("at_end") or {}).get("held")),
+                 did_motion=handback is not None,
+                 completed=fell is None and guard is None and handback is not None and end_walk)
     else:
         sit = row.get("sit") or {}
         handback = sit.get("done")
@@ -167,10 +198,99 @@ def _max(vals):
     return max(vals) if vals else None
 
 
+def one_trial(argv, log, what):
+    """Run one trial, write its log; (result, row). SystemExit on a one-sim-lock refusal or a missing row."""
+    r = run_trial(argv)
+    with open(log, "w") as f:
+        f.write("$ " + " ".join(argv) + "\n" + (r.stdout or "") + "\n== stderr\n" + (r.stderr or ""))
+    if HOST_REFUSED in (r.stderr or "") + (r.stdout or ""):
+        sys.exit(f"skill_rehearsal: {what} was refused by the MacBook's one-sim lock (another sim runs); "
+                 f"no verdict. Rerun when it is free; see {log}")
+    row = last_row(r.stdout or "")
+    if row is None:
+        sys.exit(f"skill_rehearsal: {what} gave no result row (exit {r.returncode}); see {log}")
+    return r, row
+
+
+def pick_counts(rows):
+    """Counts of one side's pick episodes: completed, held, falls (and by direction), brain stops, largest action,
+    peak tilt, seeds."""
+    by_dir = {}
+    for s in rows:
+        if s["fell_at"] is not None:
+            by_dir[s.get("fall_dir") or "unknown"] = by_dir.get(s.get("fall_dir") or "unknown", 0) + 1
+    return dict(episodes=len(rows), completed=sum(bool(s["completed"]) for s in rows),
+                held=sum(bool(s["held"]) for s in rows), falls=sum(s["fell_at"] is not None for s in rows),
+                falls_by_dir=by_dir, brain_stops=sum(s["guard_stop_at"] is not None for s in rows),
+                largest_action=_max(s.get("max_action") for s in rows), peak_tilt=_max(s.get("peak_tilt") for s in rows),
+                seeds=[s["seed"] for s in rows])
+
+
+def pick_rule(cand, repl):
+    """The pick pass rule over all episodes: (passed, the clauses that failed). `cand`, `repl`: pick_counts totals."""
+    fails = []
+    if cand["completed"] < repl["completed"]:
+        fails.append(f"completed {cand['completed']} < replaced file's {repl['completed']}")
+    if cand["falls"] > repl["falls"]:
+        fails.append(f"falls {cand['falls']} > replaced file's {repl['falls']}")
+    if cand["completed"] < 1:
+        fails.append("no episode completed")
+    return not fails, fails
+
+
+def pick_gate(models, replaced_models, out_dir, brain_args=(), conditions=GATE_CONDITIONS, seeds=PICK_SEEDS):
+    """Seeing-pick gate for seepick61: the built set (`models`) and the same set with the file the candidate replaces
+    (`replaced_models`) on the same seeds and conditions, one trial after another. Returns MANIFEST skill_gate
+    ["seepick61"]: passed by PICK_RULE (candidate completed >= replaced's, falls <= replaced's, completed >= 1)."""
+    slot = SLOT["pick"]
+    for d in (models, replaced_models):
+        if not os.path.isfile(os.path.join(d, f"{slot}.onnx")):
+            sys.exit(f"skill_rehearsal: {d} has no {slot}.onnx")
+    os.makedirs(out_dir, exist_ok=True)
+    n = 2 * len(conditions) * len(seeds)
+    print(f"skill gate: {slot} (pick) {n} Brain sims one after another (candidate and replaced file, "
+          f"{len(conditions)} conditions x {len(seeds)} seeds), about {n * PICK_TRIAL_S / 60:.0f} min (estimate "
+          f"{PICK_TRIAL_S} s each); run it on the Mac mini mirror and deploy with --reuse-check", flush=True)
+    rows = {"candidate": [], "replaced": []}
+    for side, d in (("candidate", models), ("replaced", replaced_models)):
+        for cond in conditions:
+            for seed in seeds:
+                argv = trial_argv("pick", d, cond, brain_args, seed)
+                r, row = one_trial(argv, os.path.join(out_dir, f"skill-{slot}-{side}-{cond}-s{seed}.out"),
+                                   f"{slot} {side} {cond} seed {seed}")
+                s = dict(side=side, condition=cond, seed=seed, flags=VARIATIONS[cond], rc=r.returncode,
+                         **score("pick", row, r.stdout or ""))
+                rows[side].append(s)
+            got = pick_counts([s for s in rows[side] if s["condition"] == cond])
+            print(f"  {side} {cond}: completed {got['completed']}/{got['episodes']}, held {got['held']}, falls "
+                  f"{got['falls']} {got['falls_by_dir'] or ''}, brain stops {got['brain_stops']}, largest action "
+                  f"{got['largest_action']} rad, peak tilt {got['peak_tilt']} deg", flush=True)
+    with open(os.path.join(out_dir, f"skill-{slot}.jsonl"), "w") as f:
+        for side in rows:
+            for s in rows[side]:
+                f.write(json.dumps(s) + "\n")
+    total = {side: pick_counts(rows[side]) for side in rows}
+    passed, fails = pick_rule(total["candidate"], total["replaced"])
+    c, p = total["candidate"], total["replaced"]
+    summary = (f"candidate completed {c['completed']}/{c['episodes']} (held {c['held']}, falls {c['falls']}) vs "
+               f"replaced file {p['completed']}/{p['episodes']} (held {p['held']}, falls {p['falls']})")
+    print(f"  pick gate {'passed' if passed else 'FAILED: ' + '; '.join(fails)}: {summary}", flush=True)
+    return {"skill": "pick", "passed": passed, "fails": fails, "rule": PICK_RULE, "summary": summary,
+            "completes": [f"{s['condition']}/s{s['seed']}" for s in rows["candidate"] if s["completed"]],
+            "total": total,
+            "conditions": {cond: {side: pick_counts([s for s in rows[side] if s["condition"] == cond]) for side in rows}
+                           for cond in conditions},
+            "seeds": list(seeds), "replaced_file": os.path.join(replaced_models, f"{slot}.onnx"),
+            "largest_action": c["largest_action"], "peak_tilt": c["peak_tilt"],
+            "brain_args": list(brain_args), "base_flags": base_flags(), "trial_flags": TRIAL_FLAGS["pick"]}
+
+
 def skill_gate(slot, models, out_dir, brain_args=(), conditions=GATE_CONDITIONS):
     """Run the skill of `slot` on the set in `models` under every condition, one after another; return the record
     deploy_policy keeps as MANIFEST skill_gate[slot]. SystemExit when a trial gives no result row."""
     skill = SKILL[slot]
+    if skill == "pick":
+        sys.exit("skill_rehearsal: seepick61 is gated by pick_gate (candidate against the file it replaces)")
     if not os.path.isfile(os.path.join(models, f"{slot}.onnx")):
         sys.exit(f"skill_rehearsal: {models} has no {slot}.onnx")
     os.makedirs(out_dir, exist_ok=True)
@@ -178,16 +298,7 @@ def skill_gate(slot, models, out_dir, brain_args=(), conditions=GATE_CONDITIONS)
     for cond in conditions:
         argv = trial_argv(skill, models, cond, brain_args)
         print(f"skill gate: {slot} ({skill}) {cond} (one Brain sim, under a minute)...", flush=True)
-        r = run_trial(argv)
-        log = os.path.join(out_dir, f"skill-{slot}-{cond}.out")
-        with open(log, "w") as f:
-            f.write("$ " + " ".join(argv) + "\n" + (r.stdout or "") + "\n== stderr\n" + (r.stderr or ""))
-        if HOST_REFUSED in (r.stderr or "") + (r.stdout or ""):
-            sys.exit(f"skill_rehearsal: {slot} {cond} was refused by the MacBook's one-sim lock (another sim runs); "
-                     f"no verdict. Rerun when it is free; see {log}")
-        row = last_row(r.stdout or "")
-        if row is None:
-            sys.exit(f"skill_rehearsal: {slot} {cond} gave no result row (exit {r.returncode}); see {log}")
+        r, row = one_trial(argv, os.path.join(out_dir, f"skill-{slot}-{cond}.out"), f"{slot} {cond}")
         s = dict(condition=cond, flags=VARIATIONS[cond], rc=r.returncode, **score(skill, row, r.stdout or ""))
         rows.append(s)
         s["passed"] = bool(s["completed"] and s["did_motion"])
@@ -217,8 +328,16 @@ def main():
     ap.add_argument("--models", required=True, help="policy set directory (walk61, stand61 and the skill's slot)")
     ap.add_argument("--out", required=True, help="directory for the trial logs and rows")
     ap.add_argument("--brain-args", default="", help=f"only {', '.join(BRAIN_ARGS)}, one number each")
+    ap.add_argument("--replaced-models", default=None,
+                    help="pick only: the same set with the seepick61.onnx the candidate replaces")
     a = ap.parse_args()
-    got = skill_gate(SLOT[a.skill], os.path.abspath(a.models), a.out, parse_brain_args(a.brain_args))
+    if a.skill == "pick":
+        if not a.replaced_models:
+            ap.error("--skill pick needs --replaced-models")
+        got = pick_gate(os.path.abspath(a.models), os.path.abspath(a.replaced_models), a.out,
+                        parse_brain_args(a.brain_args))
+    else:
+        got = skill_gate(SLOT[a.skill], os.path.abspath(a.models), a.out, parse_brain_args(a.brain_args))
     print(json.dumps(got, indent=1))
     return 0 if got["passed"] else 1
 

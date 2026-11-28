@@ -8,9 +8,9 @@ Run from the repository root. The check and the gate run on any laptop; copying 
   uv run --no-sync python cmu/deploy/deploy_policy.py use --name bw-s2c-b2                       # an earlier set again
   uv run --no-sync python cmu/deploy/deploy_policy.py rollback                                   # back to walk61
 
-A policy set is the deployed set's files (walk61, stand61, sitstand61, groundpick61 and the kicks) with some of them
-replaced by candidates. The slots a candidate may fill are walk61, stand61, sitstand61 (sit and rise) and groundpick61
-(bend and rise). A candidate is given either as the positional ONNX with `--slots` (default walk61; walk61,stand61 for
+A policy set is the deployed set's files (walk61, stand61, sitstand61, groundpick61, seepick61 and the kicks) with some
+of them replaced by candidates. The slots a candidate may fill are walk61, stand61, sitstand61 (sit and rise),
+groundpick61 (bend and rise) and seepick61 (the seeing pick). A candidate is given either as the positional ONNX with `--slots` (default walk61; walk61,stand61 for
 a policy that stands and walks as one network) or, several in one set, with repeated `--slot-file SLOT=PATH`; the two
 forms combine, and a slot is filled once. The set starts from Pollen's deployed set (cmu/whole/runtime-overlay/models)
 or, with `--base-set NAME`, from cmu/deploy/runs/NAME/models, an earlier gated set: its MANIFEST.json must be there and
@@ -60,7 +60,14 @@ Steps, each one stops the script when it fails:
    and logs go to the run folder (skill-<slot>*.jsonl/.out); the MANIFEST keeps skill_gate per slot (conditions,
    completes, largest action, peak tilt, brain args). Skill slots are gated on the bare robot as it is now only (no
    --payload-manifest, no planned --variant). A failed skill gate stops the script like the walking gate does.
-   gate_passed in the MANIFEST is true only when the walking gate (run or carried) and every skill gate passed.
+   seepick61 is gated relatively (skill_rehearsal.pick_gate): the built set and the same set with the seepick61.onnx
+   the candidate replaces (from the base set, or Pollen's) run the same 8 seeds under the same three conditions; it
+   passes when the candidate completes at least as many of its 24 episodes, falls no more often and completes at least
+   one ("not worse than the file it replaces on the same seeds; this is not a safety pass"). 48 trials one after
+   another, about half an hour: run `check` on the Mac mini mirror and deploy with --reuse-check.
+   gate_passed in the MANIFEST is true only when the walking gate (run or carried) and every skill gate passed and
+   every candidate slot had its gate (a walk slot the walking gate ran on, a skill slot with a skill_gate record); a
+   candidate slot without one stops the script (or, with --deploy-despite-gate, is recorded under ungated_slots).
 4. Copy (deploy only): the policy set to a7z:~/policies/<name>/ with a MANIFEST.json (sha256 of every file, the gate
    verdicts, who deployed and when) and brain-args when it has any, then ~/duck-policy on the A7Z names that directory.
    ~/duck-run.sh, which starts the brain when the phone remote's first command finds none running, passes it to
@@ -175,9 +182,16 @@ def check_contract(onnx):
     print(f"contract: obs [1, 61] -> actions [1, 14] OK ({onnx})")
 
 
-SLOTS = ("walk61", "stand61", "sitstand61", "groundpick61")  # files of the set a 61-in, 14-out candidate may replace
+SLOTS = ("walk61", "stand61", "sitstand61", "groundpick61", "seepick61")  # files a 61-in, 14-out candidate may replace
 WALK_SLOTS = ("walk61", "stand61")  # gated by sim_suite
-SKILL_SLOTS = ("sitstand61", "groundpick61")  # gated by skill_rehearsal
+SKILL_SLOTS = ("sitstand61", "groundpick61", "seepick61")  # gated by skill_rehearsal (seepick61: its pick_gate)
+
+
+def ungated_slots(cands, walk_source, skill_records):
+    """Candidate slots no gate covers: a walk slot without a walking gate run on this set, or any other slot without a
+    skill gate record. A set with one never gets gate_passed true (all([]) over no gate is not a pass)."""
+    return [s for s in cands if (s not in WALK_SLOTS or walk_source != "run")
+            and not (s in SKILL_SLOTS and "passed" in (skill_records.get(s) or {}))]
 
 
 def parse_slots(text):
@@ -299,11 +313,32 @@ def carried_gate(base_name, base_manifest, models):
             **({"forced": dict(forced, carried_from=base_name)} if forced and not passed else {})}
 
 
-def skill_gates(run, models, slots, brain_args, despite=None):
-    """skill_rehearsal on every skill slot in `slots`; stops on a failure unless `despite`. {slot: record}."""
+def replaced_set(run, models, slot, src):
+    """<run>/models-replaced-<slot>: the built set with `slot` put back to the file of `src` (base set or Pollen's) that
+    the candidate replaces, so a relative gate runs both on otherwise identical sets."""
+    if not os.path.isfile(os.path.join(src, f"{slot}.onnx")):
+        fail(f"{slot}: {src} holds no {slot}.onnx to compare the candidate with")
+    ref = os.path.join(run, f"models-replaced-{slot}")
+    os.makedirs(ref, exist_ok=True)
+    for f in sorted(os.listdir(ref)):
+        if f.endswith(".onnx"):
+            os.remove(os.path.join(ref, f))
+    for f in sorted(os.listdir(models)):
+        if f.endswith(".onnx"):
+            shutil.copy2(os.path.join(models, f), ref)
+    shutil.copy2(os.path.join(src, f"{slot}.onnx"), os.path.join(ref, f"{slot}.onnx"))
+    return ref
+
+
+def skill_gates(run, models, slots, brain_args, despite=None, src=BASE):
+    """skill_rehearsal on every skill slot in `slots`; stops on a failure unless `despite`. {slot: record}. seepick61
+    runs pick_gate against the set holding the file of `src` it replaces."""
     out = {}
     for slot in (s for s in SKILL_SLOTS if s in slots):
-        out[slot] = skill_rehearsal.skill_gate(slot, models, run, brain_args)
+        if slot == "seepick61":
+            out[slot] = skill_rehearsal.pick_gate(models, replaced_set(run, models, slot, src), run, brain_args)
+        else:
+            out[slot] = skill_rehearsal.skill_gate(slot, models, run, brain_args)
     bad = [f"{s} ({', '.join(r['fails'])})" for s, r in out.items() if not r["passed"]]
     if bad and not despite:
         fail(f"skill gate: {'; '.join(bad)} did not complete; rows in {run}/skill-*.jsonl")
@@ -565,7 +600,8 @@ def reused_check(name, cands, base, brain_args, payload):
     if missing:
         refuse("e", f"the MANIFEST lacks {', '.join(missing)}")
     consistent = m.get("gate_passed") is (wg.get("passed") is True and all(
-        (skills.get(s) or {}).get("passed") is True for s in SKILL_SLOTS if s in cands))
+        (skills.get(s) or {}).get("passed") is True for s in SKILL_SLOTS if s in cands)
+        and not ungated_slots(cands, wg.get("source"), skills))
     if not consistent:
         refuse("e", "gate_passed does not follow from the walking and skill gate records")
     if m.get("gate_passed") is not True and not m.get("forced"):
@@ -757,8 +793,14 @@ def main():
         verdicts["source"] = "run"
     else:
         verdicts = carried_gate(a.base_set, base[1], models)
-    skills = skill_gates(run, models, slots, brain_args, a.deploy_despite_gate)
+    skills = skill_gates(run, models, slots, brain_args, a.deploy_despite_gate, base[0] if base else BASE)
     skills_passed = all(r["passed"] for r in skills.values())
+    ungated = ungated_slots(slots, verdicts["source"], skills)
+    if ungated and not a.deploy_despite_gate:
+        fail(f"no gate ran for {', '.join(ungated)}: a set is gated only when every candidate slot has its gate")
+    if ungated:
+        print(f"NO GATE for {', '.join(ungated)}; going on because --deploy-despite-gate says: {a.deploy_despite_gate}")
+    skills_passed = skills_passed and not ungated
     with open(os.path.join(ROOT, "cmu", "model", "current.json")) as f:
         current = json.load(f)
     gate_model = {"variant": current["variant"], "mass_manifest_sha256": current["mass_manifest_sha256"]}
@@ -778,7 +820,7 @@ def main():
                 "by": getpass.getuser(), "gate": verdicts["gate"], "gate_passed": gate_passed,
                 "walking_gate": {"source": verdicts["source"], "passed": walking_passed},
                 "worse": verdicts["worse"], "historical_extras": verdicts["historical_extras"],
-                "skill_gate": skills, "brain_args": brain_args,
+                "skill_gate": skills, "ungated_slots": ungated, "brain_args": brain_args,
                 "gate_model": gate_model, "slots": list(slots),
                 "base_set": None if base is None else {
                     "name": a.base_set, "manifest_sha256": sha256(os.path.join(base[0], "MANIFEST.json")),
@@ -799,8 +841,9 @@ def main():
     robot = gate_model["variant"]
     on = f"{robot} carrying {os.path.basename(payload)}" if payload else robot
     what = (f"walking gate {'passed' if walking_passed else 'FAILED'} ({verdicts['source']})"
-            + "".join(f", {s} skill gate {'passed' if r['passed'] else 'FAILED'} ({len(r['completes'])} of "
-                      f"{len(r['conditions'])} complete, largest action {r['largest_action']} rad)" for s, r in skills.items())
+            + "".join(f", {s} skill gate {'passed' if r['passed'] else 'FAILED'} ("
+                      + (r["summary"] if "summary" in r else f"{len(r['completes'])} of {len(r['conditions'])} complete")
+                      + f", largest action {r['largest_action']} rad)" for s, r in skills.items())
             + (f", brain args {' '.join(brain_args)}" if brain_args else ""))
     if a.variant != "current":
         print(f"gate passed on the PLANNED robot ({on}), NOT the robot as it is now ({current['variant']}); "

@@ -786,3 +786,124 @@ def test_duck_run_takes_only_the_two_brain_options_from_the_set(tmp_path, conten
     assert got == want
     assert ("starting with no extra options" in p.stderr) == (content not in (None, "") and not want)
     assert '"${brain_args[@]}" --log' in open(DUCK_RUN).read()  # appended to the walk_wired.py line
+
+
+# ---- seepick61: the seeing-pick slot and its relative gate; no gate, no pass (2026-11-27) ----
+def pick_row(fell=None, guard=None, handback=7.0, held=True, end_mode="walk", fall_dir=None):
+    return {"fell_at": fell, "fall_dir": fall_dir, "guard_stop_at": guard, "end_mode": end_mode, "max_tilt": 30.0,
+            "max_action": 1.9, "trace": [[0.0], [12.0]],
+            "seepick": {"handback_at": handback, "at_handback": {"held": held}, "at_end": {"held": held},
+                        "events": {"max_tilt": 28.0}, "post_handback": {"peak_tilt": 12.0, "stable_after_s": 1.0}}}
+
+
+def test_seepick61_is_a_skill_slot_and_parses(tmp_path):
+    a = tmp_path / "pick.onnx"
+    a.write_bytes(b"p")
+    assert "seepick61" in deploy_policy.SKILL_SLOTS
+    assert deploy_policy.candidates(None, None, [f"seepick61={a}"]) == {"seepick61": str(a)}
+    assert deploy_policy.parse_slots("seepick61") == ("seepick61",)
+
+
+def test_score_pick_completed_fall_and_no_handback():
+    s = skill_rehearsal.score("pick", pick_row(), "")
+    assert s["completed"] and s["held"] and s["handback_at"] == 7.0 and s["peak_tilt"] == 28.0
+    s = skill_rehearsal.score("pick", pick_row(fell=5.0, end_mode="fallen", fall_dir="backward", held=False), "")
+    assert not s["completed"] and not s["held"] and s["fall_dir"] == "backward"
+    s = skill_rehearsal.score("pick", pick_row(handback=None, held=False), "")
+    assert not s["completed"] and s["handback_at"] is None
+    s = skill_rehearsal.score("pick", pick_row(guard=6.0, end_mode="monitor"), "")
+    assert not s["completed"]  # a brain stop is no completion even with a hand-back
+
+
+def counts(completed, falls):
+    return dict(completed=completed, falls=falls)
+
+
+def test_pick_rule_cases():
+    assert skill_rehearsal.pick_rule(counts(10, 2), counts(10, 2)) == (True, [])  # equal is not worse
+    ok, fails = skill_rehearsal.pick_rule(counts(9, 1), counts(10, 1))
+    assert not ok and "completed 9 < replaced file's 10" in fails[0]
+    ok, fails = skill_rehearsal.pick_rule(counts(12, 3), counts(10, 2))
+    assert not ok and "falls 3 > replaced file's 2" in fails[0]
+    ok, fails = skill_rehearsal.pick_rule(counts(0, 0), counts(0, 0))
+    assert not ok and fails == ["no episode completed"]
+
+
+def fake_pick(monkeypatch, cand_falls_seeds=(), repl_falls_seeds=()):
+    calls = []
+
+    def run(argv):
+        calls.append(argv)
+        models, seed = last(argv, "--models"), int(last(argv, "--seed"))
+        bad = seed in (repl_falls_seeds if "models-replaced" in models else cand_falls_seeds)
+        row = pick_row(fell=5.0, end_mode="fallen", fall_dir="forward", held=False) if bad else pick_row()
+        return Trial(json.dumps(row) + "\n")
+
+    monkeypatch.setattr(skill_rehearsal, "run_trial", run)
+    return calls
+
+
+def test_pick_gate_runs_both_files_on_the_same_seeds_and_conditions(tmp_path, monkeypatch, no_sims):
+    base_set(no_sims)
+    calls = fake_pick(monkeypatch, cand_falls_seeds=(3,), repl_falls_seeds=(3, 5))
+    pick = tmp_path / "pick.onnx"
+    pick.write_bytes(b"new pick")
+    run_main(monkeypatch, "check", "--name", "pick", "--base-set", "base", "--slot-file", f"seepick61={pick}",
+             "--brain-args", "--hard-max-action-sit 4.5 --max-tilt-sit 45")
+    assert len(calls) == 48
+    side = lambda c: "replaced" if "models-replaced" in last(c, "--models") else "candidate"  # noqa: E731
+    key = lambda c: (last(c, "--volt"), "--floor-mu" in c, last(c, "--seed"))  # noqa: E731
+    cand = sorted(key(c) for c in calls if side(c) == "candidate")
+    repl = sorted(key(c) for c in calls if side(c) == "replaced")
+    assert len(cand) == 24 and cand == repl  # the same seeds under the same conditions
+    assert sorted(last(c, "--seed") for c in calls[:24]) == sorted([str(s) for s in range(8)] * 3)
+    for flag, want in (("--sp-at", "3.0"), ("--sp-cone", "elliptic"), ("--sp-impratio", "10"), ("--sp-shape", "ball"),
+                       ("--sp-size", "0.012"), ("--sp-after", "5.0"), ("--imu-pitch", f"{skill_rehearsal.imu_pitch_trim():g}")):
+        assert last(calls[0], flag) == want, flag
+    assert "--sp-lean" not in " ".join(calls[0])
+    ref = no_sims / "pick" / "models-replaced-seepick61"
+    assert (ref / "seepick61.onnx").read_bytes() == (no_sims / "base" / "models" / "seepick61.onnx").read_bytes()
+    assert (no_sims / "pick" / "models" / "seepick61.onnx").read_bytes() == b"new pick"
+    man = json.load(open(no_sims / "pick" / "models" / "MANIFEST.json"))
+    g = man["skill_gate"]["seepick61"]
+    assert man["gate_passed"] is True and g["passed"] and man["ungated_slots"] == []
+    assert g["total"]["candidate"]["completed"] == 21 and g["total"]["replaced"]["completed"] == 18
+    assert g["total"]["candidate"]["falls_by_dir"] == {"forward": 3}
+    assert g["conditions"]["volt82"]["replaced"]["seeds"] == list(range(8))
+    assert g["rule"] == "not worse than the file it replaces on the same seeds; this is not a safety pass"
+    # worse than the replaced file on the same seeds: the gate stops check
+    fake_pick(monkeypatch, cand_falls_seeds=(1, 2), repl_falls_seeds=(1,))
+    with pytest.raises(SystemExit) as e:
+        run_main(monkeypatch, "check", "--name", "pick", "--base-set", "base", "--slot-file", f"seepick61={pick}")
+    assert "seepick61" in str(e.value) and "falls 6 > replaced file's 3" in str(e.value)
+
+
+def test_a_candidate_slot_without_a_gate_never_gets_gate_passed(tmp_path, monkeypatch, no_sims):
+    base_set(no_sims)
+    monkeypatch.setattr(deploy_policy, "SLOTS", deploy_policy.SLOTS + ("trick61",))  # a slot no gate covers
+    trick = tmp_path / "trick.onnx"
+    trick.write_bytes(b"trick")
+    with pytest.raises(SystemExit) as e:
+        run_main(monkeypatch, "check", "--name", "trick", "--base-set", "base", "--slot-file", f"trick61={trick}")
+    assert "no gate ran for trick61" in str(e.value)
+    assert not (no_sims / "trick" / "models" / "MANIFEST.json").exists()
+    assert deploy_policy.ungated_slots(["walk61"], "carried from base set b", {}) == ["walk61"]
+    assert deploy_policy.ungated_slots(["walk61", "groundpick61"], "run", {"groundpick61": {"passed": True}}) == []
+    # deploy --reuse-check refuses a recorded gate_passed true for such a set
+    copies = []
+    monkeypatch.setattr(deploy_policy, "copy_to_robot", lambda models, man, *rest: copies.append(man))
+    monkeypatch.setattr(deploy_policy, "ssh", FakeRobot({}, None))
+    monkeypatch.setattr(deploy_policy, "sim_hash", lambda: "H1")
+    models = no_sims / "trick" / "models"
+    files = {f: deploy_policy.sha256(str(models / f)) for f in sorted(os.listdir(models)) if f != "MANIFEST.json"}
+    assert "trick61.onnx" in files  # the set the refused check built
+    man = {"name": "trick", "slots": ["trick61"], "files": files,
+           "base_set": {"name": "base", "manifest_sha256": deploy_policy.sha256(str(no_sims / "base" / "models" / "MANIFEST.json"))},
+           "brain_args": [], "gate_model": {}, "sim_hash": "H1", "gated_at": deploy_policy.now_utc().isoformat(timespec="seconds"),
+           "gate": {"current": deploy_policy.PASS}, "walking_gate": {"source": "carried from base set base", "passed": True},
+           "skill_gate": {}, "gate_passed": True}
+    (models / "MANIFEST.json").write_text(json.dumps(man))
+    with pytest.raises(SystemExit) as e:
+        run_main(monkeypatch, "deploy", "--name", "trick", "--base-set", "base", "--slot-file", f"trick61={trick}",
+                 "--reuse-check")
+    assert "condition (e)" in str(e.value) and not copies
