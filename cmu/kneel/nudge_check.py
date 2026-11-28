@@ -32,6 +32,8 @@ def main():
     p.add_argument("--seconds", type=float, default=3.0)
     p.add_argument("--device", default="cuda:0")
     p.add_argument("--out", default=None)
+    p.add_argument("--base-trim-deg", type=float, default=None,
+                   help="run a plain ONNX as a frozen base shown this IMU pitch trim (residual_model.FrozenBase)")
     a = p.parse_args()
     cfg = load_env_cfg(a.task, play=False)
     cfg.scene.num_envs = a.num_envs
@@ -41,7 +43,16 @@ def main():
     cfg.events.pop("push_robot", None)
     env = ManagerBasedRlEnv(cfg=cfg, device=a.device)
     env.common_step_counter = 10 ** 7
-    pol = bd.FrozenMlp(Path(a.onnx), a.device)
+    if a.base_trim_deg is not None:
+        from mjlab_microduck.tasks.residual_model import FrozenBase
+        pol = FrozenBase(a.onnx, a.base_trim_deg).to(a.device)
+    else:
+        try:
+            pol = bd.FrozenMlp(Path(a.onnx), a.device)
+        except (AssertionError, KeyError, StopIteration):   # a residual export (base + capped correction)
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import kr_eval
+            pol = kr_eval.load_policy(Path(a.onnx), a.device)
     clip = 100.0
     n, dev = env.num_envs, env.device
     obs = env.reset()[0]
@@ -76,7 +87,8 @@ def main():
     f = lambda x: round(float(x), 4)  # noqa: E731
     out = {}
     for name, m in (("all", torch.ones(n, dtype=torch.bool, device=dev)), ("zero", dist < 1e-6),
-                    ("lt3cm", (dist > 1e-6) & (dist < 0.03)), ("ge3cm", dist >= 0.03)):
+                    ("lt3cm", (dist > 1e-6) & (dist < 0.03)), ("3to6cm", (dist >= 0.03) & (dist < 0.06)),
+                    ("ge6cm", dist >= 0.06)):
         ok = m & alive
         if ok.sum() < 8:
             continue

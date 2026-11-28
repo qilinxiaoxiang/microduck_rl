@@ -858,3 +858,261 @@ for _tag, _noise in _WS_RC.items():
 # CMU current-body ground pick and sit-stand (cmu_skill_env_cfg.py): Pollen's skill cfgs with only the body swapped.
 from .cmu_skill_env_cfg import register_cmu_skill_tasks
 register_cmu_skill_tasks(MicroduckOnPolicyRunner)
+
+# Pick on the current body (2026-11-25, cmu/pick_rise/REFINE.md): the noise-trained ball kneel (ks-sn1's task) on the
+# robot as it is now (918 g battery body). ks-sn1 @ 749 falls in 47 % of episodes here (0.7 % on Plugged).
+#   KneelRise-DockFitC-Ball-<COND>-...-Current : the task under one test condition (kr_eval --task); SN1 is also the
+#       full fine-tune's training task (kw-a, warm start from ks-sn1's checkpoint).
+#   KneelRes-DockFitC-Ball-<COND>-...-Current  : the same task with the actor a frozen ks-sn1 @ 749 plus a capped
+#       learned correction (residual_model.py, as rcn030 on walk61); cap and L1 from the CLI.
+# COND: SN0..SN3 servo read noise level; RC = main's robot conditions (robot_conditions.py) at SN1; RCSN2 / RCSN3 the
+# same at level 2 / 3; RCSNR13 = robot conditions with the level drawn per episode in [1, 3] (rcn030's recipe).
+from .cmu_skill_env_cfg import apply_skill_conditions as _skill_cond
+from .residual_model import ResidualModelCfg as _ResCfg
+from .servo_noise import apply_servo_noise_range as _snr
+
+KNEEL_BASE_ONNX = _Path(__file__).resolve().parents[3] / "cmu" / "kneel" / "policies" / "ks-sn1_749.onnx"
+
+
+def _kneel_cond(cfg, cond: str):
+    if cond.startswith("RC"):
+        _skill_cond(cfg, "robot")
+        cond = cond[2:] or "SN1"
+    if cond == "SNR13":
+        return _snr(cfg, 1, 3)
+    return _sn(cfg, int(cond[2:]))
+
+
+def _kneel_cfg(cond: str, play: bool = False):
+    return _kneel_cond(make_kneel_rise_env_cfg("current", play=play, dockfit=True, ball_only=True,
+                                              dock_fit=_KR_DOCKFIT_C), cond)
+
+
+def kneel_res_rl_cfg(cap: float = 0.15, l1: float = 0.3):
+    rl = _dc.replace(kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, dockfit=True, ball_only=True),
+                     experiment_name="kneel_res", run_name="kneel_res", max_iterations=1000)
+    rl.actor = _ResCfg(hidden_dims=(256, 128, 64), activation="elu", obs_normalization=False,
+                       distribution_cfg={"class_name": "GaussianDistribution", "init_std": 0.05, "std_type": "log"},
+                       base_onnx=str(KNEEL_BASE_ONNX), cap=cap, l1=l1)
+    a = rl.algorithm
+    a.schedule, a.learning_rate, a.entropy_coef = "fixed", 3e-4, 0.0
+    a.symmetry_cfg = None
+    return rl
+
+
+for _cond in ("SN0", "SN1", "SN2", "SN3", "RC", "RCSN2", "RCSN3", "RCSNR13"):
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelRise-DockFitC-Ball-{_cond}-MicroDuck-CMU-Current",
+        env_cfg=_kneel_cfg(_cond),
+        play_env_cfg=_kneel_cfg(_cond, play=True),
+        rl_cfg=_dc.replace(kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, dockfit=True, ball_only=True),
+                           experiment_name="kneel_rise_ball_c_w918", run_name="kneel_rise_ball_c_w918",
+                           max_iterations=750),
+        runner_cls=KneelRiseSightedFromRiseRunner,
+    )
+KNEEL_BASE_CKPT = _Path(__file__).resolve().parents[3] / "logs" / "rsl_rl" / "kneel_rise_ball_c_sn1" / "ks-sn1-src" / "model_749.pt"
+
+
+class KneelResCriticRunner(WalkStepResidualRunner):
+    CRITIC_CKPT = None   # None: KNEEL_BASE_CKPT
+    """The residual kneel with ks-sn1's trained critic (2026-11-25). With a fresh critic the correction never left zero
+    (res_c30_rcn @ 999: mean |correction| 0.001 rad of a 0.30 cap; value loss 7 -> 17): the critic did not learn
+    this episodic task's returns well enough for the advantages to outweigh the L1 pull. kw-a, which trained well,
+    starts from that critic too."""
+
+    CRITIC_WARMUP_ITERS = 20
+
+    def __init__(self, env, train_cfg: dict, log_dir=None, device="cpu", **kwargs):
+        super().__init__(env, train_cfg, log_dir, device, **kwargs)
+        import torch as _torch
+        ckpt = self.CRITIC_CKPT or KNEEL_BASE_CKPT
+        sd = _torch.load(ckpt, map_location=device, weights_only=False)["critic_state_dict"]
+        self.alg.critic.load_state_dict(sd)
+        print(f"[{type(self).__name__}] critic from {ckpt}")
+
+
+for _cond in ("SN1", "RCSNR13"):
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelResC-DockFitC-Ball-{_cond}-MicroDuck-CMU-Current",
+        env_cfg=_kneel_cfg(_cond),
+        play_env_cfg=_kneel_cfg(_cond, play=True),
+        rl_cfg=kneel_res_rl_cfg(),
+        runner_cls=KneelResCriticRunner,
+    )
+
+for _cond in ("SN1", "RCSNR13"):
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelRes-DockFitC-Ball-{_cond}-MicroDuck-CMU-Current",
+        env_cfg=_kneel_cfg(_cond),
+        play_env_cfg=_kneel_cfg(_cond, play=True),
+        rl_cfg=kneel_res_rl_cfg(),
+        runner_cls=WalkStepResidualRunner,
+    )
+
+# Wide placement (2026-11-25, REFINE.md "docking spread"): the residual pick for a dock that misses by more. The
+# resc runs hold 0.4-0.7 within +-1 cm of the landing spot and ~0 beyond +-3 cm. Here only 30 % of the starts follow
+# the dock-shaped Gaussian (DOCKFIT_C); 70 % are uniform over the window, which starts at +-2 cm and widens by 0.5 cm
+# (to +-5 cm, near side clipped at r_min) each time the held EMA passes 0.3. The frozen base cannot unlearn the bite.
+from mjlab.managers import CurriculumTermCfg as _CurrCfg
+from .cmu_seeing_pix_env_cfg import pix_window_curriculum as _pix_window_curr
+
+WIDE = dict(frac=0.3, window_start=0.02, window_step=0.005, window_max=0.05, advance=0.15)  # 0.3 was never
+# reached under robot conditions (held EMA 0.17-0.20 at +-2 cm after 350 iterations), so the window never widened
+
+
+def _kneel_wide_cfg(cond: str, play: bool = False):
+    cfg = _kneel_cfg(cond, play=play)
+    ev = cfg.events["reset_object"]
+    ev.params.update(dock_frac=WIDE["frac"], window=WIDE["window_max"] if play else WIDE["window_start"])
+    if not play:
+        cfg.curriculum["dock_window"] = _CurrCfg(
+            func=_pix_window_curr, params={"event_name": "reset_object", "window_step": WIDE["window_step"],
+                                           "window_max": WIDE["window_max"], "advance_success": WIDE["advance"]})
+    return cfg
+
+
+for _cond in ("SN1", "RCSNR13"):
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelResC-Wide-DockFitC-Ball-{_cond}-MicroDuck-CMU-Current",
+        env_cfg=_kneel_wide_cfg(_cond),
+        play_env_cfg=_kneel_wide_cfg(_cond, play=True),
+        rl_cfg=kneel_res_rl_cfg(),
+        runner_cls=KneelResCriticRunner,
+    )
+
+
+# Fine step (2026-11-25, REFINE.md "docking spread"): the last ~10 cm before the kneel. rcn030's bursts under 0.5 s do
+# not step and its 1.3 s burst spreads 3.8-9.4 cm, so a blind final burst lands within +-1.5 cm only ~6 % of the time.
+# The nudge (wn-sn1: walk61 trained to step to a target 1-6 cm away, within 1 cm 0.966 on Plugged) frozen with the 918 g
+# body's pitch trim, plus a capped correction trained with wn-sn1's critic (the kneel's recipe); targets widened to
+# -4..+12 cm forward and +-5 cm sideways; main's robot conditions plus servo read noise drawn in [1, 3].
+from .cmu_walk_nudge_env_cfg import make_walk_nudge_env_cfg as _mk_nudge
+
+NUDGE_BASE_ONNX = _Path(__file__).resolve().parents[3] / "cmu" / "kneel" / "policies" / "wn-sn1_1249.onnx"
+NUDGE_CRITIC_CKPT = (_Path(__file__).resolve().parents[3] / "logs" / "rsl_rl" / "walk_nudge_sn1" /
+                     "2026-11-20_00-33-47_wn-sn1" / "model_1249.pt")
+FINE_TARGET_X, FINE_TARGET_Y = (-0.04, 0.12), (-0.05, 0.05)
+
+
+def _fine_step_cfg(play: bool = False):
+    cfg = _mk_nudge("current", play=play)
+    cfg.commands["twist"].target_x, cfg.commands["twist"].target_y = FINE_TARGET_X, FINE_TARGET_Y
+    # make_cmu_velocity_env_cfg already applies main's robot conditions on the current body
+    assert "robot_conditions" in str(cfg.observations["actor"].terms["base_ang_vel"].func) or \
+        "k" in cfg.observations["actor"].terms["base_ang_vel"].params, "expected robot conditions on the current body"
+    return _snr(cfg, 1, 3)
+
+
+def fine_step_rl_cfg(cap: float = 0.30, l1: float = 0.05, trim: float = 6.0):
+    rl = _dc.replace(walk_nudge_rl_cfg(MicroduckRlCfg), experiment_name="fine_step", run_name="fine_step",
+                     max_iterations=1000)
+    rl.actor = _ResCfg(hidden_dims=(256, 128, 64), activation="elu", obs_normalization=False,
+                       distribution_cfg={"class_name": "GaussianDistribution", "init_std": 0.05, "std_type": "log"},
+                       base_onnx=str(NUDGE_BASE_ONNX), cap=cap, l1=l1, base_trim_deg=trim)
+    a = rl.algorithm
+    a.schedule, a.learning_rate, a.entropy_coef = "fixed", 3e-4, 0.0
+    a.symmetry_cfg = None
+    return rl
+
+
+class FineStepRunner(KneelResCriticRunner):
+    CRITIC_CKPT = NUDGE_CRITIC_CKPT
+
+
+register_mjlab_task(
+    task_id="Mjlab-FineStep-FromNudge-RCSNR13-MicroDuck-CMU-Current",
+    env_cfg=_fine_step_cfg(),
+    play_env_cfg=_fine_step_cfg(play=True),
+    rl_cfg=fine_step_rl_cfg(),
+    runner_cls=FineStepRunner,
+)
+
+
+# Hand-off starts (2026-11-26, REFINE.md "e2e harness"): the residual kneel continued from resc_c30t45_rcn @ 749 with
+# HANDOFF_FRAC of the resets starting from the states the e2e harness recorded when the fine step handed over (joint
+# pose and velocity, tilt, height, ball offset; e2e.py --save-handoff, RC and SN1 twins). The rest keep the dock-shaped
+# placement. Under robot conditions resc_c30t45_rcn holds 0.43 of the hand-offs, missing 0.25 of all episodes.
+from .kneel_handoff import reset_pix_object_handoff as _reset_handoff
+
+HANDOFF_DIR = _Path(__file__).resolve().parents[3] / "cmu" / "pick_rise" / "refine" / "handoff"
+HANDOFF_FILES = tuple(str(HANDOFF_DIR / f"ho_{c}.pt") for c in ("RC", "SN1"))
+HANDOFF_FRAC = 0.6
+
+
+def _kneel_handoff_cfg(cond: str, play: bool = False, frac: float = HANDOFF_FRAC):
+    cfg = _kneel_cfg(cond, play=play)
+    ev = cfg.events["reset_object"]
+    ev.func = _reset_handoff
+    ev.params.update(handoff_paths=HANDOFF_FILES, frac=frac)
+    return cfg
+
+
+for _cond in ("SN1", "RCSNR13"):
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelResC-Handoff-DockFitC-Ball-{_cond}-MicroDuck-CMU-Current",
+        env_cfg=_kneel_handoff_cfg(_cond),
+        play_env_cfg=_kneel_handoff_cfg(_cond, play=True),
+        rl_cfg=kneel_res_rl_cfg(),
+        runner_cls=KneelResCriticRunner,
+    )
+
+register_mjlab_task(   # the dose arm: 90 % hand-off starts
+    task_id="Mjlab-KneelResC-Handoff90-DockFitC-Ball-RCSNR13-MicroDuck-CMU-Current",
+    env_cfg=_kneel_handoff_cfg("RCSNR13", frac=0.9),
+    play_env_cfg=_kneel_handoff_cfg("RCSNR13", play=True, frac=0.9),
+    rl_cfg=kneel_res_rl_cfg(),
+    runner_cls=KneelResCriticRunner,
+)
+
+
+# Full kneel fine-tune on the 918 g body (2026-11-27, REFINE.md "kneel_full"): the residual (frozen ks-sn1 + 0.30 cap)
+# is at its ceiling under robot conditions, so every weight trains. Start: ks-sn1 @ 749 with the residual's 4.5 deg
+# IMU pitch trim folded into its first layer (cmu/pick_rise/refine/fold_trim.py; trim alone: SN1 held 0.32 / fell 0.31
+# against 0.20 / 0.47). Conditions come in by stages, each a resume of the last (KneelFull-SN1 -> -RC -> -RCSNR13): the
+# earlier full fine-tunes went straight to their final conditions and kw-b (robot conditions) degraded everywhere. The
+# world is the e2e harness's: the walking tasks' body randomisation (trunk CoM +-8 mm, not +-2.5 cm) and IMU mount
+# misalignment +-2 deg (not +-6); the kneel's own IMU noise and age stay. Half of the resets start from the recorded
+# hand-offs (gaze on), the rest from the dock-shaped placement with the head aimed.
+FULL_DR_TERMS = ("base_com", "randomize_com", "randomize_head_com", "foot_friction")
+FULL_IMU_MISALIGN_DEG = 2.0
+FULL_HANDOFF_FRAC = 0.5
+
+
+def _kneel_full_cfg(cond: str, play: bool = False):
+    cfg = _kneel_handoff_cfg(cond, play=play, frac=FULL_HANDOFF_FRAC)
+    walk = make_walk_step_env_cfg()
+    for k in FULL_DR_TERMS:
+        if k in walk.events:
+            cfg.events[k] = walk.events[k]
+        else:
+            cfg.events.pop(k, None)
+    for k in ("com_range", "head_com_range"):   # the kneel's curricula rewrite the CoM ranges while it runs
+        cfg.curriculum.pop(k, None)
+    actor = cfg.observations["actor"].terms
+    for t in ("base_ang_vel", "projected_gravity"):
+        term = actor[t] = _copy.deepcopy(actor[t])
+        assert "max_angle_deg" in term.params, (t, term.params)
+        term.params = dict(term.params, max_angle_deg=FULL_IMU_MISALIGN_DEG)
+    return cfg
+
+
+class KneelFullRunner(KneelRiseSightedFromRiseRunner):
+    """The sighted kneel's warm start (critic warm-up, actor frozen) with the init lr taken from the rl cfg
+    (--agent.algorithm.learning-rate), so the two arms differ only in schedule and lr."""
+
+    CRITIC_WARMUP_ITERS = 50
+
+    def __init__(self, env, train_cfg: dict, log_dir=None, device="cpu", **kwargs):
+        self.INIT_LR = float(train_cfg["algorithm"]["learning_rate"])
+        super().__init__(env, train_cfg, log_dir, device, **kwargs)
+
+
+for _cond in ("SN1", "RC", "RCSNR13"):
+    register_mjlab_task(
+        task_id=f"Mjlab-KneelFull-{_cond}-MicroDuck-CMU-Current",
+        env_cfg=_kneel_full_cfg(_cond),
+        play_env_cfg=_kneel_full_cfg(_cond, play=True),
+        rl_cfg=_dc.replace(kneel_rise_rl_cfg(MicroduckStaticGraspRlCfg, dockfit=True, ball_only=True),
+                           experiment_name="kneel_full", run_name="kneel_full", max_iterations=500),
+        runner_cls=KneelFullRunner,
+    )

@@ -1,0 +1,47 @@
+{
+ "none": {
+  "fell": 0.307,
+  "bitten": 0.355,
+  "held_end": 0.273
+ },
+ "joint_friction": {
+  "fell": 0.365,
+  "bitten": 0.373,
+  "held_end": 0.281
+ },
+ "servo_drop": {
+  "fell": 0.316,
+  "bitten": 0.381,
+  "held_end": 0.291
+ },
+ "joint_pos_lag": {
+  "fell": 0.422,
+  "bitten": 0.324,
+  "held_end": 0.221
+ },
+ "joint_vel_noise": {
+  "fell": 0.32,
+  "bitten": 0.32,
+  "held_end": 0.242
+ },
+ "gyro_legspeed": {
+  "fell": 0.449,
+  "bitten": 0.287,
+  "held_end": 0.225
+ },
+ "gravity_noise": {
+  "fell": 0.291,
+  "bitten": 0.3594,
+  "held_end": 0.2773
+ },
+ "zero_shift": {
+  "fell": 0.3301,
+  "bitten": 0.2852,
+  "held_end": 0.2266
+ },
+ "imu_lag2": {
+  "fell": 0.2559,
+  "bitten": 0.3516,
+  "held_end": 0.2891
+ }
+}

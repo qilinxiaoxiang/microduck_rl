@@ -1,0 +1,15 @@
+{
+ "onnx": "cmu/pick_rise/refine/models/resc_c30t45_rcn_749.onnx",
+ "cond": "RC",
+ "frac": 1.0,
+ "keep_head": false,
+ "n": 1024,
+ "held_end": 0.3994,
+ "fell": 0.1855,
+ "missed": 0.334,
+ "dropped": 0.0811,
+ "fell_why": {
+  "fell_over": 101,
+  "beak_on_floor": 89
+ }
+}

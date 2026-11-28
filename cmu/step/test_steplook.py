@@ -32,8 +32,8 @@ class Frame:
 class Duck:
     """walk_wired as the coordinator sees it: a burst moves it `gain` x the table's distance once, then it stands."""
 
-    def __init__(self, ball, gain=0.8, mode="walk"):
-        self.t, self.ball, self.gain, self.mode = 100.0, list(ball), gain, mode
+    def __init__(self, ball, gain=0.8, mode="walk", turn_gain=0.45):
+        self.t, self.ball, self.gain, self.mode, self.turn_gain = 100.0, list(ball), gain, mode, turn_gain
         self.q, self.sent, self.bursts, self.last, self.i = dict(STAND), [], [], None, 0
         self.gyro = [0.0, 0.0, 0.0]
 
@@ -43,6 +43,11 @@ class Duck:
             far = min(ARM["bursts"], key=lambda b: abs(b[0] - c["for_s"]))[1] * self.gain
             x, y = self.ball[0] - far, self.ball[1]
             a = -c["vtheta"] * c["for_s"]
+            self.ball = [x * math.cos(a) - y * math.sin(a), x * math.sin(a) + y * math.cos(a)]
+            self.bursts.append((self.t, dict(c)))
+        elif c.get("vx") == 0.0 and c.get("vtheta") and c.get("for_s") and c != self.last:
+            a = -c["vtheta"] * c["for_s"] * self.turn_gain     # a turn in place: the ball swings round the duck
+            x, y = self.ball
             self.ball = [x * math.cos(a) - y * math.sin(a), x * math.sin(a) + y * math.cos(a)]
             self.bursts.append((self.t, dict(c)))
         self.last = dict(c)
@@ -129,10 +134,19 @@ def test_a_robot_that_does_not_move_is_stopped():
     assert not c.result["ok"] and len(d.bursts) == sl.MAX_NO_PROGRESS
 
 
-def test_a_ball_to_the_side_is_refused_without_a_step():
+def test_a_ball_to_the_side_gets_turns_in_place_then_is_refused_without_a_step():
+    # 2026-11-26: it used to be refused at once (a person turned the duck); now it turns in place first. A duck whose
+    # turns do nothing ends refused after MAX_AIMS turns, and never takes a forward step toward a ball that far off.
+    d = Duck((0.25, 0.22), turn_gain=0.0)
+    c = drive(d, make(d))
+    assert not c.result["ok"]
+    assert len(d.bursts) == sl.MAX_AIMS and all(b["vx"] == 0.0 for _, b in d.bursts)
+
+
+def test_a_ball_to_the_side_is_turned_to_and_reached():
     d = Duck((0.25, 0.22))
     c = drive(d, make(d))
-    assert not c.result["ok"] and not d.bursts
+    assert c.result["ok"], c.result
 
 
 def test_a_guard_trip_ends_the_run_without_writing_walk():
@@ -209,3 +223,34 @@ def test_a_two_slot_arm_needs_both_slots(tmp_path):
     assert arm is None and "stand61" in why
     (tmp_path / "b.meta.jsonl").write_text(json.dumps(dict(model_sha={"walk61.onnx": "s", "stand61.onnx": "s"})) + "\n")
     assert sl.load_arm(str(log), str(arms))[0]["name"] == "test"
+
+
+def test_plan_aims_in_the_window_before_it_finishes():
+    assert "done" in sl.plan(0.19, 0.0, ARM["bursts"])
+    p = sl.plan(0.19, 0.19 * math.tan(math.radians(15)), ARM["bursts"])
+    assert p.get("aim") and p["vx"] == 0.0 and p["vtheta"] > 0 and sl.AIM_T[0] <= p["T"] <= sl.AIM_T[1]
+    assert sl.plan(0.19, -0.04, ARM["bursts"])["vtheta"] < 0
+    assert "done" in sl.plan(0.19, 0.04, ARM["bursts"], aims=sl.MAX_AIMS)
+
+
+@pytest.mark.parametrize("y", [0.04, -0.05])
+def test_an_off_centre_ball_in_the_window_is_faced_before_the_run_ends(y):
+    d = Duck((0.19, y))      # already in range: only a turn in place can centre it
+    c = drive(d, make(d))
+    assert c.result["ok"], c.result
+    assert abs(math.atan2(d.ball[1], d.ball[0])) <= sl.AIM_TOL + 1e-6
+    assert d.bursts and all(b["vx"] == 0.0 for _, b in d.bursts)
+
+
+def test_turns_that_do_not_turn_end_the_run_after_max_aims_not_as_no_progress():
+    d = Duck((0.19, 0.05), turn_gain=0.0)
+    c = drive(d, make(d))
+    assert c.result["ok"], c.result          # still in the range window: ends as before, just not centred
+    assert sum(b["vx"] == 0.0 for _, b in d.bursts) == sl.MAX_AIMS
+
+
+def test_a_ball_drifting_to_the_side_on_the_way_gets_a_turn_not_a_refusal():
+    p = sl.plan(0.40, -0.40 * math.tan(math.radians(30)), ARM["bursts"])
+    assert p.get("aim") and p["vtheta"] < 0
+    far_side = sl.plan(0.40, -0.40 * math.tan(math.radians(50)), ARM["bursts"], aims=sl.MAX_AIMS)
+    assert "refuse" in far_side          # turns used up: refused as before

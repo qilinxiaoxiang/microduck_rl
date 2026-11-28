@@ -1,0 +1,107 @@
+{
+ "onnx": "cmu/kneel/policies/wn-sn1_1249.onnx",
+ "md5": "e67171834ba3cb305060dfb01153ed5f",
+ "seconds": 5.0,
+ "res": {
+  "all": {
+   "n": 512,
+   "fell": 0.2207,
+   "err_p50_cm": 0.5036,
+   "err_p90_cm": 3.4793,
+   "within_1cm": 0.782,
+   "within_2cm": 0.8571,
+   "dx_abs_p90_cm": 3.3327,
+   "still": 0.787,
+   "yaw_err_p50_deg": 1.8377,
+   "foot_split_p90_cm": 3.0475,
+   "width_p10_p90_cm": [
+    7.4206,
+    9.4737
+   ],
+   "leg_rms_p50_p90": [
+    0.1767,
+    0.3156
+   ]
+  },
+  "zero": {
+   "n": 92,
+   "fell": 0.2174,
+   "err_p50_cm": 0.1387,
+   "err_p90_cm": 2.2805,
+   "within_1cm": 0.8472,
+   "within_2cm": 0.875,
+   "dx_abs_p90_cm": 2.1934,
+   "still": 0.8611,
+   "yaw_err_p50_deg": 2.0219,
+   "foot_split_p90_cm": 3.0112,
+   "width_p10_p90_cm": [
+    7.4413,
+    8.7751
+   ],
+   "leg_rms_p50_p90": [
+    0.1342,
+    0.2927
+   ]
+  },
+  "lt3cm": {
+   "n": 64,
+   "fell": 0.1875,
+   "err_p50_cm": 0.5947,
+   "err_p90_cm": 1.4195,
+   "within_1cm": 0.7885,
+   "within_2cm": 0.9231,
+   "dx_abs_p90_cm": 1.1874,
+   "still": 0.8846,
+   "yaw_err_p50_deg": 1.7408,
+   "foot_split_p90_cm": 1.7515,
+   "width_p10_p90_cm": [
+    7.3562,
+    8.8585
+   ],
+   "leg_rms_p50_p90": [
+    0.1616,
+    0.2693
+   ]
+  },
+  "3to6cm": {
+   "n": 177,
+   "fell": 0.2429,
+   "err_p50_cm": 0.5021,
+   "err_p90_cm": 5.5397,
+   "within_1cm": 0.7687,
+   "within_2cm": 0.8284,
+   "dx_abs_p90_cm": 5.4523,
+   "still": 0.7537,
+   "yaw_err_p50_deg": 1.6622,
+   "foot_split_p90_cm": 2.7222,
+   "width_p10_p90_cm": [
+    7.4808,
+    9.6341
+   ],
+   "leg_rms_p50_p90": [
+    0.1813,
+    0.3218
+   ]
+  },
+  "ge6cm": {
+   "n": 179,
+   "fell": 0.2123,
+   "err_p50_cm": 0.5454,
+   "err_p90_cm": 4.1171,
+   "within_1cm": 0.7589,
+   "within_2cm": 0.8511,
+   "dx_abs_p90_cm": 3.9981,
+   "still": 0.7447,
+   "yaw_err_p50_deg": 1.8754,
+   "foot_split_p90_cm": 3.4637,
+   "width_p10_p90_cm": [
+    7.4443,
+    9.4278
+   ],
+   "leg_rms_p50_p90": [
+    0.1925,
+    0.3308
+   ]
+  }
+ }
+}

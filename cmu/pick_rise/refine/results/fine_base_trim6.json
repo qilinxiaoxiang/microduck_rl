@@ -1,0 +1,107 @@
+{
+ "onnx": "cmu/kneel/policies/wn-sn1_1249.onnx",
+ "md5": "e67171834ba3cb305060dfb01153ed5f",
+ "seconds": 5.0,
+ "res": {
+  "all": {
+   "n": 512,
+   "fell": 0.1035,
+   "err_p50_cm": 0.5085,
+   "err_p90_cm": 1.099,
+   "within_1cm": 0.8693,
+   "within_2cm": 0.9564,
+   "dx_abs_p90_cm": 1.0401,
+   "still": 0.8606,
+   "yaw_err_p50_deg": 1.8611,
+   "foot_split_p90_cm": 2.3035,
+   "width_p10_p90_cm": [
+    7.4515,
+    9.0344
+   ],
+   "leg_rms_p50_p90": [
+    0.1885,
+    0.2774
+   ]
+  },
+  "zero": {
+   "n": 92,
+   "fell": 0.0435,
+   "err_p50_cm": 0.4195,
+   "err_p90_cm": 0.9075,
+   "within_1cm": 0.9318,
+   "within_2cm": 0.9773,
+   "dx_abs_p90_cm": 0.7855,
+   "still": 0.9205,
+   "yaw_err_p50_deg": 2.1108,
+   "foot_split_p90_cm": 1.8989,
+   "width_p10_p90_cm": [
+    7.434,
+    8.915
+   ],
+   "leg_rms_p50_p90": [
+    0.165,
+    0.2583
+   ]
+  },
+  "lt3cm": {
+   "n": 64,
+   "fell": 0.0469,
+   "err_p50_cm": 0.5085,
+   "err_p90_cm": 1.0529,
+   "within_1cm": 0.8852,
+   "within_2cm": 0.9344,
+   "dx_abs_p90_cm": 0.9722,
+   "still": 0.8689,
+   "yaw_err_p50_deg": 1.8723,
+   "foot_split_p90_cm": 2.234,
+   "width_p10_p90_cm": [
+    7.6624,
+    9.0536
+   ],
+   "leg_rms_p50_p90": [
+    0.1716,
+    0.2774
+   ]
+  },
+  "3to6cm": {
+   "n": 177,
+   "fell": 0.113,
+   "err_p50_cm": 0.5692,
+   "err_p90_cm": 1.4366,
+   "within_1cm": 0.8217,
+   "within_2cm": 0.9172,
+   "dx_abs_p90_cm": 1.3141,
+   "still": 0.8153,
+   "yaw_err_p50_deg": 1.693,
+   "foot_split_p90_cm": 2.7064,
+   "width_p10_p90_cm": [
+    7.5885,
+    9.3412
+   ],
+   "leg_rms_p50_p90": [
+    0.1954,
+    0.2835
+   ]
+  },
+  "ge6cm": {
+   "n": 179,
+   "fell": 0.1453,
+   "err_p50_cm": 0.5044,
+   "err_p90_cm": 1.0938,
+   "within_1cm": 0.8758,
+   "within_2cm": 0.9935,
+   "dx_abs_p90_cm": 1.0267,
+   "still": 0.8693,
+   "yaw_err_p50_deg": 1.9784,
+   "foot_split_p90_cm": 2.1466,
+   "width_p10_p90_cm": [
+    7.4234,
+    8.9205
+   ],
+   "leg_rms_p50_p90": [
+    0.1885,
+    0.2841
+   ]
+  }
+ }
+}

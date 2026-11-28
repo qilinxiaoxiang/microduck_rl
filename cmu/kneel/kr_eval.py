@@ -36,6 +36,40 @@ CASES = {"w1": (0.01, False), "w2": (0.02, False), "w3": (0.03, False), "w4": (0
 NECK = ("neck_pitch", "head_pitch", "head_yaw", "head_roll")
 
 
+class OnnxResidual:
+    """A residual_model.py export (frozen base + cap * tanh(correction)) as a batched torch function."""
+
+    def __init__(self, path: Path, device):
+        import onnx
+        import torch.nn.functional as F
+        from onnx import numpy_helper
+        self.path, self.F = path, F
+        W = {i.name: torch.tensor(numpy_helper.to_array(i)).float().to(device) for i in onnx.load(str(path)).graph.initializer}
+        assert "base.w0" in W, path
+        self.trim = next(v for k, v in W.items() if k.startswith("onnx::MatMul"))   # obs @ trim (= trim.T in the model)
+        self.mean, self.div, self.cap = W["base.mean"], W["base.div"], W["cap"]
+        self.base = [(W[f"base.w{i}"], W[f"base.b{i}"]) for i in (0, 2, 4, 6)]
+        self.corr = [(W[f"mlp.{i}.weight"], W[f"mlp.{i}.bias"]) for i in (0, 2, 4, 6)]
+
+    def _mlp(self, x, layers):
+        for j, (w, b) in enumerate(layers):
+            x = x @ w.T + b
+            if j < len(layers) - 1:
+                x = self.F.elu(x)
+        return x
+
+    def __call__(self, obs):
+        base = self._mlp(((obs @ self.trim) - self.mean) / self.div, self.base)
+        return base + self.cap * torch.tanh(self._mlp((obs - self.mean) / self.div, self.corr))
+
+
+def load_policy(path: Path, device):
+    try:
+        return A.OnnxMlp(path, device)
+    except AssertionError:
+        return OnnxResidual(path, device)
+
+
 def make_env(task, num_envs, seed, window, lat55, device, step=A.CURRICULA_DONE_STEP):
     cfg = load_env_cfg(task, play=False)
     cfg.scene.num_envs = num_envs
@@ -205,6 +239,14 @@ def summarize(r):
     return out
 
 
+def wait_for_gpu(device, need_gb=3.0, poll_s=30):
+    """Wait until the GPU has need_gb free: overnight queues share one GPU between training runs and evals."""
+    if not str(device).startswith("cuda"):
+        return
+    while torch.cuda.mem_get_info(torch.device(device))[0] / 2**30 < need_gb:
+        time.sleep(poll_s)
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--onnx", required=True)
@@ -221,7 +263,8 @@ def main():
     p.add_argument("--dock-shift", type=float, default=0.0, help="m added to the dock's end dx (what-if: aim further)")
     p.add_argument("--grid", action="store_true", help="also a near/far sweep: dx U[-4, +3] cm, dy U[-1.5, +1.5] cm")
     a = p.parse_args()
-    pol = A.OnnxMlp(Path(a.onnx), a.device)
+    wait_for_gpu(a.device)
+    pol = load_policy(Path(a.onnx), a.device)
     if a.ball_only:
         sp.SHAPE_PROBS = (1.0, 0.0, 0.0)   # read by seeing_object_shape at every reset
     blind_fill = None

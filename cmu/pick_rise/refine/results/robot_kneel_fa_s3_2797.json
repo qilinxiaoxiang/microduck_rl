@@ -1,0 +1,416 @@
+{
+ "summary": {
+  "kneel": "cmu/pick_rise/refine/models/fa_s3_2797.onnx",
+  "n": 40,
+  "errors": 0,
+  "dx": 0.0945,
+  "spread_cm": 1.0,
+  "servo_noise": 1,
+  "gaze_s": 1.0,
+  "held": 0.0,
+  "fell": 0.35,
+  "guard": 0.3
+ },
+ "runs": [
+  {
+   "seed": 0,
+   "dx": 0.0102,
+   "dy": -0.0046,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 53.3,
+   "bitten": null
+  },
+  {
+   "seed": 1,
+   "dx": -0.0017,
+   "dy": -0.0097,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 53.0,
+   "bitten": null
+  },
+  {
+   "seed": 2,
+   "dx": 0.0138,
+   "dy": 0.0083,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 55.0 deg",
+   "max_tilt": 55.5,
+   "bitten": null
+  },
+  {
+   "seed": 3,
+   "dx": 0.0096,
+   "dy": 0.0046,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 52.1,
+   "bitten": null
+  },
+  {
+   "seed": 4,
+   "dx": 0.0084,
+   "dy": 0.0087,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 52.0,
+   "bitten": null
+  },
+  {
+   "seed": 5,
+   "dx": 0.0138,
+   "dy": -0.0099,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 50.0,
+   "bitten": null
+  },
+  {
+   "seed": 6,
+   "dx": 0.0146,
+   "dy": -0.0093,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 52.6,
+   "bitten": null
+  },
+  {
+   "seed": 7,
+   "dx": 0.0121,
+   "dy": -0.0065,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 30.0 deg",
+   "max_tilt": 46.6,
+   "bitten": null
+  },
+  {
+   "seed": 8,
+   "dx": 0.0148,
+   "dy": 0.0008,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 52.5,
+   "bitten": null
+  },
+  {
+   "seed": 9,
+   "dx": 0.0035,
+   "dy": -0.0015,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 53.6,
+   "bitten": null
+  },
+  {
+   "seed": 10,
+   "dx": -0.0019,
+   "dy": -0.0075,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 53.4,
+   "bitten": null
+  },
+  {
+   "seed": 11,
+   "dx": 0.0109,
+   "dy": 0.0029,
+   "held": false,
+   "fell": true,
+   "guard": "action over 3.0 rad in 3 of 10 ticks",
+   "max_tilt": 47.1,
+   "bitten": null
+  },
+  {
+   "seed": 12,
+   "dx": 0.0098,
+   "dy": -0.0023,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 54.7,
+   "bitten": null
+  },
+  {
+   "seed": 13,
+   "dx": 0.0174,
+   "dy": 0.0096,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 30.0 deg",
+   "max_tilt": 46.4,
+   "bitten": null
+  },
+  {
+   "seed": 14,
+   "dx": 0.0112,
+   "dy": 0.003,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 52.4,
+   "bitten": null
+  },
+  {
+   "seed": 15,
+   "dx": 0.0113,
+   "dy": -0.0022,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 55.0 deg",
+   "max_tilt": 55.3,
+   "bitten": null
+  },
+  {
+   "seed": 16,
+   "dx": 0.0002,
+   "dy": 0.0044,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 50.8,
+   "bitten": null
+  },
+  {
+   "seed": 17,
+   "dx": 0.008,
+   "dy": -0.0038,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 55.0 deg",
+   "max_tilt": 55.9,
+   "bitten": null
+  },
+  {
+   "seed": 18,
+   "dx": 0.0072,
+   "dy": 0.0078,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 54.1,
+   "bitten": null
+  },
+  {
+   "seed": 19,
+   "dx": 0.0162,
+   "dy": -0.0028,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 52.2,
+   "bitten": null
+  },
+  {
+   "seed": 20,
+   "dx": 0.0089,
+   "dy": -0.0036,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 52.6,
+   "bitten": null
+  },
+  {
+   "seed": 21,
+   "dx": 0.0094,
+   "dy": -0.0032,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 52.4,
+   "bitten": null
+  },
+  {
+   "seed": 22,
+   "dx": 0.0053,
+   "dy": 0.0078,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 54.3,
+   "bitten": null
+  },
+  {
+   "seed": 23,
+   "dx": 0.002,
+   "dy": 0.0025,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 54.5,
+   "bitten": null
+  },
+  {
+   "seed": 24,
+   "dx": -0.0008,
+   "dy": 0.0067,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 54.4,
+   "bitten": null
+  },
+  {
+   "seed": 25,
+   "dx": 0.0132,
+   "dy": -0.0052,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 55.0 deg",
+   "max_tilt": 55.9,
+   "bitten": null
+  },
+  {
+   "seed": 26,
+   "dx": 0.015,
+   "dy": -0.0088,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 52.8,
+   "bitten": null
+  },
+  {
+   "seed": 27,
+   "dx": 0.0042,
+   "dy": -0.007,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 54.1,
+   "bitten": null
+  },
+  {
+   "seed": 28,
+   "dx": 0.0065,
+   "dy": 0.0059,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 53.7,
+   "bitten": null
+  },
+  {
+   "seed": 29,
+   "dx": 0.0021,
+   "dy": -0.009,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 48.9,
+   "bitten": null
+  },
+  {
+   "seed": 30,
+   "dx": 0.0056,
+   "dy": -0.006,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 30.0 deg",
+   "max_tilt": 45.8,
+   "bitten": null
+  },
+  {
+   "seed": 31,
+   "dx": -0.0007,
+   "dy": 0.0016,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 55.0 deg",
+   "max_tilt": 55.1,
+   "bitten": null
+  },
+  {
+   "seed": 32,
+   "dx": 0.0035,
+   "dy": 0.0034,
+   "held": false,
+   "fell": true,
+   "guard": null,
+   "max_tilt": 49.1,
+   "bitten": null
+  },
+  {
+   "seed": 33,
+   "dx": 0.0015,
+   "dy": 0.0088,
+   "held": false,
+   "fell": true,
+   "guard": null,
+   "max_tilt": 47.0,
+   "bitten": null
+  },
+  {
+   "seed": 34,
+   "dx": 0.0048,
+   "dy": -0.0079,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 51.5,
+   "bitten": null
+  },
+  {
+   "seed": 35,
+   "dx": 0.0101,
+   "dy": 0.0085,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 53.8,
+   "bitten": null
+  },
+  {
+   "seed": 36,
+   "dx": 0.0063,
+   "dy": 0.0091,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 55.0 deg",
+   "max_tilt": 55.1,
+   "bitten": null
+  },
+  {
+   "seed": 37,
+   "dx": 0.0075,
+   "dy": -0.0015,
+   "held": false,
+   "fell": false,
+   "guard": null,
+   "max_tilt": 54.3,
+   "bitten": null
+  },
+  {
+   "seed": 38,
+   "dx": 0.0099,
+   "dy": 0.0099,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 55.0 deg",
+   "max_tilt": 55.5,
+   "bitten": null
+  },
+  {
+   "seed": 39,
+   "dx": 0.0165,
+   "dy": -0.0008,
+   "held": false,
+   "fell": true,
+   "guard": "body tilt over 55.0 deg",
+   "max_tilt": 57.6,
+   "bitten": null
+  }
+ ]
+}

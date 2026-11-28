@@ -1,0 +1,107 @@
+{
+ "onnx": "cmu/pick_rise/refine/models/fs_c30t6_999.onnx",
+ "md5": "73147cec02c4815af9a0416ab21c55ab",
+ "seconds": 5.0,
+ "res": {
+  "all": {
+   "n": 512,
+   "fell": 0.0508,
+   "err_p50_cm": 0.4524,
+   "err_p90_cm": 0.9838,
+   "within_1cm": 0.9115,
+   "within_2cm": 0.9835,
+   "dx_abs_p90_cm": 0.842,
+   "still": 0.9321,
+   "yaw_err_p50_deg": 1.8948,
+   "foot_split_p90_cm": 2.0636,
+   "width_p10_p90_cm": [
+    7.2865,
+    8.6747
+   ],
+   "leg_rms_p50_p90": [
+    0.1719,
+    0.2669
+   ]
+  },
+  "zero": {
+   "n": 92,
+   "fell": 0.0217,
+   "err_p50_cm": 0.3454,
+   "err_p90_cm": 0.9947,
+   "within_1cm": 0.9,
+   "within_2cm": 0.9889,
+   "dx_abs_p90_cm": 0.8101,
+   "still": 0.9556,
+   "yaw_err_p50_deg": 1.9985,
+   "foot_split_p90_cm": 1.9405,
+   "width_p10_p90_cm": [
+    7.283,
+    8.6345
+   ],
+   "leg_rms_p50_p90": [
+    0.1565,
+    0.2683
+   ]
+  },
+  "lt3cm": {
+   "n": 64,
+   "fell": 0.0156,
+   "err_p50_cm": 0.4822,
+   "err_p90_cm": 0.8609,
+   "within_1cm": 0.9365,
+   "within_2cm": 1.0,
+   "dx_abs_p90_cm": 0.7833,
+   "still": 0.9524,
+   "yaw_err_p50_deg": 2.1122,
+   "foot_split_p90_cm": 2.0086,
+   "width_p10_p90_cm": [
+    7.2359,
+    8.7291
+   ],
+   "leg_rms_p50_p90": [
+    0.1555,
+    0.2665
+   ]
+  },
+  "3to6cm": {
+   "n": 177,
+   "fell": 0.0621,
+   "err_p50_cm": 0.5055,
+   "err_p90_cm": 0.9838,
+   "within_1cm": 0.9157,
+   "within_2cm": 0.9759,
+   "dx_abs_p90_cm": 0.8954,
+   "still": 0.9096,
+   "yaw_err_p50_deg": 1.6875,
+   "foot_split_p90_cm": 2.0831,
+   "width_p10_p90_cm": [
+    7.3781,
+    8.6731
+   ],
+   "leg_rms_p50_p90": [
+    0.1842,
+    0.261
+   ]
+  },
+  "ge6cm": {
+   "n": 179,
+   "fell": 0.067,
+   "err_p50_cm": 0.4412,
+   "err_p90_cm": 0.98,
+   "within_1cm": 0.9042,
+   "within_2cm": 0.982,
+   "dx_abs_p90_cm": 0.8403,
+   "still": 0.9341,
+   "yaw_err_p50_deg": 1.9743,
+   "foot_split_p90_cm": 2.0934,
+   "width_p10_p90_cm": [
+    7.2462,
+    8.6886
+   ],
+   "leg_rms_p50_p90": [
+    0.1756,
+    0.2623
+   ]
+  }
+ }
+}

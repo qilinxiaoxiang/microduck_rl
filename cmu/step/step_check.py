@@ -39,7 +39,10 @@ class Policy:
         if "obs_normalizer._mean" in w:
             self.plain = bd.FrozenMlp(Path(path), device)
             return
-        self.trim = w.get("base.trim", torch.eye(61, device=device))
+        # the export stores the pitch trim as an unnamed MatMul constant (obs @ M, M = trim.T); reading only "base.trim"
+        # ran trimmed arms (rcn030, trim 6) untrimmed, i.e. as walk61 (found 2026-11-25)
+        mm = [v for k, v in w.items() if k.startswith("onnx::MatMul") and tuple(v.shape) == (61, 61)]
+        self.trim = w["base.trim"] if "base.trim" in w else mm[0].T if mm else torch.eye(61, device=device)
         self.mean, self.div, self.cap = w["base.mean"], w["base.div"], w["cap"]
         self.base = [(w[f"base.w{i}"], w[f"base.b{i}"]) for i in (0, 2, 4, 6)]
         self.mlp = [(w[f"mlp.{i}.weight"], w[f"mlp.{i}.bias"]) for i in (0, 2, 4, 6)]

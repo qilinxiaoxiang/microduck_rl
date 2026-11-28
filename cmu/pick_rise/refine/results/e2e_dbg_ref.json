@@ -1,0 +1,848 @@
+{
+ "n": 256,
+ "kneel_x_m": 0.087,
+ "kneel_shift_cm": null,
+ "cam_noise": 0.01,
+ "cam_bias": 0.0,
+ "odo_noise": 0.0,
+ "dr": "walk",
+ "imu": "walk",
+ "task": "Mjlab-KneelRise-DockFitC-Ball-RC-MicroDuck-CMU-Current",
+ "walk": "/home/linok/Downloads/microduck_rl-dock/cmu/step/models/rcn030_w918.onnx",
+ "fine": "/home/linok/Downloads/microduck_rl-dock/cmu/pick_rise/refine/models/fs_c30t6_999.onnx",
+ "kneel": "/home/linok/Downloads/microduck_rl-dock/cmu/pick_rise/refine/models/resc_c30t45_rcn_749.onnx",
+ "success": 0.2031,
+ "dock_not_arrived": 0.4648,
+ "fell": {
+  "stand": 0.0039,
+  "fine": 0.0078,
+  "kneel": 0.0664,
+  "total": 0.1406
+ },
+ "fell_why": {
+  "stand": {
+   "tilt_guard": 1
+  },
+  "fine": {
+   "tilt_guard": 2
+  },
+  "kneel": {
+   "beak_on_floor": 11,
+   "fell_over": 6
+  }
+ },
+ "dock_end": {
+  "refused": 0.4414,
+  "arrived": 0.5352,
+  "no_progress": 0.0078,
+  "max_steps": 0.0117
+ },
+ "refusals": [
+  {
+   "step": 1,
+   "aims": 0,
+   "r": 0.343,
+   "bearing_deg": -38.7,
+   "why": "ball -39 deg to the side: turn the duck "
+  },
+  {
+   "step": 1,
+   "aims": 0,
+   "r": 0.512,
+   "bearing_deg": -43.7,
+   "why": "ball -44 deg to the side: turn the duck "
+  },
+  {
+   "step": 1,
+   "aims": 0,
+   "r": 0.402,
+   "bearing_deg": -36.9,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 2,
+   "aims": 0,
+   "r": 0.34,
+   "bearing_deg": -42.7,
+   "why": "ball -43 deg to the side: turn the duck "
+  },
+  {
+   "step": 2,
+   "aims": 0,
+   "r": 0.276,
+   "bearing_deg": -44.1,
+   "why": "ball -44 deg to the side: turn the duck "
+  },
+  {
+   "step": 2,
+   "aims": 0,
+   "r": 0.394,
+   "bearing_deg": -39.8,
+   "why": "ball -40 deg to the side: turn the duck "
+  },
+  {
+   "step": 2,
+   "aims": 0,
+   "r": 0.358,
+   "bearing_deg": -38.6,
+   "why": "ball -39 deg to the side: turn the duck "
+  },
+  {
+   "step": 2,
+   "aims": 0,
+   "r": 0.347,
+   "bearing_deg": -47.7,
+   "why": "ball -48 deg to the side: turn the duck "
+  },
+  {
+   "step": 2,
+   "aims": 0,
+   "r": 0.401,
+   "bearing_deg": -48.6,
+   "why": "ball -49 deg to the side: turn the duck "
+  },
+  {
+   "step": 2,
+   "aims": 0,
+   "r": 0.397,
+   "bearing_deg": -35.2,
+   "why": "ball -35 deg to the side: turn the duck "
+  },
+  {
+   "step": 2,
+   "aims": 0,
+   "r": 0.43,
+   "bearing_deg": -40.5,
+   "why": "ball -41 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.29,
+   "bearing_deg": -44.0,
+   "why": "ball -44 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.395,
+   "bearing_deg": -37.4,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.215,
+   "bearing_deg": -35.3,
+   "why": "ball -35 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.264,
+   "bearing_deg": -39.6,
+   "why": "ball -40 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.359,
+   "bearing_deg": -43.1,
+   "why": "ball -43 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.262,
+   "bearing_deg": -35.5,
+   "why": "ball -35 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.466,
+   "bearing_deg": -41.9,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.174,
+   "bearing_deg": -37.2,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.204,
+   "bearing_deg": -42.1,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.284,
+   "bearing_deg": -43.2,
+   "why": "ball -43 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.294,
+   "bearing_deg": -38.1,
+   "why": "ball -38 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.272,
+   "bearing_deg": -39.9,
+   "why": "ball -40 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.363,
+   "bearing_deg": -45.5,
+   "why": "ball -46 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.247,
+   "bearing_deg": -42.1,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.374,
+   "bearing_deg": -68.1,
+   "why": "ball -68 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.213,
+   "bearing_deg": -36.1,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.454,
+   "bearing_deg": -35.9,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.343,
+   "bearing_deg": -37.4,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.275,
+   "bearing_deg": -38.8,
+   "why": "ball -39 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.179,
+   "bearing_deg": -36.5,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.231,
+   "bearing_deg": -36.7,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.226,
+   "bearing_deg": -54.1,
+   "why": "ball -54 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.463,
+   "bearing_deg": -39.1,
+   "why": "ball -39 deg to the side: turn the duck "
+  },
+  {
+   "step": 3,
+   "aims": 1,
+   "r": 0.173,
+   "bearing_deg": -114.7,
+   "why": "ball -115 deg to the side: turn the duck"
+  },
+  {
+   "step": 3,
+   "aims": 0,
+   "r": 0.179,
+   "bearing_deg": -39.4,
+   "why": "ball -39 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.219,
+   "bearing_deg": -39.0,
+   "why": "ball -39 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.369,
+   "bearing_deg": -35.3,
+   "why": "ball -35 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.244,
+   "bearing_deg": -35.3,
+   "why": "ball -35 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.247,
+   "bearing_deg": -35.4,
+   "why": "ball -35 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.395,
+   "bearing_deg": -39.8,
+   "why": "ball -40 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.216,
+   "bearing_deg": -43.8,
+   "why": "ball -44 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.251,
+   "bearing_deg": -38.6,
+   "why": "ball -39 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.271,
+   "bearing_deg": -50.3,
+   "why": "ball -50 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.277,
+   "bearing_deg": -74.4,
+   "why": "ball -74 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.279,
+   "bearing_deg": -37.0,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.255,
+   "bearing_deg": -42.2,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.227,
+   "bearing_deg": -35.6,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.203,
+   "bearing_deg": -35.5,
+   "why": "ball -35 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.189,
+   "bearing_deg": -42.8,
+   "why": "ball -43 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.207,
+   "bearing_deg": -35.4,
+   "why": "ball -35 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.245,
+   "bearing_deg": -50.8,
+   "why": "ball -51 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.252,
+   "bearing_deg": -46.1,
+   "why": "ball -46 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.186,
+   "bearing_deg": -35.9,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.222,
+   "bearing_deg": -52.1,
+   "why": "ball -52 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.194,
+   "bearing_deg": -36.2,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.178,
+   "bearing_deg": -50.7,
+   "why": "ball -51 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.237,
+   "bearing_deg": -36.4,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.443,
+   "bearing_deg": -40.3,
+   "why": "ball -40 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.197,
+   "bearing_deg": -44.6,
+   "why": "ball -45 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.228,
+   "bearing_deg": -49.1,
+   "why": "ball -49 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.359,
+   "bearing_deg": -41.4,
+   "why": "ball -41 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.212,
+   "bearing_deg": -39.5,
+   "why": "ball -40 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.355,
+   "bearing_deg": -41.7,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.412,
+   "bearing_deg": -36.9,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.315,
+   "bearing_deg": -37.6,
+   "why": "ball -38 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.218,
+   "bearing_deg": -36.5,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.271,
+   "bearing_deg": -37.8,
+   "why": "ball -38 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 1,
+   "r": 0.218,
+   "bearing_deg": -52.0,
+   "why": "ball -52 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.333,
+   "bearing_deg": -36.3,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.396,
+   "bearing_deg": -64.8,
+   "why": "ball -65 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.319,
+   "bearing_deg": -36.1,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.244,
+   "bearing_deg": -41.7,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 4,
+   "aims": 0,
+   "r": 0.21,
+   "bearing_deg": -53.6,
+   "why": "ball -54 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.468,
+   "bearing_deg": -37.0,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.235,
+   "bearing_deg": -35.4,
+   "why": "ball -35 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.214,
+   "bearing_deg": -60.6,
+   "why": "ball -61 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.297,
+   "bearing_deg": -43.1,
+   "why": "ball -43 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.293,
+   "bearing_deg": -44.9,
+   "why": "ball -45 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.239,
+   "bearing_deg": -46.7,
+   "why": "ball -47 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.417,
+   "bearing_deg": -48.0,
+   "why": "ball -48 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.301,
+   "bearing_deg": -37.5,
+   "why": "ball -38 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.237,
+   "bearing_deg": -46.3,
+   "why": "ball -46 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 1,
+   "r": 0.183,
+   "bearing_deg": -37.0,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.179,
+   "bearing_deg": -42.2,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.193,
+   "bearing_deg": -35.5,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.208,
+   "bearing_deg": -41.2,
+   "why": "ball -41 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.177,
+   "bearing_deg": -37.1,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.26,
+   "bearing_deg": -35.9,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.241,
+   "bearing_deg": -72.0,
+   "why": "ball -72 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.192,
+   "bearing_deg": -39.6,
+   "why": "ball -40 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.231,
+   "bearing_deg": -45.7,
+   "why": "ball -46 deg to the side: turn the duck "
+  },
+  {
+   "step": 5,
+   "aims": 0,
+   "r": 0.216,
+   "bearing_deg": -41.6,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 6,
+   "aims": 0,
+   "r": 0.255,
+   "bearing_deg": -51.0,
+   "why": "ball -51 deg to the side: turn the duck "
+  },
+  {
+   "step": 6,
+   "aims": 0,
+   "r": 0.298,
+   "bearing_deg": -47.9,
+   "why": "ball -48 deg to the side: turn the duck "
+  },
+  {
+   "step": 6,
+   "aims": 0,
+   "r": 0.297,
+   "bearing_deg": -50.2,
+   "why": "ball -50 deg to the side: turn the duck "
+  },
+  {
+   "step": 6,
+   "aims": 0,
+   "r": 0.178,
+   "bearing_deg": -40.0,
+   "why": "ball -40 deg to the side: turn the duck "
+  },
+  {
+   "step": 6,
+   "aims": 0,
+   "r": 0.148,
+   "bearing_deg": -41.2,
+   "why": "ball -41 deg to the side: turn the duck "
+  },
+  {
+   "step": 6,
+   "aims": 0,
+   "r": 0.167,
+   "bearing_deg": -36.2,
+   "why": "ball -36 deg to the side: turn the duck "
+  },
+  {
+   "step": 6,
+   "aims": 0,
+   "r": 0.212,
+   "bearing_deg": -38.5,
+   "why": "ball -39 deg to the side: turn the duck "
+  },
+  {
+   "step": 6,
+   "aims": 1,
+   "r": 0.187,
+   "bearing_deg": -36.7,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 6,
+   "aims": 1,
+   "r": 0.237,
+   "bearing_deg": -37.1,
+   "why": "ball -37 deg to the side: turn the duck "
+  },
+  {
+   "step": 6,
+   "aims": 0,
+   "r": 0.177,
+   "bearing_deg": -46.6,
+   "why": "ball -47 deg to the side: turn the duck "
+  },
+  {
+   "step": 7,
+   "aims": 0,
+   "r": 0.264,
+   "bearing_deg": -43.5,
+   "why": "ball -43 deg to the side: turn the duck "
+  },
+  {
+   "step": 7,
+   "aims": 0,
+   "r": 0.153,
+   "bearing_deg": -43.0,
+   "why": "ball -43 deg to the side: turn the duck "
+  },
+  {
+   "step": 7,
+   "aims": 2,
+   "r": 0.167,
+   "bearing_deg": -37.5,
+   "why": "ball -38 deg to the side: turn the duck "
+  },
+  {
+   "step": 7,
+   "aims": 0,
+   "r": 0.235,
+   "bearing_deg": -42.1,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 7,
+   "aims": 0,
+   "r": 0.219,
+   "bearing_deg": -42.0,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 7,
+   "aims": 1,
+   "r": 0.141,
+   "bearing_deg": -41.7,
+   "why": "ball -42 deg to the side: turn the duck "
+  },
+  {
+   "step": 8,
+   "aims": 0,
+   "r": 0.189,
+   "bearing_deg": -41.3,
+   "why": "ball -41 deg to the side: turn the duck "
+  },
+  {
+   "step": 8,
+   "aims": 0,
+   "r": 0.173,
+   "bearing_deg": -38.1,
+   "why": "ball -38 deg to the side: turn the duck "
+  },
+  {
+   "step": 10,
+   "aims": 1,
+   "r": 0.2,
+   "bearing_deg": -42.7,
+   "why": "ball -43 deg to the side: turn the duck "
+  },
+  {
+   "step": 11,
+   "aims": 1,
+   "r": 0.22,
+   "bearing_deg": -44.2,
+   "why": "ball -44 deg to the side: turn the duck "
+  }
+ ],
+ "dock_steps_median": 5.0,
+ "kneel_missed": 0.1797,
+ "kneel_dropped": 0.0781,
+ "success_given_handoff": 0.3852,
+ "handoff": {
+  "n": 135,
+  "dx_cm": [
+   -1.4095,
+   -0.3115,
+   0.9772
+  ],
+  "dy_abs_p90_cm": 2.0284,
+  "within_1p5cm": 0.7111,
+  "speed_p90": 0.0037
+ }
+}

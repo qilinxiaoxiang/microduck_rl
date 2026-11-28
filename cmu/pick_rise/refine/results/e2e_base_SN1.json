@@ -1,0 +1,57 @@
+{
+ "n": 512,
+ "kneel_x_m": 0.087,
+ "kneel_shift_cm": null,
+ "cam_noise": 0.01,
+ "cam_bias": 0.0,
+ "odo_noise": 0.0,
+ "dr": "walk",
+ "task": "Mjlab-KneelRise-DockFitC-Ball-SN1-MicroDuck-CMU-Current",
+ "walk": "/home/linok/Downloads/microduck_rl-dock/cmu/step/models/rcn030_w918.onnx",
+ "fine": "/home/linok/Downloads/microduck_rl-dock/cmu/pick_rise/refine/models/fs_c30t6_999.onnx",
+ "kneel": "/home/linok/Downloads/microduck_rl-dock/cmu/pick_rise/refine/models/resc_c30t45_rcn_749.onnx",
+ "success": 0.0508,
+ "dock_not_arrived": 0.8926,
+ "fell": {
+  "stand": 0.041,
+  "dock": 0.7129,
+  "fine": 0.0234,
+  "kneel": 0.002,
+  "total": 0.8027
+ },
+ "fell_why": {
+  "stand": {
+   "tilt_guard": 21
+  },
+  "dock": {
+   "tilt_guard": 365
+  },
+  "fine": {
+   "tilt_guard": 12
+  },
+  "kneel": {
+   "beak_on_floor": 1
+  }
+ },
+ "dock_end": {
+  "refused": 0.2305,
+  "arrived": 0.1074,
+  "no_progress": 0.0059,
+  "max_steps": 0.002
+ },
+ "dock_steps_median": 2.0,
+ "kneel_missed": 0.0273,
+ "kneel_dropped": 0.0039,
+ "success_given_handoff": 0.6047,
+ "handoff": {
+  "n": 43,
+  "dx_cm": [
+   -1.4907,
+   -0.2818,
+   0.9442
+  ],
+  "dy_abs_p90_cm": 2.1057,
+  "within_1p5cm": 0.7442,
+  "speed_p90": 0.0033
+ }
+}

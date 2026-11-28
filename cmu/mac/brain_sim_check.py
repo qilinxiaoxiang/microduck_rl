@@ -754,8 +754,14 @@ class SeePick:
             self.holding_now = self.holding()
             return {"mode": "seepick", "object": last, "_holding": self.holding_now, "policy": self.a.sp_policy,
                     "phase": self.a.sp_phase, "rise_old": False}
+        if self.switched is None and self.a.sp_gaze > 0 and t < self.a.sp_at:   # the head aimed at the ball first
+            if self.spawn is None:
+                self.place()
+                self.gaze_head = dockpick.dock_head(*self.foot_xy(self.d.xpos[self.body]))
+            return {"mode": "walk", "vx": 0.0, "vy": 0.0, "vtheta": 0.0, "head": self.gaze_head}
         if self.switched is None:
-            self.place()
+            if self.spawn is None:
+                self.place()
             self.switched = t
             if self.pix is not None:
                 self.cam_cfg["handover"] = self.pix.start(t, self.d.xpos[self.body], max(self.obj["half"][:2]),
@@ -773,7 +779,11 @@ class SeePick:
             self.holding_now = self.holding()
             if self.a.sp_aim_yaw:
                 last = dict(last, yaw_off=self.a.sp_offset[1] / 0.060)
-            return {"mode": "seepick", "object": last, "_holding": self.holding_now}
+            cmd = {"mode": "seepick", "object": last, "_holding": self.holding_now}
+            if self.a.sp_policy is not None or self.a.sp_phase is not None:   # a kneel from the stand (pickrise.py's)
+                cmd.update(policy=self.a.sp_policy, phase=1.0 if self.a.sp_phase is None else self.a.sp_phase,
+                           rise_old=False)
+            return cmd
         vis = self.visible()
         if not vis and self.ev["first_lost_view_t"] is None:
             self.ev["first_lost_view_t"] = round(t - self.switched, 2)
@@ -782,7 +792,7 @@ class SeePick:
         return {"mode": "seepick", "object": dict(last), "_holding": self.holding_now}
 
     def active(self, t):
-        start = self.a.sp_at - (dockpick.DOCK_AIM_S if self.a.sp_dock is not None else 0.0) if self.a.sp_at is not None else None
+        start = self.a.sp_at - (dockpick.DOCK_AIM_S if self.a.sp_dock is not None else self.a.sp_gaze) if self.a.sp_at is not None else None
         return start is not None and t >= start and self.done_t is None
 
     def after_tick(self, t, brain, info):
@@ -1367,7 +1377,7 @@ def run(args):
         T += args.sp_dock_settle
         if args.sp_runtime:   # find and aim come first; no kneel (dock_only)
             T = max(T, args.sp_at + dockpick.DOCK_MAX_S + args.sp_runtime_extra + args.sp_after)
-    sp_trace = SpTrace(brain, args.sp_trace, "seepickpix" if args.sp_pix else "seepick") if args.sp_trace and sp is not None else None
+    sp_trace = SpTrace(brain, args.sp_trace, walk_brain.PICK_REVISIONS[args.sp_policy] if args.sp_policy else "seepickpix" if args.sp_pix else "seepick") if args.sp_trace and sp is not None else None
     mouth = m.site("mouth_tip").id
     feet = [m.geom(g).id for g in ("left_foot_collision", "right_foot_collision")]
     gp = dict(mouth_min_z=None, mouth_at_min=None, pose_at_min=None, tilt_at_min=None, max_tilt=0.0, phase_at_min=None)
@@ -2182,6 +2192,8 @@ def main():
     sp.add_argument("--sp-dock", type=float, nargs=2, default=None, metavar=("R", "BEARING_DEG"),
                     help="dock first (dockpick.py): the ball R m from the root at BEARING_DEG; aim, dock mode until docked, "
                          "then the kneel (--sp-policy, --sp-phase); implies --sp-pix")
+    sp.add_argument("--sp-gaze", type=float, default=0.0, metavar="S",
+                    help="s before --sp-at: stand with the head aimed at the ball (dockpick.dock_head) as pickrise.py does")
     sp.add_argument("--sp-pix-nominal", action="store_true",
                     help="T2 camera at the fitted mount (its head_pitch_gain, no per-run mount draw): what duck_kin assumes")
     sp.add_argument("--sp-runtime", action="store_true",
@@ -2246,8 +2258,8 @@ def main():
         args.sp_pix = True
         args.sp_policy = args.sp_policy or dockpick.POLICY
         args.sp_phase = seepick.HOLD_PHASE if args.sp_phase is None else args.sp_phase
-    elif args.sp_policy is not None or args.sp_phase is not None:
-        ap.error("--sp-policy and --sp-phase go with --sp-dock")
+    elif (args.sp_policy is not None or args.sp_phase is not None) and not args.sp_pix:
+        ap.error("--sp-policy and --sp-phase go with --sp-dock or --sp-pix")
     if args.sp_runtime and args.sp_dock is None:
         ap.error("--sp-runtime goes with --sp-dock")
     for kv in args.sp_runtime_set:

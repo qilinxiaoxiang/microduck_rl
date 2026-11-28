@@ -1,0 +1,35 @@
+{
+ "n": 64,
+ "kneel_x_m": 0.087,
+ "kneel_shift_cm": null,
+ "cam_noise": 0.01,
+ "cam_bias": 0.0,
+ "odo_noise": 0.0,
+ "task": "Mjlab-KneelRise-DockFitC-Ball-RC-MicroDuck-CMU-Current",
+ "walk": "/home/linok/Downloads/microduck_rl-dock/cmu/step/models/rcn030_w918.onnx",
+ "fine": "/home/linok/Downloads/microduck_rl-dock/cmu/pick_rise/refine/models/fs_c30t6_999.onnx",
+ "kneel": "/home/linok/Downloads/microduck_rl-dock/cmu/pick_rise/refine/models/resc_c30t45_rcn_749.onnx",
+ "success": 0.0,
+ "dock_not_arrived": 0.625,
+ "fell": {
+  "stand": 0.0156,
+  "dock": 0.1719,
+  "fine": 0.0312,
+  "kneel": 0.7812,
+  "total": 1.0
+ },
+ "kneel_missed": 0.0,
+ "kneel_dropped": 0.0,
+ "success_given_handoff": 0.0,
+ "handoff": {
+  "n": 22,
+  "dx_cm": [
+   -1.3442,
+   -0.2125,
+   1.426
+  ],
+  "dy_abs_p90_cm": 1.5817,
+  "within_1p5cm": 0.7727,
+  "speed_p90": 0.0045
+ }
+}

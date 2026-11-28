@@ -59,6 +59,22 @@ VTH_STRAIGHT = 0.002       # not zero on purpose: walk_brain learns its yaw trim
 #                            short bursts must not rewrite the robot's trim
 NEAR_M = 0.10              # this close to the stop: short steps
 MAX_STEPS = 10
+# Aim before finishing (2026-11-25, cmu/pick_rise/refine/REFINE.md "docking spread"): plan() used to end on range alone,
+# so the ball could be up to BEARING_MAX to the side at the stop (sim: abs(dy) p90 13 cm; the kneel takes ~1.5 cm). In
+# the stop window, a ball more than AIM_TOL off centre gets a turn in place, then a new look, up to MAX_AIMS times.
+# Turning in place is coarse and lopsided in sim (rcn030, 1 s at 0.8 rad/s: left 15-33 deg, right 2-24 deg), so it is
+# a loop, not one sized turn; 6 deg at 0.19 m is ~2 cm sideways, which the fine step takes out.
+AIM_TOL = math.radians(6)
+AIM_W = 0.8                # rad/s commanded
+AIM_W_RIGHT = AIM_W        # rad/s commanded for right turns; rcn030 in sim turns right at -1.0 as far as left at
+                           # +0.8 (1 s: median -23.5 / +23.8 deg, no tips; 2026-11-26), robot untested
+AIM_RATE = 0.35            # rad/s the body turns on average at AIM_W (sim, both sides)
+AIM_T = (0.4, 1.0)         # s
+MAX_AIMS = 5
+# ... and on the way (2026-11-26, cmu/pick_rise/refine/e2e.py): straight walking drifts left (sim and robot) and the
+# arc correction turns right weakly, so 46 % of the end-to-end runs ended refused with the ball 35-50 deg to the RIGHT
+# after 2-5 steps. A ball more than AIM_FAR off centre gets a turn in place before the next step, at any range.
+AIM_FAR = math.radians(20)
 MIN_PROGRESS_M = 0.01
 MAX_NO_PROGRESS = 3
 ARMS_FILE = os.path.join(HERE, "arms.json")
@@ -84,22 +100,35 @@ def load_arm(log_path, arms_file=ARMS_FILE):
     return None, f"the brain's walk61.onnx ({sha}) is neither arm in {arms_file}"
 
 
-def plan(x, y, bursts, level=0):
+def aim(b, aims, tol=AIM_TOL):
+    """A turn in place toward bearing b (rad), or None when it is within tol or MAX_AIMS turns were used."""
+    if abs(b) <= tol or aims >= MAX_AIMS:
+        return None
+    T = round(min(AIM_T[1], max(AIM_T[0], abs(b) / AIM_RATE)), 2)
+    return dict(T=T, vtheta=AIM_W if b > 0 else -AIM_W_RIGHT, vx=0.0, aim=True)
+
+
+def plan(x, y, bursts, level=0, aims=0):
     """The next burst for a ball at foot-frame (x, y): dict(T, vtheta), or dict(done=why) / dict(refuse=why).
 
     bursts: [[T, the furthest it moves], ...] rising. The longest one that cannot overshoot the stop window; `level`
-    raises the choice by that many rungs after steps that did not move, never past what cannot reach the ball."""
+    raises the choice by that many rungs after steps that did not move, never past what cannot reach the ball. In the
+    stop window a ball off centre gets a turn in place first (aim(); `aims` = turns used so far)."""
     r, b = math.hypot(x, y), math.atan2(y, x)
+    turn = aim(b, aims, AIM_FAR) if r <= R_MAX else None
+    if turn is not None:
+        return turn
     if abs(b) > BEARING_MAX:
         return dict(refuse=f"ball {math.degrees(b):+.0f} deg to the side: turn the duck to face it")
     if r > R_MAX:
         return dict(refuse=f"ball {r:.2f} m away, beyond {R_MAX} m: bring the duck closer")
     if r <= STOP_R + STOP_TOL:
-        return dict(done=f"ball {r:.3f} m ahead, stop window {STOP_R} +- {STOP_TOL}")
+        return aim(b, aims) or dict(done=f"ball {r:.3f} m ahead, stop window {STOP_R} +- {STOP_TOL}")
     room = r - (STOP_R - STOP_TOL)
     fit = [i for i, (_, far) in enumerate(bursts) if far <= room]
     if not fit:
-        return dict(done=f"ball {r:.3f} m ahead, nearer than the smallest burst can step without overshooting")
+        return aim(b, aims) or dict(done=f"ball {r:.3f} m ahead, nearer than the smallest burst can step without "
+                                         f"overshooting")
     i = fit[-1]
     if r - STOP_R < NEAR_M:
         i = min(i, level)      # close in: the smallest step, a rung up for every one that did not move
@@ -116,7 +145,7 @@ class StepLook(sp.SeePick):
                          log=log, **kw)
         self.arm, self.single = arm, single
         self.scan_i, self.found, self.est, self.look_t0 = 0, [], None, None
-        self.burst, self.steps, self.no_progress = None, 0, 0
+        self.burst, self.steps, self.no_progress, self.aims = None, 0, 0, 0
 
     # measure() takes a late learned detection, and carries the colour track to the last sighting, only in the phases
     # "find" / "aim" / "dock": the look is the find
@@ -173,14 +202,15 @@ class StepLook(sp.SeePick):
             self.attempts.append(dict(self.burst, before=[round(v, 3) for v in before], after=[round(x, 3), round(y, 3)],
                                       closer_cm=round(100 * moved, 1)))
             self.log(f"step {self.steps}: {self.burst['T']} s -> {100 * moved:+.1f} cm closer")
-            self.no_progress = 0 if moved >= MIN_PROGRESS_M else self.no_progress + 1
+            if not self.burst.get("aim"):   # a turn in place is not meant to come closer
+                self.no_progress = 0 if moved >= MIN_PROGRESS_M else self.no_progress + 1
             if self.single is not None:
                 self.finish(True, f"single burst {self.single} s: {100 * moved:+.1f} cm closer by the camera")
                 return
             if self.no_progress >= MAX_NO_PROGRESS:
                 self.finish(False, f"{MAX_NO_PROGRESS} steps in a row without {100 * MIN_PROGRESS_M:.0f} cm of progress")
                 return
-        p = plan(x, y, self.arm["bursts"], self.no_progress)
+        p = plan(x, y, self.arm["bursts"], self.no_progress, self.aims)
         if self.single is not None and "refuse" not in p:
             p = dict(T=float(self.single), vtheta=VTH_STRAIGHT)
         if "refuse" in p:
@@ -193,7 +223,8 @@ class StepLook(sp.SeePick):
             self.finish(False, f"{MAX_STEPS} steps used, ball still {math.hypot(x, y):.2f} m away")
         else:
             self.burst = p
-            self.enter("ready", f"ball x {x:.3f} y {y:.3f}: burst {p}")
+            self.aims += bool(p.get("aim"))
+            self.enter("ready", f"ball x {x:.3f} y {y:.3f}: {'turn' if p.get('aim') else 'burst'} {p}")
 
     def p_ready(self, st, now):
         self.stand()           # the head back to neutral
@@ -202,7 +233,8 @@ class StepLook(sp.SeePick):
         elif now - self.t_phase >= HEAD_UP_S and self.still(now) and st.get("ok", True):
             self.steps += 1
             # written once: walk_wired restarts for_s on every rewrite
-            self.send_fn({"mode": "walk", "vx": VX, "vy": 0.0, "vtheta": self.burst["vtheta"], "for_s": self.burst["T"]})
+            self.send_fn({"mode": "walk", "vx": self.burst.get("vx", VX), "vy": 0.0, "vtheta": self.burst["vtheta"],
+                          "for_s": self.burst["T"]})
             self.enter("burst", f"step {self.steps}")
 
     def p_burst(self, st, now):
