@@ -288,6 +288,26 @@ Follow-up (`queue_full_ev2.sh`, 22:29). e2e RC success through s3, fa / fb: 1298
 checkpoint with no plateau; fb is flat from 1750 and behind at every point. fb s1 / s2 are close to fa s1 / s2 (e2e RC
 0.205 / 0.373 against 0.194 / 0.401); the gap opens under read noise.
 
+### fa run on: fa_s4 (2026-11-27 22:46 to 11-28 04:15, `queue_fa_s4.sh`)
+
+fa_s3 @ 2797 resumed on RCSNR13 for 3000 more iterations (fixed lr 3e-5, entropy 0), the same evals:
+
+| fa_s4 @ | RC grid | RC w1 | SN1 w1 | e2e RC success / held once handed over | e2e SN1 | e2e RC kneel falls |
+|---|---|---|---|---|---|---|
+| (fa_s3) 2797 | 0.28 / 0.09 | 0.44 / 0.10 | 0.56 / 0.06 | 0.516 / 0.67 | 0.554 / 0.71 | 0.012 |
+| 3500 | 0.30 / 0.07 | 0.48 / 0.08 | 0.58 / 0.04 | 0.526 | 0.580 | |
+| 4000 | 0.30 / 0.08 | 0.49 / 0.07 | 0.57 / 0.03 | 0.516 | 0.562 | |
+| 4500 | 0.30 / 0.05 | 0.54 / 0.05 | 0.60 / 0.04 | 0.513 | 0.550 | |
+| 5000 | 0.32 / 0.06 | 0.57 / 0.06 | 0.61 / 0.02 | 0.544 | 0.552 | |
+| 5500 | 0.32 / 0.05 | 0.53 / 0.06 | 0.60 / 0.04 | 0.532 | 0.528 | |
+| **5796** | **0.33 / 0.06** | **0.56 / 0.06** | **0.61 / 0.04** | **0.549 / 0.72** | **0.556 / 0.72** | **0.0015** |
+
+The kneel battery keeps improving (RC w1 0.44 -> 0.56); end to end it gains 3 points, with kneel falls
+0.012 -> 0.0015 and drops 0.038 -> 0.025. What is left end to end is the dock not arriving (0.23) and misses (0.19).
+5796 is the demo's kneel (`cmu/step/arms.json` "kneel"). Through the robot's code (`robot_kneel_check.py`, 40 runs) it
+is unchanged: **held 0, fell 14** (8 at the 55 deg guard, 3 at the 30 deg guard; max tilt p50 53.5 deg). More kneel
+training does not close that gap; the camera lead below does.
+
 ### The kneel through the robot's own code: holds nothing (2026-11-27 night, `robot_kneel_check.py`)
 
 `robot_kneel_check.py` runs the kneel through `cmu/mac/brain_sim_check.py` the way the demo starts it:

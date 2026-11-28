@@ -34,7 +34,7 @@ import steplook as sl  # noqa: E402
 KNEEL_SLOT = "seepickpix_dk61.onnx"   # walk_brain.PICK_REVISIONS["dk"]
 POLICY = "dk"
 HOLD_S = 5.0               # s held at the hold phase before monitor (seepick.HOLD_MAX_S 10)
-KNEEL_X = 0.0945           # m ahead of the foot-frame origin: the kneel's best spot in sim (e2e.py --kneel-grid, fa_s3)
+KNEEL_X = 0.0945           # m ahead of the foot-frame origin: the kneel's best spot in sim (e2e.py --kneel-grid, fa_s4_5796)
 KNEEL_WIN_X = (-0.012, 0.012)   # m around KNEEL_X: its sim grid holds within about +-1.5 cm
 KNEEL_WIN_Y = 0.015        # m: its grid spans +-1.5 cm sideways
 NEAR_START = (0.06, 0.25)  # m: --kneel-only takes a ball this far ahead (the aim's lowest look sees 0.07-0.19)

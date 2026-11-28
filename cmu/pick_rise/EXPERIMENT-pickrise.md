@@ -13,7 +13,7 @@ One run, started from Balance stand with the orange ball 30-45 cm in front of th
 |---|---|---|
 | walk | step-look-step on rcn030_w918: burst, stop, look, until the ball is 18 cm ahead (+-2.5) | `steplook.py`, unchanged |
 | last cm | the seeing pick's own approach, as T2 ran it on the robot (2026-10/11): the head aims at the ball (only on a still body), short creeps and turns until the ball is inside the kneel's window (9.45 cm ahead +-1.2, +-1.5 sideways) | `seepick.py`, window moved to the kneel's |
-| kneel | `{"mode": "seepick", "policy": "dk", "phase": 0.89, "rise_old": false}`: the new kneel (fa_s3, `seepickpix_dk61.onnx`) bends, bites, rises, and holds at phase 0.89 | walk_brain / walk_wired, unchanged |
+| kneel | `{"mode": "seepick", "policy": "dk", "phase": 0.89, "rise_old": false}`: the new kneel (fa_s4 @ 5796, `seepickpix_dk61.onnx`) bends, bites, rises, and holds at phase 0.89 | walk_brain / walk_wired, unchanged |
 | hold | 5 s holding, then monitor (holds the pose, torque on), never stand61 | `seepick.py` hold-on |
 
 One kneel per run, no retry. Everything goes into `~/dock-stage`, as with step-look. The live `~/rt` code is never written.
@@ -23,7 +23,8 @@ fall on 2026-11-21. Its sim gain on the kneel is small next to that risk.
 
 ## Why it is locked
 
-In the training sim, the new kneel (fa_s3 @ 2797) holds the ball in 67 % of the runs that reach it. Through the robot's
+In the training sim, the new kneel (fa_s4 @ 5796, updated 2026-11-28) holds the ball in 72 % of the runs that reach it
+(e2e RC: 0.55 of all runs, kneel falls 0.15 %). Through the robot's
 own code in sim, it holds none:
 
 - **Tool:** `cmu/pick_rise/refine/robot_kneel_check.py`. It runs walk_wired, walk_brain, the jaw controller, the picture
@@ -33,9 +34,11 @@ own code in sim, it holds none:
 
 | kneel | held, of 40 | fell | of the falls, walk_wired's 55 deg tilt guard |
 |---|---|---|---|
-| fa_s3 @ 2797 (new) | 0 | 14 | 11 |
+| fa_s4 @ 5796 (new, 2026-11-28) | 0 | 14 | 8, plus 3 at the 30 deg guard |
+| fa_s3 @ 2797 | 0 | 14 | 11 |
 | resc_c30t45_rcn @ 749 (current best before) | 0 | 12 | 10 |
 
+- The longer training did not move this: the gap is not in the kneel's training budget.
 - The kneel bows the trunk 46-56 deg. Training bows it 44 deg (median) and up to 53, so the robot's 55 deg guard sits at
   the edge.
 - The runs without a guard trip still never bite.

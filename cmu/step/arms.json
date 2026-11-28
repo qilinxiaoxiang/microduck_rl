@@ -155,13 +155,13 @@
   "models/step010_500.onnx": "FAIL deploy gate 2026-11-22 on jitter (action jumps in vx0.25, vx0.2, com+5; tilt in vx0.2) and it fell in the floor_mu_bare stress case. Kept for analysis, never installed."
  },
  "kneel": {
-  "name": "fa_s3_2797",
-  "file": "models/kneel_fa_s3_2797.onnx",
-  "sha": "706bf1b45925b5b8",
+  "name": "fa_s4_5796",
+  "file": "models/kneel_fa_s4_5796.onnx",
+  "sha": "9765c8ffb47a09e1",
   "slot": "seepickpix_dk61.onnx",
-  "trained": "kneel_full fa @ 2797 (2026-11-27, cmu/pick_rise/refine/REFINE.md \"kneel_full\"): ks-sn1 @ 749 with the 4.5 deg trim folded in, all weights fine-tuned on the 918 g body, SN1 -> robot conditions -> robot conditions + read noise 1-3",
-  "sim_training_env": "e2e.py (rcn030 step-look, fine step, gaze, this kneel), seed 23, 2048 runs: success 0.516 RC / 0.554 SN1, held once handed over 0.67 / 0.71, kneel falls 0.012",
-  "gate": "FAIL robot-code sim 2026-11-27 (cmu/pick_rise/refine/robot_kneel_check.py: 40 kneels through walk_wired / walk_brain / the jaw controller, rcn030_w918 in walk61 and stand61, servo noise 1, ball within 1 cm of 9.45 cm ahead, head aimed 1 s first): held 0 of 40, fell 14 (11 of them walk_wired's 55 deg tilt guard: the kneel bows 46-56 deg). resc_c30t45_rcn_749 there: held 0, fell 12. The training env holds 0.67 from the same hand-off: the gap is not understood yet",
+  "trained": "kneel_full fa @ 5796 (2026-11-28, cmu/pick_rise/refine/REFINE.md \"kneel_full\"): ks-sn1 @ 749 with the 4.5 deg trim folded in, all weights fine-tuned on the 918 g body, SN1 -> robot conditions -> robot conditions + read noise 1-3 (that last stage run to 4500 iterations: fa_s3 then fa_s4, fixed lr 3e-5)",
+  "sim_training_env": "e2e.py (rcn030 step-look, fine step, gaze, this kneel), seed 23, 2048 runs: success 0.549 RC / 0.556 SN1, held once handed over 0.72 / 0.72, kneel falls 0.0015 RC (fa_s3_2797: 0.516 / 0.554, 0.67 / 0.71, 0.012)",
+  "gate": "FAIL robot-code sim 2026-11-28 (cmu/pick_rise/refine/robot_kneel_check.py: 40 kneels through walk_wired / walk_brain / the jaw controller, rcn030_w918 in walk61 and stand61, servo noise 1, ball within 1 cm of 9.45 cm ahead, head aimed 1 s first): held 0 of 40, fell 14 (8 of them walk_wired's 55 deg tilt guard, 3 the 30 deg guard: the kneel bows 46-56 deg). fa_s3_2797 there: held 0, fell 14; resc_c30t45_rcn_749: held 0, fell 12. The training env holds 0.72 from the same hand-off: the lead is the runtime camera losing the ball in the bow (REFINE.md)",
   "waived_by": ""
  }
 }
