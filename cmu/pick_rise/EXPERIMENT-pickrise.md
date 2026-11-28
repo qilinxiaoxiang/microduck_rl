@@ -41,7 +41,9 @@ own code in sim, it holds none:
 - The runs without a guard trip still never bite.
 - The older ks-sn1 showed the same, 0 of 20 bites in the dock rehearsal of 2026-11-20.
 
-Until this gap is understood, a robot kneel would most likely fall or bite air. The gate is passed when
+**Lead (2026-11-27 night):** in the runtime sim the camera sees the ball in 2-3 frames of a kneel; in training, in
+about 40 % of frames early in the bow (`refine/REFINE.md`, "The kneel through the robot's own code"). Which camera
+model matches the robot decides the fix. Until this gap is understood, a robot kneel would most likely fall or bite air. The gate is passed when
 `robot_kneel_check.py` holds at least 50 % with under 5 % falls. Michael decides on a waiver.
 
 ## Blocks

@@ -288,6 +288,37 @@ Follow-up (`queue_full_ev2.sh`, 22:29). e2e RC success through s3, fa / fb: 1298
 checkpoint with no plateau; fb is flat from 1750 and behind at every point. fb s1 / s2 are close to fa s1 / s2 (e2e RC
 0.205 / 0.373 against 0.194 / 0.401); the gap opens under read noise.
 
+### The kneel through the robot's own code: holds nothing (2026-11-27 night, `robot_kneel_check.py`)
+
+`robot_kneel_check.py` runs the kneel through `cmu/mac/brain_sim_check.py` the way the demo starts it:
+- walk_wired / walk_brain / the jaw controller / the picture box / the guards;
+- rcn030 in walk61 and stand61, 918 g body, servo noise 1;
+- the head aimed at the ball for 1 s (new `--sp-gaze`), then the dk kneel with hold-on (`--sp-policy` / `--sp-phase`
+  now also work without `--sp-dock`).
+
+| kneel, 40 runs, ball within 1 cm of 9.45 cm | held | fell | of them the 55 deg tilt guard |
+|---|---|---|---|
+| fa_s3 @ 2797 | 0 | 14 | 11 |
+| resc_c30t45_rcn @ 749 | 0 | 12 | 10 |
+
+Ball distance swept 6.5-10.5 cm (16 runs each): held 0 everywhere. What was ruled out, and what was found:
+
+- **The harness grasps fine.** T1 (seepick61, no picture box) on the plugged body holds 5 of 6. T2 (spx-b_1800, picture
+  box) holds 0 of 4 there.
+- **Ruled out: the start pose.** At the kneel's first tick the ball is on target (9.5 cm, -0.2 cm). Proprioception
+  matches training within its spread. The one difference is the last action slot, which carries the walk policy's
+  action (head_pitch 0.94) for one tick (training: 0).
+- **Ruled out: the body drifting under the ball.** It drifts about as in training: by phase 0.1, runtime +1.6 / +2.4 cm,
+  training p50 +1.3 / +1.1 cm, yaw p90 15 deg.
+- **The tilt guard is at the edge.** The kneel bows 46-56 deg, and training bows it 44 deg median, up to 53.
+- **Found: the camera.** With an ideal camera (fitted mount, no noise, bias, drops or stalls), the ball is visible in
+  only 2-3 of 116-140 frames, and still nothing holds. In training it is visible in about 40 % of frames at phase 0.1
+  (obs slot 60). The runtime's camera model loses the ball as soon as the bow starts, so the kneel bites blind.
+
+**Next:** find which camera is right for the robot: the training env's (`cmu_seeing_pix_env_cfg`) or the runtime sim's
+`PixCamera`, fitted to the U20CAM mount. Compare the two on the same head and trunk poses. Robot frames from a held
+bow would settle it. Until then the robot demo's kneel blocks stay locked (`cmu/pick_rise/EXPERIMENT-pickrise.md`).
+
 ## Files
 
 - tasks (`src/mjlab_microduck/tasks/__init__.py`, end): `KneelRise-DockFitC-Ball-<COND>-...-Current` (eval twins and
